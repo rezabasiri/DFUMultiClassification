@@ -67,7 +67,16 @@ def test_modality_combination(modalities, config):
         best_matching = pd.read_csv(best_matching_csv)
         print(f"  ✓ Loaded {len(best_matching)} samples")
 
-        # Step 2: Prepare datasets
+        # Step 2: Clear any existing cache files to avoid conflicts
+        import glob
+        for cache_file in glob.glob('tf_cache_*'):
+            try:
+                os.remove(cache_file)
+                print(f"  Removed old cache file: {cache_file}")
+            except:
+                pass
+
+        # Prepare datasets
         print(f"\n[2/5] Preparing datasets with {len(modalities)} modality(ies)...")
         train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights = \
             prepare_cached_datasets(

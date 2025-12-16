@@ -323,8 +323,18 @@ All 5 modalities supported in any combination:
 ## 2025-12-16 - Fixed Return Value Unpacking in test_modality_combinations.py
 
 ### Bug Fix
-- **test_modality_combinations.py**: Corrected unpacking of prepare_cached_datasets() return values (line 72)
+- **test_modality_combinations.py**: Corrected unpacking of prepare_cached_datasets() return values (line 81)
   - Error: `ValueError: not enough values to unpack (expected 7, got 6)`
   - prepare_cached_datasets() returns 6 values: train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights
   - Test script was expecting 7 values including train_data and val_data which are not returned
   - **Fix**: Updated to correctly unpack 6 values, including pre_aug_dataset
+
+## 2025-12-16 - Added Cache Clearing to test_modality_combinations.py
+
+### Bug Fix
+- **test_modality_combinations.py**: Added cache file clearing before each test (lines 70-77)
+  - Error: `Cannot batch tensors with different shapes in component 0. First element had shape [3] and element 3 had shape [64,64,3]`
+  - Root cause: Cached TensorFlow dataset files from previous runs with different modalities
+  - Cache files (tf_cache_train, tf_cache_valid) persist between runs and can cause shape mismatches
+  - **Fix**: Clear all tf_cache_* files before preparing datasets for each modality combination
+  - Ensures each test starts with fresh dataset cache matching current modalities
