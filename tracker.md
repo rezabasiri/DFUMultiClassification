@@ -142,3 +142,10 @@ This file tracks major changes made to the repository structure and files.
 - Epochs: 5 (quick testing)
 - Image size: 64x64 (reduces computation)
 - No augmentation (faster testing)
+
+## 2025-12-16 - Fixed Missing Import in dataset_utils.py
+
+### Bug Fix
+- **src/data/dataset_utils.py**: Added missing `import random` statement (line 7)
+  - Fixed NameError when running test_workflow.py
+  - The prepare_cached_datasets() function uses random.seed() for reproducibility
