@@ -229,3 +229,14 @@ This file tracks major changes made to the repository structure and files.
 - **test_workflow.py**: Pass image_size=64 from TEST_CONFIG (line 260)
   - Test uses 64x64 images for faster processing
   - Production default remains 128x128
+
+## 2025-12-16 - Made Distribution Strategy Optional in Model Builder
+
+### Enhancement
+- **src/models/builders.py**: Added optional `strategy` parameter to create_multimodal_model() (line 255)
+  - Previously assumed `strategy` variable existed in scope (from main.py)
+  - Now accepts optional strategy parameter (default: None)
+  - Uses strategy.scope() for multi-GPU training when provided
+  - Falls back to default scope for single-GPU/CPU scenarios
+  - Fixes NameError: "name 'strategy' is not defined" in test runs
+  - Maintains compatibility with production multi-GPU setup
