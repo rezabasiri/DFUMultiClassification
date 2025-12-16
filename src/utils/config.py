@@ -47,8 +47,12 @@ def get_data_paths(root=None):
     Returns:
         dict: Dictionary containing paths to different image modalities
     """
+    # Always get result_dir from get_project_paths
+    _, result_dir, default_root = get_project_paths()
+
+    # Use provided root or default
     if root is None:
-        _, result_dir, root = get_project_paths()
+        root = default_root
 
     return {
         'image_folder': os.path.join(root, "raw/Depth_RGB"),
