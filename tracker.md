@@ -341,3 +341,19 @@ All 5 modalities supported in any combination:
   - **Fix 3**: Delete pre_aug_dataset in addition to train/val datasets (line 163)
   - Cleanup: Remove cache directory after test completes (success or failure) via shutil.rmtree()
   - Ensures complete isolation between tests - no cache or session state conflicts possible
+
+## 2025-12-16 - Fixed TensorFlow Cache Filename Conflicts (ROOT CAUSE)
+
+### Bug Fix
+- **src/data/dataset_utils.py**: Made cache filenames unique per modality combination (lines 187-189)
+  - **ROOT CAUSE IDENTIFIED**: Cache filenames were always the same ('tf_cache_train' and 'tf_cache_valid') regardless of modalities
+  - Result: Test 1 (metadata) creates cache → Test 2 (depth_rgb) reuses the SAME cache file with wrong data!
+  - This caused: "Incompatible shapes: expected [?,64,64,3] but got [4,3]"
+  - Previous fixes (unique directories, session clearing) didn't work because cache FILENAMES within those directories were identical
+  - **Fix**: Include sorted modality names in cache filename via `modality_suffix = '_'.join(sorted(selected_modalities))`
+  - Examples:
+    - metadata only → `tf_cache_train_metadata`
+    - depth_rgb only → `tf_cache_train_depth_rgb`
+    - both together → `tf_cache_train_depth_rgb_metadata`
+  - Now each of the 31 modality combinations gets its own isolated cache files
+  - Prevents data corruption and shape mismatches between different modality tests
