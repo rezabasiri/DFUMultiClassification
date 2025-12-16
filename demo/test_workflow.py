@@ -21,6 +21,10 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
+from src.utils.demo_config import (
+    IMAGE_SIZE, BATCH_SIZE, N_EPOCHS, TRAIN_PATIENT_PERCENTAGE,
+    MAX_SPLIT_DIFF, LEARNING_RATE, FOCAL_LOSS_GAMMA
+)
 from src.data.image_processing import (
     create_best_matching_dataset,
     prepare_dataset
@@ -175,14 +179,15 @@ print("STEP 4: TEST CONFIGURATION")
 print("=" * 80)
 
 # Test with minimal computational requirements
+# Configuration values now imported from demo_config.py
 TEST_CONFIG = {
     'selected_modalities': ['metadata', 'depth_rgb'],  # Start with just 2 modalities
-    'batch_size': 4,  # Small batch size for limited memory
-    'n_epochs': 5,  # Few epochs for quick testing
-    'image_size': 64,  # Small image size
-    'train_patient_percentage': 0.67,  # 67% train (5 patients), 33% val (3 patients) for better phase distribution
+    'batch_size': BATCH_SIZE,  # From demo_config
+    'n_epochs': N_EPOCHS,  # From demo_config
+    'image_size': IMAGE_SIZE,  # From demo_config
+    'train_patient_percentage': TRAIN_PATIENT_PERCENTAGE,  # From demo_config
     'use_augmentation': False,  # Disable augmentation for faster testing
-    'max_split_diff': 0.3,  # Allow 30% class distribution difference for small test dataset (9 patients)
+    'max_split_diff': MAX_SPLIT_DIFF,  # From demo_config
 }
 
 print(f"\n⚙️ Test Configuration:")
@@ -367,18 +372,18 @@ print("=" * 80)
 
 print("\n⚙️ Compiling model...")
 try:
-    # Use simple loss for testing
-    loss_fn = get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.5, gamma=2.0, alpha=0.25)
+    # Use simple loss for testing - parameters from demo_config
+    loss_fn = get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.5, gamma=FOCAL_LOSS_GAMMA, alpha=0.25)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
         loss=loss_fn,
         metrics=['accuracy']
     )
 
     print(f"✓ Model compiled")
-    print(f"  Optimizer: Adam (lr=0.001)")
-    print(f"  Loss: Focal Ordinal Loss")
+    print(f"  Optimizer: Adam (lr={LEARNING_RATE})")
+    print(f"  Loss: Focal Ordinal Loss (gamma={FOCAL_LOSS_GAMMA})")
     print(f"  Metrics: accuracy")
 
 except Exception as e:

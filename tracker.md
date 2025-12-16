@@ -513,3 +513,40 @@ All 5 modalities supported in any combination:
 - Configurable verbosity for production vs. debugging
 - All values documented with explanations and typical ranges
 - No functional changes - all defaults kept the same
+
+## 2025-12-16 - Updated test_workflow.py to Use Centralized Configuration
+
+### Configuration Integration
+- **demo/test_workflow.py**: Updated to use demo_config.py for all configuration values
+  - Removed hard-coded `TEST_CONFIG` values
+  - Imports configuration from demo_config.py: `IMAGE_SIZE`, `BATCH_SIZE`, `N_EPOCHS`, `TRAIN_PATIENT_PERCENTAGE`, `MAX_SPLIT_DIFF`, `LEARNING_RATE`, `FOCAL_LOSS_GAMMA`
+  - All TEST_CONFIG dictionary values now reference imported constants
+  - Loss function parameters (gamma) now from config
+  - Optimizer learning rate now from config
+  - Dynamic print statements show actual config values
+
+### Hard-Coded Values Replaced
+- **batch_size**: 4 → `BATCH_SIZE` from demo_config
+- **n_epochs**: 5 → `N_EPOCHS` from demo_config (note: demo_config uses 3, so effective change)
+- **image_size**: 64 → `IMAGE_SIZE` from demo_config
+- **train_patient_percentage**: 0.67 → `TRAIN_PATIENT_PERCENTAGE` from demo_config
+- **max_split_diff**: 0.3 → `MAX_SPLIT_DIFF` from demo_config
+- **learning_rate**: 0.001 → `LEARNING_RATE` from demo_config (0.0001)
+- **gamma**: 2.0 → `FOCAL_LOSS_GAMMA` from demo_config
+
+### main.py Review
+- **Reviewed main.py** for hard-coded values that could be centralized
+- **Finding**: main.py is a production script with many hard-coded parameters:
+  - Training: image_size=64, global_batch_size=30, n_epochs=1000
+  - Gating: learning_rate=1e-3, batch_size=64, epochs=1000
+  - Search: max_tries=100, num_processes=3
+  - Hierarchical: learning_rate=1e-3, epochs=500, batch_size=32
+- **Recommendation**: These production values should be added to `src/utils/config.py` (not demo_config.py)
+- **Current Status**: main.py already imports from src/utils/config.py for some values
+- **Action Pending**: User decision on whether to create production_config.py or extend existing config.py
+
+### Benefits
+- test_workflow.py now fully aligned with demo configuration system
+- Single source of truth for all demo/test scripts
+- Easier to maintain consistent test environment
+- Changes to demo_config.py automatically propagate to all test scripts
