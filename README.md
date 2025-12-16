@@ -101,7 +101,18 @@ The `Healing Phase Abs` column contains three classes:
 1. Configure paths in `src/utils/config.py` for your environment
 2. Prepare data in the `data/raw/` directory
 3. Run training: `python src/main.py`
-4. For testing with demo data: `python test_workflow.py`
+
+## Demo & Testing
+
+The `demo/` directory contains test scripts to validate the pipeline:
+
+- **`demo/test_workflow.py`**: Basic end-to-end test with minimal data
+- **`demo/test_modality_combinations.py`**: Comprehensive test of all 31 modality combinations (1-5 modalities)
+  - Tests the dynamic modality system
+  - Generates performance analysis comparing all combinations
+  - Saves detailed results to `modality_test_results_*.txt`
+
+Run tests: `python demo/test_modality_combinations.py`
 
 ## Paper
 

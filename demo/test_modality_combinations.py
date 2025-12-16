@@ -142,10 +142,22 @@ def test_modality_combination(modalities, config):
 
         final_train_acc = history.history['accuracy'][-1]
         final_val_acc = history.history['val_accuracy'][-1]
+        final_train_loss = history.history['loss'][-1]
+        final_val_loss = history.history['val_loss'][-1]
 
         print(f"  ✓ Training completed")
         print(f"  ✓ Final train accuracy: {final_train_acc:.2%}")
         print(f"  ✓ Final val accuracy: {final_val_acc:.2%}")
+
+        # Prepare metrics to return
+        metrics = {
+            'train_acc': final_train_acc,
+            'val_acc': final_val_acc,
+            'train_loss': final_train_loss,
+            'val_loss': final_val_loss,
+            'modalities': modalities,
+            'success': True
+        }
 
         # Clean up
         del model
@@ -155,7 +167,7 @@ def test_modality_combination(modalities, config):
         tf.keras.backend.clear_session()
 
         print(f"\n✅ SUCCESS: {len(modalities)} modality combination works correctly!")
-        return True
+        return metrics
 
     except Exception as e:
         print(f"\n❌ FAILED: {len(modalities)} modality combination")
@@ -163,10 +175,19 @@ def test_modality_combination(modalities, config):
         import traceback
         traceback.print_exc()
 
-        return False
+        return {
+            'modalities': modalities,
+            'success': False,
+            'error': str(e)
+        }
 
 def main():
     """Run all modality combination tests"""
+    from datetime import datetime
+
+    # Create results file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_file = f"modality_test_results_{timestamp}.txt"
 
     print(f"\nBase configuration:")
     for key, value in BASE_CONFIG.items():
@@ -176,16 +197,39 @@ def main():
     for i, combo in enumerate(MODALITY_COMBINATIONS, 1):
         print(f"  {i}. {len(combo)} modality(ies): {', '.join(combo)}")
 
+    print(f"\nResults will be saved to: {results_file}")
+
     print("\n" + "=" * 80)
     print("Ready to start testing...")
     print("=" * 80)
 
-    results = {}
+    results = []
 
-    for combo in MODALITY_COMBINATIONS:
-        success = test_modality_combination(combo, BASE_CONFIG)
-        combo_key = f"{len(combo)}_modalities_{'-'.join(combo[:2])}"  # Shortened key
-        results[combo_key] = success
+    # Write header to file
+    with open(results_file, 'w') as f:
+        f.write("=" * 100 + "\n")
+        f.write("MODALITY COMBINATION TEST RESULTS\n")
+        f.write("=" * 100 + "\n")
+        f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Configuration: {BASE_CONFIG}\n")
+        f.write("=" * 100 + "\n\n")
+
+    for i, combo in enumerate(MODALITY_COMBINATIONS, 1):
+        metrics = test_modality_combination(combo, BASE_CONFIG)
+        results.append(metrics)
+
+        # Write result to file immediately
+        with open(results_file, 'a') as f:
+            f.write(f"\n[{i}/{len(MODALITY_COMBINATIONS)}] {', '.join(combo)}\n")
+            if metrics['success']:
+                f.write(f"  ✅ SUCCESS\n")
+                f.write(f"  Train Accuracy: {metrics['train_acc']:.4f}\n")
+                f.write(f"  Val Accuracy:   {metrics['val_acc']:.4f}\n")
+                f.write(f"  Train Loss:     {metrics['train_loss']:.4f}\n")
+                f.write(f"  Val Loss:       {metrics['val_loss']:.4f}\n")
+            else:
+                f.write(f"  ❌ FAILED: {metrics.get('error', 'Unknown error')}\n")
+            f.write("-" * 100 + "\n")
 
     # Print summary
     print("\n\n" + "=" * 80)
@@ -193,7 +237,7 @@ def main():
     print("=" * 80)
 
     total = len(results)
-    passed = sum(results.values())
+    passed = sum(1 for r in results if r['success'])
     failed = total - passed
 
     print(f"\nTotal tests: {total}")
@@ -203,18 +247,65 @@ def main():
     # Group results by number of modalities
     print("\nResults by modality count:")
     for num_mods in range(1, 6):
-        combos_at_level = [combo for combo in MODALITY_COMBINATIONS if len(combo) == num_mods]
-        results_at_level = [results[f"{len(combo)}_modalities_{'-'.join(combo[:2])}"]
-                           for combo in combos_at_level]
-        passed_at_level = sum(results_at_level)
-        total_at_level = len(results_at_level)
+        combos_at_level = [r for r in results if len(r['modalities']) == num_mods]
+        passed_at_level = sum(1 for r in combos_at_level if r['success'])
+        total_at_level = len(combos_at_level)
         print(f"  {num_mods} modality(ies): {passed_at_level}/{total_at_level} passed")
 
-    print("\nDetailed results:")
-    for i, (combo, result) in enumerate(zip(MODALITY_COMBINATIONS, results.values()), 1):
-        status = "✅ PASS" if result else "❌ FAIL"
-        combo_str = ', '.join(combo)
-        print(f"  {i:2d}. [{len(combo)} mod] {combo_str:65s} {status}")
+    # Performance Analysis
+    print("\n" + "=" * 80)
+    print("PERFORMANCE ANALYSIS")
+    print("=" * 80)
+
+    successful_results = [r for r in results if r['success']]
+
+    if successful_results:
+        # Overall statistics
+        avg_val_acc = sum(r['val_acc'] for r in successful_results) / len(successful_results)
+        avg_val_loss = sum(r['val_loss'] for r in successful_results) / len(successful_results)
+
+        print(f"\nOverall Performance ({len(successful_results)} successful tests):")
+        print(f"  Average Val Accuracy: {avg_val_acc:.4f}")
+        print(f"  Average Val Loss:     {avg_val_loss:.4f}")
+
+        # Best performers
+        print("\n📊 Top 5 Performers (by Validation Accuracy):")
+        sorted_by_acc = sorted(successful_results, key=lambda x: x['val_acc'], reverse=True)
+        for i, r in enumerate(sorted_by_acc[:5], 1):
+            combo_str = ', '.join(r['modalities'])
+            print(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} Val Acc: {r['val_acc']:.4f}, Val Loss: {r['val_loss']:.4f}")
+
+        # By modality count
+        print("\n📈 Performance by Modality Count:")
+        for num_mods in range(1, 6):
+            combos_at_level = [r for r in successful_results if len(r['modalities']) == num_mods]
+            if combos_at_level:
+                avg_acc = sum(r['val_acc'] for r in combos_at_level) / len(combos_at_level)
+                avg_loss = sum(r['val_loss'] for r in combos_at_level) / len(combos_at_level)
+                print(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg Val Loss = {avg_loss:.4f}")
+
+        # Write analysis to file
+        with open(results_file, 'a') as f:
+            f.write("\n\n" + "=" * 100 + "\n")
+            f.write("PERFORMANCE ANALYSIS\n")
+            f.write("=" * 100 + "\n\n")
+
+            f.write(f"Overall Performance ({len(successful_results)} successful tests):\n")
+            f.write(f"  Average Val Accuracy: {avg_val_acc:.4f}\n")
+            f.write(f"  Average Val Loss:     {avg_val_loss:.4f}\n\n")
+
+            f.write("Top 5 Performers (by Validation Accuracy):\n")
+            for i, r in enumerate(sorted_by_acc[:5], 1):
+                combo_str = ', '.join(r['modalities'])
+                f.write(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} Val Acc: {r['val_acc']:.4f}, Val Loss: {r['val_loss']:.4f}\n")
+
+            f.write("\nPerformance by Modality Count:\n")
+            for num_mods in range(1, 6):
+                combos_at_level = [r for r in successful_results if len(r['modalities']) == num_mods]
+                if combos_at_level:
+                    avg_acc = sum(r['val_acc'] for r in combos_at_level) / len(combos_at_level)
+                    avg_loss = sum(r['val_loss'] for r in combos_at_level) / len(combos_at_level)
+                    f.write(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg Val Loss = {avg_loss:.4f}\n")
 
     if failed == 0:
         print("\n🎉 ALL 31 TESTS PASSED! The refactored code successfully handles all modality combinations.")
@@ -222,6 +313,7 @@ def main():
     else:
         print(f"\n⚠️  {failed} test(s) failed. Review the errors above.")
 
+    print(f"\n📄 Detailed results saved to: {results_file}")
     print("\n" + "=" * 80)
 
 if __name__ == "__main__":
