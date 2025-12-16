@@ -357,3 +357,19 @@ All 5 modalities supported in any combination:
     - both together → `tf_cache_train_depth_rgb_metadata`
   - Now each of the 31 modality combinations gets its own isolated cache files
   - Prevents data corruption and shape mismatches between different modality tests
+
+## 2025-12-16 - Centralized TensorFlow Cache Files to results/tf_records
+
+### Enhancement
+- **src/data/dataset_utils.py**: Centralized cache directory to `results/tf_records` (lines 191-196)
+  - Previously: Cache files created in current directory or user-specified location
+  - Now: Default cache location is `results/tf_records/` (organized central location)
+  - Benefits:
+    - All TensorFlow cache files in one place for easy management
+    - Cleaner project root directory
+    - Simpler cleanup (just delete one directory)
+    - Works seamlessly with unique per-modality cache filenames
+  - Directory created automatically if it doesn't exist
+- **.gitignore**: Added `results/tf_records/` to ignore patterns (line 33)
+  - Prevents large cache files from being committed to version control
+  - Keeps repository size manageable
