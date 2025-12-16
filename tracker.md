@@ -206,3 +206,14 @@ This file tracks major changes made to the repository structure and files.
 - **test_workflow.py**: Added `max_split_diff: 0.3` to TEST_CONFIG (line 184)
   - Uses 30% threshold appropriate for 9-patient test dataset
   - Main training runs maintain stricter 10% default threshold
+
+## 2025-12-16 - Fixed Critical Data Split Loop Bug
+
+### Bug Fix
+- **src/data/dataset_utils.py**: Moved label conversion outside the split attempt loop (lines 284-287)
+  - **Critical bug**: Label conversion was inside the loop, causing data corruption
+  - First iteration: Converts 'I'→0, 'P'→1, 'R'→2 correctly
+  - Second+ iterations: Tries to map 0, 1, 2 again → produces NaN values
+  - Result: All iterations after first had NaN labels, so `best_split` remained None
+  - Caused "No valid split found with all classes present in both sets" error
+  - **Fix**: Convert labels once before the loop, not during each iteration

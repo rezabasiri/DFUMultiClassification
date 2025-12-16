@@ -281,6 +281,11 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     data = data.reset_index(drop=True)
     
     # Then in your splitting code:
+    # Convert labels once before the loop (not inside the loop!)
+    if 'Healing Phase Abs' in data.columns:
+        data['Healing Phase Abs'] = data['Healing Phase Abs'].astype(str)
+        data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
+
     max_retries = 2000
     best_split_diff = float('inf')
     best_split = None
@@ -292,11 +297,6 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         np.random.shuffle(patient_numbers)
         train_patients = patient_numbers[:n_train_patients]
         valid_patients = patient_numbers[n_train_patients:]
-        
-        # Convert labels
-        if 'Healing Phase Abs' in data.columns:
-            data['Healing Phase Abs'] = data['Healing Phase Abs'].astype(str)
-            data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
         
         # Split data
         train_data = data[data['Patient#'].isin(train_patients)]
