@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-CLASS_LABELS = ['I', 'P', 'R']
+from src.utils.config import CLASS_LABELS
 
 def track_misclassifications(y_true, y_pred, sample_ids, selected_modalities, result_dir):
     """

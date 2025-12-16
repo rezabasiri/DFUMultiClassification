@@ -33,13 +33,13 @@ import seaborn as sns
 import itertools
 import csv
 from PIL import Image
-from GenerativeAugmentationFunctions_V2 import (
+from src.data.generative_augmentation_v2 import (
     GenerativeAugmentationManager,
     GenerativeAugmentationCallback,
     create_enhanced_augmentation_fn,
     AugmentationConfig
 )
-from MisclassificationFunctions import filter_frequent_misclassifications, track_misclassifications
+from src.evaluation.metrics import filter_frequent_misclassifications, track_misclassifications
 import math
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
@@ -65,21 +65,11 @@ strategy = tf.distribute.MirroredStrategy()
 # strategy = tf.distribute.MirroredStrategy(["GPU:0"])
 # print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
-# Define paths
-if os.path.exists("/Volumes/Expansion/DFUCalgary"):
-    directory = "/Volumes/Expansion/DFUCalgary"  # For Mac
-    result_dir = directory  # For Mac
-elif os.path.exists("G:/DFUCalgary"):
-    directory = "G:/DFUCalgary"  # For Windows
-    result_dir = directory  # For Windows
-elif os.path.exists("/project/6086937/basirire/multimodal"):
-    directory = "/project/6086937/basirire/multimodal"  # Compute Canada
-    result_dir = "/scratch/basirire/multimodal//Phase_Specefic_Calssification_With_Generative_Augmentation/results_dir" # Compute Canada
-elif os.path.exists("C:/Users/90rez/OneDrive - University of Toronto/PhDUofT/ZivotData"):
-    directory = "C:/Users/90rez/OneDrive - University of Toronto/PhDUofT/ZivotData"  # For OneDrive
-    result_dir = os.path.join(directory, 'Codes/MultimodalClassification/Phase_Specefic_Calssification_With_Generative_Augmentation/results_dir')  # For OneDrive
-else:
-    print("No valid directory found!")
+# Define paths using centralized config
+from src.utils.config import get_project_paths, get_data_paths
+
+directory, result_dir, root = get_project_paths()
+data_paths = get_data_paths(root)
 
 os.environ["OMP_NUM_THREADS"] = "2"
 os.environ['TF_NUM_INTEROP_THREADS'] = '2'
@@ -94,14 +84,14 @@ tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
 ck_path = os.path.join(result_dir, "checkpoints")
 os.makedirs(ck_path, exist_ok=True)
 
-root = os.path.join(directory, "data")
-image_folder = os.path.join(root, "Depth_RGB")
-depth_folder = os.path.join(root, "Depth_Map_IMG")
-thermal_folder = os.path.join(root, "Thermal_Map_IMG")
-thermal_rgb_folder = os.path.join(root, "Thermal_RGB")
-csv_file = os.path.join(root, "DataMaster_Processed_V12_WithMissing.csv")
-depth_bb_file = os.path.join(root, "bounding_box_depth.csv")
-thermal_bb_file = os.path.join(root, "bounding_box_thermal.csv")
+# Get data folder paths from config
+image_folder = data_paths['image_folder']
+depth_folder = data_paths['depth_folder']
+thermal_folder = data_paths['thermal_folder']
+thermal_rgb_folder = data_paths['thermal_rgb_folder']
+csv_file = data_paths['csv_file']
+depth_bb_file = data_paths['bb_depth_csv']
+thermal_bb_file = data_paths['bb_thermal_csv']
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
