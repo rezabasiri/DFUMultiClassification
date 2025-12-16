@@ -69,7 +69,7 @@ def test_modality_combination(modalities, config):
 
         # Step 2: Prepare datasets
         print(f"\n[2/5] Preparing datasets with {len(modalities)} modality(ies)...")
-        train_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights, train_data, val_data = \
+        train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights = \
             prepare_cached_datasets(
                 best_matching,
                 selected_modalities=modalities,

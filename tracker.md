@@ -319,3 +319,12 @@ All 5 modalities supported in any combination:
   - **Fix**: Always call get_project_paths() to get result_dir (lines 50-55)
   - Now correctly points to: `result_dir/best_matching.csv` (e.g., `project_root/results/best_matching.csv`)
   - Fixes path resolution for both local repository structure and other environments
+
+## 2025-12-16 - Fixed Return Value Unpacking in test_modality_combinations.py
+
+### Bug Fix
+- **test_modality_combinations.py**: Corrected unpacking of prepare_cached_datasets() return values (line 72)
+  - Error: `ValueError: not enough values to unpack (expected 7, got 6)`
+  - prepare_cached_datasets() returns 6 values: train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights
+  - Test script was expecting 7 values including train_data and val_data which are not returned
+  - **Fix**: Updated to correctly unpack 6 values, including pre_aug_dataset
