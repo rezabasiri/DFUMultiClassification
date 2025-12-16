@@ -51,3 +51,16 @@ This file tracks major changes made to the repository structure and files.
 ### Missing Modules Noted
 - **GenerativeAugmentationFunctions_V2.py**: Referenced in src/main.py (commented out)
 - **GenerativeAugmentationFunctions_V1_3.py**: Referenced in src/data/caching.py (commented out)
+
+## 2025-12-16 - Added Generative Augmentation Modules
+
+### New Modules Added
+- **GenerativeAugmentationFunctions_V2.py → src/data/generative_augmentation_v2.py**: Added and moved generative augmentation module (V2)
+- **GenerativeAugmentationFunctions_V1_3.py → src/data/generative_augmentation_v1_3.py**: Added and moved generative augmentation module (V1.3)
+
+### Import Updates
+- **src/main.py**: Uncommented and updated import to use src.data.generative_augmentation_v2
+- **src/data/caching.py**: Uncommented and updated import to use src.data.generative_augmentation_v1_3
+
+### Documentation
+- **archive/README.md**: Updated to reflect that missing modules have been added
