@@ -333,9 +333,11 @@ All 5 modalities supported in any combination:
 
 ### Bug Fix
 - **test_modality_combinations.py**: Use unique temporary cache directory for each test (lines 53-54, 77)
-  - Error: `Cannot batch tensors with different shapes in component 0. First element had shape [3] and element 3 had shape [64,64,3]`
-  - Root cause: TensorFlow cache files from previous runs persist and cause shape mismatches when testing different modality combinations
+  - Error: `Incompatible shapes: expected [?,64,64,3] but got [4,3]`
+  - Root cause: TensorFlow cache files and session state from previous runs persist and cause shape mismatches
   - Initial fix attempt (glob.glob cache clearing) didn't work because cache files have multiple parts (.index, .data-*) in various locations
-  - **Final fix**: Use tempfile.mkdtemp() to create unique isolated cache directory for each combination
+  - **Fix 1**: Use tempfile.mkdtemp() to create unique isolated cache directory for each combination
+  - **Fix 2**: Clear TensorFlow session BEFORE each test (line 63) to clear internal state
+  - **Fix 3**: Delete pre_aug_dataset in addition to train/val datasets (line 163)
   - Cleanup: Remove cache directory after test completes (success or failure) via shutil.rmtree()
-  - Ensures complete isolation between tests - no cache file conflicts possible
+  - Ensures complete isolation between tests - no cache or session state conflicts possible
