@@ -175,9 +175,11 @@ This file tracks major changes made to the repository structure and files.
 ## 2025-12-16 - Fixed Missing Imports in dataset_utils.py
 
 ### Bug Fix
-- **src/data/dataset_utils.py**: Added missing sklearn imports (lines 13-14)
+- **src/data/dataset_utils.py**: Added missing sklearn imports (lines 13-15)
   - Added `from sklearn.impute import KNNImputer`
   - Added `from sklearn.preprocessing import StandardScaler`
-  - Fixed NameError when running test_workflow.py at preprocessing stage
-  - KNNImputer(n_neighbors=5) used for imputing missing metadata values
-  - StandardScaler() used for feature scaling in preprocess_split() function
+  - Added `from sklearn.metrics import confusion_matrix, classification_report`
+  - Fixed multiple NameErrors when running test_workflow.py
+  - KNNImputer(n_neighbors=5) used for imputing missing metadata values (line 619)
+  - StandardScaler() used for feature scaling in preprocess_split() (line 632)
+  - confusion_matrix and classification_report used for model evaluation (lines 1215, 1232)
