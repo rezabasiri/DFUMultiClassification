@@ -388,3 +388,32 @@ All 5 modalities supported in any combination:
   - Removed cleanup code for temporary directories
   - Now uses centralized `results/tf_records/` location
   - Result: All cache files properly organized in one location
+
+## 2025-12-16 - Created Demo Folder with Enhanced Modality Testing
+
+### New Directory and Enhanced Testing
+- **demo/**: Created dedicated directory for test scripts
+  - **demo/test_workflow.py**: Moved basic end-to-end test (no changes)
+  - **demo/test_modality_combinations.py**: Enhanced with performance tracking and analysis
+
+### Enhanced Performance Analysis Features
+- **test_modality_combinations.py**: Major enhancements for comprehensive performance tracking
+  - Returns metrics dictionary instead of boolean (train_acc, val_acc, train_loss, val_loss)
+  - Saves results to timestamped file `modality_test_results_*.txt`
+  - Updates results file in real-time as each test completes
+  - Prints performance analysis at the end:
+    - Overall average validation accuracy and loss
+    - Top 5 performers by validation accuracy
+    - Average performance grouped by modality count (1-5 modalities)
+  - Enables easy comparison of all 31 modality combinations
+  - Identifies which modality sets perform best for DFU classification
+
+### Configuration Updates
+- **.gitignore**: Added `modality_test_results_*.txt` pattern (line 37)
+  - Prevents test result files from being committed to version control
+
+### Documentation
+- **README.md**: Added "Demo & Testing" section (lines 105-115)
+  - Describes both test scripts and their purposes
+  - Explains the comprehensive modality testing capabilities
+  - Shows how to run tests and where results are saved
