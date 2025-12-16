@@ -1,0 +1,271 @@
+\documentclass[journal,twoside,web]{ieeecolor}
+\usepackage{generic}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{algorithm,algorithmic}
+\usepackage{hyperref}
+\hypersetup{hidelinks=true}
+\usepackage{textcomp}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\markboth{\hskip25pc IEEE JOURNAL OF BIOMEDICAL AND HEALTH INFORMATICS}
+{Basiri \MakeLowercase{\textit{et al.}}: Multimodal Healing Phase Classification of Diabetic Foot Ulcer}
+
+\begin{document}
+\title{Multimodal Healing Phase Classification of Diabetic Foot Ulcer Using Generative Adaptive Multimodal Attention Network}
+
+\author{Reza Basiri,~\IEEEmembership{Student Member,~IEEE,}
+        Milos R. Popovic,~\IEEEmembership{Fellow,~IEEE,}
+        and Shehroz S. Khan,~\IEEEmembership{Senior Member,~IEEE}
+\thanks{This work was supported in part by the Natural Sciences and Engineering Research Council of Canada and AGE-Well Network Centres of Excellence.}
+\thanks{R. Basiri (ORCID: 0000-0002-0209-6478) is with KITE – Toronto Rehabilitation Institute, University Health Network; the Institute of Biomedical Engineering, University of Toronto, Toronto, ON M5S 3G9, Canada (e-mail: reza.basiri@mail.utoronto.ca).}
+\thanks{M. R. Popovic (ORCID: 0000-0002-2837-2346) is with KITE – Toronto Rehabilitation Institute, University Health Network; the Institute of Biomedical Engineering, University of Toronto, Toronto, ON M5S 3G9 (e-mail: Milos.Popovic@uhn.ca).}
+\thanks{S. S. Khan (ORCID: 0000-0002-1195-4999) is with KITE – Toronto Rehabilitation Institute, University Health Network; the Institute of Biomedical Engineering, University of Toronto, Toronto, ON M5S 3G9, Canada; College of Engineering and Technology, American University of the Middle East, Kuwait (e-mail: Shehroz.Khan@uhn.ca).}}
+
+\maketitle
+
+\begin{abstract}
+Diabetic foot ulcer (DFU) healing phase classification remains challenging due to wound progression complexity and current assessment limitations. This paper introduces the Generative Adaptive Multimodal Attention Network (GAMAN), a novel deep learning architecture for multimodal DFU healing phase classification integrating clinical metadata, RGB imaging, thermal mapping, and depth sensing. GAMAN addresses automated wound assessment gaps through dynamic fusion mechanisms and cross-modality attention capturing temporal healing dynamics across inflammatory, proliferative, and remodeling phases. We validated GAMAN using the Zivot dataset comprising 1,700 unique data points from 268 patients. Phase-specific ensemble framework with adaptive attention mechanisms enhanced classification accuracy to 76\% representing 38\% improvement over the traditional single-modality approaches. Statistical analyses confirmed significant performance improvements across modality combinations (p \texttt{<} 0.05), with metadata demonstrating the highest attention weights. Generative augmentation through Stable Diffusion improved RGB classification by 6.4 percentage points. This multimodal framework enables objective, accessible wound assessment supporting phase-specific therapeutic interventions without laboratory diagnostics, advancing personalized diabetic foot care and reducing amputation risk.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Diabetic foot ulcer, multimodal classification, deep learning, attention mechanisms, wound healing, medical imaging, generative augmentation, clinical decision support
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{D}{iabetic} foot ulcers (DFUs) affect 6.3\% of the diabetic population globally, with only 50\% healing within one year despite optimal care~\cite{zhang2017global,ilonzo2018managing}. These complex wounds precede 85\% of diabetes-related amputations~\cite{bakker20052005} and consume 12-15\% of diabetes-allocated healthcare resources~\cite{venkat2005diabetes}. With anticipated 25\% increase in diabetes prevalence by 2030~\cite{saeedi2019global}, the disparity between DFU patients and specialized healthcare resources necessitates innovative assessment approaches.
+
+Current clinical assessment relies on established classification systems including University of Texas~\cite{armstrong1998validation}, Wagner~\cite{wagner1981dysvascular}, and WIfI~\cite{mills2014society} systems. While these excel in determining treatment urgency, they provide limited insight into dynamic cellular processes underlying tissue repair. Classification into inflammatory (I), proliferative (P), and remodeling (R) phases offers biological alignment with tissue repair processes, enabling phase-specific therapeutic interventions~\cite{rodrigues2019wound}.
+
+Phase-specific treatments demonstrate significant clinical value: anti-inflammatory agents during inflammatory phases~\cite{lobmann2005proteases,sharifiaghdam2022macrophages}, growth factor therapies during proliferative phases~\cite{bennett2003growth,chakraborty2022evolving}, and collagen modulators during remodeling phases~\cite{holmes2013collagen}. However, implementation remains challenging due to absence of accessible, objective assessment methods independent of laboratory diagnostics~\cite{schmidt2022diabetic,nanda2022machine}.
+
+Recent computational approaches show promise but remain limited. Single-modality systems demonstrate high accuracy in binary tasks—RGB-based methods achieve 93.4\% accuracy~\cite{goyal2020dfunet}, thermal imaging shows 87.5\% sensitivity for inflammatory detection~\cite{cruz2020deep}—yet fail to capture healing complexity of the other phases. Emerging multimodal approaches like DFU\_VIRNet achieve F1-scores of 0.96 for RGB-thermal classification~\cite{reyes2023dfu}, but focus on binary paradigms rather than clinically relevant multi-class healing phase characterization.
+
+Critical research gaps persist: (1) lack of systematic evidence for multimodal integration value in healing phase classification, (2) absence of comprehensive datasets preventing rigorous comparative analysis, and (3) limited frameworks addressing three-class temporal healing dynamics essential for clinical assessment.
+
+This paper introduces Generative Adaptive Multimodal Attention
+Network (GAMAN), addressing these limitations through: (1) dynamic late fusion mechanisms adjusting based on the available modalities, (2) hierarchical attention mechanisms for modality-specific and cross-modal feature weighting, (3) ensemble frameworks with adaptive phase weighting addressing class imbalance, and (4) generative augmentation techniques enhancing model robustness.
+
+Our contributions include: development of GAMAN architecture achieving 76\% accuracy in three-class healing phase classification without laboratory diagnostics; implementation of phase-specific generative augmentation using Stable Diffusion; comprehensive evaluation demonstrating 38\% improvement over single-modality approaches; and establishment of modality contribution hierarchy providing practical guidance for resource-adaptive clinical implementation.
+
+\section{Methods}
+
+\subsection{Experimental Framework and Ethical Approval}
+The Conjoint Health Research Ethics Board of the University of Calgary (\#21-1052) and Research Ethics Board of the University Health Network (\#21-5352) granted ethical approval for this multicenter research. Informed consent was obtained from all patients prior to data collection and participation in this study.
+
+Our comprehensive evaluation framework analyzes effectiveness of different DFU assessment modalities in wound healing phase classification. As illustrated in Fig.~\ref{fig:framework}, the pipeline assesses both single-modal and multimodal approaches, enabling direct comparison and reproducibility. The framework progressively combines modalities through fusion layers, processed through an ensemble framework using a gating network with adaptive attention mechanisms learning phase-dependent patterns.
+
+\begin{figure}[!t]
+\centerline{\includegraphics[width=\columnwidth]{framework_overview.png}}
+\caption{Experimental Framework Overview. The multimodal classification system shows fusion layer formation containing modality combinations, processed through ensemble framework using gating network for final classification.}
+\label{fig:framework}
+\end{figure}
+
+\subsection{Dataset and Preprocessing}
+The Zivot dataset~\cite{basiri2024protocol} was preprocessed to include wound assessments with all four modalities available, resulting in 1,700 unique modality combination data points from multiple pre- and post-debridement images. Class distribution comprised inflammatory (I: 24\%), proliferative (P: 57\%), and remodeling (R: 19\%) phases, reflecting natural clinical distributions.
+
+Metadata contains 65 raw and engineered features with 2.5\% average missing data, imputed using 5-nearest neighbors method. Treatment-related information was excluded to prevent healing phase data leakage \cite{basiri2024accessible}. For RGB, thermal, and depth images, preprocessing involved binary normalization, cropping using ulcer bounding box coordinates, and resizing to 64×64 pixels. To capture topological features of peri-ulcer regions, 30-pixel margins were added to bounding boxes for depth and thermal maps.
+
+Figure~\ref{fig:multimodal_input} shows representative examples of multimodal input data across healing phases, demonstrating distinct characteristics captured by each modality. Training (80\%) and test (20\%) datasets were divided according to unique patient numbers, ensuring class distributions remained within 10\% of each other.
+
+\begin{figure}[!t]
+\centerline{\includegraphics[width=\columnwidth]{multimodal_input_data.png}}
+\caption{Representative Examples of Multimodal Input Data. Visualization across modalities for each healing phase (Inflammatory: I, Proliferative: P, Remodeling: R), showing distinct characteristics captured by metadata, RGB images, depth maps, and thermal imaging. Metadata are processed through One-versus-Rest Random Forest setup.}
+\label{fig:multimodal_input}
+\end{figure}
+
+\subsection{GAMAN Architecture}
+
+\subsubsection{Modality-Specific Processing}
+Metadata processing employs dual Random Forest (RF) classification using One-versus-Rest approach, previously demonstrated as highest-performing for DFU healing phase classification~\cite{basiri2024accessible}.
+
+Using ordinal decomposition \cite{basiri2024accessible,frank2001simple}, two binary classifiers split the three-class problem: $clf_1$ predicts $P(\text{phase} > \text{I})$ and $clf_2$ predicts $P(\text{phase} = \text{R})$. Phase probabilities are:
+\begin{align}
+P_I &= 1 - p_1 \\
+P_P &= p_1 \cdot (1 - p_2) \\
+P_R &= p_2
+\end{align}
+where $p_1 = P(\text{phase} > \text{I})$ and $p_2 = P(\text{phase} = \text{R})$.
+
+
+RGB pathway leverages pre-trained EfficientNetB3~\cite{tan2019efficientnet} with frozen ImageNet \cite{deng2009imagenet} weights, previously established as optimal for DFU feature extraction~\cite{basiri2022domain}. Spatial maps (depth and thermal) are processed through dedicated convolutional neural networks with instance normalization and residual connections to maintain spatial information.
+
+\subsubsection{Dynamic Fusion and Attention Mechanisms}
+GAMAN employs dynamic late fusion preserving modality-specific characteristics throughout processing. Each modality processes through specialized branches, with features combined only at the final stages. Cross-modal attention mechanisms enable features from each modality to interact through query-key-value attention computations.
+
+The network trains using a focal ordinal loss that combines classification accuracy with ordinal relationship preservation:
+\begin{equation}
+\mathcal{L} = \alpha (1 - p)^{\gamma} [-y \log(p)] + \lambda (y' - \hat{y})^2
+\end{equation}
+where $p$ represents the predicted probability for the true class, $\gamma = 3.0$ is the focusing parameter, $\alpha$ represents class-specific weights (inversely proportional to class frequencies), $\lambda = 0.5$ is the ordinal weight, and $(y' - \hat{y})^2$ is the ordinal penalty term based on the squared difference between the true and predicted class indices. The $\gamma$ and $\lambda$ values were determined using a grid search and 20\% of the training set for validation.  
+
+
+\subsubsection{Phase-Specific Gating Network}
+The ensemble step employs specialized attention-based network processing predictions from various modality combinations. The architecture implements dual-level attention: (1) assessing relationships between modality combinations and (2) capturing healing phase interactions. The attention mechanism uses query-key-value framework with eight attention heads and key dimension of 16, enabling learning of multiple representational subspaces simultaneously.
+
+\subsubsection{Generative Augmentation}
+Generative augmentation uses optimized conditional Stable Diffusion v1.5~\cite{rombach2022high}, fine-tuned separately for each healing phase. The model uses CLIP text encoder with carefully crafted prompts encoding clinical characteristics:
+
+"Medical imaging: visible light photograph of diabetic foot ulcer in [phase name] phase, showing [phase characteristics]."
+
+Phase characteristics include: I: "redness, swelling, acute inflammation"; P: "granulation tissue formation, active wound healing"; R: "wound contraction, epithelialization, scar formation". During training, generative augmentation applies with 40\% probability to 10-40\% of batch images. Application was confined to RGB imagery due to measurement-based nature of thermal and depth modalities requiring preservation of spatial registration and biophysical constraints.
+
+Figure~\ref{fig:gaman_architecture} illustrates GAMAN's enhanced pathways. Block A represents early fusion accommodating flexible input configurations, while Block B implements late fusion with phase-specific weights when multiple Block A modules deploy simultaneously.
+
+\begin{figure}[!t]
+\centerline{\includegraphics[width=\columnwidth]{gaman_architecture.png}}
+\caption{GAMAN Architecture Schematic. Detailed diagram shows specialized processing pathways, fusion mechanisms, and phase-specific gating network integration. Block A accommodates flexible input configurations with automatic dimensional adjustments; multiple Block A with Block B configurations employ late fusion for enhanced phase-specific weighting.}
+\label{fig:gaman_architecture}
+\end{figure}
+
+\subsection{Evaluation Methodology}
+Evaluation employs five-fold cross-validation with patient-wise splitting, preventing data leakage. Performance assessment uses multiple complementary metrics: accuracy, F1-scores (individual and weighted average), receiver operating characteristic curves and Cohen's kappa coefficient \cite{powers2011evaluation,landis1977measurement}. Statistical analyses include one-way ANOVA comparing performance across modality groups, linear regression quantifying relationships between modality numbers and performance, and paired t-tests for focused comparisons \cite{student1908probable}. Significance established at p \texttt{<} 0.05. The synthetic image generation quality was evaluated using Fréchet Inception Distance (FID) \cite{heusel2017gans}.
+
+\section{Results}
+
+\subsection{Generative Augmentation Performance}
+Quantitative evaluation using FID showed generated images (Figure~\ref{fig:generated}) achieved scores of (2.14 ± 0.10) for inflammatory, (1.85 ± 0.17) for proliferative, and (2.10 ± 0.11) for remodeling phases, indicating high fidelity to real wound characteristics. Models trained with generative augmentation showed 6.4 percentage point accuracy improvements for RGB single modal compared to those without augmentation.
+
+\begin{figure}[!t]
+\centerline{\includegraphics[width=\columnwidth]{generated_images.png}}
+\caption{Generated DFU Images Using Stable Diffusion. Examples of synthetically generated DFU images across healing phases, demonstrating generative augmentation capability in producing clinically relevant training samples.}
+\label{fig:generated}
+\end{figure}
+
+\subsection{Single Modal and Multimodal Classification Results}
+Single-modal classification established important benchmarks. Metadata-only achieved weighted average F1-score of 0.53, while RGB, thermal, and depth modalities demonstrated F1-scores of 0.40, 0.25, and 0.35, respectively. ROC analysis revealed metadata achieving highest discrimination (AUC = 0.64 ± 0.12), followed by thermal (AUC = 0.59 ± 0.01), RGB (AUC = 0.57 ± 0.03), and depth (AUC = 0.52 ± 0.05) modalities.
+
+Figure~\ref{fig:phase_f1} shows phase-specific F1-scores across modality combinations. Despite class imbalance, thermal modality demonstrated superior inflammatory phase performance. Cohen's kappa values for single modalities averaged 0.12 ± 0.07.
+
+\begin{figure*}[!t]
+\centerline{\includegraphics[width=\textwidth]{phase_f1_scores.png}}
+\caption{Phase-Specific F1-Scores Across Modality Combinations. Comparative analysis highlighting relative performance of various fusion strategies across healing phases in 5-fold cross-validation.}
+\label{fig:phase_f1}
+\end{figure*}
+
+Hierarchical fusion demonstrated statistically significant improvements compared to unimodal approaches. One-way ANOVA revealed significant differences across modality groups (p = 0.002). Post-hoc analysis confirmed significant improvements between single and triple modality combinations (p = 0.004).
+
+Dual modalities improved mean accuracy by 9.7 percentage points over single modality baselines (55.3\% to 65.0\%). Triple modalities increased accuracy by additional 2.9 percentage points (67.9\%), while quaternary fusion achieved further 3.5 percentage points improvement (71.4\%). Linear regression confirmed significant positive relationship between modality numbers and performance (slope = 0.10, R² = 0.21, p = 0.002).
+
+The quaternary fusion framework achieved optimal performance with weighted F1-score of 0.69 ± 0.05 and Cohen's kappa of 0.39 ± 0.07, with ROC analysis showing strong discrimination (AUC = 0.74 ± 0.04).
+
+Figure~\ref{fig:performance_progression} illustrates performance improvement with modality integration, showing incremental gains in average F1-scores across validation.
+
+\begin{figure}[!t]
+\centerline{\includegraphics[width=\columnwidth]{performance_progression.png}}
+\caption{Performance Progression with Modality Integration. Analysis showing incremental gains in average F1-scores as additional modalities integrate into fusion framework across 5-fold cross-validation.}
+\label{fig:performance_progression}
+\end{figure}
+
+\subsection{Attention Weight Analysis}
+Analysis of modality contributions within quaternary fusion revealed distinct utilization patterns. Metadata pathway demonstrated highest mean attention weight (0.39 ± 0.06), highlighting its critical role due to patient-specific and wound-specific contextual information. Among imaging modalities, depth showed mean attention weight of 0.15 ± 0.09, followed by RGB (0.15 ± 0.09) and thermal (0.13 ± 0.09) modalities.
+
+Figure~\ref{fig:attention_dist} visualizes attention weight distributions across modalities. All imaging modalities exhibited consistent distributions without extreme values, emphasizing the model's ability to balance informative features effectively.
+
+\begin{figure}[!t]
+\centerline{\includegraphics[width=\columnwidth]{attention_distribution.png}}
+\caption{Late Fusion Attention Distributions. Violin plots showing attention weight distributions across modalities in late fusion framework, revealing relative importance with metadata contributing highest and imaging modalities contributing to difficult classification instances.}
+\label{fig:attention_dist}
+\end{figure}
+
+\subsection{Ensemble Framework Results}
+The ensemble approach with adaptive attention mechanisms achieved superior performance. Through grid search, combination of seven fixed fusion models in attention-based gating network resulted in highest accuracy values. Table~\ref{tab:comprehensive_results} presents comprehensive performance analysis across modality combinations.
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.3}
+\caption{Comprehensive Performance Analysis Across Modality Combinations}
+\label{tab:comprehensive_results}
+\centering
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Modality} & \multicolumn{3}{c|}{\textbf{F1 (\%)}} & \textbf{Accuracy} & \textbf{Cohen's} \\
+\textbf{Combination} & \textbf{I} & \textbf{P} & \textbf{R} & \textbf{±std (\%)} & \textbf{κ ±std (\%)} \\
+\hline
+Metadata & 26 & 59 & 35 & 55 ±19 & 14 ±15 \\
+RGB & 30 & 45 & 21 & 37 ±10 & 12 ±07 \\
+Thermal & 34 & 21 & 25 & 31 ±10 & 15 ±09 \\
+Depth & 17 & 41 & 15 & 40 ±23 & 03 ±03 \\
+\hline
+Meta + RGB + Thermal & 52 & 70 & 33 & 61 ±10 & 34 ±12 \\
+Meta + RGB + Depth & 49 & 75 & 32 & 68 ±07 & 31 ±10 \\
+Meta + Thermal + Depth & 49 & 66 & 32 & 58 ±09 & 25 ±08 \\
+\hline
+All Four Modalities & 53 & 80 & 34 & 71 ±05 & 39 ±07 \\
+\hline
+\textbf{Ensemble Approach} & \textbf{65} & \textbf{78} & \textbf{53} & \textbf{76 ±03} & \textbf{45 ±05} \\
+\hline
+\end{tabular}
+\end{table}
+
+The ensemble demonstrated superior performance with 21.2 percentage point improvement over best single modality and 5.5 percentage point improvement over quaternary fusion, achieving 76\% accuracy (Cohen's kappa = 0.45).
+
+Dual-level attention analysis as shown in Figure~\ref{fig:ensemble_attention} revealed unique patterns in modality contribution and phase classification dynamics. Inflammatory phase demonstrated robust self-attention patterns (0.40-0.45), while remodeling phase showed significant backward attention patterns (0.35-0.40), leveraging features from earlier phases and confirming temporal wound healing characteristics.
+
+\begin{figure}[!t]
+\centerline{\includegraphics[width=\columnwidth]{ensemble_attention.png}}
+\caption{Ensemble Approach Attention Scaling. Dual-level attention analysis showing: (A) model-level attention between source and target models, and (B) average class-level attention depicting healing phase influence. Notable patterns include elevated attention for imaging modality combinations, strong inflammatory self-attention, and significant remodeling backward attention patterns.}
+\label{fig:ensemble_attention}
+\end{figure}
+
+\section{Discussion}
+
+\subsection{Clinical Significance and Innovation}
+GAMAN represents a significant advancement in automated DFU assessment, achieving 76\% accuracy in healing phase classification without laboratory diagnostics. This performance approaches practical clinical decision support requirements while maintaining accessibility across diverse healthcare settings. The 21.2 percentage point (38\%) accuracy improvement over best single-modality approaches demonstrates substantial value of multimodal integration in capturing complex wound healing progression.
+
+The hierarchical fusion revealed optimal implementation strategy: metadata consistently demonstrated highest attention weights (0.39 ± 0.06), followed by imaging modalities (depth: 0.15 ± 0.09, RGB: 0.15 ± 0.09, thermal: 0.13 ± 0.09). This hierarchy provides evidence-based guidance for resource-adaptive clinical implementation, from basic electronic health record integration to comprehensive multimodal assessment systems.
+
+Attention mechanism analysis provided computational validation of established biological models. Inflammatory phase demonstrated strong self-attention patterns (0.40-0.45), while remodeling phase showed significant backward attention patterns (0.35-0.40), reflecting cumulative tissue reorganization processes dependent on earlier healing phase completion~\cite{rodrigues2019wound}.
+
+\subsection{Comparison with Existing Approaches}
+Direct comparison reveals novel contributions versus existing systems. While Al-Garaawi et al.~\cite{al2022diabetic} reported F1-scores of 0.95-0.99 for binary RGB-thermal classification, and Reyes-Luévano et al.~\cite{reyes2023dfu} achieved 0.96 for binary classification, these approaches don't address temporal healing complexity. Our three-class healing phase discrimination provides substantially higher clinical value, directly informing phase-specific therapeutic interventions.
+
+The quaternary fusion framework's robust inter-modality feature complementarity (weighted F1-score: 0.69) with ensemble enhancement (76\% accuracy) represents novel contribution to multimodal fusion strategies. Unlike existing approaches using static fusion, GAMAN's adaptive attention mechanisms learn phase-dependent patterns optimizing voting mechanisms dynamically.
+
+\subsection{Generative Augmentation and Technical Innovation}
+Implementation of generative augmentation addresses fundamental medical AI challenges. The 6.4 percentage point accuracy improvement aligns with emerging evidence supporting synthetic data augmentation~\cite{kebaili2023deep}. FID scores demonstrated preservation of phase-specific characteristics while introducing controlled variability essential for robust training.
+
+This represents among the first applications of diffusion-based synthetic image generation specifically for DFU classification, with important implications for broader medical imaging applications. The decision to limit augmentation to RGB imagery reflects important considerations regarding measurement-based nature of thermal and depth modalities.
+
+\subsection{Resource Adaptation and Implementation}
+GAMAN's dynamic modality adaptation enables effective implementation across diverse healthcare settings. In our previous work \cite{basiri2021reduction}, we demonstrated that a metadata-driven approach, utilizing a larger dataset size, achieves 69\% accuracy and provides fundamental triage capabilities. In this study, only those data points with all four modalities were included, thus resulting in a significantly smaller dataset size for metadata and the resulting 55\% accuracy. Following the observed increasing F1-score trend with the addition of modalities, the integration of depth imaging with metadata should be prioritized before adding other modalities. Sites that support all four modalities can implement a full GAMAN architecture, optimizing performance across all phases.
+
+\subsection{Limitations and Future Directions}
+Several limitations warrant acknowledgment. Class imbalance (I: 24\%, P: 57\%, R: 19\%), while reflecting clinical reality, presents analytical challenges potentially affecting generalizability. Single-site dataset limitation may not capture demographic diversity across healthcare systems, requiring multi-institutional validation.
+
+Imaging equipment requirements (approximately \$3,000-\$5,000 per unit) may represent barriers for primary care adoption, though costs are reasonable for specialized wound care centers. Each image preprocessing isolated single wound areas, limiting capability for simultaneous multiple ulceration analysis present in complex clinical scenarios.
+
+Future directions include longitudinal validation studies enabling healing trajectory prediction capability assessment, multi-site validation across diverse clinical settings, and clinician-in-the-loop studies evaluating optimal human-AI collaboration strategies. Technical advances could include expansion to additional imaging modalities and physics-informed generative models preserving measurement characteristics across modalities.
+
+\section{Conclusion}
+This paper introduces GAMAN, a novel deep learning architecture addressing critical gaps in multimodal DFU healing phase classification. Through investigation of fusion strategies and attention mechanisms, this work establishes quantitative evidence for the complementary value of integrating clinical metadata, RGB imaging, thermal mapping, and depth sensing in wound evaluation.
+
+Key contributions include: GAMAN architecture with dynamic fusion achieving 76\% accuracy in three-class healing phase classification; phase-specific generative augmentation improving RGB performance by 6.4 percentage points; comprehensive evaluation demonstrating 38\% improvement over single-modality approaches; and establishment of modality contribution hierarchy providing practical guidance for resource-adaptive implementation.
+
+Experimental validation on wound assessments from 268 patients demonstrates framework effectiveness across diverse clinical presentations. Statistical analyses confirmed significant performance improvements (p < 0.05), with ensemble approach achieving optimal performance through adaptive attention mechanisms capturing temporal wound healing characteristics.
+
+Clinical significance lies in potential to enhance treatment planning through accurate phase identification while maintaining adaptability across healthcare settings. The multimodal framework enables objective, accessible wound assessment supporting phase-specific therapeutic interventions without laboratory diagnostics, advancing personalized diabetic foot care and contributing to AI-assisted integration into routine medical practice for enhanced early intervention capabilities reducing diabetes-related complications.
+
+\section*{Data and Code Availability}
+The code used in this study is publicly available through the GitHub repository "DFUMultiClassification" at \url{https://github.com/rezabasiri/DFUMultiClassification}. The resulted model weights are also provided in this repository for deployment and evaluation on publicly available single modality datasets such as DFU2020 \cite{yap2021deep} or Plantar Thermogram Database \cite{hernandez2019plantar}. The four-modality training dataset cannot be shared publicly at this point because the release of data was not included in the ethics approval. While it is beneficial to enable public access to the Zivot dataset for additional validations and research, the modality analyses and provision of the GAMAN method with a detailed description of features collected from patients presented in previous works~\cite{basiri2024accessible,basiri2024protocol} stands as an independent contribution. We are actively working towards public dataset availability, navigating through challenges and dedicating substantial time and resources to make this possible. We plan to facilitate the release of the dataset to selected research institutes upon request after ethics amendment approvals.
+
+\section*{Acknowledgment}
+The authors thank the clinicians and staff at the Zivot Limb Preservation Centre for their invaluable support in data collection and clinical expertise. We acknowledge the patients who participated in this study and the technical support provided by the research teams at the University of Toronto, University Health Network and Alberta Health Services.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\vspace{-1.3cm}
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{author1.jpg}}]{Reza Basiri}
+(Student Member, IEEE) received the B.Sc. degree in biomedical engineering from the University of Calgary, Calgary, AB, Canada, in 2019, and is currently pursuing the Ph.D. degree with the Institute of Biomedical Engineering, University of Toronto, Toronto, ON, Canada. His research interests include medical image analysis, multimodal machine learning, and artificial intelligence applications in wound care and diabetic foot ulcer management.
+\end{IEEEbiography}
+\vspace{-1.55cm}
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{author2.jpg}}]{Milos R. Popovic}
+(Fellow, IEEE) received the Ph.D. degree in electrical engineering from McGill University, Montreal, QC, Canada, in 1993. He is currently a Professor and the Director of the Institute of Biomedical Engineering, University of Toronto, Toronto, ON, Canada, and Director of The KITE Research Institute. His research interests include functional electrical stimulation, neural engineering, and rehabilitation technologies. He has authored over 200 peer-reviewed publications and holds several patents in biomedical engineering.
+\end{IEEEbiography}
+\vspace{-1.55cm}
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{author3.jpg}}]{Shehroz S. Khan}
+(Senior Member, IEEE) received the Ph.D. degree in computer science from the University of Western Ontario, London, ON, Canada, in 2010. He is currently an Associate Professor with the Department of Electrical Engineering and Computer Science, York University, Toronto, ON, Canada, and a Scientist with KITE – Toronto Rehabilitation Institute, University Health Network. His research interests include machine learning, artificial intelligence, and data mining with applications in healthcare and cybersecurity.
+\end{IEEEbiography}
+
+\end{document}
