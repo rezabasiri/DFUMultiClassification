@@ -256,7 +256,8 @@ try:
         gen_manager=None,  # No generative augmentation for test
         aug_config=None,   # No augmentation config
         run=0,
-        max_split_diff=TEST_CONFIG['max_split_diff']  # Relaxed threshold for small test dataset
+        max_split_diff=TEST_CONFIG['max_split_diff'],  # Relaxed threshold for small test dataset
+        image_size=TEST_CONFIG['image_size']  # Use 64x64 for faster testing
     )
 
     # Unpack the returned values

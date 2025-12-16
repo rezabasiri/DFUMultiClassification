@@ -22,11 +22,11 @@ from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS
 directory, result_dir, root = get_project_paths()
 data_paths = get_data_paths(root)
 
-def create_cached_dataset(best_matching_df, selected_modalities, batch_size, 
-                         is_training=True, cache_dir=None, augmentation_fn=None):
+def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
+                         is_training=True, cache_dir=None, augmentation_fn=None, image_size=128):
     """
     Create a cached TF dataset optimized for training/validation with support for generative augmentation.
-    
+
     Args:
         best_matching_df: DataFrame with matching data
         selected_modalities: List of selected modalities
@@ -34,6 +34,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         is_training: Whether this is for training
         cache_dir: Directory for caching
         augmentation_fn: Custom augmentation function (including generative augmentations)
+        image_size: Target image size for preprocessing (default: 128)
     """
     def process_single_sample(filename, bb_coords, modality_name):
         """Process a single image sample using py_function"""
@@ -264,13 +265,14 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
     return True
 
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
-                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1):
+                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1, image_size=128):
     """
     Prepare cached datasets with proper metadata handling based on selected modalities.
 
     Args:
         max_split_diff: Maximum allowed class distribution difference between train/val (default 0.1)
                        Use higher values (e.g., 0.3) for small datasets with few patients
+        image_size: Target image size for preprocessing (default: 128)
     """
     random.seed(42 + run * (run + 3))
     tf.random.set_seed(42 + run * (run + 3))
@@ -784,7 +786,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         batch_size,
         is_training=True,
         cache_dir=result_dir,
-        augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None)
+        augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None,
+        image_size=image_size)
 
     valid_dataset, _, validation_steps = create_cached_dataset(
         valid_data,
@@ -792,7 +795,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         batch_size,
         is_training=False,
         cache_dir=result_dir,
-        augmentation_fn=None)
+        augmentation_fn=None,
+        image_size=image_size)
     
     return train_dataset, pre_aug_dataset, valid_dataset, steps_per_epoch, validation_steps, alpha_values
 class BatchVisualizationCallback(tf.keras.callbacks.Callback):
