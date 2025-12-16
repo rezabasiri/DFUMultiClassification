@@ -161,3 +161,13 @@ This file tracks major changes made to the repository structure and files.
   - Z/W: Zoomed/Wide view
   - Dataset file descriptions (DataMaster, best_matching, bounding boxes)
   - Healing phase label definitions (I, P, R)
+
+## 2025-12-16 - Fixed Data Split Issue in test_workflow.py
+
+### Bug Fix
+- **test_workflow.py**: Adjusted train/validation split ratio from 80/20 to 67/33
+  - Problem: With only 2 patients having Phase R samples (7, 256) out of 8 total
+  - 80/20 split (6 train, 2 val) had 54% chance both R patients end up in training
+  - This caused "Could not create valid data split" error (validation missing Phase R)
+  - Solution: 67/33 split (5 train, 3 val) gives 64% chance of R patient in validation
+  - Significantly improves odds of successful split with all three phases (I, P, R) in both sets
