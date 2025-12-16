@@ -23,10 +23,10 @@ print("=" * 80)
 print("\nTesting all modality combinations (1-5) to verify dynamic system works correctly")
 print("This test validates the refactored code maintains the original dynamic behavior\n")
 
-# Configuration for fast testing
+# Configuration for testing
 BASE_CONFIG = {
     'batch_size': 4,
-    'n_epochs': 2,  # Just 2 epochs to verify it runs
+    'n_epochs': 3,  # 3 epochs per combination
     'image_size': 64,
     'train_patient_percentage': 0.67,
     'max_split_diff': 0.3,  # Relaxed for small demo dataset
@@ -129,7 +129,7 @@ def test_modality_combination(modalities, config):
         )
         print("  ✓ Model compiled")
 
-        # Step 6: Quick training test
+        # Step 6: Training test
         print(f"\n[5/5] Running {config['n_epochs']} epoch(s) to verify training works...")
 
         history = model.fit(
@@ -138,7 +138,7 @@ def test_modality_combination(modalities, config):
             epochs=config['n_epochs'],
             steps_per_epoch=steps_per_epoch,
             validation_steps=validation_steps,
-            verbose=0  # Suppress detailed output
+            verbose=1  # Show training progress
         )
 
         final_train_acc = history.history['accuracy'][-1]
@@ -175,7 +175,9 @@ def main():
     for i, combo in enumerate(MODALITY_COMBINATIONS, 1):
         print(f"  {i}. {len(combo)} modality(ies): {', '.join(combo)}")
 
-    input("\n\nPress Enter to start testing...")
+    print("\n" + "=" * 80)
+    print("Ready to start testing...")
+    print("=" * 80)
 
     results = {}
 

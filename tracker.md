@@ -282,24 +282,24 @@ This file tracks major changes made to the repository structure and files.
   - **Fix**: Added `from src.data.image_processing import load_and_preprocess_image`
   - Allows image loading during dataset iteration
 
-## 2025-12-16 - Verified Dynamic Modality System (1-5 Modalities)
+## 2025-12-16 - Created Modality Combination Test Scripts
 
-### Analysis and Documentation
-- **MODALITY_ANALYSIS.md**: Created comprehensive analysis documenting dynamic modality support
-  - Verified src/models/builders.py handles all 1-5 modality combinations (lines 289-320)
-  - Confirmed data processing uses conditional checks for selected modalities
-  - Documented architecture scaling: 1 mod (direct), 2 mod (concat), 3 mod (1 layer), 4 mod (2 layers), 5 mod (3 layers)
-  - Validated refactored code preserves original main_original.py dynamic behavior
-  - **Status**: ✅ Dynamic modality system fully functional
+### Test Script Created
+- **test_modality_combinations.py**: Training test for all modality combinations
+  - Tests 7 different combinations: 1, 2, 3, 4, and 5 modality cases
+  - Runs 3 epochs per combination to verify training pipeline works end-to-end
+  - Configuration: batch_size=4, image_size=64, train/val split=67/33
+  - Validates dynamic modality system from original main_original.py is preserved
+  - Shows training progress with verbose=1 for visibility
 
-### Test Scripts Created
-- **test_modality_combinations.py**: Full training test for all modality combinations (requires environment setup)
-- **test_model_architectures.py**: Lightweight architecture build test for all combinations (no training)
-  - Tests 9 representative combinations: 1, 2, 3, 4, and 5 modality cases
-  - Verifies model can be built with correct input/output shapes
-  - Confirms parameter counts scale appropriately
+### Model Architecture Support
+Verified src/models/builders.py handles all 1-5 modality combinations (lines 289-320):
+- 1 modality: Direct output (no fusion)
+- 2 modalities: Concatenation → output
+- 3 modalities: Concat → Dense(32) → output
+- 4 modalities: Concat → Dense(64→32) → output
+- 5 modalities: Concat → Dense(128→64→32) → output
 
-### Modality Support Verified
 All 5 modalities supported in any combination:
 - **metadata**: Clinical data with RF probabilities (3 features)
 - **depth_rgb**: RGB images from depth camera
