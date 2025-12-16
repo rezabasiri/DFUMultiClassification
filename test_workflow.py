@@ -416,6 +416,8 @@ try:
         train_dataset,
         validation_data=val_dataset,
         epochs=TEST_CONFIG['n_epochs'],
+        steps_per_epoch=steps_per_epoch,
+        validation_steps=validation_steps,
         callbacks=callbacks,
         verbose=1
     )
