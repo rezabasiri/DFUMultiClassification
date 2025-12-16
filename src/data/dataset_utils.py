@@ -4,6 +4,7 @@ Functions for creating optimized, cached datasets for training and validation.
 """
 
 import os
+import random
 import pandas as pd
 import numpy as np
 import tensorflow as tf
