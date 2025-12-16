@@ -149,3 +149,12 @@ This file tracks major changes made to the repository structure and files.
 - **src/data/dataset_utils.py**: Added missing `import random` statement (line 7)
   - Fixed NameError when running test_workflow.py
   - The prepare_cached_datasets() function uses random.seed() for reproducibility
+
+## 2025-12-16 - Documented Image Filename Format and Data Structure
+
+### Documentation
+- **README.md**: Added comprehensive data structure section
+  - Image filename format: `{random}_P{patient:3d}{appt:2d}{dfu:1d}{codes}.png`
+  - Dataset file descriptions (DataMaster, best_matching, bounding boxes)
+  - Healing phase label definitions (I, P, R)
+  - Image code suffix explanations (A/B session, D/T modality, M/R/L view, W/Z zoom)
