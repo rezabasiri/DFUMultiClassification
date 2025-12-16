@@ -94,7 +94,7 @@ tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
 ck_path = os.path.join(result_dir, "checkpoints")
 os.makedirs(ck_path, exist_ok=True)
 
-root = os.path.join(directory, "Processed6")
+root = os.path.join(directory, "data")
 image_folder = os.path.join(root, "Depth_RGB")
 depth_folder = os.path.join(root, "Depth_Map_IMG")
 thermal_folder = os.path.join(root, "Thermal_Map_IMG")
