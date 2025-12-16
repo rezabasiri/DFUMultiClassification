@@ -186,9 +186,12 @@ def main():
     """Run all modality combination tests"""
     from datetime import datetime
 
-    # Create results file in project root
+    # Create results file in results/demo directory
+    results_demo_dir = os.path.join(project_root, "results", "demo")
+    os.makedirs(results_demo_dir, exist_ok=True)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_file = os.path.join(project_root, f"modality_test_results_{timestamp}.txt")
+    results_file = os.path.join(results_demo_dir, f"modality_test_results_{timestamp}.txt")
 
     print(f"\nBase configuration:")
     for key, value in BASE_CONFIG.items():

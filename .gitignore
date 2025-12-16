@@ -31,7 +31,5 @@ ENV/
 results/runs/
 results/checkpoints/
 results/tf_records/
+results/demo/
 *.log
-
-# Test results
-modality_test_results_*.txt
