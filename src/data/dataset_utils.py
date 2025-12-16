@@ -17,6 +17,7 @@ from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS
+from src.data.image_processing import load_and_preprocess_image
 
 # Get paths
 directory, result_dir, root = get_project_paths()
