@@ -309,7 +309,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             best_split = (train_data.copy(), valid_data.copy())
         
         # Check if split is valid
-        if check_split_validity(train_data, valid_data, max_ratio_diff=0.05):
+        if check_split_validity(train_data, valid_data, max_ratio_diff=0.3):
             print(f"Found valid split after {attempt + 1} attempts")
             print("\nFinal class distributions:")
             # Create ordered distributions

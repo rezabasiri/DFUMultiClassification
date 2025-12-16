@@ -194,3 +194,12 @@ This file tracks major changes made to the repository structure and files.
   - Jupyter: `.ipynb_checkpoints/`
   - Model outputs: `*.h5`, `*.hdf5`, `*.pkl`, `*.pickle`
   - Results/logs: `results/runs/`, `results/checkpoints/`, `*.log`
+
+## 2025-12-16 - Relaxed Data Split Validation Threshold
+
+### Bug Fix
+- **src/data/dataset_utils.py**: Changed max_ratio_diff from 0.05 to 0.3 in prepare_cached_datasets() (line 312)
+  - Problem: With 9 patients, achieving <5% class distribution difference is nearly impossible
+  - Example: Train I=46%, Val I=70% → 24% difference exceeds 5% threshold
+  - Solution: Increased threshold to 30% (matches function default) for small datasets
+  - This allows valid splits while still ensuring reasonable class balance
