@@ -187,11 +187,13 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     # Cache the dataset with unique filename per modality combination
     modality_suffix = '_'.join(sorted(selected_modalities))  # e.g., "depth_rgb_metadata"
     cache_filename = f'tf_cache_train_{modality_suffix}' if is_training else f'tf_cache_valid_{modality_suffix}'
-    if cache_dir:
-        os.makedirs(cache_dir, exist_ok=True)
-        dataset = dataset.cache(os.path.join(cache_dir, cache_filename))
-    else:
-        dataset = dataset.cache(cache_filename)
+
+    # Use results/tf_records as default cache directory
+    if cache_dir is None:
+        cache_dir = os.path.join(result_dir, 'tf_records')
+
+    os.makedirs(cache_dir, exist_ok=True)
+    dataset = dataset.cache(os.path.join(cache_dir, cache_filename))
     
     with tf.device('/CPU:0'):
         pre_aug_dataset = dataset
