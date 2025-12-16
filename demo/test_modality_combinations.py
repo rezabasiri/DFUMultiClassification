@@ -32,6 +32,8 @@ BASE_CONFIG = {
     'image_size': 64,
     'train_patient_percentage': 0.67,
     'max_split_diff': 0.3,  # Relaxed for small demo dataset
+    'use_cv': False,  # Set to True to enable cross-validation
+    'n_folds': 3,  # Number of CV folds (only used if use_cv=True)
 }
 
 # Define ALL possible modality combinations (31 total)
@@ -49,123 +51,162 @@ for r in range(1, len(ALL_MODALITIES) + 1):
 
 # Total: C(5,1) + C(5,2) + C(5,3) + C(5,4) + C(5,5) = 5 + 10 + 10 + 5 + 1 = 31 combinations
 
+def run_single_fold(modalities, config, fold_num=0, total_folds=1):
+    """Run a single training fold/run and return metrics"""
+    from sklearn.metrics import f1_score
+
+    # Load data
+    data_paths = get_data_paths()
+    best_matching_csv = data_paths['best_matching_csv']
+
+    if not os.path.exists(best_matching_csv):
+        raise FileNotFoundError(f"{best_matching_csv} not found!")
+
+    best_matching = pd.read_csv(best_matching_csv)
+
+    # Prepare datasets
+    train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights = \
+        prepare_cached_datasets(
+            best_matching,
+            selected_modalities=modalities,
+            train_patient_percentage=config['train_patient_percentage'],
+            batch_size=config['batch_size'],
+            cache_dir=None,
+            gen_manager=None,
+            aug_config=None,
+            run=fold_num,  # Use fold number as run seed for different splits
+            max_split_diff=config['max_split_diff'],
+            image_size=config['image_size']
+        )
+
+    # Determine input shapes
+    input_shapes = {}
+    for modality in modalities:
+        if modality == 'metadata':
+            input_shapes['metadata'] = (3,)
+        elif modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
+            input_shapes[modality] = (config['image_size'], config['image_size'], 3)
+
+    # Create and compile model
+    model = create_multimodal_model(
+        input_shapes=input_shapes,
+        selected_modalities=modalities,
+        class_weights=class_weights,
+        strategy=None
+    )
+
+    alpha = [class_weights[i] for i in range(len(class_weights))]
+    focal_loss_fn = get_focal_ordinal_loss(alpha=alpha, gamma=2.0)
+
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+        loss=focal_loss_fn,
+        metrics=['accuracy']
+    )
+
+    # Train
+    history = model.fit(
+        train_dataset,
+        validation_data=val_dataset,
+        epochs=config['n_epochs'],
+        steps_per_epoch=steps_per_epoch,
+        validation_steps=validation_steps,
+        verbose=0  # Quiet mode for CV
+    )
+
+    # Get final metrics
+    final_train_acc = history.history['accuracy'][-1]
+    final_val_acc = history.history['val_accuracy'][-1]
+    final_train_loss = history.history['loss'][-1]
+    final_val_loss = history.history['val_loss'][-1]
+
+    # Calculate F1 score on validation set
+    y_true = []
+    y_pred = []
+    for batch in val_dataset:
+        inputs, labels = batch
+        predictions = model.predict(inputs, verbose=0)
+        y_true.extend(np.argmax(labels.numpy(), axis=1))
+        y_pred.extend(np.argmax(predictions, axis=1))
+
+    val_f1_macro = f1_score(y_true, y_pred, average='macro')
+    val_f1_weighted = f1_score(y_true, y_pred, average='weighted')
+
+    # Clean up
+    del model, train_dataset, pre_aug_dataset, val_dataset
+    tf.keras.backend.clear_session()
+
+    return {
+        'train_acc': final_train_acc,
+        'val_acc': final_val_acc,
+        'train_loss': final_train_loss,
+        'val_loss': final_val_loss,
+        'val_f1_macro': val_f1_macro,
+        'val_f1_weighted': val_f1_weighted,
+    }
+
 def test_modality_combination(modalities, config):
-    """Test a specific modality combination"""
+    """Test a specific modality combination with optional cross-validation"""
     print("\n" + "=" * 80)
     print(f"Testing: {len(modalities)} modality(ies) - {', '.join(modalities)}")
+    if config['use_cv']:
+        print(f"Mode: {config['n_folds']}-Fold Cross-Validation")
+    else:
+        print(f"Mode: Single Run")
     print("=" * 80)
 
     # Clear TensorFlow session state BEFORE starting
     tf.keras.backend.clear_session()
 
     try:
-        # Step 1: Load data
-        print("\n[1/5] Loading data...")
-        data_paths = get_data_paths()
-        best_matching_csv = data_paths['best_matching_csv']
+        if config['use_cv']:
+            # Cross-validation mode
+            n_folds = config['n_folds']
+            print(f"\nRunning {n_folds}-fold cross-validation...")
 
-        if not os.path.exists(best_matching_csv):
-            print(f"❌ Error: {best_matching_csv} not found!")
-            return False
+            fold_results = []
+            for fold in range(n_folds):
+                print(f"\n  Fold {fold + 1}/{n_folds}...")
+                fold_metrics = run_single_fold(modalities, config, fold_num=fold, total_folds=n_folds)
+                fold_results.append(fold_metrics)
+                print(f"    ✓ Val Acc: {fold_metrics['val_acc']:.4f}, Val F1 (macro): {fold_metrics['val_f1_macro']:.4f}")
 
-        best_matching = pd.read_csv(best_matching_csv)
-        print(f"  ✓ Loaded {len(best_matching)} samples")
+            # Aggregate results across folds
+            metrics = {
+                'train_acc': np.mean([r['train_acc'] for r in fold_results]),
+                'val_acc': np.mean([r['val_acc'] for r in fold_results]),
+                'train_loss': np.mean([r['train_loss'] for r in fold_results]),
+                'val_loss': np.mean([r['val_loss'] for r in fold_results]),
+                'val_f1_macro': np.mean([r['val_f1_macro'] for r in fold_results]),
+                'val_f1_weighted': np.mean([r['val_f1_weighted'] for r in fold_results]),
+                'val_acc_std': np.std([r['val_acc'] for r in fold_results]),
+                'val_f1_macro_std': np.std([r['val_f1_macro'] for r in fold_results]),
+                'modalities': modalities,
+                'success': True,
+                'n_folds': n_folds
+            }
 
-        # Prepare datasets - uses default cache_dir (results/tf_records)
-        print(f"\n[2/5] Preparing datasets with {len(modalities)} modality(ies)...")
-        train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights = \
-            prepare_cached_datasets(
-                best_matching,
-                selected_modalities=modalities,
-                train_patient_percentage=config['train_patient_percentage'],
-                batch_size=config['batch_size'],
-                cache_dir=None,  # Use default centralized location: results/tf_records
-                gen_manager=None,
-                aug_config=None,
-                run=0,
-                max_split_diff=config['max_split_diff'],
-                image_size=config['image_size']
-            )
+            print(f"\n  Cross-validation Results (mean ± std):")
+            print(f"    Val Accuracy:     {metrics['val_acc']:.4f} ± {metrics['val_acc_std']:.4f}")
+            print(f"    Val F1 (macro):   {metrics['val_f1_macro']:.4f} ± {metrics['val_f1_macro_std']:.4f}")
+            print(f"    Val F1 (weighted): {metrics['val_f1_weighted']:.4f}")
 
-        print(f"  ✓ Train steps: {steps_per_epoch}, Val steps: {validation_steps}")
-        print(f"  ✓ Class weights: {class_weights}")
+        else:
+            # Single run mode
+            print(f"\nRunning single training run with {config['n_epochs']} epochs...")
+            fold_metrics = run_single_fold(modalities, config, fold_num=0, total_folds=1)
 
-        # Step 3: Determine input shapes
-        print("\n[3/5] Building model architecture...")
-        input_shapes = {}
+            metrics = {
+                **fold_metrics,
+                'modalities': modalities,
+                'success': True
+            }
 
-        for modality in modalities:
-            if modality == 'metadata':
-                # Metadata uses 3 RF probability features
-                input_shapes['metadata'] = (3,)
-                print(f"  ✓ {modality}: shape = (3,)")
-            elif modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
-                input_shapes[modality] = (config['image_size'], config['image_size'], 3)
-                print(f"  ✓ {modality}: shape = ({config['image_size']}, {config['image_size']}, 3)")
-
-        # Step 4: Create model
-        model = create_multimodal_model(
-            input_shapes=input_shapes,
-            selected_modalities=modalities,
-            class_weights=class_weights,
-            strategy=None  # Single GPU/CPU for testing
-        )
-
-        print(f"\n  Model Summary:")
-        print(f"  - Input modalities: {len(modalities)}")
-        print(f"  - Total parameters: {model.count_params():,}")
-        print(f"  - Trainable parameters: {sum([tf.size(w).numpy() for w in model.trainable_weights]):,}")
-
-        # Step 5: Compile and train (minimal)
-        print("\n[4/5] Compiling model...")
-
-        alpha = [class_weights[i] for i in range(len(class_weights))]
-        focal_loss_fn = get_focal_ordinal_loss(alpha=alpha, gamma=2.0)
-
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-            loss=focal_loss_fn,
-            metrics=['accuracy']
-        )
-        print("  ✓ Model compiled")
-
-        # Step 6: Training test
-        print(f"\n[5/5] Running {config['n_epochs']} epoch(s) to verify training works...")
-
-        history = model.fit(
-            train_dataset,
-            validation_data=val_dataset,
-            epochs=config['n_epochs'],
-            steps_per_epoch=steps_per_epoch,
-            validation_steps=validation_steps,
-            verbose=1  # Show training progress
-        )
-
-        final_train_acc = history.history['accuracy'][-1]
-        final_val_acc = history.history['val_accuracy'][-1]
-        final_train_loss = history.history['loss'][-1]
-        final_val_loss = history.history['val_loss'][-1]
-
-        print(f"  ✓ Training completed")
-        print(f"  ✓ Final train accuracy: {final_train_acc:.2%}")
-        print(f"  ✓ Final val accuracy: {final_val_acc:.2%}")
-
-        # Prepare metrics to return
-        metrics = {
-            'train_acc': final_train_acc,
-            'val_acc': final_val_acc,
-            'train_loss': final_train_loss,
-            'val_loss': final_val_loss,
-            'modalities': modalities,
-            'success': True
-        }
-
-        # Clean up
-        del model
-        del train_dataset
-        del pre_aug_dataset
-        del val_dataset
-        tf.keras.backend.clear_session()
+            print(f"\n  ✓ Training completed")
+            print(f"  ✓ Train Accuracy: {metrics['train_acc']:.4f}")
+            print(f"  ✓ Val Accuracy:   {metrics['val_acc']:.4f}")
+            print(f"  ✓ Val F1 (macro): {metrics['val_f1_macro']:.4f}")
+            print(f"  ✓ Val F1 (weighted): {metrics['val_f1_weighted']:.4f}")
 
         print(f"\n✅ SUCCESS: {len(modalities)} modality combination works correctly!")
         return metrics
@@ -227,10 +268,21 @@ def main():
             f.write(f"\n[{i}/{len(MODALITY_COMBINATIONS)}] {', '.join(combo)}\n")
             if metrics['success']:
                 f.write(f"  ✅ SUCCESS\n")
-                f.write(f"  Train Accuracy: {metrics['train_acc']:.4f}\n")
-                f.write(f"  Val Accuracy:   {metrics['val_acc']:.4f}\n")
-                f.write(f"  Train Loss:     {metrics['train_loss']:.4f}\n")
-                f.write(f"  Val Loss:       {metrics['val_loss']:.4f}\n")
+                if 'n_folds' in metrics:
+                    f.write(f"  Mode: {metrics['n_folds']}-Fold Cross-Validation\n")
+                    f.write(f"  Val Accuracy:     {metrics['val_acc']:.4f} ± {metrics.get('val_acc_std', 0):.4f}\n")
+                    f.write(f"  Val F1 (macro):   {metrics['val_f1_macro']:.4f} ± {metrics.get('val_f1_macro_std', 0):.4f}\n")
+                    f.write(f"  Val F1 (weighted): {metrics['val_f1_weighted']:.4f}\n")
+                    f.write(f"  Train Accuracy:   {metrics['train_acc']:.4f}\n")
+                    f.write(f"  Train Loss:       {metrics['train_loss']:.4f}\n")
+                    f.write(f"  Val Loss:         {metrics['val_loss']:.4f}\n")
+                else:
+                    f.write(f"  Train Accuracy:   {metrics['train_acc']:.4f}\n")
+                    f.write(f"  Val Accuracy:     {metrics['val_acc']:.4f}\n")
+                    f.write(f"  Val F1 (macro):   {metrics['val_f1_macro']:.4f}\n")
+                    f.write(f"  Val F1 (weighted): {metrics['val_f1_weighted']:.4f}\n")
+                    f.write(f"  Train Loss:       {metrics['train_loss']:.4f}\n")
+                    f.write(f"  Val Loss:         {metrics['val_loss']:.4f}\n")
             else:
                 f.write(f"  ❌ FAILED: {metrics.get('error', 'Unknown error')}\n")
             f.write("-" * 100 + "\n")
@@ -267,17 +319,22 @@ def main():
         # Overall statistics
         avg_val_acc = sum(r['val_acc'] for r in successful_results) / len(successful_results)
         avg_val_loss = sum(r['val_loss'] for r in successful_results) / len(successful_results)
+        avg_val_f1_macro = sum(r['val_f1_macro'] for r in successful_results) / len(successful_results)
+        avg_val_f1_weighted = sum(r['val_f1_weighted'] for r in successful_results) / len(successful_results)
 
         print(f"\nOverall Performance ({len(successful_results)} successful tests):")
-        print(f"  Average Val Accuracy: {avg_val_acc:.4f}")
-        print(f"  Average Val Loss:     {avg_val_loss:.4f}")
+        print(f"  Average Val Accuracy:     {avg_val_acc:.4f}")
+        print(f"  Average Val F1 (macro):   {avg_val_f1_macro:.4f}")
+        print(f"  Average Val F1 (weighted): {avg_val_f1_weighted:.4f}")
+        print(f"  Average Val Loss:         {avg_val_loss:.4f}")
 
-        # Best performers
-        print("\n📊 Top 5 Performers (by Validation Accuracy):")
-        sorted_by_acc = sorted(successful_results, key=lambda x: x['val_acc'], reverse=True)
-        for i, r in enumerate(sorted_by_acc[:5], 1):
+        # Best performers by F1 score
+        print("\n📊 Top 5 Performers (by Validation F1-macro):")
+        sorted_by_f1 = sorted(successful_results, key=lambda x: x['val_f1_macro'], reverse=True)
+        for i, r in enumerate(sorted_by_f1[:5], 1):
             combo_str = ', '.join(r['modalities'])
-            print(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} Val Acc: {r['val_acc']:.4f}, Val Loss: {r['val_loss']:.4f}")
+            std_str = f" ± {r.get('val_f1_macro_std', 0):.4f}" if 'n_folds' in r else ""
+            print(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} F1: {r['val_f1_macro']:.4f}{std_str}, Acc: {r['val_acc']:.4f}")
 
         # By modality count
         print("\n📈 Performance by Modality Count:")
@@ -285,8 +342,9 @@ def main():
             combos_at_level = [r for r in successful_results if len(r['modalities']) == num_mods]
             if combos_at_level:
                 avg_acc = sum(r['val_acc'] for r in combos_at_level) / len(combos_at_level)
+                avg_f1 = sum(r['val_f1_macro'] for r in combos_at_level) / len(combos_at_level)
                 avg_loss = sum(r['val_loss'] for r in combos_at_level) / len(combos_at_level)
-                print(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg Val Loss = {avg_loss:.4f}")
+                print(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg F1 = {avg_f1:.4f}, Avg Loss = {avg_loss:.4f}")
 
         # Write analysis to file
         with open(results_file, 'a') as f:
@@ -295,21 +353,25 @@ def main():
             f.write("=" * 100 + "\n\n")
 
             f.write(f"Overall Performance ({len(successful_results)} successful tests):\n")
-            f.write(f"  Average Val Accuracy: {avg_val_acc:.4f}\n")
-            f.write(f"  Average Val Loss:     {avg_val_loss:.4f}\n\n")
+            f.write(f"  Average Val Accuracy:     {avg_val_acc:.4f}\n")
+            f.write(f"  Average Val F1 (macro):   {avg_val_f1_macro:.4f}\n")
+            f.write(f"  Average Val F1 (weighted): {avg_val_f1_weighted:.4f}\n")
+            f.write(f"  Average Val Loss:         {avg_val_loss:.4f}\n\n")
 
-            f.write("Top 5 Performers (by Validation Accuracy):\n")
-            for i, r in enumerate(sorted_by_acc[:5], 1):
+            f.write("Top 5 Performers (by Validation F1-macro):\n")
+            for i, r in enumerate(sorted_by_f1[:5], 1):
                 combo_str = ', '.join(r['modalities'])
-                f.write(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} Val Acc: {r['val_acc']:.4f}, Val Loss: {r['val_loss']:.4f}\n")
+                std_str = f" ± {r.get('val_f1_macro_std', 0):.4f}" if 'n_folds' in r else ""
+                f.write(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} F1: {r['val_f1_macro']:.4f}{std_str}, Acc: {r['val_acc']:.4f}\n")
 
             f.write("\nPerformance by Modality Count:\n")
             for num_mods in range(1, 6):
                 combos_at_level = [r for r in successful_results if len(r['modalities']) == num_mods]
                 if combos_at_level:
                     avg_acc = sum(r['val_acc'] for r in combos_at_level) / len(combos_at_level)
+                    avg_f1 = sum(r['val_f1_macro'] for r in combos_at_level) / len(combos_at_level)
                     avg_loss = sum(r['val_loss'] for r in combos_at_level) / len(combos_at_level)
-                    f.write(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg Val Loss = {avg_loss:.4f}\n")
+                    f.write(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg F1 = {avg_f1:.4f}, Avg Loss = {avg_loss:.4f}\n")
 
     if failed == 0:
         print("\n🎉 ALL 31 TESTS PASSED! The refactored code successfully handles all modality combinations.")
