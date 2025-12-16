@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 from collections import Counter
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.impute import KNNImputer
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
