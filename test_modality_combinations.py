@@ -59,6 +59,9 @@ def test_modality_combination(modalities, config):
 
     cache_dir = None  # Initialize to None for cleanup
 
+    # Clear TensorFlow session state BEFORE starting
+    tf.keras.backend.clear_session()
+
     try:
         # Step 1: Load data
         print("\n[1/5] Loading data...")
@@ -157,6 +160,7 @@ def test_modality_combination(modalities, config):
         # Clean up
         del model
         del train_dataset
+        del pre_aug_dataset
         del val_dataset
         tf.keras.backend.clear_session()
 
