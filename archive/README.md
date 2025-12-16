@@ -4,15 +4,17 @@ This directory contains unused or extra code that may be needed for reference.
 
 ## Missing Modules
 
-The following modules are imported in the codebase but not present in the repository:
+~~No modules are currently missing.~~
 
-1. **GenerativeAugmentationFunctions_V2.py** - Referenced in `src/main.py`
+**Previously Missing (Now Added):**
+
+1. **GenerativeAugmentationFunctions_V2.py** - Now available at `src/data/generative_augmentation_v2.py`
    - Contains: GenerativeAugmentationManager, GenerativeAugmentationCallback, create_enhanced_augmentation_fn, AugmentationConfig
+   - Referenced in `src/main.py`
 
-2. **GenerativeAugmentationFunctions_V1_3.py** - Referenced in `src/data/caching.py`
+2. **GenerativeAugmentationFunctions_V1_3.py** - Now available at `src/data/generative_augmentation_v1_3.py`
    - Contains: create_enhanced_augmentation_fn
-
-These modules need to be added to the repository or the references need to be updated.
+   - Referenced in `src/data/caching.py`
 
 ## Notes
 

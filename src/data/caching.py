@@ -5,8 +5,7 @@ import tensorflow as tf
 from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
-# NOTE: GenerativeAugmentationFunctions_V1_3 module is not in repository - needs to be added
-# from GenerativeAugmentationFunctions_V1_3 import create_enhanced_augmentation_fn
+from src.data.generative_augmentation_v1_3 import create_enhanced_augmentation_fn
 from src.data.preprocessing import load_and_preprocess_image
 from src.utils.config import get_project_paths, get_data_paths
 

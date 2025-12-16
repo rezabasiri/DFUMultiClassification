@@ -33,13 +33,12 @@ import seaborn as sns
 import itertools
 import csv
 from PIL import Image
-# NOTE: GenerativeAugmentationFunctions_V2 module is not in repository - needs to be added
-# from GenerativeAugmentationFunctions_V2 import (
-#     GenerativeAugmentationManager,
-#     GenerativeAugmentationCallback,
-#     create_enhanced_augmentation_fn,
-#     AugmentationConfig
-# )
+from src.data.generative_augmentation_v2 import (
+    GenerativeAugmentationManager,
+    GenerativeAugmentationCallback,
+    create_enhanced_augmentation_fn,
+    AugmentationConfig
+)
 from src.evaluation.metrics import filter_frequent_misclassifications, track_misclassifications
 import math
 
