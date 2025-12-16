@@ -154,7 +154,10 @@ This file tracks major changes made to the repository structure and files.
 
 ### Documentation
 - **README.md**: Added comprehensive data structure section
-  - Image filename format: `{random}_P{patient:3d}{appt:2d}{dfu:1d}{codes}.png`
+  - Image filename format: `{random}_P{patient:3d}{appt:2d}{dfu:1d}{B/A}{D/T}{R/M/L}{Z/W}.png`
+  - B/A: Before/After debridement
+  - D/T: Depth/Thermal camera source
+  - R/M/L: Right/Middle/Left angle
+  - Z/W: Zoomed/Wide view
   - Dataset file descriptions (DataMaster, best_matching, bounding boxes)
   - Healing phase label definitions (I, P, R)
-  - Image code suffix explanations (A/B session, D/T modality, M/R/L view, W/Z zoom)
