@@ -179,7 +179,7 @@ TEST_CONFIG = {
     'batch_size': 4,  # Small batch size for limited memory
     'n_epochs': 5,  # Few epochs for quick testing
     'image_size': 64,  # Small image size
-    'train_patient_percentage': 0.8,
+    'train_patient_percentage': 0.67,  # 67% train (5 patients), 33% val (3 patients) for better phase distribution
     'use_augmentation': False,  # Disable augmentation for faster testing
 }
 
