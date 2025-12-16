@@ -316,14 +316,10 @@ try:
     input_shapes = {}
 
     if 'metadata' in TEST_CONFIG['selected_modalities']:
-        # Count metadata features
-        metadata_cols = [col for col in train_data.columns
-                        if col not in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
-                                     'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
-                                     'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax',
-                                     'Healing_Phase_cat', 'Patient#', 'Appt#', 'DFU#']]
-        input_shapes['metadata'] = (len(metadata_cols),)
-        print(f"  Metadata features: {len(metadata_cols)}")
+        # Metadata uses 3 Random Forest probability features (rf_prob_I, rf_prob_P, rf_prob_R)
+        # This is what the dataset actually provides (see dataset_utils.py line 133-137)
+        input_shapes['metadata'] = (3,)
+        print(f"  Metadata features: 3 (RF probabilities)")
 
     if 'depth_rgb' in TEST_CONFIG['selected_modalities']:
         input_shapes['depth_rgb'] = (TEST_CONFIG['image_size'], TEST_CONFIG['image_size'], 3)

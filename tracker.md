@@ -260,3 +260,14 @@ This file tracks major changes made to the repository structure and files.
   - steps_per_epoch and validation_steps already returned from prepare_cached_datasets()
   - **Fix**: Pass both parameters to model.fit() call
   - Allows training to complete successfully with proper epoch boundaries
+
+## 2025-12-16 - Fixed Metadata Input Shape Mismatch
+
+### Bug Fix
+- **test_workflow.py**: Corrected metadata input shape from 69 to 3 (lines 318-322)
+  - Error: "Input 1 of layer 'model' is incompatible: expected shape=(None, 69), found shape=(None, 3)"
+  - Problem: Code was counting all DataFrame columns (69) for metadata input shape
+  - Reality: Dataset only provides 3 metadata features (rf_prob_I, rf_prob_P, rf_prob_R)
+  - These are Random Forest probabilities, not raw metadata columns
+  - **Fix**: Set input_shapes['metadata'] = (3,) to match actual dataset output
+  - Verified against src/main_original.py which uses same 3-feature approach
