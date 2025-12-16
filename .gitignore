@@ -1,2 +1,33 @@
 .DS_Store
 **/.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model outputs
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# Results and logs
+results/runs/
+results/checkpoints/
+*.log
