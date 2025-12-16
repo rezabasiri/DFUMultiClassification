@@ -195,11 +195,14 @@ This file tracks major changes made to the repository structure and files.
   - Model outputs: `*.h5`, `*.hdf5`, `*.pkl`, `*.pickle`
   - Results/logs: `results/runs/`, `results/checkpoints/`, `*.log`
 
-## 2025-12-16 - Relaxed Data Split Validation Threshold
+## 2025-12-16 - Made Data Split Validation Threshold Configurable
 
-### Bug Fix
-- **src/data/dataset_utils.py**: Changed max_ratio_diff from 0.05 to 0.3 in prepare_cached_datasets() (line 312)
-  - Problem: With 9 patients, achieving <5% class distribution difference is nearly impossible
-  - Example: Train I=46%, Val I=70% → 24% difference exceeds 5% threshold
-  - Solution: Increased threshold to 30% (matches function default) for small datasets
-  - This allows valid splits while still ensuring reasonable class balance
+### Enhancement
+- **src/data/dataset_utils.py**: Added `max_split_diff` parameter to prepare_cached_datasets() (line 267)
+  - Previously hardcoded to 0.05 (5%), which is too strict for small datasets
+  - Now configurable with default of 0.1 (10%) for production runs
+  - Allows test runs to use relaxed threshold (0.3) for small patient counts
+  - Example issue: With 9 patients, Train I=46% vs Val I=70% → 24% difference exceeds 5%
+- **test_workflow.py**: Added `max_split_diff: 0.3` to TEST_CONFIG (line 184)
+  - Uses 30% threshold appropriate for 9-patient test dataset
+  - Main training runs maintain stricter 10% default threshold

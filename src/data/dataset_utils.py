@@ -264,9 +264,13 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
     return True
 
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
-                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0):
+                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1):
     """
     Prepare cached datasets with proper metadata handling based on selected modalities.
+
+    Args:
+        max_split_diff: Maximum allowed class distribution difference between train/val (default 0.1)
+                       Use higher values (e.g., 0.3) for small datasets with few patients
     """
     random.seed(42 + run * (run + 3))
     tf.random.set_seed(42 + run * (run + 3))
@@ -309,7 +313,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             best_split = (train_data.copy(), valid_data.copy())
         
         # Check if split is valid
-        if check_split_validity(train_data, valid_data, max_ratio_diff=0.3):
+        if check_split_validity(train_data, valid_data, max_ratio_diff=max_split_diff):
             print(f"Found valid split after {attempt + 1} attempts")
             print("\nFinal class distributions:")
             # Create ordered distributions

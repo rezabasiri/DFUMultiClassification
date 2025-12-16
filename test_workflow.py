@@ -181,6 +181,7 @@ TEST_CONFIG = {
     'image_size': 64,  # Small image size
     'train_patient_percentage': 0.67,  # 67% train (5 patients), 33% val (3 patients) for better phase distribution
     'use_augmentation': False,  # Disable augmentation for faster testing
+    'max_split_diff': 0.3,  # Allow 30% class distribution difference for small test dataset (9 patients)
 }
 
 print(f"\n⚙️ Test Configuration:")
@@ -254,7 +255,8 @@ try:
         cache_dir=None,  # Don't cache for test
         gen_manager=None,  # No generative augmentation for test
         aug_config=None,   # No augmentation config
-        run=0
+        run=0,
+        max_split_diff=TEST_CONFIG['max_split_diff']  # Relaxed threshold for small test dataset
     )
 
     # Unpack the returned values
