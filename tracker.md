@@ -271,3 +271,13 @@ This file tracks major changes made to the repository structure and files.
   - These are Random Forest probabilities, not raw metadata columns
   - **Fix**: Set input_shapes['metadata'] = (3,) to match actual dataset output
   - Verified against src/main_original.py which uses same 3-feature approach
+
+## 2025-12-16 - Added Missing Image Processing Import
+
+### Bug Fix
+- **src/data/dataset_utils.py**: Added import for load_and_preprocess_image (line 20)
+  - Error: NameError: "name 'load_and_preprocess_image' is not defined"
+  - Function exists in src.data.image_processing but wasn't imported
+  - Used in _process_image nested function (line 56) for loading/preprocessing images
+  - **Fix**: Added `from src.data.image_processing import load_and_preprocess_image`
+  - Allows image loading during dataset iteration
