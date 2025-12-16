@@ -18,9 +18,10 @@ from src.models.builders import create_multimodal_model
 from src.models.losses import get_focal_ordinal_loss
 
 print("=" * 80)
-print("MODALITY COMBINATION TEST")
+print("MODALITY COMBINATION TEST - ALL 31 COMBINATIONS")
 print("=" * 80)
-print("\nTesting all modality combinations (1-5) to verify dynamic system works correctly")
+print("\nTesting ALL possible modality combinations (1-5) to verify dynamic system works correctly")
+print("Total: 5 (1-mod) + 10 (2-mod) + 10 (3-mod) + 5 (4-mod) + 1 (5-mod) = 31 combinations")
 print("This test validates the refactored code maintains the original dynamic behavior\n")
 
 # Configuration for testing
@@ -32,25 +33,20 @@ BASE_CONFIG = {
     'max_split_diff': 0.3,  # Relaxed for small demo dataset
 }
 
-# Define all possible modality combinations to test
-MODALITY_COMBINATIONS = [
-    # 1 modality
-    ['metadata'],
-    ['depth_rgb'],
+# Define ALL possible modality combinations (31 total)
+from itertools import combinations
 
-    # 2 modalities (already tested, but include for completeness)
-    ['metadata', 'depth_rgb'],
+ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
 
-    # 3 modalities
-    ['metadata', 'depth_rgb', 'depth_map'],
-    ['metadata', 'depth_rgb', 'thermal_rgb'],
+# Generate all combinations: 1, 2, 3, 4, and 5 modalities
+MODALITY_COMBINATIONS = []
 
-    # 4 modalities
-    ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb'],
+# 1 modality: 5 combinations
+for r in range(1, len(ALL_MODALITIES) + 1):
+    for combo in combinations(ALL_MODALITIES, r):
+        MODALITY_COMBINATIONS.append(list(combo))
 
-    # 5 modalities (all)
-    ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'],
-]
+# Total: C(5,1) + C(5,2) + C(5,3) + C(5,4) + C(5,5) = 5 + 10 + 10 + 5 + 1 = 31 combinations
 
 def test_modality_combination(modalities, config):
     """Test a specific modality combination"""
@@ -199,14 +195,25 @@ def main():
     print(f"Passed: {passed} ✅")
     print(f"Failed: {failed} ❌")
 
+    # Group results by number of modalities
+    print("\nResults by modality count:")
+    for num_mods in range(1, 6):
+        combos_at_level = [combo for combo in MODALITY_COMBINATIONS if len(combo) == num_mods]
+        results_at_level = [results[f"{len(combo)}_modalities_{'-'.join(combo[:2])}"]
+                           for combo in combos_at_level]
+        passed_at_level = sum(results_at_level)
+        total_at_level = len(results_at_level)
+        print(f"  {num_mods} modality(ies): {passed_at_level}/{total_at_level} passed")
+
     print("\nDetailed results:")
     for i, (combo, result) in enumerate(zip(MODALITY_COMBINATIONS, results.values()), 1):
         status = "✅ PASS" if result else "❌ FAIL"
-        print(f"  {i}. {len(combo)} modalities ({', '.join(combo)}): {status}")
+        combo_str = ', '.join(combo)
+        print(f"  {i:2d}. [{len(combo)} mod] {combo_str:65s} {status}")
 
     if failed == 0:
-        print("\n🎉 ALL TESTS PASSED! The refactored code successfully handles all modality combinations.")
-        print("The dynamic modality system from the original code has been preserved.")
+        print("\n🎉 ALL 31 TESTS PASSED! The refactored code successfully handles all modality combinations.")
+        print("The dynamic modality system from the original code has been fully preserved.")
     else:
         print(f"\n⚠️  {failed} test(s) failed. Review the errors above.")
 

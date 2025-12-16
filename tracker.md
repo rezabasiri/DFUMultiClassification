@@ -282,15 +282,17 @@ This file tracks major changes made to the repository structure and files.
   - **Fix**: Added `from src.data.image_processing import load_and_preprocess_image`
   - Allows image loading during dataset iteration
 
-## 2025-12-16 - Created Modality Combination Test Scripts
+## 2025-12-16 - Created Modality Combination Test Script
 
 ### Test Script Created
-- **test_modality_combinations.py**: Training test for all modality combinations
-  - Tests 7 different combinations: 1, 2, 3, 4, and 5 modality cases
+- **test_modality_combinations.py**: Training test for ALL modality combinations
+  - Tests all 31 possible combinations: 5 (1-mod) + 10 (2-mod) + 10 (3-mod) + 5 (4-mod) + 1 (5-mod)
+  - Automatically generates combinations using itertools.combinations
   - Runs 3 epochs per combination to verify training pipeline works end-to-end
   - Configuration: batch_size=4, image_size=64, train/val split=67/33
   - Validates dynamic modality system from original main_original.py is preserved
   - Shows training progress with verbose=1 for visibility
+  - Provides grouped summary by modality count for easy analysis
 
 ### Model Architecture Support
 Verified src/models/builders.py handles all 1-5 modality combinations (lines 289-320):
