@@ -373,3 +373,18 @@ All 5 modalities supported in any combination:
 - **.gitignore**: Added `results/tf_records/` to ignore patterns (line 33)
   - Prevents large cache files from being committed to version control
   - Keeps repository size manageable
+
+## 2025-12-16 - Fixed Cache Directory Parameter Passing
+
+### Bug Fix
+- **src/data/dataset_utils.py**: Fixed prepare_cached_datasets to pass cache_dir parameter through (lines 798, 807)
+  - **Bug**: Was hardcoded to `cache_dir=result_dir` instead of passing the parameter through
+  - This caused cache files to be saved in `results/` instead of `results/tf_records/`
+  - **Fix**: Changed to `cache_dir=cache_dir` to respect the parameter value
+  - When cache_dir=None, create_cached_dataset now uses default `results/tf_records/`
+- **test_modality_combinations.py**: Simplified to use default cache directory
+  - Removed tempfile.mkdtemp() temporary directory creation
+  - Changed cache_dir parameter from tempfile path to None
+  - Removed cleanup code for temporary directories
+  - Now uses centralized `results/tf_records/` location
+  - Result: All cache files properly organized in one location
