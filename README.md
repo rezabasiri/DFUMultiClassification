@@ -63,7 +63,7 @@ pip install -r requirements.txt
 All image filenames follow a standardized format:
 
 ```
-{random_number}_P{patient#:3d}{appt#:2d}{dfu#:1d}{image_codes}.png
+{random_number}_P{patient#:3d}{appt#:2d}{dfu#:1d}{B/A}{D/T}{R/M/L}{Z/W}.png
 ```
 
 **Components:**
@@ -72,17 +72,15 @@ All image filenames follow a standardized format:
 - `patient#`: 3-digit patient number (e.g., 257, 087, 053)
 - `appt#`: 2-digit appointment number, starting from 00
 - `dfu#`: 1-digit DFU (wound) number, starting from 1
-- `image_codes`: Image type and view codes (e.g., ADMW, BDMZ, BTMZ, ATRW)
+- `B/A`: Debridement status - **B**efore or **A**fter debridement
+- `D/T`: Camera source - **D**epth camera or **T**hermal camera
+- `R/M/L`: Angle - **R**ight, **M**iddle, or **L**eft
+- `Z/W`: View type - **Z**oomed (close-up) or **W**ide angle
 
-**Example:**
-- `10_P257001ADMW.png` → Patient 257, Appointment 00, DFU 1, Depth RGB Medial Wide view
-- `14_P087031BDMZ.png` → Patient 87, Appointment 03, DFU 1, Depth RGB Close-up Zone view
-
-**Image Code Suffixes:**
-- `A`/`B`: Image acquisition session
-- `D`/`T`: Depth or Thermal modality
-- `M`/`R`/`L`: Medial, Right, or Left view
-- `W`/`Z`: Wide or Zoomed view
+**Examples:**
+- `10_P257001ADMW.png` → Patient 257, Appt 00, DFU 1, **A**fter debridement, **D**epth camera, **M**iddle angle, **W**ide view
+- `14_P087031BDMZ.png` → Patient 87, Appt 03, DFU 1, **B**efore debridement, **D**epth camera, **M**iddle angle, **Z**oomed view
+- `6_P219002ATMZ.png` → Patient 219, Appt 00, DFU 2, **A**fter debridement, **T**hermal camera, **M**iddle angle, **Z**oomed view
 
 ### Dataset Files
 
