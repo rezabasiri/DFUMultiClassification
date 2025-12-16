@@ -550,3 +550,71 @@ All 5 modalities supported in any combination:
 - Single source of truth for all demo/test scripts
 - Easier to maintain consistent test environment
 - Changes to demo_config.py automatically propagate to all test scripts
+
+## 2025-12-16 - Documented All Configurable Values in main.py
+
+### Documentation
+- **main_py_configurable_values.md**: Created comprehensive reference document
+  - Catalogued all hard-coded values in src/main.py that could be configurable
+  - Organized by category with line numbers for easy reference
+  - Includes 70+ configurable parameters across multiple categories
+
+### Categories Documented
+1. **Training Parameters** (lines 142-145)
+   - image_size, global_batch_size, batch_size, n_epochs
+
+2. **Loss Function Parameters** (lines 149-154)
+   - ordinal_weight, gamma, alpha values
+
+3. **Attention Visualization** (lines 250, 278-281)
+   - Visualization frequency, heatmap scale ranges
+
+4. **Attention Entropy Loss** (lines 608, 621-625, 643)
+   - epsilon, entropy weighting (0.7 model, 0.3 class), dynamic weight (0.2)
+
+5. **Learning Rate Scheduler** (lines 661-672, 710-712)
+   - initial_lr, min_lr, exploration_epochs, cycle_length, cycle_multiplier
+   - Patience threshold (5), decay factor (0.8)
+
+6. **Gating Network Training** (lines 726-836)
+   - Architecture: num_heads, key_dim
+   - Training: learning_rate (1e-3), epochs (1000), batch_size (64)
+   - Callbacks: ReduceLROnPlateau (factor=0.5, patience=5, min_lr=1e-9)
+   - Callbacks: EarlyStopping (patience=20, min_delta=2e-2)
+
+7. **Model Combination Search** (lines 971-1003)
+   - Manual exclusions, starting models, step size (20%)
+   - max_tries, num_processes (3)
+
+8. **Progress Saving** (lines 1105-1138)
+   - max_retries (6), retry_delay (0.4s)
+
+9. **Hierarchical Gating Network** (lines 1265-1432)
+   - Architecture: embedding_dim (32), num_heads (2), ff_dim (2x embedding)
+   - Training: learning_rate (1e-3), epochs (500), batch_size (32)
+   - Callbacks: patience (20), ReduceLROnPlateau (factor=0.5, patience=7)
+
+10. **Focal Loss for Gating** (lines 1328-1403)
+    - gamma (2.0 default, 3.0 used)
+
+11. **Cross-Validation** (lines 1344-1382)
+    - n_splits (3), patience (20), random_state (42)
+
+12. **Grid Search** (lines 1583-1590)
+    - Parameter grids for ordinal_weight, gamma, alpha
+
+13. **Environment Variables** (lines 111-116)
+    - OMP_NUM_THREADS (2), TF_NUM_INTEROP_THREADS (2)
+    - TF_NUM_INTRAOP_THREADS (4)
+
+### Priority Classification
+- **High Priority**: Core training parameters (image_size, batch_size, epochs, learning rates)
+- **Medium Priority**: Training details (schedulers, callbacks, patience values)
+- **Low Priority**: Fine-tuning parameters (attention weights, entropy factors)
+- **Infrastructure**: System parameters (threading, retries, parallelism)
+
+### Recommendation
+- Production config should go in `src/utils/config.py` (not demo_config.py)
+- main.py already imports from src/utils/config.py for some values
+- Document provides complete reference for future configuration work
+- User will decide later which parameters to move to config file
