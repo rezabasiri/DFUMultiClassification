@@ -1,0 +1,36 @@
+DFU Multi-Classification Workflow Test Results
+================================================================================
+
+Test Date: 2025-12-16 20:23:32
+
+Configuration:
+  selected_modalities: ['metadata', 'depth_rgb']
+  batch_size: 4
+  n_epochs: 5
+  image_size: 64
+  train_patient_percentage: 0.67
+  use_augmentation: False
+  max_split_diff: 0.3
+
+Data:
+  Total samples: 74
+  Train samples: 54
+  Val samples: 20
+
+Model:
+  Total parameters: 587,960
+
+Results:
+  Validation Loss: 2.2569
+  Validation Accuracy: 0.3143
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           I       0.41      0.65      0.50        17
+           P       0.00      0.00      0.00        15
+           R       0.00      0.00      0.00         3
+
+    accuracy                           0.31        35
+   macro avg       0.14      0.22      0.17        35
+weighted avg       0.20      0.31      0.24        35
