@@ -16,8 +16,9 @@ from datetime import datetime
 # Reduce TensorFlow verbosity
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# Import project modules
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add project root to path so we can import from src
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
 from src.data.image_processing import (
