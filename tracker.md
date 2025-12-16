@@ -308,3 +308,13 @@ All 5 modalities supported in any combination:
 - **depth_map**: Depth map images
 - **thermal_rgb**: RGB images from thermal camera
 - **thermal_map**: Thermal map images
+
+## 2025-12-16 - Fixed best_matching.csv Path in Config
+
+### Bug Fix
+- **src/utils/config.py**: Changed best_matching_csv path from data/processed/ to results/ (line 59)
+  - Error: File not found at `/data/processed/best_matching.csv`
+  - Reality: File is located in `results/best_matching.csv` directory
+  - Updated get_data_paths() to use result_dir instead of root for best_matching_csv
+  - Now correctly points to: `result_dir/best_matching.csv` (e.g., `project_root/results/best_matching.csv`)
+  - Fixes path resolution for both local repository structure and other environments
