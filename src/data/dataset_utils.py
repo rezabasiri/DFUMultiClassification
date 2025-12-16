@@ -12,6 +12,7 @@ from collections import Counter
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix, classification_report
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
