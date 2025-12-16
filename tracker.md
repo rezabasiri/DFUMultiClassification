@@ -217,3 +217,15 @@ This file tracks major changes made to the repository structure and files.
   - Result: All iterations after first had NaN labels, so `best_split` remained None
   - Caused "No valid split found with all classes present in both sets" error
   - **Fix**: Convert labels once before the loop, not during each iteration
+
+## 2025-12-16 - Added image_size Parameter to Dataset Functions
+
+### Enhancement
+- **src/data/dataset_utils.py**: Added `image_size` parameter to dataset creation functions
+  - Added to `create_cached_dataset()` function (line 26, default: 128)
+  - Added to `prepare_cached_datasets()` function (line 268, default: 128)
+  - Passed through to both train and validation dataset creation
+  - Fixes NameError: "name 'image_size' is not defined" in nested functions
+- **test_workflow.py**: Pass image_size=64 from TEST_CONFIG (line 260)
+  - Test uses 64x64 images for faster processing
+  - Production default remains 128x128
