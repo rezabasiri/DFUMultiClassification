@@ -48,7 +48,7 @@ def get_data_paths(root=None):
         dict: Dictionary containing paths to different image modalities
     """
     if root is None:
-        _, _, root = get_project_paths()
+        _, result_dir, root = get_project_paths()
 
     return {
         'image_folder': os.path.join(root, "raw/Depth_RGB"),
@@ -56,7 +56,7 @@ def get_data_paths(root=None):
         'thermal_folder': os.path.join(root, "raw/Thermal_Map_IMG"),
         'thermal_rgb_folder': os.path.join(root, "raw/Thermal_RGB"),
         'csv_file': os.path.join(root, "raw/DataMaster_Processed_V12_WithMissing.csv"),
-        'best_matching_csv': os.path.join(root, "processed/best_matching.csv"),
+        'best_matching_csv': os.path.join(result_dir, "best_matching.csv"),
         'bb_depth_csv': os.path.join(root, "raw/bounding_box_depth.csv"),
         'bb_thermal_csv': os.path.join(root, "raw/bounding_box_thermal.csv")
     }
