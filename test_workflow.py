@@ -141,11 +141,21 @@ try:
 
     print(f"✓ Best matching dataset: {len(best_matching_df)} samples")
 
-    if 'Healing_Phase_cat' in best_matching_df.columns:
-        phase_dist = best_matching_df['Healing_Phase_cat'].value_counts()
-        print(f"  Phase distribution:")
+    # Check for healing phase column (could be different names)
+    phase_col = None
+    for col_name in ['Healing_Phase_cat', 'Healing Phase Abs', 'Healing_Phase', 'Phase']:
+        if col_name in best_matching_df.columns:
+            phase_col = col_name
+            break
+
+    if phase_col:
+        phase_dist = best_matching_df[phase_col].value_counts()
+        print(f"  Phase distribution (column: {phase_col}):")
         for phase, count in phase_dist.items():
             print(f"    - {phase}: {count} samples ({count/len(best_matching_df)*100:.1f}%)")
+    else:
+        print(f"  ⚠ Warning: No healing phase column found in dataset")
+        print(f"  Available columns: {list(best_matching_df.columns[:10])}...")
 
     print(f"\n  Sample patient IDs: {best_matching_df['Patient#'].unique()[:5].tolist()}")
 
@@ -204,16 +214,25 @@ try:
     print(f"\n✓ Train samples: {len(train_data)}")
     print(f"✓ Val samples: {len(val_data)}")
 
-    if 'Healing_Phase_cat' in train_data.columns:
-        print(f"\n  Train phase distribution:")
-        train_dist = train_data['Healing_Phase_cat'].value_counts()
+    # Check for healing phase column
+    phase_col = None
+    for col_name in ['Healing_Phase_cat', 'Healing Phase Abs', 'Healing_Phase', 'Phase']:
+        if col_name in train_data.columns:
+            phase_col = col_name
+            break
+
+    if phase_col:
+        print(f"\n  Train phase distribution (column: {phase_col}):")
+        train_dist = train_data[phase_col].value_counts()
         for phase, count in train_dist.items():
             print(f"    - {phase}: {count} samples")
 
         print(f"\n  Val phase distribution:")
-        val_dist = val_data['Healing_Phase_cat'].value_counts()
+        val_dist = val_data[phase_col].value_counts()
         for phase, count in val_dist.items():
             print(f"    - {phase}: {count} samples")
+    else:
+        print(f"  ⚠ Warning: No healing phase column found")
 
 except Exception as e:
     print(f"✗ Error splitting data: {e}")
@@ -230,16 +249,46 @@ print("=" * 80)
 
 print("\n🔨 Creating TensorFlow datasets...")
 try:
-    train_dataset, val_dataset, class_weights = prepare_cached_datasets(
-        train_data,
+    # Note: We're passing the FULL dataset, the function will split it internally by patient
+    # This ensures proper patient-level splitting
+    datasets_output = prepare_cached_datasets(
+        best_matching_df,  # Pass full dataset, not pre-split train_data
         TEST_CONFIG['selected_modalities'],
         train_patient_percentage=TEST_CONFIG['train_patient_percentage'],
         batch_size=TEST_CONFIG['batch_size'],
         cache_dir=None,  # Don't cache for test
-        n_epochs=TEST_CONFIG['n_epochs'],
-        result_dir=result_dir,
-        augmentation_config=None  # No augmentation for test
+        gen_manager=None,  # No generative augmentation for test
+        aug_config=None,   # No augmentation config
+        run=0
     )
+
+    # Unpack the returned values
+    train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, alpha_values = datasets_output
+
+    # Compute class weights from best matching data
+    # Find the healing phase column
+    phase_col = None
+    for col_name in ['Healing Phase Abs', 'Healing_Phase_cat', 'Healing_Phase', 'Phase']:
+        if col_name in best_matching_df.columns:
+            phase_col = col_name
+            break
+
+    if phase_col:
+        from sklearn.utils.class_weight import compute_class_weight
+        # Convert to numeric if needed
+        if best_matching_df[phase_col].dtype == 'object':
+            phase_map = {'I': 0, 'P': 1, 'R': 2}
+            phase_values = best_matching_df[phase_col].map(phase_map)
+        else:
+            phase_values = best_matching_df[phase_col]
+
+        unique_classes = np.sort(phase_values.unique())
+        class_weights_array = compute_class_weight('balanced', classes=unique_classes,
+                                                    y=phase_values)
+        class_weights = dict(zip(unique_classes, class_weights_array))
+    else:
+        class_weights = {0: 1.0, 1: 1.0, 2: 1.0}
+        print(f"  ⚠ Warning: No phase column found, using balanced weights")
 
     print(f"✓ Train dataset created")
     print(f"✓ Validation dataset created")
