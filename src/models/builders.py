@@ -252,8 +252,20 @@ class MetadataConfidenceCallback(tf.keras.callbacks.Callback):
                 plt.ylabel('Average Confidence Score')
                 plt.savefig(os.path.join(self.log_dir, f'metadata_confidence_epoch_{epoch+1}.png'))
                 plt.close()
-def create_multimodal_model(input_shapes, selected_modalities, class_weights):
-    with strategy.scope():
+def create_multimodal_model(input_shapes, selected_modalities, class_weights, strategy=None):
+    """
+    Create multimodal model for DFU classification.
+
+    Args:
+        input_shapes: Dictionary of input shapes for each modality
+        selected_modalities: List of modalities to use
+        class_weights: Class weights for handling imbalance
+        strategy: Optional TensorFlow distribution strategy for multi-GPU training
+    """
+    # Use strategy scope if provided (multi-GPU), otherwise use default scope (single-GPU/CPU)
+    scope = strategy.scope() if strategy else tf.keras.utils.custom_object_scope({})
+
+    with scope:
         inputs = {}
         branches = []
         # Process each modality
