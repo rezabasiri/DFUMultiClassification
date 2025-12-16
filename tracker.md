@@ -183,3 +183,14 @@ This file tracks major changes made to the repository structure and files.
   - KNNImputer(n_neighbors=5) used for imputing missing metadata values (line 619)
   - StandardScaler() used for feature scaling in preprocess_split() (line 632)
   - confusion_matrix and classification_report used for model evaluation (lines 1215, 1232)
+
+## 2025-12-16 - Updated .gitignore with Python Ignores
+
+### Configuration Update
+- **.gitignore**: Added comprehensive Python-specific ignore patterns
+  - Python cache: `__pycache__/`, `*.py[cod]`, `*$py.class`, `*.so`
+  - Virtual environments: `venv/`, `env/`, `ENV/`
+  - IDE files: `.vscode/`, `.idea/`, swap files
+  - Jupyter: `.ipynb_checkpoints/`
+  - Model outputs: `*.h5`, `*.hdf5`, `*.pkl`, `*.pickle`
+  - Results/logs: `results/runs/`, `results/checkpoints/`, `*.log`
