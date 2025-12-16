@@ -172,9 +172,12 @@ This file tracks major changes made to the repository structure and files.
   - Solution: 67/33 split (5 train, 3 val) gives 64% chance of R patient in validation
   - Significantly improves odds of successful split with all three phases (I, P, R) in both sets
 
-## 2025-12-16 - Fixed Missing KNNImputer Import in dataset_utils.py
+## 2025-12-16 - Fixed Missing Imports in dataset_utils.py
 
 ### Bug Fix
-- **src/data/dataset_utils.py**: Added missing `from sklearn.impute import KNNImputer` import (line 13)
+- **src/data/dataset_utils.py**: Added missing sklearn imports (lines 13-14)
+  - Added `from sklearn.impute import KNNImputer`
+  - Added `from sklearn.preprocessing import StandardScaler`
   - Fixed NameError when running test_workflow.py at preprocessing stage
-  - The preprocess_split() function uses KNNImputer(n_neighbors=5) for imputing missing metadata values
+  - KNNImputer(n_neighbors=5) used for imputing missing metadata values
+  - StandardScaler() used for feature scaling in preprocess_split() function
