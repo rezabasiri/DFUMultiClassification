@@ -50,9 +50,14 @@ for r in range(1, len(ALL_MODALITIES) + 1):
 
 def test_modality_combination(modalities, config):
     """Test a specific modality combination"""
+    import shutil
+    import tempfile
+
     print("\n" + "=" * 80)
     print(f"Testing: {len(modalities)} modality(ies) - {', '.join(modalities)}")
     print("=" * 80)
+
+    cache_dir = None  # Initialize to None for cleanup
 
     try:
         # Step 1: Load data
@@ -67,14 +72,10 @@ def test_modality_combination(modalities, config):
         best_matching = pd.read_csv(best_matching_csv)
         print(f"  ✓ Loaded {len(best_matching)} samples")
 
-        # Step 2: Clear any existing cache files to avoid conflicts
-        import glob
-        for cache_file in glob.glob('tf_cache_*'):
-            try:
-                os.remove(cache_file)
-                print(f"  Removed old cache file: {cache_file}")
-            except:
-                pass
+        # Step 2: Create unique cache directory for this combination
+        # Create a unique cache directory for this modality combination
+        cache_dir = tempfile.mkdtemp(prefix='tf_cache_test_')
+        print(f"  Using cache directory: {cache_dir}")
 
         # Prepare datasets
         print(f"\n[2/5] Preparing datasets with {len(modalities)} modality(ies)...")
@@ -84,7 +85,7 @@ def test_modality_combination(modalities, config):
                 selected_modalities=modalities,
                 train_patient_percentage=config['train_patient_percentage'],
                 batch_size=config['batch_size'],
-                cache_dir=None,
+                cache_dir=cache_dir,
                 gen_manager=None,
                 aug_config=None,
                 run=0,
@@ -159,6 +160,11 @@ def test_modality_combination(modalities, config):
         del val_dataset
         tf.keras.backend.clear_session()
 
+        # Remove cache directory
+        if cache_dir and os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir)
+            print(f"  ✓ Cleaned up cache directory")
+
         print(f"\n✅ SUCCESS: {len(modalities)} modality combination works correctly!")
         return True
 
@@ -167,6 +173,15 @@ def test_modality_combination(modalities, config):
         print(f"Error: {str(e)}")
         import traceback
         traceback.print_exc()
+
+        # Clean up cache directory even on failure
+        if cache_dir and os.path.exists(cache_dir):
+            try:
+                shutil.rmtree(cache_dir)
+                print(f"  ✓ Cleaned up cache directory")
+            except:
+                pass
+
         return False
 
 def main():
