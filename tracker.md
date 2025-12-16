@@ -112,3 +112,12 @@ This file tracks major changes made to the repository structure and files.
 - **Easier Testing**: Individual modules can be tested independently
 - **Reduced Complexity**: Main script is now focused on orchestration rather than implementation
 - **No Functionality Lost**: All 84 original functions preserved across modules
+
+## 2025-12-16 - Added Environment Setup Files
+
+### New Files
+- **requirements.txt**: Python package dependencies for pip installation
+- **docs/SETUP.md**: Comprehensive environment setup and troubleshooting guide
+
+### Documentation Updates
+- **README.md**: Added installation section with virtual environment setup instructions
