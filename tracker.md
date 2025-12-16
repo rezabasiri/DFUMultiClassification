@@ -121,3 +121,24 @@ This file tracks major changes made to the repository structure and files.
 
 ### Documentation Updates
 - **README.md**: Added installation section with virtual environment setup instructions
+
+## 2025-12-16 - Added Test Workflow Script
+
+### New Files
+- **test_workflow.py**: Comprehensive test script for demo data with extensive debugging
+- **docs/TESTING.md**: Complete testing guide with troubleshooting
+
+### Features
+- Tests entire pipeline with minimal computational requirements (laptop-friendly)
+- Extensive debugging prints at each step (11 stages total)
+- Configurable test parameters (batch size, epochs, modalities, image size)
+- Validates data loading, preprocessing, model building, training, and evaluation
+- Saves detailed test results
+- Error handling with helpful traceback information
+
+### Test Configuration
+- Modalities: metadata + depth_rgb (expandable)
+- Batch size: 4 (adjustable for limited memory)
+- Epochs: 5 (quick testing)
+- Image size: 64x64 (reduces computation)
+- No augmentation (faster testing)
