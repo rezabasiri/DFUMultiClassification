@@ -37,10 +37,30 @@ DFUMultiClassification/
 └── archive/               # Archived/unused code
 ```
 
+## Installation
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/rezabasiri/DFUMultiClassification.git
+cd DFUMultiClassification
+```
+
+2. **Create and activate a virtual environment:**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
 ## Quick Start
 
 1. Configure paths in `src/utils/config.py` for your environment
-2. Run training: `python src/main.py`
+2. Prepare data in the `data/raw/` directory
+3. Run training: `python src/main.py`
 
 ## Paper
 
