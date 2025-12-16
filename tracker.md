@@ -250,3 +250,13 @@ This file tracks major changes made to the repository structure and files.
   - Caused NameError: "name 'image_folder' is not defined" during dataset iteration
   - **Fix**: Extract folder paths from data_paths at function start so they're in scope
   - Fixes image loading for all modalities (depth_rgb, depth_map, thermal_rgb, thermal_map)
+
+## 2025-12-16 - Added Missing Training Steps Parameters
+
+### Bug Fix
+- **test_workflow.py**: Added steps_per_epoch and validation_steps to model.fit() (lines 419-420)
+  - Error: "When providing an infinite dataset, you must specify the number of steps to run"
+  - Dataset uses .repeat() for infinite iteration but model.fit() needs step counts
+  - steps_per_epoch and validation_steps already returned from prepare_cached_datasets()
+  - **Fix**: Pass both parameters to model.fit() call
+  - Allows training to complete successfully with proper epoch boundaries
