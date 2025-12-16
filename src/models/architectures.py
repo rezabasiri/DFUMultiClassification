@@ -10,28 +10,16 @@ import numpy as np
 import pandas as pd
 
 
-random.seed(42)
-tf.random.set_seed(42)
-np.random.seed(42)
-os.environ['PYTHONHASHSEED'] = '42'
+from src.utils.config import get_project_paths, RANDOM_SEED
 
-# Define paths
-if os.path.exists("/Volumes/Expansion/DFUCalgary"):
-    directory = "/Volumes/Expansion/DFUCalgary"  # For Mac
-    result_dir = directory  # For Mac
-elif os.path.exists("G:/DFUCalgary"):
-    directory = "G:/DFUCalgary"  # For Windows
-    result_dir = directory  # For Windows
-elif os.path.exists("/project/6086937/basirire/multimodal"):
-    directory = "/project/6086937/basirire/multimodal"  # Compute Canada
-    result_dir = "/scratch/basirire/multimodal/" # Compute Canada
-elif os.path.exists("C:/Users/90rez/OneDrive - University of Toronto/PhDUofT/ZivotData"):
-    directory = "C:/Users/90rez/OneDrive - University of Toronto/PhDUofT/ZivotData"  # For OneDrive
-    result_dir = os.path.join(directory, 'Codes/MultimodalClassification/Phase_Specefic_Calssification_With_Generative_Augmentation/results_dir')  # For OneDrive
-else:
-    print("No valid directory found!")
+# Set random seeds
+random.seed(RANDOM_SEED)
+tf.random.set_seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# Get paths from centralized config
+directory, result_dir, root = get_project_paths()
 
 # Image processing parameters
 image_size = 128
