@@ -184,8 +184,9 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     steps = np.ceil(n_samples / batch_size)
     k = int(steps * batch_size)  # Total number of samples needed
     
-    # Cache the dataset
-    cache_filename = 'tf_cache_train' if is_training else 'tf_cache_valid'
+    # Cache the dataset with unique filename per modality combination
+    modality_suffix = '_'.join(sorted(selected_modalities))  # e.g., "depth_rgb_metadata"
+    cache_filename = f'tf_cache_train_{modality_suffix}' if is_training else f'tf_cache_valid_{modality_suffix}'
     if cache_dir:
         os.makedirs(cache_dir, exist_ok=True)
         dataset = dataset.cache(os.path.join(cache_dir, cache_filename))
