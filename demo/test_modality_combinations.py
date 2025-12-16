@@ -14,37 +14,30 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS, IMAGE_SIZE, RANDOM_SEED
+from src.utils.demo_config import get_demo_config, get_modality_config
 from src.data.dataset_utils import prepare_cached_datasets
 from src.models.builders import create_multimodal_model
 from src.models.losses import get_focal_ordinal_loss
 
+# Load configuration
+DEMO_CONFIG = get_demo_config()
+MODALITY_CONFIG = get_modality_config()
+
 print("=" * 80)
 print("MODALITY COMBINATION TEST - ALL 31 COMBINATIONS")
 print("=" * 80)
-print("\nTesting ALL possible modality combinations (1-5) to verify dynamic system works correctly")
-print("Total: 5 (1-mod) + 10 (2-mod) + 10 (3-mod) + 5 (4-mod) + 1 (5-mod) = 31 combinations")
-print("This test validates the refactored code maintains the original dynamic behavior\n")
-
-# Configuration for testing
-BASE_CONFIG = {
-    'batch_size': 4,
-    'n_epochs': 3,  # 3 epochs per combination
-    'image_size': 64,
-    'train_patient_percentage': 0.67,
-    'max_split_diff': 0.3,  # Relaxed for small demo dataset
-    'use_cv': True,  # Set to True to enable cross-validation
-    'n_folds': 3,  # Number of CV folds (only used if use_cv=True)
-}
+if DEMO_CONFIG['verbose_testing']:
+    print("\nTesting ALL possible modality combinations (1-5) to verify dynamic system works correctly")
+    print("Total: 5 (1-mod) + 10 (2-mod) + 10 (3-mod) + 5 (4-mod) + 1 (5-mod) = 31 combinations")
+    print("This test validates the refactored code maintains the original dynamic behavior\n")
 
 # Define ALL possible modality combinations (31 total)
 from itertools import combinations
 
-ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+ALL_MODALITIES = MODALITY_CONFIG['all_modalities']
 
 # Generate all combinations: 1, 2, 3, 4, and 5 modalities
 MODALITY_COMBINATIONS = []
-
-# 1 modality: 5 combinations
 for r in range(1, len(ALL_MODALITIES) + 1):
     for combo in combinations(ALL_MODALITIES, r):
         MODALITY_COMBINATIONS.append(list(combo))
@@ -96,10 +89,10 @@ def run_single_fold(modalities, config, fold_num=0, total_folds=1):
     )
 
     alpha = [class_weights[i] for i in range(len(class_weights))]
-    focal_loss_fn = get_focal_ordinal_loss(alpha=alpha, gamma=2.0)
+    focal_loss_fn = get_focal_ordinal_loss(alpha=alpha, gamma=config['focal_loss_gamma'])
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=config['learning_rate']),
         loss=focal_loss_fn,
         metrics=['accuracy']
     )
@@ -111,7 +104,7 @@ def run_single_fold(modalities, config, fold_num=0, total_folds=1):
         epochs=config['n_epochs'],
         steps_per_epoch=steps_per_epoch,
         validation_steps=validation_steps,
-        verbose=0  # Quiet mode for CV
+        verbose=config['verbose_training']
     )
 
     # Get final metrics
@@ -125,7 +118,7 @@ def run_single_fold(modalities, config, fold_num=0, total_folds=1):
     y_pred = []
     for batch in val_dataset:
         inputs, labels = batch
-        predictions = model.predict(inputs, verbose=0)
+        predictions = model.predict(inputs, verbose=config['verbose_predictions'])
         y_true.extend(np.argmax(labels.numpy(), axis=1))
         y_pred.extend(np.argmax(predictions, axis=1))
 
@@ -147,13 +140,14 @@ def run_single_fold(modalities, config, fold_num=0, total_folds=1):
 
 def test_modality_combination(modalities, config):
     """Test a specific modality combination with optional cross-validation"""
-    print("\n" + "=" * 80)
-    print(f"Testing: {len(modalities)} modality(ies) - {', '.join(modalities)}")
-    if config['use_cv']:
-        print(f"Mode: {config['n_folds']}-Fold Cross-Validation")
-    else:
-        print(f"Mode: Single Run")
-    print("=" * 80)
+    if config['verbose_testing']:
+        print("\n" + "=" * 80)
+        print(f"Testing: {len(modalities)} modality(ies) - {', '.join(modalities)}")
+        if config['use_cv']:
+            print(f"Mode: {config['n_folds']}-Fold Cross-Validation")
+        else:
+            print(f"Mode: Single Run")
+        print("=" * 80)
 
     # Clear TensorFlow session state BEFORE starting
     tf.keras.backend.clear_session()
@@ -162,14 +156,17 @@ def test_modality_combination(modalities, config):
         if config['use_cv']:
             # Cross-validation mode
             n_folds = config['n_folds']
-            print(f"\nRunning {n_folds}-fold cross-validation...")
+            if config['verbose_testing']:
+                print(f"\nRunning {n_folds}-fold cross-validation...")
 
             fold_results = []
             for fold in range(n_folds):
-                print(f"\n  Fold {fold + 1}/{n_folds}...")
+                if config['verbose_testing']:
+                    print(f"\n  Fold {fold + 1}/{n_folds}...")
                 fold_metrics = run_single_fold(modalities, config, fold_num=fold, total_folds=n_folds)
                 fold_results.append(fold_metrics)
-                print(f"    ✓ Val Acc: {fold_metrics['val_acc']:.4f}, Val F1 (macro): {fold_metrics['val_f1_macro']:.4f}")
+                if config['verbose_testing']:
+                    print(f"    ✓ Val Acc: {fold_metrics['val_acc']:.{config['metrics_precision']}f}, Val F1 (macro): {fold_metrics['val_f1_macro']:.{config['metrics_precision']}f}")
 
             # Aggregate results across folds
             metrics = {
@@ -186,14 +183,17 @@ def test_modality_combination(modalities, config):
                 'n_folds': n_folds
             }
 
-            print(f"\n  Cross-validation Results (mean ± std):")
-            print(f"    Val Accuracy:     {metrics['val_acc']:.4f} ± {metrics['val_acc_std']:.4f}")
-            print(f"    Val F1 (macro):   {metrics['val_f1_macro']:.4f} ± {metrics['val_f1_macro_std']:.4f}")
-            print(f"    Val F1 (weighted): {metrics['val_f1_weighted']:.4f}")
+            if config['verbose_testing']:
+                prec = config['metrics_precision']
+                print(f"\n  Cross-validation Results (mean ± std):")
+                print(f"    Val Accuracy:     {metrics['val_acc']:.{prec}f} ± {metrics['val_acc_std']:.{prec}f}")
+                print(f"    Val F1 (macro):   {metrics['val_f1_macro']:.{prec}f} ± {metrics['val_f1_macro_std']:.{prec}f}")
+                print(f"    Val F1 (weighted): {metrics['val_f1_weighted']:.{prec}f}")
 
         else:
             # Single run mode
-            print(f"\nRunning single training run with {config['n_epochs']} epochs...")
+            if config['verbose_testing']:
+                print(f"\nRunning single training run with {config['n_epochs']} epochs...")
             fold_metrics = run_single_fold(modalities, config, fold_num=0, total_folds=1)
 
             metrics = {
@@ -202,20 +202,24 @@ def test_modality_combination(modalities, config):
                 'success': True
             }
 
-            print(f"\n  ✓ Training completed")
-            print(f"  ✓ Train Accuracy: {metrics['train_acc']:.4f}")
-            print(f"  ✓ Val Accuracy:   {metrics['val_acc']:.4f}")
-            print(f"  ✓ Val F1 (macro): {metrics['val_f1_macro']:.4f}")
-            print(f"  ✓ Val F1 (weighted): {metrics['val_f1_weighted']:.4f}")
+            if config['verbose_testing']:
+                prec = config['metrics_precision']
+                print(f"\n  ✓ Training completed")
+                print(f"  ✓ Train Accuracy: {metrics['train_acc']:.{prec}f}")
+                print(f"  ✓ Val Accuracy:   {metrics['val_acc']:.{prec}f}")
+                print(f"  ✓ Val F1 (macro): {metrics['val_f1_macro']:.{prec}f}")
+                print(f"  ✓ Val F1 (weighted): {metrics['val_f1_weighted']:.{prec}f}")
 
-        print(f"\n✅ SUCCESS: {len(modalities)} modality combination works correctly!")
+        if config['verbose_testing']:
+            print(f"\n✅ SUCCESS: {len(modalities)} modality combination works correctly!")
         return metrics
 
     except Exception as e:
-        print(f"\n❌ FAILED: {len(modalities)} modality combination")
-        print(f"Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        if config['verbose_testing']:
+            print(f"\n❌ FAILED: {len(modalities)} modality combination")
+            print(f"Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
         return {
             'modalities': modalities,
@@ -226,27 +230,29 @@ def test_modality_combination(modalities, config):
 def main():
     """Run all modality combination tests"""
     from datetime import datetime
+    from src.utils.demo_config import RESULTS_DEMO_DIR, RESULTS_FILE_PREFIX, RESULTS_FILE_EXTENSION
 
     # Create results file in results/demo directory
-    results_demo_dir = os.path.join(project_root, "results", "demo")
+    results_demo_dir = os.path.join(project_root, RESULTS_DEMO_DIR)
     os.makedirs(results_demo_dir, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_file = os.path.join(results_demo_dir, f"modality_test_results_{timestamp}.txt")
+    results_file = os.path.join(results_demo_dir, f"{RESULTS_FILE_PREFIX}_{timestamp}{RESULTS_FILE_EXTENSION}")
 
-    print(f"\nBase configuration:")
-    for key, value in BASE_CONFIG.items():
-        print(f"  {key}: {value}")
+    if DEMO_CONFIG['verbose_testing']:
+        print(f"\nConfiguration:")
+        for key, value in DEMO_CONFIG.items():
+            print(f"  {key}: {value}")
 
-    print(f"\n\nWill test {len(MODALITY_COMBINATIONS)} different combinations:")
-    for i, combo in enumerate(MODALITY_COMBINATIONS, 1):
-        print(f"  {i}. {len(combo)} modality(ies): {', '.join(combo)}")
+        print(f"\n\nWill test {len(MODALITY_COMBINATIONS)} different combinations:")
+        for i, combo in enumerate(MODALITY_COMBINATIONS, 1):
+            print(f"  {i}. {len(combo)} modality(ies): {', '.join(combo)}")
 
-    print(f"\nResults will be saved to: {results_file}")
+        print(f"\nResults will be saved to: {results_file}")
 
-    print("\n" + "=" * 80)
-    print("Ready to start testing...")
-    print("=" * 80)
+        print("\n" + "=" * 80)
+        print("Ready to start testing...")
+        print("=" * 80)
 
     results = []
 
@@ -256,33 +262,34 @@ def main():
         f.write("MODALITY COMBINATION TEST RESULTS\n")
         f.write("=" * 100 + "\n")
         f.write(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"Configuration: {BASE_CONFIG}\n")
+        f.write(f"Configuration: {DEMO_CONFIG}\n")
         f.write("=" * 100 + "\n\n")
 
     for i, combo in enumerate(MODALITY_COMBINATIONS, 1):
-        metrics = test_modality_combination(combo, BASE_CONFIG)
+        metrics = test_modality_combination(combo, DEMO_CONFIG)
         results.append(metrics)
 
         # Write result to file immediately
+        prec = DEMO_CONFIG['metrics_precision']
         with open(results_file, 'a') as f:
             f.write(f"\n[{i}/{len(MODALITY_COMBINATIONS)}] {', '.join(combo)}\n")
             if metrics['success']:
                 f.write(f"  ✅ SUCCESS\n")
                 if 'n_folds' in metrics:
                     f.write(f"  Mode: {metrics['n_folds']}-Fold Cross-Validation\n")
-                    f.write(f"  Val Accuracy:     {metrics['val_acc']:.4f} ± {metrics.get('val_acc_std', 0):.4f}\n")
-                    f.write(f"  Val F1 (macro):   {metrics['val_f1_macro']:.4f} ± {metrics.get('val_f1_macro_std', 0):.4f}\n")
-                    f.write(f"  Val F1 (weighted): {metrics['val_f1_weighted']:.4f}\n")
-                    f.write(f"  Train Accuracy:   {metrics['train_acc']:.4f}\n")
-                    f.write(f"  Train Loss:       {metrics['train_loss']:.4f}\n")
-                    f.write(f"  Val Loss:         {metrics['val_loss']:.4f}\n")
+                    f.write(f"  Val Accuracy:     {metrics['val_acc']:.{prec}f} ± {metrics.get('val_acc_std', 0):.{prec}f}\n")
+                    f.write(f"  Val F1 (macro):   {metrics['val_f1_macro']:.{prec}f} ± {metrics.get('val_f1_macro_std', 0):.{prec}f}\n")
+                    f.write(f"  Val F1 (weighted): {metrics['val_f1_weighted']:.{prec}f}\n")
+                    f.write(f"  Train Accuracy:   {metrics['train_acc']:.{prec}f}\n")
+                    f.write(f"  Train Loss:       {metrics['train_loss']:.{prec}f}\n")
+                    f.write(f"  Val Loss:         {metrics['val_loss']:.{prec}f}\n")
                 else:
-                    f.write(f"  Train Accuracy:   {metrics['train_acc']:.4f}\n")
-                    f.write(f"  Val Accuracy:     {metrics['val_acc']:.4f}\n")
-                    f.write(f"  Val F1 (macro):   {metrics['val_f1_macro']:.4f}\n")
-                    f.write(f"  Val F1 (weighted): {metrics['val_f1_weighted']:.4f}\n")
-                    f.write(f"  Train Loss:       {metrics['train_loss']:.4f}\n")
-                    f.write(f"  Val Loss:         {metrics['val_loss']:.4f}\n")
+                    f.write(f"  Train Accuracy:   {metrics['train_acc']:.{prec}f}\n")
+                    f.write(f"  Val Accuracy:     {metrics['val_acc']:.{prec}f}\n")
+                    f.write(f"  Val F1 (macro):   {metrics['val_f1_macro']:.{prec}f}\n")
+                    f.write(f"  Val F1 (weighted): {metrics['val_f1_weighted']:.{prec}f}\n")
+                    f.write(f"  Train Loss:       {metrics['train_loss']:.{prec}f}\n")
+                    f.write(f"  Val Loss:         {metrics['val_loss']:.{prec}f}\n")
             else:
                 f.write(f"  ❌ FAILED: {metrics.get('error', 'Unknown error')}\n")
             f.write("-" * 100 + "\n")
@@ -316,6 +323,9 @@ def main():
     successful_results = [r for r in results if r['success']]
 
     if successful_results:
+        prec = DEMO_CONFIG['metrics_precision']
+        top_n = DEMO_CONFIG['top_n_performers']
+
         # Overall statistics
         avg_val_acc = sum(r['val_acc'] for r in successful_results) / len(successful_results)
         avg_val_loss = sum(r['val_loss'] for r in successful_results) / len(successful_results)
@@ -323,18 +333,18 @@ def main():
         avg_val_f1_weighted = sum(r['val_f1_weighted'] for r in successful_results) / len(successful_results)
 
         print(f"\nOverall Performance ({len(successful_results)} successful tests):")
-        print(f"  Average Val Accuracy:     {avg_val_acc:.4f}")
-        print(f"  Average Val F1 (macro):   {avg_val_f1_macro:.4f}")
-        print(f"  Average Val F1 (weighted): {avg_val_f1_weighted:.4f}")
-        print(f"  Average Val Loss:         {avg_val_loss:.4f}")
+        print(f"  Average Val Accuracy:     {avg_val_acc:.{prec}f}")
+        print(f"  Average Val F1 (macro):   {avg_val_f1_macro:.{prec}f}")
+        print(f"  Average Val F1 (weighted): {avg_val_f1_weighted:.{prec}f}")
+        print(f"  Average Val Loss:         {avg_val_loss:.{prec}f}")
 
         # Best performers by F1 score
-        print("\n📊 Top 5 Performers (by Validation F1-macro):")
+        print(f"\n📊 Top {top_n} Performers (by Validation F1-macro):")
         sorted_by_f1 = sorted(successful_results, key=lambda x: x['val_f1_macro'], reverse=True)
-        for i, r in enumerate(sorted_by_f1[:5], 1):
+        for i, r in enumerate(sorted_by_f1[:top_n], 1):
             combo_str = ', '.join(r['modalities'])
-            std_str = f" ± {r.get('val_f1_macro_std', 0):.4f}" if 'n_folds' in r else ""
-            print(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} F1: {r['val_f1_macro']:.4f}{std_str}, Acc: {r['val_acc']:.4f}")
+            std_str = f" ± {r.get('val_f1_macro_std', 0):.{prec}f}" if 'n_folds' in r else ""
+            print(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} F1: {r['val_f1_macro']:.{prec}f}{std_str}, Acc: {r['val_acc']:.{prec}f}")
 
         # By modality count
         print("\n📈 Performance by Modality Count:")
@@ -344,7 +354,7 @@ def main():
                 avg_acc = sum(r['val_acc'] for r in combos_at_level) / len(combos_at_level)
                 avg_f1 = sum(r['val_f1_macro'] for r in combos_at_level) / len(combos_at_level)
                 avg_loss = sum(r['val_loss'] for r in combos_at_level) / len(combos_at_level)
-                print(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg F1 = {avg_f1:.4f}, Avg Loss = {avg_loss:.4f}")
+                print(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.{prec}f}, Avg F1 = {avg_f1:.{prec}f}, Avg Loss = {avg_loss:.{prec}f}")
 
         # Write analysis to file
         with open(results_file, 'a') as f:
@@ -353,16 +363,16 @@ def main():
             f.write("=" * 100 + "\n\n")
 
             f.write(f"Overall Performance ({len(successful_results)} successful tests):\n")
-            f.write(f"  Average Val Accuracy:     {avg_val_acc:.4f}\n")
-            f.write(f"  Average Val F1 (macro):   {avg_val_f1_macro:.4f}\n")
-            f.write(f"  Average Val F1 (weighted): {avg_val_f1_weighted:.4f}\n")
-            f.write(f"  Average Val Loss:         {avg_val_loss:.4f}\n\n")
+            f.write(f"  Average Val Accuracy:     {avg_val_acc:.{prec}f}\n")
+            f.write(f"  Average Val F1 (macro):   {avg_val_f1_macro:.{prec}f}\n")
+            f.write(f"  Average Val F1 (weighted): {avg_val_f1_weighted:.{prec}f}\n")
+            f.write(f"  Average Val Loss:         {avg_val_loss:.{prec}f}\n\n")
 
-            f.write("Top 5 Performers (by Validation F1-macro):\n")
-            for i, r in enumerate(sorted_by_f1[:5], 1):
+            f.write(f"Top {top_n} Performers (by Validation F1-macro):\n")
+            for i, r in enumerate(sorted_by_f1[:top_n], 1):
                 combo_str = ', '.join(r['modalities'])
-                std_str = f" ± {r.get('val_f1_macro_std', 0):.4f}" if 'n_folds' in r else ""
-                f.write(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} F1: {r['val_f1_macro']:.4f}{std_str}, Acc: {r['val_acc']:.4f}\n")
+                std_str = f" ± {r.get('val_f1_macro_std', 0):.{prec}f}" if 'n_folds' in r else ""
+                f.write(f"  {i}. [{len(r['modalities'])} mod] {combo_str:50s} F1: {r['val_f1_macro']:.{prec}f}{std_str}, Acc: {r['val_acc']:.{prec}f}\n")
 
             f.write("\nPerformance by Modality Count:\n")
             for num_mods in range(1, 6):
@@ -371,7 +381,7 @@ def main():
                     avg_acc = sum(r['val_acc'] for r in combos_at_level) / len(combos_at_level)
                     avg_f1 = sum(r['val_f1_macro'] for r in combos_at_level) / len(combos_at_level)
                     avg_loss = sum(r['val_loss'] for r in combos_at_level) / len(combos_at_level)
-                    f.write(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.4f}, Avg F1 = {avg_f1:.4f}, Avg Loss = {avg_loss:.4f}\n")
+                    f.write(f"  {num_mods} modality(ies): Avg Val Acc = {avg_acc:.{prec}f}, Avg F1 = {avg_f1:.{prec}f}, Avg Loss = {avg_loss:.{prec}f}\n")
 
     if failed == 0:
         print("\n🎉 ALL 31 TESTS PASSED! The refactored code successfully handles all modality combinations.")
