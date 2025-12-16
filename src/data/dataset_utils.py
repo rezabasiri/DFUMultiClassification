@@ -795,7 +795,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         selected_modalities,
         batch_size,
         is_training=True,
-        cache_dir=result_dir,
+        cache_dir=cache_dir,  # Pass through the cache_dir parameter
         augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None,
         image_size=image_size)
 
@@ -804,7 +804,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         selected_modalities,
         batch_size,
         is_training=False,
-        cache_dir=result_dir,
+        cache_dir=cache_dir,  # Pass through the cache_dir parameter
         augmentation_fn=None,
         image_size=image_size)
     
