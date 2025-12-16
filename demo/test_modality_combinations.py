@@ -32,7 +32,7 @@ BASE_CONFIG = {
     'image_size': 64,
     'train_patient_percentage': 0.67,
     'max_split_diff': 0.3,  # Relaxed for small demo dataset
-    'use_cv': False,  # Set to True to enable cross-validation
+    'use_cv': True,  # Set to True to enable cross-validation
     'n_folds': 3,  # Number of CV folds (only used if use_cv=True)
 }
 
