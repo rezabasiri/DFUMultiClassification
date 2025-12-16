@@ -240,3 +240,13 @@ This file tracks major changes made to the repository structure and files.
   - Falls back to default scope for single-GPU/CPU scenarios
   - Fixes NameError: "name 'strategy' is not defined" in test runs
   - Maintains compatibility with production multi-GPU setup
+
+## 2025-12-16 - Fixed Missing Image Folder Paths in Dataset Creation
+
+### Bug Fix
+- **src/data/dataset_utils.py**: Extracted folder paths at start of create_cached_dataset() (lines 39-43)
+  - **Critical bug**: Nested functions referenced undefined variables (image_folder, depth_folder, etc.)
+  - These variables were in module-level data_paths but not accessible in nested function scope
+  - Caused NameError: "name 'image_folder' is not defined" during dataset iteration
+  - **Fix**: Extract folder paths from data_paths at function start so they're in scope
+  - Fixes image loading for all modalities (depth_rgb, depth_map, thermal_rgb, thermal_map)

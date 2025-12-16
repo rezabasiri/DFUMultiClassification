@@ -36,6 +36,12 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         augmentation_fn: Custom augmentation function (including generative augmentations)
         image_size: Target image size for preprocessing (default: 128)
     """
+    # Extract folder paths from data_paths for use in nested functions
+    image_folder = data_paths['image_folder']
+    depth_folder = data_paths['depth_folder']
+    thermal_folder = data_paths['thermal_folder']
+    thermal_rgb_folder = data_paths['thermal_rgb_folder']
+
     def process_single_sample(filename, bb_coords, modality_name):
         """Process a single image sample using py_function"""
         def _process_image(filename_tensor, bb_coords_tensor, modality_tensor):
