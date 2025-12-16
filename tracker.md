@@ -449,3 +449,67 @@ All 5 modalities supported in any combination:
   - Uses run_single_fold() for consistent metric calculation
   - Cleaner code structure with better separation of concerns
   - Verbose output for single run, quiet mode for CV folds
+
+## 2025-12-16 - Centralized Configuration Parameters in demo_config.py
+
+### New Configuration Module
+- **src/utils/demo_config.py**: Created comprehensive configuration file for all hyperparameters
+  - Single source of truth for all configuration parameters
+  - Well-documented with explanations and typical value ranges
+  - Organized into logical sections: Data, Training, Loss, Cross-Validation, Modality, Verbosity, Performance, File Output, Reproducibility
+  - Helper functions: `get_demo_config()` and `get_modality_config()`
+
+### Configuration Parameters Centralized
+- **Data Configuration**:
+  - `TRAIN_PATIENT_PERCENTAGE`: 0.67 (training/validation split ratio)
+  - `MAX_SPLIT_DIFF`: 0.3 (maximum class distribution difference tolerance)
+  - `IMAGE_SIZE`: 64 (image dimensions for preprocessing)
+
+- **Training Configuration**:
+  - `N_EPOCHS`: 3 (number of training epochs per run)
+  - `BATCH_SIZE`: 4 (batch size for training and validation)
+  - `LEARNING_RATE`: 0.0001 (Adam optimizer learning rate)
+
+- **Loss Function Configuration**:
+  - `FOCAL_LOSS_GAMMA`: 2.0 (focal loss gamma parameter)
+
+- **Cross-Validation Configuration**:
+  - `USE_CV`: False (enable/disable cross-validation)
+  - `N_FOLDS`: 3 (number of CV folds)
+
+- **Modality Configuration**:
+  - `ALL_MODALITIES`: List of available modalities
+
+- **Verbosity Configuration**:
+  - `VERBOSE_TRAINING`: 0 (Keras training verbose level: 0=silent, 1=progress bar, 2=one line per epoch)
+  - `VERBOSE_PREDICTIONS`: 0 (model prediction verbose level)
+  - `VERBOSE_TESTING`: True (enable/disable detailed test progress prints)
+
+- **Performance Reporting Configuration**:
+  - `TOP_N_PERFORMERS`: 5 (number of best performers to display)
+  - `METRICS_PRECISION`: 4 (decimal places for metrics display)
+
+- **File Output Configuration**:
+  - `RESULTS_DEMO_DIR`: "results/demo"
+  - `RESULTS_FILE_PREFIX`: "modality_test_results"
+  - `RESULTS_FILE_EXTENSION`: ".txt"
+
+- **Reproducibility Configuration**:
+  - `RANDOM_SEED_BASE`: 42 (base seed for reproducibility)
+
+### Updated test_modality_combinations.py
+- Removed hard-coded `BASE_CONFIG` dictionary
+- Imports configuration via `get_demo_config()` and `get_modality_config()`
+- All hyperparameters referenced from `DEMO_CONFIG` instead of hard-coded values
+- All print statements wrapped with `verbose_testing` flag for control
+- Metrics precision and top performers configurable from config
+- Learning rate, gamma, and verbose levels from config
+- Results file naming uses config constants
+
+### Benefits
+- Easy hyperparameter tuning without modifying code
+- Consistent configuration across all components
+- Better code maintainability and organization
+- Configurable verbosity for production vs. debugging
+- All values documented with explanations and typical ranges
+- No functional changes - all defaults kept the same
