@@ -417,3 +417,35 @@ All 5 modalities supported in any combination:
   - Describes both test scripts and their purposes
   - Explains the comprehensive modality testing capabilities
   - Shows how to run tests and where results are saved
+
+## 2025-12-16 - Added Cross-Validation and F1 Scores to Modality Testing
+
+### Cross-Validation Support
+- **demo/test_modality_combinations.py**: Added optional k-fold cross-validation
+  - New config parameters: `use_cv` (default: False) and `n_folds` (default: 3)
+  - Single Run Mode (`use_cv=False`): Runs one training/validation split per combination
+  - CV Mode (`use_cv=True`): Runs k-fold cross-validation with different patient splits
+  - Aggregates metrics across folds: mean ± standard deviation
+  - Each fold uses different random seed for patient-level splitting
+
+### F1 Score Metrics
+- **run_single_fold()**: New helper function for modular training
+  - Calculates F1-macro and F1-weighted scores on validation set
+  - Uses sklearn.metrics.f1_score with true labels vs model predictions
+  - Returns comprehensive metrics dictionary
+  - Supports both single run and CV modes
+
+### Enhanced Performance Analysis
+- **Performance Reports**: Updated to include F1 scores throughout
+  - Overall averages now show: Val Accuracy, Val F1 (macro), Val F1 (weighted), Val Loss
+  - Top 5 performers ranked by F1-macro score instead of accuracy
+  - Shows standard deviation for cross-validation results (e.g., "0.8523 ± 0.0234")
+  - By-modality-count averages include F1 scores
+  - Results file displays both CV summary and individual fold performance
+
+### Code Refactoring
+- **test_modality_combination()**: Complete rewrite for flexibility
+  - Supports both single run and k-fold CV modes
+  - Uses run_single_fold() for consistent metric calculation
+  - Cleaner code structure with better separation of concerns
+  - Verbose output for single run, quiet mode for CV folds
