@@ -592,19 +592,32 @@ def average_attention_values(result_dir, num_runs):
             for run_idx, run_mean in enumerate(run_means_per_modality[i]):
                 f.write(f"Run {run_idx + 1}: {run_mean:.4f}\n")
             f.write("\n")
-def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=3):
+def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
     """
     Perform cross-validation using cached dataset pipeline.
 
     Args:
         data: Input DataFrame
         configs: Dictionary of configurations for different modality combinations, or a list of modalities
-        train_patient_percentage: Percentage of data to use for training
-        n_runs: Number of cross-validation runs
+        train_patient_percentage: Percentage of data to use for training (ignored if cv_folds > 1)
+        n_runs: DEPRECATED - Number of random holdout runs (backwards compatibility)
+        cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single train/val split.
 
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
     """
+    # Handle backwards compatibility: if n_runs is specified, use it
+    if n_runs is not None:
+        print(f"Warning: n_runs parameter is deprecated. Please use cv_folds instead.")
+        cv_folds = 0  # Force single split mode when using legacy n_runs
+        use_legacy_mode = True
+        num_iterations = n_runs
+    else:
+        use_legacy_mode = False
+        if cv_folds <= 1:
+            num_iterations = 1  # Single split
+        else:
+            num_iterations = cv_folds  # k-fold CV
     # Handle configs being passed as a list instead of dict
     if isinstance(configs, list):
         modality_list = configs  # Save original list
@@ -665,25 +678,55 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     all_histories = []
     all_gating_results = []
     all_runs_metrics = []
-    
-    for run in range(n_runs):
+
+    # Generate patient folds for k-fold CV (if cv_folds > 1)
+    if not use_legacy_mode and cv_folds > 1:
+        print(f"\n{'='*80}")
+        print(f"GENERATING {cv_folds}-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)")
+        print(f"{'='*80}")
+        from src.data.dataset_utils import create_patient_folds
+        patient_fold_splits = create_patient_folds(data, n_folds=cv_folds, random_state=42, max_imbalance=0.3)
+        print(f"Generated {len(patient_fold_splits)} folds")
+        print(f"All data will be validated exactly once across all folds")
+        print(f"{'='*80}\n")
+    else:
+        patient_fold_splits = None
+
+    for iteration_idx in range(num_iterations):
+        # Use appropriate naming: "Fold" for k-fold CV, "Run" for legacy mode
+        if not use_legacy_mode and cv_folds > 1:
+            iteration_name = f"Fold {iteration_idx + 1}/{cv_folds}"
+        else:
+            iteration_name = f"Run {iteration_idx + 1}/{num_iterations}"
+
+        # For backwards compatibility, maintain "run" variable for file naming
+        run = iteration_idx
         # Clean up after each modality combination
         try:
             clear_gpu_memory()
             clear_cache_files()
         except Exception as e:
             print(f"Error clearing memory stats: {str(e)}")
-        # Reset random seeds for next run
+        # Reset random seeds for next iteration
         random.seed(42 + run * (run + 3))
         tf.random.set_seed(42 + run * (run + 3))
         np.random.seed(42 + run * (run + 3))
         os.environ['PYTHONHASHSEED'] = str(42 + run * (run + 3))
-        
-        print(f"\nRun {run + 1}/{n_runs}")
-        
-        # Check if this run is already complete
+
+        print(f"\n{iteration_name}")
+
+        # Get patient splits for this iteration (k-fold CV or random split)
+        if patient_fold_splits is not None:
+            # K-fold CV: use pre-computed fold splits
+            fold_train_patients, fold_valid_patients = patient_fold_splits[iteration_idx]
+            print(f"Using pre-computed fold {iteration_idx + 1} patient split")
+        else:
+            # Legacy mode or single split: let prepare_cached_datasets handle it
+            fold_train_patients, fold_valid_patients = None, None
+
+        # Check if this iteration is already complete
         if is_run_complete(run + 1, ck_path):
-            print(f"\nRun {run + 1} is already complete. Moving to next run...")
+            print(f"\n{iteration_name} is already complete. Moving to next...")
             continue
 
         # Try to load aggregated predictions first (only useful when training multiple configs for same modalities)
@@ -787,7 +830,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             all_modalities.update(config['modalities'])
         all_modalities = list(all_modalities)
         
-        print(f"\nPreparing datasets for run {run + 1} with all modalities: {all_modalities}")
+        print(f"\nPreparing datasets for {iteration_name} with all modalities: {all_modalities}")
         # Create cached datasets once for all modalities
         master_train_dataset, pre_aug_dataset, master_valid_dataset, master_steps_per_epoch, master_validation_steps, master_alpha_value = prepare_cached_datasets(
             data_manager.data,
@@ -797,7 +840,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             gen_manager=gen_manager,
             aug_config=aug_config,
             run=run,
-            image_size=image_size
+            image_size=image_size,
+            train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
+            valid_patients=fold_valid_patients
         )
         
         run_metrics = []

@@ -26,6 +26,100 @@ data_paths = get_data_paths(root)
 output_paths = get_output_paths(result_dir)
 
 
+def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
+    """
+    Create k-fold cross-validation splits at patient level with class balance.
+
+    Args:
+        data: DataFrame with 'Patient#' and 'Healing Phase Abs' columns
+        n_folds: Number of folds (default: 3)
+        random_state: Random seed for reproducibility
+        max_imbalance: Maximum allowed class distribution difference between folds (default: 0.3)
+
+    Returns:
+        List of tuples (train_patients, valid_patients) for each fold
+    """
+    np.random.seed(random_state)
+    random.seed(random_state)
+
+    # Convert labels if needed
+    data = data.copy()
+    if 'Healing Phase Abs' in data.columns:
+        if data['Healing Phase Abs'].dtype == 'object':
+            data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
+
+    # Group patients by their majority class
+    patient_classes = {}
+    unique_patients = data['Patient#'].unique()
+
+    for patient in unique_patients:
+        patient_data = data[data['Patient#'] == patient]
+        # Assign patient to their majority class
+        majority_class = patient_data['Healing Phase Abs'].mode()[0]
+        patient_classes[patient] = majority_class
+
+    # Stratify patients by class
+    class_patients = {0: [], 1: [], 2: []}
+    for patient, cls in patient_classes.items():
+        class_patients[cls].append(patient)
+
+    # Shuffle patients within each class
+    for cls in class_patients:
+        np.random.shuffle(class_patients[cls])
+
+    # Create folds
+    folds = [[] for _ in range(n_folds)]
+
+    # Distribute patients from each class across folds
+    for cls, patients in class_patients.items():
+        patients_per_fold = len(patients) // n_folds
+        remainder = len(patients) % n_folds
+
+        start_idx = 0
+        for fold_idx in range(n_folds):
+            # Add one extra patient to some folds if there's remainder
+            fold_size = patients_per_fold + (1 if fold_idx < remainder else 0)
+            end_idx = start_idx + fold_size
+            folds[fold_idx].extend(patients[start_idx:end_idx])
+            start_idx = end_idx
+
+    # Create train/valid splits for each fold
+    fold_splits = []
+    for fold_idx in range(n_folds):
+        valid_patients = np.array(folds[fold_idx])
+        train_patients = np.array([p for i, fold in enumerate(folds) if i != fold_idx for p in fold])
+
+        # Validate the split
+        train_data = data[data['Patient#'].isin(train_patients)]
+        valid_data = data[data['Patient#'].isin(valid_patients)]
+
+        # Check class balance
+        train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
+        valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
+
+        # Calculate max distribution difference
+        max_diff = max(abs(train_dist.get(cls, 0) - valid_dist.get(cls, 0)) for cls in [0, 1, 2])
+
+        # Check all classes present
+        train_classes = set(train_data['Healing Phase Abs'].unique())
+        valid_classes = set(valid_data['Healing Phase Abs'].unique())
+
+        if len(train_classes) < 3 or len(valid_classes) < 3:
+            print(f"Warning: Fold {fold_idx + 1} missing classes (train: {train_classes}, valid: {valid_classes})")
+        elif max_diff > max_imbalance:
+            print(f"Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})")
+
+        fold_splits.append((train_patients, valid_patients))
+
+        print(f"Fold {fold_idx + 1}/{n_folds}: {len(train_patients)} train patients, {len(valid_patients)} valid patients")
+        ordered_train = {i: train_dist.get(i, 0) for i in [0, 1, 2]}
+        ordered_valid = {i: valid_dist.get(i, 0) for i in [0, 1, 2]}
+        print(f"  Train dist: {{{', '.join([f'{k}: {v:.3f}' for k, v in ordered_train.items()])}}}")
+        print(f"  Valid dist: {{{', '.join([f'{k}: {v:.3f}' for k, v in ordered_valid.items()])}}}")
+
+    return fold_splits
+
+
 def save_patient_split(run, train_patients, valid_patients, checkpoint_dir=None):
     """
     Save patient split for a specific run to ensure consistency across modality combinations.
@@ -328,7 +422,8 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
     return True
 
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
-                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1, image_size=128):
+                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1, image_size=128,
+                          train_patients=None, valid_patients=None):
     """
     Prepare cached datasets with proper metadata handling based on selected modalities.
 
@@ -336,6 +431,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         max_split_diff: Maximum allowed class distribution difference between train/val (default 0.1)
                        Use higher values (e.g., 0.3) for small datasets with few patients
         image_size: Target image size for preprocessing (default: 128)
+        train_patients: Optional pre-computed list of training patient IDs (for k-fold CV)
+        valid_patients: Optional pre-computed list of validation patient IDs (for k-fold CV)
     """
     random.seed(42 + run * (run + 3))
     tf.random.set_seed(42 + run * (run + 3))
@@ -351,8 +448,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         data['Healing Phase Abs'] = data['Healing Phase Abs'].astype(str)
         data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
 
-    # Try to load existing patient split for this run to ensure consistency across modality combinations
-    train_patients, valid_patients = load_patient_split(run)
+    # Use pre-computed patient splits if provided (k-fold CV), otherwise try to load/generate
+    if train_patients is None or valid_patients is None:
+        # Try to load existing patient split for this run to ensure consistency across modality combinations
+        train_patients, valid_patients = load_patient_split(run)
 
     if train_patients is not None and valid_patients is not None:
         # Use the loaded split
