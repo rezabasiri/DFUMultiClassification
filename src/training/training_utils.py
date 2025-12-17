@@ -23,7 +23,11 @@ import seaborn as sns
 
 from src.utils.config import get_project_paths, get_output_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
-from src.utils.production_config import GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE
+from src.utils.production_config import (
+    GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
+    SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
+    GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT
+)
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
 from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
@@ -603,15 +607,46 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     """
     # Handle configs being passed as a list instead of dict
     if isinstance(configs, list):
-        modality_name = '+'.join(configs)
-        configs = {
-            modality_name: {
-                'modalities': configs,
-                'batch_size': GLOBAL_BATCH_SIZE,
-                'max_epochs': N_EPOCHS,
-                'image_size': IMAGE_SIZE
+        modality_list = configs  # Save original list
+        modality_name = '+'.join(modality_list)
+
+        if SEARCH_MULTIPLE_CONFIGS and SEARCH_CONFIG_VARIANTS > 1:
+            # Create multiple configs with different loss parameters for gating network
+            configs = {}
+            num_variants = min(SEARCH_CONFIG_VARIANTS, len(GRID_SEARCH_GAMMAS) * len(GRID_SEARCH_ALPHAS))
+
+            variant_idx = 0
+            for gamma in GRID_SEARCH_GAMMAS[:SEARCH_CONFIG_VARIANTS]:
+                for alpha_set in GRID_SEARCH_ALPHAS[:max(1, SEARCH_CONFIG_VARIANTS // len(GRID_SEARCH_GAMMAS))]:
+                    if variant_idx >= num_variants:
+                        break
+
+                    config_name = f"{modality_name}_v{variant_idx + 1}"
+                    configs[config_name] = {
+                        'modalities': modality_list,
+                        'batch_size': GLOBAL_BATCH_SIZE,
+                        'max_epochs': N_EPOCHS,
+                        'image_size': IMAGE_SIZE,
+                        'gamma': gamma,
+                        'alpha': alpha_set,
+                        'ordinal_weight': FOCAL_ORDINAL_WEIGHT
+                    }
+                    variant_idx += 1
+
+                if variant_idx >= num_variants:
+                    break
+
+            print(f"Created {len(configs)} config variants for {modality_name} with different loss parameters")
+        else:
+            # Original behavior: single config
+            configs = {
+                modality_name: {
+                    'modalities': modality_list,
+                    'batch_size': GLOBAL_BATCH_SIZE,
+                    'max_epochs': N_EPOCHS,
+                    'image_size': IMAGE_SIZE
+                }
             }
-        }
 
     # Extract common parameters from configs (all configs should have same values)
     first_config = next(iter(configs.values()))
@@ -858,7 +893,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         weighted_acc = WeightedAccuracy(alpha_values=class_weights)
                         input_shapes = data_manager.get_shapes_for_modalities(selected_modalities)
                         model = create_multimodal_model(input_shapes, selected_modalities, None)
-                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.05, gamma=2.0, alpha=class_weights)
+
+                        # Use loss parameters from config if available, otherwise use defaults
+                        ordinal_weight = config.get('ordinal_weight', 0.05)
+                        gamma = config.get('gamma', 2.0)
+                        alpha = config.get('alpha', class_weights)
+                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
                         model.compile(optimizer=Adam(learning_rate=1e-3, clipnorm=1.0), loss=loss,
                             metrics=['accuracy', weighted_f1_score, weighted_acc, CohenKappa(num_classes=3)]
                         )

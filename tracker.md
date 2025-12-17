@@ -366,3 +366,11 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/main.py** (lines 915-919): Added early return in `train_gating_network()` when only 1 model is present. Gating network requires at least 2 models to combine; with single model, returns predictions directly.
 
+## 2025-12-17 — Enable multiple configs per modality in search mode
+
+**src/utils/production_config.py** (lines 202-206): Added `SEARCH_MULTIPLE_CONFIGS` and `SEARCH_CONFIG_VARIANTS` parameters to control creation of multiple model configs per modality combination.
+
+**src/training/training_utils.py** (lines 609-649): Modified `cross_validation_manual_split()` to create multiple configs with different loss parameters (gamma, alpha, ordinal_weight) when `SEARCH_MULTIPLE_CONFIGS=True`. Enables gating network to combine multiple models per modality combination.
+
+**src/training/training_utils.py** (lines 897-901): Modified model compilation to use loss parameters from config if available.
+
