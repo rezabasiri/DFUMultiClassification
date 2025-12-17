@@ -33,6 +33,11 @@ results/checkpoints/
 results/demo_tf_records/
 results/tf_records/
 results/demo/
+results/models/
+results/csv/
+results/misclassifications/
+results/visualizations/
+results/logs/
 *.log
 
 # raw data
