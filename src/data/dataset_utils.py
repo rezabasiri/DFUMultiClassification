@@ -471,8 +471,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
             ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
             vprint("\nClass distributions:")
-            vprint("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-            vprint("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+            print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+            print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
     else:
         # Generate a new split (first modality combination for this run)
         if not for_shape_inference:
@@ -511,8 +511,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     # Create ordered distributions
                     ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
                     ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-                    vprint("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-                    vprint("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+                    print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                    print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
                     # Save the split so all subsequent modality combinations use the same split
                     save_patient_split(run, train_patients, valid_patients)
@@ -533,8 +533,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                     if not for_shape_inference:
                         print("\nBest found class distributions:")
-                        vprint("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-                        vprint("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+                        print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                        print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
                         # Save the split so all subsequent modality combinations use the same split
                         save_patient_split(run, train_patients, valid_patients)
@@ -712,8 +712,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         
         # Print true class distributions
         vprint("\nTrue binary label distributions (unique cases):")
-        vprint("Binary", unique_cases['label_bin1'].value_counts())
-        vprint("Binary", unique_cases['label_bin2'].value_counts())
+        print("Binary1:", unique_cases['label_bin1'].value_counts())
+        print("Binary2:", unique_cases['label_bin2'].value_counts())
         
         # Calculate weights using only unique cases
         class_weights_binary1 = compute_class_weight(
