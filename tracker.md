@@ -243,3 +243,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/main.py** (line 1947): Removed call to undefined `clear_cache_files()` function. Cache clearing is already handled inside `main()` function at lines 1824-1842.
 
+## 2025-12-17 — Add missing itertools import
+
+**src/main.py** (line 20): Added `import itertools` for combinations generation in main_search().
+
