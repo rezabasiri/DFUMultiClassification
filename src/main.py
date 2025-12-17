@@ -1675,11 +1675,21 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
     
     return best_params, results_file
 def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
-    csv_filename = os.path.join(result_dir, 'modality_combination_results_V64_4.csv')
-    fieldnames = ['Modalities', 'Accuracy (Mean)', 'Accuracy (Std)', 
-                  'Macro Avg F1-score (Mean)', 'Macro Avg F1-score (Std)', 
-                  'Weighted Avg F1-score (Mean)', 'Weighted Avg F1-score (Std)', 
-                  'I F1-score (Mean)', 'P F1-score (Mean)', 'R F1-score (Mean)', 
+    """
+    Test all modality combinations and save results to CSV.
+
+    Configuration is read from production_config.py:
+    - MODALITY_SEARCH_MODE: 'all' for all 31 combinations, 'custom' for INCLUDED_COMBINATIONS
+    - EXCLUDED_COMBINATIONS: Combinations to exclude
+    - INCLUDED_COMBINATIONS: Combinations to include (when mode='custom')
+    - RESULTS_CSV_FILENAME: Output CSV filename
+    """
+    # Use config for CSV filename
+    csv_filename = os.path.join(result_dir, RESULTS_CSV_FILENAME)
+    fieldnames = ['Modalities', 'Accuracy (Mean)', 'Accuracy (Std)',
+                  'Macro Avg F1-score (Mean)', 'Macro Avg F1-score (Std)',
+                  'Weighted Avg F1-score (Mean)', 'Weighted Avg F1-score (Std)',
+                  'I F1-score (Mean)', 'P F1-score (Mean)', 'R F1-score (Mean)',
                   "Cohen's Kappa (Mean)", "Cohen's Kappa (Std)"]
 
     # Create CSV file with headers if it doesn't exist
@@ -1687,30 +1697,42 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
         with open(csv_filename, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-    
-    modalities = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
-    excluded_combinations =[]
-    # excluded_combinations =[('depth_rgb',), ('depth_map',), ('thermal_rgb',), ('thermal_map',),]
-    # excluded_combinations = [('metadata',), ('depth_rgb',), ('depth_map',), ('thermal_rgb',), ('thermal_map',), ('metadata','depth_rgb'), 
-    #                          ('metadata','depth_map'), ('metadata','thermal_rgb'), ('metadata','thermal_map'), ('depth_rgb','depth_map'), ('depth_rgb','thermal_rgb'),]
-    # excluded_combinations = [('metadata',), ('depth_rgb',), ('depth_map',), ('thermal_rgb',), ('thermal_map',), 
-    #                          ('metadata','thermal_map'),('metadata','depth_rgb'),]
-    included_combinations = [('metadata',), ('depth_rgb',), ('depth_map',), ('thermal_map',),
-                             ('metadata','depth_rgb'), ('metadata','depth_map'), ('metadata','thermal_map'), ('depth_rgb','depth_map'), ('depth_rgb','thermal_map'),
-                             ('metadata','thermal_rgb', 'thermal_map'), ('metadata','depth_rgb', 'depth_map'), ('depth_rgb','thermal_map', 'depth_map'),
-                             ('metadata','depth_map', 'thermal_rgb', 'thermal_map'), 
-                             ('depth_rgb','depth_map', 'thermal_rgb', 'thermal_map'),
-                             ('metadata', 'depth_rgb','depth_map', 'thermal_rgb', 'thermal_map'),
-                             ]
 
-    # Generate all possible combinations
+    # Use modality configuration from production_config
+    modalities = ALL_MODALITIES
+    excluded_combinations = EXCLUDED_COMBINATIONS
+    included_combinations = INCLUDED_COMBINATIONS
+    search_mode = MODALITY_SEARCH_MODE
+
+    # Generate all possible combinations (31 total)
     all_combinations = []
     for r in range(1, len(modalities) + 1):
         all_combinations.extend(itertools.combinations(modalities, r))
 
-    # Filter out the excluded combinations
-    # combinations_to_process = [comb for comb in all_combinations if comb not in excluded_combinations]
-    combinations_to_process = [comb for comb in all_combinations if comb in included_combinations]
+    # Filter combinations based on search mode
+    if search_mode == 'all':
+        # Test all combinations, excluding any in EXCLUDED_COMBINATIONS
+        combinations_to_process = [comb for comb in all_combinations if comb not in excluded_combinations]
+        print(f"\n{'='*80}")
+        print(f"MODALITY SEARCH MODE: ALL COMBINATIONS ({len(combinations_to_process)} combinations)")
+        print(f"{'='*80}")
+        if excluded_combinations:
+            print(f"Excluded: {len(excluded_combinations)} combinations")
+    elif search_mode == 'custom':
+        # Test only combinations in INCLUDED_COMBINATIONS
+        combinations_to_process = [comb for comb in all_combinations if comb in included_combinations]
+        print(f"\n{'='*80}")
+        print(f"MODALITY SEARCH MODE: CUSTOM ({len(combinations_to_process)} combinations)")
+        print(f"{'='*80}")
+        print(f"Testing only specified combinations from production_config.py")
+    else:
+        raise ValueError(f"Invalid MODALITY_SEARCH_MODE: {search_mode}. Must be 'all' or 'custom'")
+
+    print(f"Total combinations to test: {len(combinations_to_process)}")
+    print(f"Runs per combination: {n_runs}")
+    print(f"Total training sessions: {len(combinations_to_process) * n_runs}")
+    print(f"Results will be saved to: {csv_filename}")
+    print(f"{'='*80}\n")
 
     for combination in combinations_to_process:
     # for combination in [('metadata','depth_rgb','depth_map','thermal_map')]: #Cedar2
@@ -1819,16 +1841,99 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
         raise ValueError("Mode must be either 'search' or 'specialized'")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train and evaluate multimodal models for wound healing phase classification.")
-    parser.add_argument("--mode", type=str, choices=['search', 'specialized'], default='search',
-                      help="Mode of operation: 'search' for modality combination search or 'specialized' for specialized evaluation")
-    parser.add_argument("--data_percentage", type=float, default=100.0,
-                      help="Percentage of data to use (default: 100.0)")
-    parser.add_argument("--train_patient_percentage", type=float, default=0.8,
-                      help="Percentage of patients to use for training (default: 0.8)")
-    parser.add_argument("--n_runs", type=int, default=3,
-                      help="Number of runs for cross-validation (default: 3)")
+    parser = argparse.ArgumentParser(
+        description="Train and evaluate multimodal models for Diabetic Foot Ulcer healing phase classification.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Test all 31 modality combinations with default settings
+  python src/main.py --mode search
+
+  # Test all combinations with full data, 70% train split, 5 runs
+  python src/main.py --mode search --data_percentage 100 --train_patient_percentage 0.70 --n_runs 5
+
+  # Quick test with 10% of data and 1 run
+  python src/main.py --mode search --data_percentage 10 --n_runs 1
+
+  # Run specialized evaluation mode
+  python src/main.py --mode specialized --train_patient_percentage 0.70 --n_runs 5
+
+Configuration:
+  Modality combinations are configured in src/utils/production_config.py:
+  - MODALITY_SEARCH_MODE: 'all' (test all 31) or 'custom' (test specific ones)
+  - EXCLUDED_COMBINATIONS: List of combinations to skip
+  - INCLUDED_COMBINATIONS: List to test when mode='custom'
+  - All other hyperparameters (epochs, batch size, etc.)
+        """
+    )
+
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=['search', 'specialized', 'grid_search'],
+        default='search',
+        help="""Mode of operation:
+        'search': Test modality combinations and save results to CSV
+        'specialized': Run specialized evaluation with gating networks
+        'grid_search': Perform grid search for hyperparameter tuning
+        (default: search)"""
+    )
+
+    parser.add_argument(
+        "--data_percentage",
+        type=float,
+        default=100.0,
+        help="""Percentage of total data to use (1-100).
+        Useful for quick testing with subset of data.
+        Examples: 10 (quick test), 50 (half data), 100 (full data)
+        (default: 100.0)"""
+    )
+
+    parser.add_argument(
+        "--train_patient_percentage",
+        type=float,
+        default=0.67,
+        help="""Percentage of patients to use for training (0.0-1.0).
+        The rest will be used for validation.
+        Patient-level split ensures no data leakage.
+        Examples: 0.67 (67%% train), 0.70 (70%% train), 0.80 (80%% train)
+        (default: 0.67)"""
+    )
+
+    parser.add_argument(
+        "--n_runs",
+        type=int,
+        default=3,
+        help="""Number of independent runs with different random patient splits.
+        Results are averaged across runs with standard deviation.
+        More runs = more robust results but longer runtime.
+        Examples: 1 (quick test), 3 (standard), 5 (robust)
+        (default: 3)"""
+    )
+
     args = parser.parse_args()
+
+    # Print configuration
+    print("\n" + "="*80)
+    print("DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE")
+    print("="*80)
+    print(f"Mode: {args.mode}")
+    print(f"Data percentage: {args.data_percentage}%")
+    print(f"Train/validation split: {args.train_patient_percentage*100:.0f}% train / {(1-args.train_patient_percentage)*100:.0f}% val")
+    print(f"Number of runs: {args.n_runs}")
+    print(f"\nConfiguration loaded from: src/utils/production_config.py")
+    print(f"Image size: {IMAGE_SIZE}x{IMAGE_SIZE}")
+    print(f"Batch size: {GLOBAL_BATCH_SIZE}")
+    print(f"Max epochs: {N_EPOCHS} (with early stopping)")
+    if args.mode == 'search':
+        print(f"Modality search mode: {MODALITY_SEARCH_MODE}")
+        if MODALITY_SEARCH_MODE == 'all':
+            print(f"Will test all 31 modality combinations")
+            if EXCLUDED_COMBINATIONS:
+                print(f"Excluding {len(EXCLUDED_COMBINATIONS)} combinations")
+        else:
+            print(f"Will test {len(INCLUDED_COMBINATIONS)} custom combinations")
+    print("="*80 + "\n")
 
     # Clear memory before starting
     clear_cache_files()
@@ -1837,9 +1942,8 @@ if __name__ == "__main__":
     clear_cuda_memory()
 
     # Run the selected mode
-    # main(args.mode, args.data_percentage, args.train_patient_percentage, args.n_runs)
-    main('specialized', 100, 0.70, 5)
-    # best_params, results_file = perform_grid_search(100, 0.8, 2)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.n_runs)
+
     # Clear memory after completion
     clear_gpu_memory()
     reset_keras()
