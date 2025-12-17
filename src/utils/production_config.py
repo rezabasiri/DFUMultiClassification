@@ -179,21 +179,22 @@ PROGRESS_RETRY_DELAY = 0.4  # Delay between retries (seconds)
 ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
 
 # Search mode: 'all' tests all 31 combinations, 'custom' uses INCLUDED_COMBINATIONS
-MODALITY_SEARCH_MODE = 'all'  # Options: 'all', 'custom'
+MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
 
 # Combinations to exclude (list of tuples)
 EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata',), ('depth_rgb',), ('depth_map',), ('thermal_map',),
-    ('metadata','depth_rgb'), ('metadata','depth_map'), ('metadata','thermal_map'),
-    ('depth_rgb','depth_map'), ('depth_rgb','thermal_map'),
-    ('metadata','thermal_rgb', 'thermal_map'), ('metadata','depth_rgb', 'depth_map'),
-    ('depth_rgb','thermal_map', 'depth_map'),
-    ('metadata','depth_map', 'thermal_rgb', 'thermal_map'),
-    ('depth_rgb','depth_map', 'thermal_rgb', 'thermal_map'),
-    ('metadata', 'depth_rgb','depth_map', 'thermal_rgb', 'thermal_map'),
+    ('metadata',),  # Test with metadata only for quick validation
+    # ('depth_rgb',), ('depth_map',), ('thermal_map',),
+    # ('metadata','depth_rgb'), ('metadata','depth_map'), ('metadata','thermal_map'),
+    # ('depth_rgb','depth_map'), ('depth_rgb','thermal_map'),
+    # ('metadata','thermal_rgb', 'thermal_map'), ('metadata','depth_rgb', 'depth_map'),
+    # ('depth_rgb','thermal_map', 'depth_map'),
+    # ('metadata','depth_map', 'thermal_rgb', 'thermal_map'),
+    # ('depth_rgb','depth_map', 'thermal_rgb', 'thermal_map'),
+    # ('metadata', 'depth_rgb','depth_map', 'thermal_rgb', 'thermal_map'),
 ]
 
 # Results file naming

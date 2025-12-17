@@ -279,3 +279,78 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/training/training_utils.py**: Added import of `compute_class_weight` from `sklearn.utils.class_weight`.
 
+## 2025-12-17 — Fix alpha_value referenced before assignment
+
+**src/training/training_utils.py** (lines 818-833): Added default values for `alpha_value`, `class_weights_dict`, `class_weights` before conditionals. Changed `if` to `elif` for config suffix checks.
+
+## 2025-12-17 — Add missing strategy variable
+
+**src/training/training_utils.py** (line 615): Added `strategy = tf.distribute.MirroredStrategy()` in `cross_validation_manual_split()`.
+
+## 2025-12-17 — Add missing create_multimodal_model import
+
+**src/training/training_utils.py** (line 27): Added import of `create_multimodal_model` from `src.models.builders`.
+
+## 2025-12-17 — Add missing get_focal_ordinal_loss import
+
+**src/training/training_utils.py** (line 28): Added import of `get_focal_ordinal_loss` from `src.models.losses`.
+
+## 2025-12-17 — Add missing Keras imports (Adam, callbacks)
+
+**src/training/training_utils.py** (lines 15-16): Added `Adam` from `tensorflow.keras.optimizers` and `EarlyStopping`, `ReduceLROnPlateau`, `ModelCheckpoint` from `tensorflow.keras.callbacks`.
+
+## 2025-12-17 — Add missing weighted_f1_score import
+
+**src/training/training_utils.py** (line 30): Added `weighted_f1_score` to import from `src.models.losses`.
+
+## 2025-12-17 — Add missing GenerativeAugmentationCallback import
+
+**src/training/training_utils.py** (line 28): Added `GenerativeAugmentationCallback` to import from `src.data.generative_augmentation_v2`.
+
+## 2025-12-17 — Add missing BatchVisualizationCallback import
+
+**src/training/training_utils.py** (line 27): Added `BatchVisualizationCallback` to import from `src.data.dataset_utils`.
+
+## 2025-12-17 — Add missing TrainingHistoryCallback import
+
+**src/training/training_utils.py** (line 27): Added `TrainingHistoryCallback` to import from `src.data.dataset_utils`.
+
+## 2025-12-17 — Add missing MetadataConfidenceCallback import
+
+**src/training/training_utils.py** (line 29): Added `MetadataConfidenceCallback` to import from `src.models.builders`.
+
+## 2025-12-17 — Fix n_epochs to max_epochs variable name
+
+**src/training/training_utils.py** (line 942): Changed `n_epochs` to `max_epochs` in model.fit() call.
+
+## 2025-12-17 — Add missing track_misclassifications import
+
+**src/training/training_utils.py** (line 31): Added `track_misclassifications` import from `src.evaluation.metrics`.
+
+## 2025-12-17 — Fix return value in cross_validation_manual_split
+
+**src/training/training_utils.py** (line 1130): Changed return from `all_metrics` (empty list) to `all_runs_metrics` (populated list).
+
+## 2025-12-17 — Fix avg_f1_classes index error in main_search
+
+**src/main.py** (lines 1775-1783): Added safeguards to ensure `avg_f1_classes` is always a 3-element array even with single run or empty results.
+
+## 2025-12-17 — Pass image_size to prepare_cached_datasets
+
+**src/training/training_utils.py** (line 749): Added `image_size=image_size` parameter to `prepare_cached_datasets()` call to fix image size mismatch (128 vs 64).
+
+## 2025-12-17 — Organize output directories
+
+**src/utils/config.py**: Added `get_output_paths()` function that creates organized subdirectories under results/:
+- `models/` - .h5 model weight files
+- `checkpoints/` - .npy prediction/label files
+- `csv/` - Result CSV files
+- `misclassifications/` - Misclassification tracking
+- `visualizations/` - Plots and batch visualizations
+- `logs/` - Training logs
+- `tf_records/` - TensorFlow cache files
+
+**src/training/training_utils.py**: Updated to use organized paths for all outputs (.h5 models, CSVs, misclassifications).
+
+**src/main.py**: Updated to use organized paths for CSV outputs.
+

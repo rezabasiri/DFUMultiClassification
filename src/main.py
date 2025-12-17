@@ -58,7 +58,7 @@ from PIL import Image
 import shap
 
 # Project imports - organized by module
-from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS, RANDOM_SEED
+from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS, RANDOM_SEED
 from src.utils.production_config import *  # Import all production configuration parameters
 from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
 from src.data.image_processing import (
@@ -127,9 +127,14 @@ strategy = tf.distribute.MirroredStrategy()
 #%% Path Configuration
 directory, result_dir, root = get_project_paths()
 data_paths = get_data_paths(root)
+output_paths = get_output_paths(result_dir)
 
-ck_path = os.path.join(result_dir, "checkpoints")
-os.makedirs(ck_path, exist_ok=True)
+ck_path = output_paths['checkpoints']
+csv_path = output_paths['csv']
+models_path = output_paths['models']
+misclass_path = output_paths['misclassifications']
+vis_path = output_paths['visualizations']
+logs_path = output_paths['logs']
 
 # Data paths
 image_folder = data_paths['image_folder']
@@ -1518,7 +1523,7 @@ def calculate_and_save_metrics(true_labels, predictions, result_dir, configs):
         # 'R ordinal weight': configs['R']['loss_params']['ordinal_weight']
     }
     
-    csv_filename = os.path.join(result_dir, 'specialized_results_V66_augment_RGBGenAug.csv')
+    csv_filename = os.path.join(csv_path, 'specialized_results_V66_augment_RGBGenAug.csv')
     fieldnames = list(results.keys())
     if not os.path.exists(csv_filename):
         with open(csv_filename, 'w', newline='') as csvfile:
@@ -1693,8 +1698,8 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
     - INCLUDED_COMBINATIONS: Combinations to include (when mode='custom')
     - RESULTS_CSV_FILENAME: Output CSV filename
     """
-    # Use config for CSV filename
-    csv_filename = os.path.join(result_dir, RESULTS_CSV_FILENAME)
+    # Use config for CSV filename (saved in organized csv subfolder)
+    csv_filename = os.path.join(csv_path, RESULTS_CSV_FILENAME)
     fieldnames = ['Modalities', 'Accuracy (Mean)', 'Accuracy (Std)',
                   'Macro Avg F1-score (Mean)', 'Macro Avg F1-score (Std)',
                   'Weighted Avg F1-score (Mean)', 'Weighted Avg F1-score (Std)',
@@ -1772,7 +1777,15 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
 
         # Calculate average F1-scores for each class
         f1_classes_list = [m['f1_classes'] for m in cv_results]
-        avg_f1_classes = np.mean(f1_classes_list, axis=0)
+        if len(f1_classes_list) > 0:
+            avg_f1_classes = np.mean(f1_classes_list, axis=0)
+            # Ensure avg_f1_classes is always an array
+            if np.isscalar(avg_f1_classes) or avg_f1_classes.ndim == 0:
+                avg_f1_classes = np.array([avg_f1_classes, 0.0, 0.0])
+            elif len(avg_f1_classes) < 3:
+                avg_f1_classes = np.pad(avg_f1_classes, (0, 3 - len(avg_f1_classes)), constant_values=0.0)
+        else:
+            avg_f1_classes = np.array([0.0, 0.0, 0.0])
 
         # Prepare results for CSV
         result = {
@@ -1783,9 +1796,9 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
             'Macro Avg F1-score (Std)': std_f1_macro,
             'Weighted Avg F1-score (Mean)': avg_f1_weighted,
             'Weighted Avg F1-score (Std)': std_f1_weighted,
-            'I F1-score (Mean)': avg_f1_classes[0],
-            'P F1-score (Mean)': avg_f1_classes[1],
-            'R F1-score (Mean)': avg_f1_classes[2],
+            'I F1-score (Mean)': float(avg_f1_classes[0]),
+            'P F1-score (Mean)': float(avg_f1_classes[1]),
+            'R F1-score (Mean)': float(avg_f1_classes[2]),
             "Cohen's Kappa (Mean)": avg_kappa,
             "Cohen's Kappa (Std)": std_kappa
         }

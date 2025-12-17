@@ -12,6 +12,8 @@ import random
 import gc
 import glob
 import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from sklearn.metrics import accuracy_score, f1_score, classification_report, cohen_kappa_score, confusion_matrix
 from sklearn.utils.class_weight import compute_class_weight
 import matplotlib
@@ -19,15 +21,24 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from src.utils.config import get_project_paths, CLASS_LABELS
+from src.utils.config import get_project_paths, get_output_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
 from src.utils.production_config import GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE
-from src.data.dataset_utils import prepare_cached_datasets
-from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager
+from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
+from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
+from src.models.losses import get_focal_ordinal_loss, weighted_f1_score
+from src.evaluation.metrics import track_misclassifications
 
 # Get paths
 directory, result_dir, root = get_project_paths()
-ck_path = os.path.join(result_dir, "checkpoints")
+output_paths = get_output_paths(result_dir)
+ck_path = output_paths['checkpoints']
+models_path = output_paths['models']
+csv_path = output_paths['csv']
+misclass_path = output_paths['misclassifications']
+vis_path = output_paths['visualizations']
+logs_path = output_paths['logs']
 
 class EpochMemoryCallback(tf.keras.callbacks.Callback):
     """Memory management callback that's compatible with distribution strategy"""
@@ -94,7 +105,7 @@ def clean_up_training_resources():
 def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     modality_str = '_'.join(sorted(selected_modalities))
     checkpoint_name = f'{modality_str}_{run}_{config_name}.h5'
-    return os.path.join(result_dir, checkpoint_name)
+    return os.path.join(models_path, checkpoint_name)
 class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
     def __init__(self, monitor='val_loss', factor=0.5, patience=5, 
                  escape_factor=5.0, min_lr=1e-6, escape_patience=2):
@@ -611,6 +622,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     # Get GPU info
     gpus = tf.config.list_physical_devices('GPU')
 
+    # Setup distribution strategy
+    strategy = tf.distribute.MirroredStrategy()
+
     all_metrics = []
     all_confusion_matrices = []
     all_histories = []
@@ -737,7 +751,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             batch_size=batch_size,
             gen_manager=gen_manager,
             aug_config=aug_config,
-            run=run
+            run=run,
+            image_size=image_size
         )
         
         run_metrics = []
@@ -815,15 +830,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         
                     steps_per_epoch = master_steps_per_epoch
                     validation_steps = master_validation_steps
-                    if config_name.endswith('1'):    
+                    # Default values (used when config_name doesn't end with 1, 2, or 3)
+                    alpha_value = master_alpha_value  # Proportional class weights
+                    class_weights_dict = {i: 1 for i in range(3)}
+                    class_weights = [1, 1, 1]
+                    if config_name.endswith('1'):
                         alpha_value = master_alpha_value # Proportional class weights (When no mixed_sampling is used)
                         class_weights_dict = {i: 1 for i in range(3)}
                         class_weights = [1, 1, 1]
-                    if config_name.endswith('2'):
+                    elif config_name.endswith('2'):
                         alpha_value = [1, 1, 1]
                         class_weights_dict = master_class_weights_dict
                         class_weights = master_class_weights
-                    if config_name.endswith('3'):
+                    elif config_name.endswith('3'):
                         alpha_value = [4, 1, 4]
                         class_weights_dict = {0: 4, 1: 1, 2: 4}
                         class_weights = [4, 1, 4]
@@ -928,7 +947,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             print(f"Total model trainable weights: {len(model.trainable_weights)}")
                             history = model.fit(
                                 train_dataset_dis,
-                                epochs=n_epochs,
+                                epochs=max_epochs,
                                 steps_per_epoch=steps_per_epoch,
                                 validation_data=valid_dataset_dis,
                                 validation_steps=validation_steps,
@@ -964,7 +983,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
 
                         # Track misclassifications
                         sample_ids_t = np.array(all_sample_ids_t)
-                        track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, result_dir)
+                        track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
                         
                         # Evaluate model
                         y_true_v = []
@@ -993,7 +1012,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         
                         # Track misclassifications
                         sample_ids_v = np.array(all_sample_ids_v)
-                        track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, result_dir)
+                        track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
 
                         # Calculate metrics
                         accuracy = accuracy_score(y_true_v, y_pred_v)
@@ -1115,7 +1134,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     save_aggregated_results(all_runs_metrics, configs, result_dir)
     save_gating_results(all_gating_results, result_dir)
     
-    return all_metrics, all_confusion_matrices, all_histories
+    return all_runs_metrics, all_confusion_matrices, all_histories
 def correct_and_validate_predictions(predictions_list, true_labels, dataset_type="train"):
     """
     Correct and validate model predictions.
@@ -1181,7 +1200,7 @@ def correct_and_validate_predictions(predictions_list, true_labels, dataset_type
     return truncated_predictions, truncated_labels
 def save_run_results(metrics, run_number, result_dir):
     """Save gating network results for an individual run."""
-    csv_filename = os.path.join(result_dir, f'gating_network_run_{run_number}_results.csv')
+    csv_filename = os.path.join(csv_path, f'gating_network_run_{run_number}_results.csv')
     
     # Format metrics for CSV
     results = [{
@@ -1193,7 +1212,7 @@ def save_run_results(metrics, run_number, result_dir):
     }]
     
     # Save confusion matrix separately
-    cm_filename = os.path.join(result_dir, f'gating_network_run_{run_number}_confusion_matrix.csv')
+    cm_filename = os.path.join(csv_path, f'gating_network_run_{run_number}_confusion_matrix.csv')
     np.savetxt(cm_filename, metrics['confusion_matrix'], delimiter=',', fmt='%d')
     
     # Save metrics to CSV
@@ -1208,7 +1227,7 @@ def save_run_metrics(run_metrics, run_number, result_dir):
     
     # Format the metrics
     if is_single_metric:
-        csv_filename = os.path.join(result_dir, f'modality_results_run_{run_number}.csv')
+        csv_filename = os.path.join(csv_path, f'modality_results_run_{run_number}.csv')
         formatted_result = {
             'config': run_metrics['config'],
             'modalities': '+'.join(run_metrics['modalities']),
@@ -1231,7 +1250,7 @@ def save_run_metrics(run_metrics, run_number, result_dir):
             writer.writerow(formatted_result)
             
     else:
-        csv_filename = os.path.join(result_dir, f'modality_results_run_{run_number}_list.csv')
+        csv_filename = os.path.join(csv_path, f'modality_results_run_{run_number}_list.csv')
         # Format list of metrics
         formatted_results = []
         for m in run_metrics:
@@ -1272,7 +1291,7 @@ def save_gating_results(all_gating_results, result_dir):
     }]
     
     # Save to file
-    csv_filename = os.path.join(result_dir, 'gating_network_averaged_results.csv')
+    csv_filename = os.path.join(csv_path, 'gating_network_averaged_results.csv')
     fieldnames = list(results[0].keys())
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -1319,7 +1338,7 @@ def save_aggregated_results(all_metrics, configs, result_dir):
         })
     
     # Save to CSV
-    csv_filename = os.path.join(result_dir, 'modality_results_averaged.csv')
+    csv_filename = os.path.join(csv_path, 'modality_results_averaged.csv')
     fieldnames = list(results[0].keys()) if results else []
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
