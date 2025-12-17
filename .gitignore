@@ -30,7 +30,7 @@ ENV/
 # Results and logs
 results/runs/
 results/checkpoints/
-results/tf_records_demo/
+results/demo_tf_records/
 results/tf_records/
 results/demo/
 *.log
