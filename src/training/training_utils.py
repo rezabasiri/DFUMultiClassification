@@ -20,7 +20,7 @@ import seaborn as sns
 
 from src.utils.config import get_project_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
-from src.utils.production_config import BATCH_SIZE, MAX_EPOCHS, IMAGE_SIZE
+from src.utils.production_config import GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -593,8 +593,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         configs = {
             modality_name: {
                 'modalities': configs,
-                'batch_size': BATCH_SIZE,
-                'max_epochs': MAX_EPOCHS,
+                'batch_size': GLOBAL_BATCH_SIZE,
+                'max_epochs': N_EPOCHS,
                 'image_size': IMAGE_SIZE
             }
         }
