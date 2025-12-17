@@ -16,13 +16,65 @@ from sklearn.metrics import confusion_matrix, classification_report
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
-from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS
+from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.data.image_processing import load_and_preprocess_image
 from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn
 
 # Get paths
 directory, result_dir, root = get_project_paths()
 data_paths = get_data_paths(root)
+output_paths = get_output_paths(result_dir)
+
+
+def save_patient_split(run, train_patients, valid_patients, checkpoint_dir=None):
+    """
+    Save patient split for a specific run to ensure consistency across modality combinations.
+
+    Args:
+        run: Run number (0-indexed)
+        train_patients: Array of patient numbers for training
+        valid_patients: Array of patient numbers for validation
+        checkpoint_dir: Directory to save the split (default: output_paths['checkpoints'])
+    """
+    if checkpoint_dir is None:
+        checkpoint_dir = output_paths['checkpoints']
+
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    split_file = os.path.join(checkpoint_dir, f'patient_split_run{run + 1}.npz')
+
+    np.savez(split_file,
+             train_patients=train_patients,
+             valid_patients=valid_patients)
+    print(f"Saved patient split for run {run + 1} to {split_file}")
+    print(f"  Train patients: {len(train_patients)}, Valid patients: {len(valid_patients)}")
+
+
+def load_patient_split(run, checkpoint_dir=None):
+    """
+    Load patient split for a specific run if it exists.
+
+    Args:
+        run: Run number (0-indexed)
+        checkpoint_dir: Directory containing the split (default: output_paths['checkpoints'])
+
+    Returns:
+        Tuple of (train_patients, valid_patients) if file exists, else (None, None)
+    """
+    if checkpoint_dir is None:
+        checkpoint_dir = output_paths['checkpoints']
+
+    split_file = os.path.join(checkpoint_dir, f'patient_split_run{run + 1}.npz')
+
+    if os.path.exists(split_file):
+        data = np.load(split_file)
+        train_patients = data['train_patients']
+        valid_patients = data['valid_patients']
+        print(f"Loaded existing patient split for run {run + 1} from {split_file}")
+        print(f"  Train patients: {len(train_patients)}, Valid patients: {len(valid_patients)}")
+        return train_patients, valid_patients
+
+    return None, None
+
 
 def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
                          is_training=True, cache_dir=None, augmentation_fn=None, image_size=128):
@@ -299,62 +351,87 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         data['Healing Phase Abs'] = data['Healing Phase Abs'].astype(str)
         data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
 
-    max_retries = 2000
-    best_split_diff = float('inf')
-    best_split = None
+    # Try to load existing patient split for this run to ensure consistency across modality combinations
+    train_patients, valid_patients = load_patient_split(run)
 
-    for attempt in range(max_retries):
-        # Shuffle and split patients
-        patient_numbers = sorted(data['Patient#'].unique())
-        n_train_patients = int(len(patient_numbers) * train_patient_percentage)
-        np.random.shuffle(patient_numbers)
-        train_patients = patient_numbers[:n_train_patients]
-        valid_patients = patient_numbers[n_train_patients:]
-        
-        # Split data
+    if train_patients is not None and valid_patients is not None:
+        # Use the loaded split
+        print(f"Using consistent patient split across all modality combinations for run {run + 1}")
         train_data = data[data['Patient#'].isin(train_patients)]
         valid_data = data[data['Patient#'].isin(valid_patients)]
-        
-        # Calculate maximum distribution difference for this split
+
+        # Display distributions
         train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
         valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
-        max_diff = max(abs(train_dist.get(cls, 0) - valid_dist.get(cls, 0)) for cls in [0, 1, 2])
-        
-        # Keep track of best split even if not perfect
-        if max_diff < best_split_diff and len(set(train_data['Healing Phase Abs'].unique())) == 3 and len(set(valid_data['Healing Phase Abs'].unique())) == 3:
-            best_split_diff = max_diff
-            best_split = (train_data.copy(), valid_data.copy())
-        
-        # Check if split is valid
-        if check_split_validity(train_data, valid_data, max_ratio_diff=max_split_diff):
-            print(f"Found valid split after {attempt + 1} attempts")
-            print("\nFinal class distributions:")
-            # Create ordered distributions
-            ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
-            ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-            print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-            print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
-            break
-            
-        if attempt == max_retries - 1:
-            print(f"Warning: Could not find optimal split after {max_retries} attempts.")
-            print(f"Using best found split with max difference of {best_split_diff:.3f}")
-            if best_split is not None:
-                train_data, valid_data = best_split
-                train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
-                valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
-                
+        ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
+        ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
+        print("\nClass distributions:")
+        print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+        print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+    else:
+        # Generate a new split (first modality combination for this run)
+        print(f"Generating new patient split for run {run + 1} (will be reused for all combinations)")
+        max_retries = 2000
+        best_split_diff = float('inf')
+        best_split = None
+
+        for attempt in range(max_retries):
+            # Shuffle and split patients
+            patient_numbers = sorted(data['Patient#'].unique())
+            n_train_patients = int(len(patient_numbers) * train_patient_percentage)
+            np.random.shuffle(patient_numbers)
+            train_patients = patient_numbers[:n_train_patients]
+            valid_patients = patient_numbers[n_train_patients:]
+
+            # Split data
+            train_data = data[data['Patient#'].isin(train_patients)]
+            valid_data = data[data['Patient#'].isin(valid_patients)]
+
+            # Calculate maximum distribution difference for this split
+            train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
+            valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
+            max_diff = max(abs(train_dist.get(cls, 0) - valid_dist.get(cls, 0)) for cls in [0, 1, 2])
+
+            # Keep track of best split even if not perfect
+            if max_diff < best_split_diff and len(set(train_data['Healing Phase Abs'].unique())) == 3 and len(set(valid_data['Healing Phase Abs'].unique())) == 3:
+                best_split_diff = max_diff
+                best_split = (train_data.copy(), valid_data.copy())
+
+            # Check if split is valid
+            if check_split_validity(train_data, valid_data, max_ratio_diff=max_split_diff):
+                print(f"Found valid split after {attempt + 1} attempts")
+                print("\nFinal class distributions:")
                 # Create ordered distributions
                 ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
                 ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-                
-                print("\nBest found class distributions:")
                 print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
                 print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
-                
-            else:
-                print("No valid split found with all classes present in both sets")
-                raise ValueError("Could not create valid data split")
+
+                # Save the split so all subsequent modality combinations use the same split
+                save_patient_split(run, train_patients, valid_patients)
+                break
+
+            if attempt == max_retries - 1:
+                print(f"Warning: Could not find optimal split after {max_retries} attempts.")
+                print(f"Using best found split with max difference of {best_split_diff:.3f}")
+                if best_split is not None:
+                    train_data, valid_data = best_split
+                    train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
+                    valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
+
+                    # Create ordered distributions
+                    ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
+                    ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
+
+                    print("\nBest found class distributions:")
+                    print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                    print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+
+                    # Save the split so all subsequent modality combinations use the same split
+                    save_patient_split(run, train_patients, valid_patients)
+                else:
+                    print("No valid split found with all classes present in both sets")
+                    raise ValueError("Could not create valid data split")
     
     # Determine columns to keep based on selected modalities
     if 'metadata' in selected_modalities:
