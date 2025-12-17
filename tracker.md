@@ -263,7 +263,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/training/training_utils.py**: Added `prepare_cached_datasets` from `src.data.dataset_utils` and `AugmentationConfig`, `GenerativeAugmentationManager` from `src.data.generative_augmentation_v2`.
 
-## 2025-12-17 — Fix image_size variable in ProcessedDataManager
+## 2025-12-17 — Fix image_size variable in ProcessedDataManager and augmentation setup
 
-**src/training/training_utils.py** (line 218): Changed `image_size` to `IMAGE_SIZE` in `process_all_modalities()`.
+**src/training/training_utils.py**: Changed `image_size` to `IMAGE_SIZE` in `process_all_modalities()` (line 218) and augmentation config setup (lines 707-708).
 
