@@ -27,7 +27,7 @@ Categories:
 # Core training hyperparameters
 IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
 GLOBAL_BATCH_SIZE = 30  # Total batch size across all GPU replicas
-N_EPOCHS = 1000  # Maximum number of training epochs
+N_EPOCHS = 3  # Maximum number of training epochs
 
 # =============================================================================
 # Gating Network Configuration
