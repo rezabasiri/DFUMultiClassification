@@ -455,3 +455,11 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 
 **src/main.py**: Removed duplicate level parameters and level parameters from inside f-string expressions.
 **src/data/dataset_utils.py**: Fixed f-string syntax errors where level parameter was incorrectly placed inside expressions.
+
+## 2025-12-17 — Fix verbosity guards for progress bar mode
+
+**src/data/dataset_utils.py**: Changed 14 guards from `get_verbosity() == 2` to `get_verbosity() <= 2` and 1 guard from `== 1` to `<= 1`.
+**src/main.py**: Changed 9 guards from `get_verbosity() == 2/1` to `get_verbosity() <= 2/1`.
+**src/training/training_utils.py**: Changed 1 guard from `get_verbosity() == 1` to `get_verbosity() <= 1`.
+
+Semantics: `<= 2` means "show at levels 0, 1, 2 but NOT at level 3 (progress bar mode)". This is clearer than `== 2` and ensures proper behavior at all verbosity levels while still suppressing output in progress bar mode.

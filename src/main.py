@@ -61,7 +61,7 @@ import shap
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS, RANDOM_SEED
 from src.utils.production_config import *  # Import all production configuration parameters
 from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
-from src.utils.verbosity import set_verbosity, vprint, init_progress_bar, update_progress, close_progress
+from src.utils.verbosity import set_verbosity, vprint, get_verbosity, init_progress_bar, update_progress, close_progress
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
     create_best_matching_dataset, prepare_dataset, preprocess_image_data,
@@ -111,7 +111,7 @@ if gpus:
         for gpu in gpus:
             tf.config.experimental.set_memory_growth(gpu, True)
     except RuntimeError as e:
-        print(e)
+        vprint(str(e), level=1)
 
 # Set random seeds for reproducibility
 random.seed(RANDOM_SEED)
@@ -161,53 +161,57 @@ n_epochs = N_EPOCHS
 #%% Main Function
 def create_focal_ordinal_loss_with_params(ordinal_weight, gamma, alpha):
     """Create a focal ordinal loss function with specified parameters"""
-    print("\nInitializing focal ordinal loss:")
-    print(f"Ordinal weight: {ordinal_weight}")
-    print(f"Gamma: {gamma}")
-    print(f"Alpha: {alpha}")
-    
+    vprint("\nInitializing focal ordinal loss:", level=2)
+    vprint(f"Ordinal weight: {ordinal_weight}", level=2)
+    vprint(f"Gamma: {gamma}", level=2)
+    vprint(f"Alpha: {alpha}", level=2)
+
     def loss_fn(y_true, y_pred):
-        # Print shapes for debugging
-        print(f"\nLoss function shapes:")
-        print(f"y_true shape: {tf.shape(y_true)}")
-        print(f"y_pred shape: {tf.shape(y_pred)}")
-        
+        # Print shapes for debugging (only at verbosity level 2)
+        if get_verbosity() <= 2:
+            print(f"\nLoss function shapes:")
+            print(f"y_true shape: {tf.shape(y_true)}")
+            print(f"y_pred shape: {tf.shape(y_pred)}")
+
         # Clip prediction values to prevent log(0)
         epsilon = tf.keras.backend.epsilon()
         y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
-        
+
         # Convert alpha to tensor with proper shape
         alpha_tensor = tf.constant(alpha, dtype=tf.float32)
-        
+
         # Focal loss
         cross_entropy = -y_true * tf.math.log(y_pred)
         focal_weight = tf.expand_dims(alpha_tensor, 0) * tf.math.pow(1 - y_pred, gamma)
         focal_loss = focal_weight * cross_entropy
-        
-        # Print intermediate values for first sample
-        print("\nIntermediate values (first sample):")
-        print(f"Cross entropy: {cross_entropy[0]}")
-        print(f"Focal weight: {focal_weight[0]}")
-        print(f"Focal loss: {focal_loss[0]}")
-        
+
+        # Print intermediate values for first sample (only at verbosity level 2)
+        if get_verbosity() <= 2:
+            print("\nIntermediate values (first sample):")
+            print(f"Cross entropy: {cross_entropy[0]}")
+            print(f"Focal weight: {focal_weight[0]}")
+            print(f"Focal loss: {focal_loss[0]}")
+
         # Sum over classes
         focal_loss = tf.reduce_sum(focal_loss, axis=-1)
-        
+
         # Ordinal penalty
         true_class = tf.argmax(y_true, axis=-1)
         pred_class = tf.argmax(y_pred, axis=-1)
         ordinal_penalty = tf.square(tf.cast(true_class, tf.float32) - tf.cast(pred_class, tf.float32))
-        
-        # Print ordinal penalty information
-        print(f"Ordinal penalty (first 5 samples): {ordinal_penalty[:5]}")
-        
+
+        # Print ordinal penalty information (only at verbosity level 2)
+        if get_verbosity() <= 2:
+            print(f"Ordinal penalty (first 5 samples): {ordinal_penalty[:5]}")
+
         # Combine losses
         total_loss = focal_loss + ordinal_weight * ordinal_penalty
-        
-        # Print final loss
-        print(f"Final loss (first 5 samples): {total_loss[:5]}")
+
+        # Print final loss (only at verbosity level 2)
+        if get_verbosity() <= 2:
+            print(f"Final loss (first 5 samples): {total_loss[:5]}")
         return total_loss
-    
+
     return loss_fn
 
 def create_attention_visualization_callback(val_data, val_labels, save_dir='attention_weights'):
@@ -261,7 +265,7 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
 
         def on_epoch_end(self, epoch, logs=None):
             if (epoch + 1) % ATTENTION_VIS_FREQUENCY == 0:
-                print(f"\nProcessing attention visualization for epoch {epoch + 1}")
+                vprint(f"\nProcessing attention visualization for epoch {epoch + 1}", level=2)
                 
                 attention_layer = None
                 for layer in self.model.layers:
@@ -274,10 +278,10 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
                         attention_values = attention_layer.get_attention_values()
                         
                         if attention_values['model_attention'] is None:
-                            print("Warning: model_attention is None")
+                            vprint("Warning: model_attention is None", level=2)
                             return
                         if attention_values['class_attention'] is None:
-                            print("Warning: class_attention is None")
+                            vprint("Warning: class_attention is None", level=2)
                             return
                             
                         model_weights = attention_values['model_attention']
@@ -339,12 +343,12 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
                         plt.close()
                         
                         if self.val_data is None or self.val_labels is None:
-                            print("No validation data available. Trying to get from model...")
+                            vprint("No validation data available. Trying to get from model...", level=2)
                             if hasattr(self.model, 'validation_data'):
                                 self.val_data = self.model.validation_data[0]
                                 self.val_labels = self.model.validation_data[1]
                             else:
-                                print("Error: Cannot access validation data")
+                                vprint("Error: Cannot access validation data", level=1)
                                 return
                         
                         # Get predictions
@@ -407,21 +411,22 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
                                 #     print(f"Class attention: {np.mean(analysis['class_attention']['correct']):.4f}")
                 
                     except Exception as e:
-                        print(f"Error in attention visualization: {str(e)}")
-                        print("Detailed error information:")
-                        import traceback
-                        traceback.print_exc()
-                        
-                        # Print debug information
-                        print("\nDebug Information:")
-                        print(f"Attention layer found: {attention_layer is not None}")
-                        if attention_layer:
-                            print("Attention values available:")
-                            values = attention_layer.get_attention_values()
-                            print(f"Model attention: {'Yes' if values['model_attention'] is not None else 'No'}")
-                            print(f"Class attention: {'Yes' if values['class_attention'] is not None else 'No'}")
+                        vprint(f"Error in attention visualization: {str(e)}", level=1)
+                        if get_verbosity() <= 2:
+                            print("Detailed error information:")
+                            import traceback
+                            traceback.print_exc()
+
+                            # Print debug information
+                            print("\nDebug Information:")
+                            print(f"Attention layer found: {attention_layer is not None}")
+                            if attention_layer:
+                                print("Attention values available:")
+                                values = attention_layer.get_attention_values()
+                                print(f"Model attention: {'Yes' if values['model_attention'] is not None else 'No'}")
+                                print(f"Class attention: {'Yes' if values['class_attention'] is not None else 'No'}")
                 else:
-                    print("Warning: Could not find attention layer in model")
+                    vprint("Warning: Could not find attention layer in model", level=2)
     
     return AttentionVisualizerCallback(val_data, val_labels, save_dir)
             
@@ -596,11 +601,11 @@ class DualLevelAttentionLayer(tf.keras.layers.Layer):
     def get_attention_scores(self):
         """Check if attention scores are available"""
         if self.model_attention_scores is None or self.class_attention_scores is None:
-            print("Warning: One or both attention scores are None")
+            vprint("Warning: One or both attention scores are None", level=2)
             if self.model_attention_scores is None:
-                print("Model attention scores are None")
+                vprint("Model attention scores are None", level=2)
             if self.class_attention_scores is None:
-                print("Class attention scores are None")
+                vprint("Class attention scores are None", level=2)
             return {'model_attention': None, 'class_attention': None}
         
         return {
@@ -766,8 +771,8 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     train_label_indices = np.argmax(train_labels, axis=1)
     unique_classes = np.unique(train_label_indices)
 
-    print(f"Debug train_model_combination: train_labels shape={train_labels.shape}, indices shape={train_label_indices.shape}")
-    print(f"Debug: unique_classes={unique_classes}, train_label_indices[:10]={train_label_indices[:10]}")
+    vprint(f"Debug train_model_combination: train_labels shape={train_labels.shape}, indices shape={train_label_indices.shape}", level=2)
+    vprint(f"Debug: unique_classes={unique_classes}, train_label_indices[:10]={train_label_indices[:10]}", level=2)
 
     # Handle case where not all classes are present
     if len(unique_classes) == 0:
@@ -777,9 +782,9 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     try:
         class_weights = compute_class_weight(class_weight='balanced', classes=unique_classes, y=train_label_indices)
     except Exception as e:
-        print(f"Error in compute_class_weight: {e}")
-        print(f"  unique_classes type={type(unique_classes)}, shape={unique_classes.shape}")
-        print(f"  train_label_indices type={type(train_label_indices)}, shape={train_label_indices.shape}")
+        vprint(f"Error in compute_class_weight: {e}", level=1)
+        vprint(f"  unique_classes type={type(unique_classes)}, shape={unique_classes.shape}", level=1)
+        vprint(f"  train_label_indices type={type(train_label_indices)}, shape={train_label_indices.shape}", level=1)
         raise
     class_weights_dict = {int(c): w for c, w in zip(unique_classes, class_weights)}
     # Fill in missing classes with weight 1.0
@@ -941,18 +946,18 @@ def process_trial(trial, all_combinations, completed_combinations, train_predict
             'selected_key': selected_key
         }
     except Exception as e:
-        print(f"Error in trial {trial}: {str(e)}")
+        vprint(f"Error in trial {trial}: {str(e)}", level=1)
         return None
 def train_gating_network(train_predictions_list, valid_predictions_list, train_labels, valid_labels, run_number, find_optimal=True, min_models=2, max_tries=100):
     tf.config.experimental.enable_op_determinism()
-    print("\nInitializing gating network training...")
-    print(f"Number of models: {len(train_predictions_list)}")
-    print(f"Shape of first model predictions: {train_predictions_list[0].shape}")
-    print(f"Shape of true labels: {train_labels.shape}")
+    vprint("\nInitializing gating network training...", level=1)
+    vprint(f"Number of models: {len(train_predictions_list)}", level=2)
+    vprint(f"Shape of first model predictions: {train_predictions_list[0].shape}", level=2)
+    vprint(f"Shape of true labels: {train_labels.shape}", level=2)
 
     # Skip gating network training if there's only 1 model (nothing to combine)
     if len(train_predictions_list) < 2:
-        print(f"Skipping gating network: only {len(train_predictions_list)} model(s), need at least 2 to combine")
+        vprint(f"Skipping gating network: only {len(train_predictions_list)} model(s), need at least 2 to combine", level=1)
         # Return the single model's predictions directly
         return valid_predictions_list[0], valid_labels
     excluded_models = set()
@@ -968,26 +973,26 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
     completed_combinations = set(tuple(comb) for comb in progress['completed_combinations'])
     if best_combination:
         excluded_models = set(range(len(train_predictions_list))) - set(best_combination)
-        print(f"Excluded models from previous time code was run: {excluded_models}")
-    
+        vprint(f"Excluded models from previous time code was run: {excluded_models}", level=2)
+
     # Ensure predictions are in float32
     train_predictions_list = [np.array(p, dtype=np.float32) for p in train_predictions_list]
     valid_predictions_list = [np.array(p, dtype=np.float32) for p in valid_predictions_list]
-    
+
     # Train with all models first (only if not done before)
     all_models_key = tuple(range(len(train_predictions_list)))
     if all_models_key not in completed_combinations:
-        print("\nTraining with all models...")
+        vprint("\nTraining with all models...", level=1)
         train_data_truncated, train_labels_truncated = correct_and_validate_predictions(train_predictions_list, train_labels, "train")
         val_data_truncated, val_labels_truncated = correct_and_validate_predictions(valid_predictions_list, valid_labels, "valid")
 
         train_data = np.stack(train_data_truncated, axis=1).astype(np.float32)
         val_data = np.stack(val_data_truncated, axis=1).astype(np.float32)
 
-        print(f"Train data shape: {train_data.shape}, Train labels shape: {train_labels_truncated.shape}")
-        print(f"Val data shape: {val_data.shape}, Val labels shape: {val_labels_truncated.shape}")
+        vprint(f"Train data shape: {train_data.shape}, Train labels shape: {train_labels_truncated.shape}", level=2)
+        vprint(f"Val data shape: {val_data.shape}, Val labels shape: {val_labels_truncated.shape}", level=2)
         train_label_indices = np.argmax(train_labels_truncated, axis=1) if len(train_labels_truncated.shape) > 1 else train_labels_truncated
-        print(f"Train classes: {sorted(np.unique(train_label_indices).astype(int))}")
+        vprint(f"Train classes: {sorted(np.unique(train_label_indices).astype(int))}", level=2)
 
         predictions, loss, accuracy, kappa, model, val_weighted_acc = train_model_combination(train_data, val_data, train_labels_truncated, val_labels_truncated) 
         if best_accuracy and accuracy+val_weighted_acc >= best_accuracy+best_weighted_accuracy:
@@ -1011,12 +1016,12 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
             
         # Save progress
         save_progress(run_number, completed_combination=all_models_key,best_metrics={'accuracy': best_accuracy, 'weighted_accuracy': best_weighted_accuracy ,'loss': best_loss, 'kappa': best_kappa},best_combination=best_combination,best_predictions=best_predictions)
-        print(f"Initial Accuracy: {best_accuracy:.4f}, Initial Weighted Accuracy: {best_weighted_accuracy:.4f}, Loss: {best_loss:.4f}, kappa: {best_kappa:.4f}")
+        vprint(f"Initial Accuracy: {best_accuracy:.4f}, Initial Weighted Accuracy: {best_weighted_accuracy:.4f}, Loss: {best_loss:.4f}, kappa: {best_kappa:.4f}", level=1)
         write_save_best_combo_results(best_predictions, best_accuracy, best_weighted_accuracy, best_loss, valid_labels, best_combination, excluded_models, result_dir, run_number)
     
     # Search for the optimal combination of models
     if find_optimal:
-        print("\nSearching for the optimal model combination...")
+        vprint("\nSearching for the optimal model combination...", level=1)
         available_models = set(range(len(train_predictions_list)))
         # excluded_models = set()
         available_indices = list(available_models)
@@ -1029,7 +1034,7 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
             steps = [SEARCH_MIN_MODELS]
         else:
             steps = list(np.sort(range(min_models, num_models, max(int(SEARCH_STEP_SIZE_FRACTION * num_models), 1)))) + [len(available_indices) - 1]
-        print(f"Explornig Steps: {steps}")
+        vprint(f"Explornig Steps: {steps}", level=2)
         while num_models >= min_models:
             # Progressively exclude models
             # available_indices = list(available_models - excluded_models)
@@ -1041,14 +1046,14 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
                 if num_models < min_models:
                     break
                 continue
-            print(f"\nTrying combinations with {num_models} models...")
-            print(f"Available indices: {available_indices}")
+            vprint(f"\nTrying combinations with {num_models} models...", level=2)
+            vprint(f"Available indices: {available_indices}", level=2)
             from itertools import combinations
             import random
             all_combinations = list(combinations(available_indices, num_models))
             random.shuffle(all_combinations)
             max_tries_min = min(max_tries, len(all_combinations))
-            print(f"Max tries: {max_tries_min}")
+            vprint(f"Max tries: {max_tries_min}", level=2)
 
             from tqdm import tqdm
 
@@ -1088,31 +1093,31 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
                             _, _, _, _, best_model, _ = train_model_combination(train_data_sliced, val_data_sliced, train_labels_truncated, val_labels_truncated)
                             
                             excluded_temp = excluded_models.copy()
-                            print(f"\nNew best combination found!")
-                            print(f"Models {result['selected_indices']}")
-                            
+                            vprint(f"\nNew best combination found!", level=1)
+                            vprint(f"Models {result['selected_indices']}", level=1)
+
                             excluded_model = set(available_indices) - set(result['selected_indices'])
                             if excluded_model:
-                                print(f"Excluded trial model(s) {excluded_model}")
+                                vprint(f"Excluded trial model(s) {excluded_model}", level=2)
                                 excluded_temp.update(excluded_model)
-                            print(f"Previous accuracy: {best_accuracy:.4f}, Previous Weighted Accuracy: {best_weighted_accuracy:.4f}, Previous loss: {best_loss:.4f}, Previous kappa: {best_kappa:.4f}")
-                            
+                            vprint(f"Previous accuracy: {best_accuracy:.4f}, Previous Weighted Accuracy: {best_weighted_accuracy:.4f}, Previous loss: {best_loss:.4f}, Previous kappa: {best_kappa:.4f}", level=2)
+
                             best_accuracy = result['accuracy']
                             best_weighted_accuracy = result['weighted_accuracy']
                             best_loss = result['loss']
                             best_predictions = result['predictions']
                             best_combination = result['selected_indices']
                             best_kappa = result['kappa']
-                            
-                            print(f"New best accuracy: {best_accuracy:.4f}, New best Weighted Accuracy: {best_weighted_accuracy:.4f}, New best loss: {best_loss:.4f}, New best kappa: {best_kappa:.4f}")
+
+                            vprint(f"New best accuracy: {best_accuracy:.4f}, New best Weighted Accuracy: {best_weighted_accuracy:.4f}, New best loss: {best_loss:.4f}, New best kappa: {best_kappa:.4f}", level=1)
                             
                             write_save_best_combo_results(best_predictions, best_accuracy, best_weighted_accuracy, best_loss, valid_labels, best_combination, excluded_temp, result_dir, run_number)
                             save_progress(run_number, best_metrics={'accuracy': best_accuracy, 'weighted_accuracy': best_weighted_accuracy, 'loss': best_loss, 'kappa': best_kappa}, best_combination=best_combination,best_predictions=best_predictions)
                             best_model.save(os.path.join(models_path, f'best_gating_model_run{run_number}.h5'))
             if excluded_temp:
                 excluded_models = excluded_temp.copy()
-            print(f"Excluding model(s) {excluded_models} from future combinations")
-            print(f"{max_tries_min} combinations with {num_models} models completed")
+            vprint(f"Excluding model(s) {excluded_models} from future combinations", level=2)
+            vprint(f"{max_tries_min} combinations with {num_models} models completed", level=2)
             # num_models -= 1
             if len(steps) == 1:
                 break
@@ -1122,12 +1127,12 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
             else:
                 break
     # Final Results
-    print("\nFinal Results:")
-    print("==============")
-    print(f"Best Cohen's Kappa: {best_kappa:.4f}")
-    print(f"Best Accuracy: {best_accuracy:.4f}")
-    print(f"Best Weighted Accuracy: {best_weighted_accuracy:.4f}")
-    print(f"Best Loss: {best_loss:.4f}")
+    vprint("\nFinal Results:", level=1)
+    vprint("==============", level=1)
+    vprint(f"Best Cohen's Kappa: {best_kappa:.4f}", level=1)
+    vprint(f"Best Accuracy: {best_accuracy:.4f}", level=1)
+    vprint(f"Best Weighted Accuracy: {best_weighted_accuracy:.4f}", level=1)
+    vprint(f"Best Loss: {best_loss:.4f}", level=1)
     # if best_combination:
     #     print(f"Best Model Combination: {best_combination}")
     #     if excluded_models:
@@ -1499,26 +1504,27 @@ def train_hierarchical_gating_network(predictions_list, true_labels, n_splits=CV
         attention_weights = attention_model.predict(X_val, verbose=0)
         fold_attention_weights.append(np.mean(attention_weights, axis=0))
         
-        print(f"Fold {fold + 1} validation accuracy: {val_acc:.4f}")
-    
+        vprint(f"Fold {fold + 1} validation accuracy: {val_acc:.4f}", level=1)
+
     # Calculate and print overall metrics
-    print("\nOverall cross-validation metrics:")
+    vprint("\nOverall cross-validation metrics:", level=1)
     mean_val_acc = np.mean([m['val_accuracy'] for m in fold_metrics])
     std_val_acc = np.std([m['val_accuracy'] for m in fold_metrics])
-    print(f"Validation Accuracy: {mean_val_acc:.4f} ± {std_val_acc:.4f}")
-    
+    vprint(f"Validation Accuracy: {mean_val_acc:.4f} ± {std_val_acc:.4f}", level=1)
+
     # Calculate average attention weights across folds
     overall_attention = np.mean(fold_attention_weights, axis=0)
-    print("\nOverall model importance weights:")
-    for i, weight in enumerate(overall_attention):
-        print(f"Model {i + 1}: {np.mean(weight):.3f}")
+    vprint("\nOverall model importance weights:", level=1)
+    if get_verbosity() <= 1:
+        for i, weight in enumerate(overall_attention):
+            print(f"Model {i + 1}: {np.mean(weight):.3f}")
     
     return combined_predictions, overall_attention
 
 def calculate_and_save_metrics(true_labels, predictions, result_dir, configs):
     """Calculate metrics and save results."""
     if len(true_labels) != len(predictions):
-        print(f"Warning: Length mismatch - true_labels: {len(true_labels)}, predictions: {len(predictions)}")
+        vprint(f"Warning: Length mismatch - true_labels: {len(true_labels)}, predictions: {len(predictions)}", level=1)
         # Truncate to shorter length
         min_len = min(len(true_labels), len(predictions))
         true_labels = true_labels[:min_len]
@@ -1533,11 +1539,12 @@ def calculate_and_save_metrics(true_labels, predictions, result_dir, configs):
     }
     
     # Print results
-    print("\nFinal Results:")
-    print(classification_report(true_labels, predictions,
-                              target_names=CLASS_LABELS,
-                              labels=[0, 1, 2]))
-    print(f"\nCohen's Kappa: {metrics['kappa']:.4f}")
+    vprint("\nFinal Results:", level=1)
+    if get_verbosity() <= 1:
+        print(classification_report(true_labels, predictions,
+                                  target_names=CLASS_LABELS,
+                                  labels=[0, 1, 2]))
+    vprint(f"\nCohen's Kappa: {metrics['kappa']:.4f}", level=1)
     
     # Save confusion matrix
     cm = confusion_matrix(true_labels, predictions, labels=[0, 1, 2])
@@ -1585,15 +1592,16 @@ def calculate_and_save_metrics(true_labels, predictions, result_dir, configs):
     return metrics
 def create_focal_ordinal_loss2(ordinal_weight, gamma, alpha):
     """Create a focal ordinal loss function with fixed parameters"""
-    print("\nLoss Function Configuration for depth_rgb:")
-    print(f"Ordinal weight: {ordinal_weight}")
-    print(f"Gamma: {gamma}")
-    print(f"Alpha: {alpha}")
+    vprint("\nLoss Function Configuration for depth_rgb:", level=2)
+    vprint(f"Ordinal weight: {ordinal_weight}", level=2)
+    vprint(f"Gamma: {gamma}", level=2)
+    vprint(f"Alpha: {alpha}", level=2)
     def loss_fn(y_true, y_pred):
         if not hasattr(loss_fn, 'params_verified'):
-            print("\nVerifying loss parameters during first call:")
-            print(f"Current gamma: {gamma}")
-            print(f"Current alpha: {alpha}")
+            if get_verbosity() <= 2:
+                print("\nVerifying loss parameters during first call:")
+                print(f"Current gamma: {gamma}")
+                print(f"Current alpha: {alpha}")
             loss_fn.params_verified = True
         # Clip prediction values to prevent log(0)
         epsilon = tf.keras.backend.epsilon()
@@ -1663,10 +1671,10 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
     for ordinal_weight in param_grid['ordinal_weight']:
         for gamma in param_grid['gamma']:
             for alpha in param_grid['alpha']:
-                print(f"\nTesting parameters:")
-                print(f"Ordinal Weight: {ordinal_weight}")
-                print(f"Gamma: {gamma}")
-                print(f"Alpha: {alpha}")
+                vprint(f"\nTesting parameters:", level=2)
+                vprint(f"Ordinal Weight: {ordinal_weight}", level=2)
+                vprint(f"Gamma: {gamma}", level=2)
+                vprint(f"Alpha: {alpha}", level=2)
                 
                 try:
                     # Create and set the current loss function
@@ -1711,12 +1719,12 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
                             'alpha': alpha
                         }
                     
-                    print(f"\nCurrent Results:")
-                    print(f"F1 Weighted: {result['f1_weighted']:.4f}")
-                    print(f"Kappa: {result['kappa']:.4f}")
-                    
+                    vprint(f"\nCurrent Results:", level=1)
+                    vprint(f"F1 Weighted: {result['f1_weighted']:.4f}", level=1)
+                    vprint(f"Kappa: {result['kappa']:.4f}", level=1)
+
                 except Exception as e:
-                    print(f"Error during parameter combination: {str(e)}")
+                    vprint(f"Error during parameter combination: {str(e)}", level=1)
                     import traceback
                     traceback.print_exc()
                     
@@ -1728,13 +1736,13 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
                     tf.keras.backend.clear_session()
                     gc.collect()
     
-    print("\nGrid Search Complete!")
+    vprint("\nGrid Search Complete!", level=1)
     if best_params:
-        print("\nBest Parameters:")
-        print(f"Ordinal Weight: {best_params['ordinal_weight']}")
-        print(f"Gamma: {best_params['gamma']}")
-        print(f"Alpha: {best_params['alpha']}")
-        print(f"Best F1 Weighted: {best_score:.4f}")
+        vprint("\nBest Parameters:", level=1)
+        vprint(f"Ordinal Weight: {best_params['ordinal_weight']}", level=1)
+        vprint(f"Gamma: {best_params['gamma']}", level=1)
+        vprint(f"Alpha: {best_params['alpha']}", level=1)
+        vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
 def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
@@ -1755,7 +1763,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
     """
     # Handle backwards compatibility
     if n_runs is not None:
-        print(f"Warning: n_runs parameter is deprecated. Using it for backwards compatibility.")
+        vprint(f"Warning: n_runs parameter is deprecated. Using it for backwards compatibility.", level=1)
         num_iterations = n_runs
         cv_mode_name = f"{n_runs} runs"
     else:
@@ -1794,18 +1802,18 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
     if search_mode == 'all':
         # Test all combinations, excluding any in EXCLUDED_COMBINATIONS
         combinations_to_process = [comb for comb in all_combinations if comb not in excluded_combinations]
-        print(f"\n{'='*80}")
-        print(f"MODALITY SEARCH MODE: ALL COMBINATIONS ({len(combinations_to_process)} combinations)")
-        print(f"{'='*80}")
+        vprint(f"\n{'='*80}", level=1)
+        vprint(f"MODALITY SEARCH MODE: ALL COMBINATIONS ({len(combinations_to_process)} combinations)", level=1)
+        vprint(f"{'='*80}", level=1)
         if excluded_combinations:
-            print(f"Excluded: {len(excluded_combinations)} combinations")
+            vprint(f"Excluded: {len(excluded_combinations)} combinations", level=1)
     elif search_mode == 'custom':
         # Test only combinations in INCLUDED_COMBINATIONS
         combinations_to_process = [comb for comb in all_combinations if comb in included_combinations]
-        print(f"\n{'='*80}")
-        print(f"MODALITY SEARCH MODE: CUSTOM ({len(combinations_to_process)} combinations)")
-        print(f"{'='*80}")
-        print(f"Testing only specified combinations from production_config.py")
+        vprint(f"\n{'='*80}", level=1)
+        vprint(f"MODALITY SEARCH MODE: CUSTOM ({len(combinations_to_process)} combinations)", level=1)
+        vprint(f"{'='*80}", level=1)
+        vprint(f"Testing only specified combinations from production_config.py", level=1)
     else:
         raise ValueError(f"Invalid MODALITY_SEARCH_MODE: {search_mode}. Must be 'all' or 'custom'")
 
@@ -1931,7 +1939,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
                 iter_name = f"Fold {run + 1}/{num_iterations}"
             else:
                 iter_name = f"Iteration {run + 1}/{num_iterations}"
-            print(f"\n{iter_name}")
+            vprint(f"\n{iter_name}", level=1)
 
             # Collect predictions from all modality combinations for this run
             all_train_predictions = []
@@ -1956,14 +1964,15 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
                         train_labels = t_labels
                         valid_labels = v_labels
 
-                    print(f"  Loaded {config_name}: train shape {train_preds.shape}, valid shape {valid_preds.shape}")
+                    vprint(f"  Loaded {config_name}: train shape {train_preds.shape}, valid shape {valid_preds.shape}", level=2)
                 else:
-                    print(f"  Warning: Could not load predictions for {config_name}")
+                    vprint(f"  Warning: Could not load predictions for {config_name}", level=1)
 
             if len(all_train_predictions) >= 2:
-                print(f"\nTraining gating network with {len(all_train_predictions)} modality combinations:")
-                for name in combination_names:
-                    print(f"  - {name}")
+                vprint(f"\nTraining gating network with {len(all_train_predictions)} modality combinations:", level=1)
+                if get_verbosity() <= 2:
+                    for name in combination_names:
+                        print(f"  - {name}")
 
                 # Convert labels to class indices if needed
                 if train_labels is not None and len(train_labels.shape) > 1:
@@ -1995,14 +2004,14 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
                         ensemble_f1 = f1_score(gating_valid_labels, final_preds, average='macro')
                         ensemble_kappa = cohen_kappa_score(gating_valid_labels, final_preds)
 
-                        print(f"\nGating Network Ensemble Results for Run {run + 1}:")
-                        print(f"  Accuracy: {ensemble_accuracy:.4f}")
-                        print(f"  F1 Macro: {ensemble_f1:.4f}")
-                        print(f"  Kappa: {ensemble_kappa:.4f}")
+                        vprint(f"\nGating Network Ensemble Results for Run {run + 1}:", level=1)
+                        vprint(f"  Accuracy: {ensemble_accuracy:.4f}", level=1)
+                        vprint(f"  F1 Macro: {ensemble_f1:.4f}", level=1)
+                        vprint(f"  Kappa: {ensemble_kappa:.4f}", level=1)
                 except Exception as e:
-                    print(f"Error in gating network ensemble for run {run + 1}: {str(e)}")
+                    vprint(f"Error in gating network ensemble for run {run + 1}: {str(e)}", level=1)
             else:
-                print(f"  Not enough predictions loaded ({len(all_train_predictions)}) for gating network ensemble")
+                vprint(f"  Not enough predictions loaded ({len(all_train_predictions)}) for gating network ensemble", level=1)
     
 def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
     """
@@ -2031,9 +2040,9 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
                 try:
                     os.remove(cache_file)
                 except Exception as e:
-                    print(f"Warning: Could not remove cache file {cache_file}: {str(e)}")
+                    vprint(f"Warning: Could not remove cache file {cache_file}: {str(e)}", level=2)
         except Exception as e:
-            print(f"Warning: Error while processing pattern {pattern}: {str(e)}")
+            vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
         main_search(data_percentage, train_patient_percentage, n_runs=n_runs, cv_folds=cv_folds)
@@ -2164,6 +2173,20 @@ Configuration:
 
     # Set verbosity level
     set_verbosity(args.verbosity)
+
+    # Suppress library warnings when in progress bar mode (verbosity 3)
+    if args.verbosity == 3:
+        import warnings
+        import numpy as np
+        warnings.filterwarnings('ignore', category=UserWarning)
+        warnings.filterwarnings('ignore', category=RuntimeWarning)  # Suppress NumPy runtime warnings
+        warnings.filterwarnings('ignore', message='.*OpenSSL.*')
+        warnings.filterwarnings('ignore', message='.*CUDA.*')
+        warnings.filterwarnings('ignore', message='.*cuDNN.*')
+        np.seterr(all='ignore')  # Suppress all NumPy warnings
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow warnings
+        logging.getLogger('tensorflow').setLevel(logging.ERROR)
+        logging.getLogger('absl').setLevel(logging.ERROR)
 
     # Print configuration (always shown, even in progress bar mode)
     vprint("\n" + "="*80, level=0)

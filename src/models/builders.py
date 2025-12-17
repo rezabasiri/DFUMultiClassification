@@ -14,6 +14,7 @@ from tensorflow.keras.models import Model
 import numpy as np
 
 from src.utils.config import get_project_paths, CLASS_LABELS
+from src.utils.verbosity import vprint
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -22,7 +23,7 @@ directory, result_dir, root = get_project_paths()
 image_size = 64
 
 def create_image_branch(input_shape, modality):
-    print("\nDebug create_image_branch")
+    vprint("\nDebug create_image_branch", level=2)
     
     image_input = Input(shape=(image_size, image_size, 3), name=f'{modality}_input')
     if modality in ['depth_rgb', 'thermal_rgb']:
