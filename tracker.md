@@ -427,3 +427,7 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 **src/utils/config.py**: Added `cleanup_for_resume_mode()` function with 5 modes (fresh/auto/from_data/from_models/from_predictions) for selective file deletion.
 **src/main.py**: Added `--resume_mode` CLI argument (default='auto'); calls cleanup function at startup.
 **README.md**: Added "Resume and Checkpoint Management" section with mode documentation and workflows.
+
+## 2025-12-17 — Fix n_runs default to enable cv_folds
+
+**src/main.py**: Changed `--n_runs` default from 3 to None; fixed backwards compatibility check to properly detect when user hasn't specified n_runs, allowing cv_folds to work correctly.
