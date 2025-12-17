@@ -704,8 +704,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         
         # Setup augmentation once per run
         aug_config = AugmentationConfig()
-        aug_config.generative_settings['output_size']['width'] = image_size
-        aug_config.generative_settings['output_size']['height'] = image_size
+        aug_config.generative_settings['output_size']['width'] = IMAGE_SIZE
+        aug_config.generative_settings['output_size']['height'] = IMAGE_SIZE
         
         gen_manager = GenerativeAugmentationManager(
             base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
