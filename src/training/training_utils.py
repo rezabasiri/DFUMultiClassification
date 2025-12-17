@@ -23,6 +23,7 @@ import seaborn as sns
 
 from src.utils.config import get_project_paths, get_output_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
+from src.utils.verbosity import vprint
 from src.utils.production_config import (
     GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
@@ -215,7 +216,7 @@ class ProcessedDataManager:
     def process_all_modalities(self):
         """Process all modalities and store their shapes."""
         # Get metadata shape after preprocessing
-        print("Processing metadata shape...")
+        vprint("Processing metadata shape...", level=2)
         temp_data = self.data.copy()
         temp_train, _, _, _, _, _ = prepare_cached_datasets(
             temp_data,
@@ -228,9 +229,9 @@ class ProcessedDataManager:
         for batch in temp_train.take(1):
             self.all_modality_shapes['metadata'] = batch[0]['metadata_input'].shape[1:]
             break
-        
+
         # Set image shapes
-        print("Setting image shapes...")
+        vprint("Setting image shapes...", level=2)
         for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
             self.all_modality_shapes[modality] = (IMAGE_SIZE, IMAGE_SIZE, 3)
         
@@ -682,14 +683,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
 
     # Generate patient folds for k-fold CV (if cv_folds > 1)
     if not use_legacy_mode and cv_folds > 1:
-        print(f"\n{'='*80}")
-        print(f"GENERATING {cv_folds}-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)")
-        print(f"{'='*80}")
+        vprint(f"\n{'='*80}", level=1)
+        vprint(f"GENERATING {cv_folds}-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)", level=1)
+        vprint(f"{'='*80}", level=1)
         from src.data.dataset_utils import create_patient_folds
         patient_fold_splits = create_patient_folds(data, n_folds=cv_folds, random_state=42, max_imbalance=0.3)
-        print(f"Generated {len(patient_fold_splits)} folds")
-        print(f"All data will be validated exactly once across all folds")
-        print(f"{'='*80}\n")
+        vprint(f"Generated {len(patient_fold_splits)} folds", level=1)
+        vprint(f"All data will be validated exactly once across all folds", level=1)
+        vprint(f"{'='*80}\n", level=1)
     else:
         patient_fold_splits = None
 
@@ -707,27 +708,27 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             clear_gpu_memory()
             clear_cache_files()
         except Exception as e:
-            print(f"Error clearing memory stats: {str(e)}")
+            vprint(f"Error clearing memory stats: {str(e)}", level=2)
         # Reset random seeds for next iteration
         random.seed(42 + run * (run + 3))
         tf.random.set_seed(42 + run * (run + 3))
         np.random.seed(42 + run * (run + 3))
         os.environ['PYTHONHASHSEED'] = str(42 + run * (run + 3))
 
-        print(f"\n{iteration_name}")
+        vprint(f"\n{iteration_name}", level=1)
 
         # Get patient splits for this iteration (k-fold CV or random split)
         if patient_fold_splits is not None:
             # K-fold CV: use pre-computed fold splits
             fold_train_patients, fold_valid_patients = patient_fold_splits[iteration_idx]
-            print(f"Using pre-computed fold {iteration_idx + 1} patient split")
+            vprint(f"Using pre-computed fold {iteration_idx + 1} patient split", level=1)
         else:
             # Legacy mode or single split: let prepare_cached_datasets handle it
             fold_train_patients, fold_valid_patients = None, None
 
         # Check if this iteration is already complete
         if is_run_complete(run + 1, ck_path):
-            print(f"\n{iteration_name} is already complete. Moving to next...")
+            vprint(f"\n{iteration_name} is already complete. Moving to next...", level=1)
             continue
 
         # Try to load aggregated predictions first (only useful when training multiple configs for same modalities)
@@ -831,7 +832,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             all_modalities.update(config['modalities'])
         all_modalities = list(all_modalities)
         
-        print(f"\nPreparing datasets for {iteration_name} with all modalities: {all_modalities}")
+        vprint(f"\nPreparing datasets for {iteration_name} with all modalities: {all_modalities}", level=1)
         # Create cached datasets once for all modalities
         master_train_dataset, pre_aug_dataset, master_valid_dataset, master_steps_per_epoch, master_validation_steps, master_alpha_value = prepare_cached_datasets(
             data_manager.data,
@@ -875,16 +876,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 continue
             elif os.path.exists(create_checkpoint_filename(config['modalities'], run+1, config_name)):
                 # If not in completed_configs but weights exist, we need to regenerate predictions
-                print(f"\nFound weights but no predictions for {config_name}, regenerating predictions")
+                vprint(f"\nFound weights but no predictions for {config_name}, regenerating predictions", level=1)
             else:
-                print(f"\nNo existing data found for {config_name}, starting fresh")
-            
+                vprint(f"\nNo existing data found for {config_name}, starting fresh", level=1)
+
             selected_modalities = config['modalities']
             # Display proper iteration context
             if not use_legacy_mode and cv_folds > 1:
-                print(f"\nTraining {config_name} with modalities: {selected_modalities}, fold {run + 1}/{cv_folds}")
+                vprint(f"\nTraining {config_name} with modalities: {selected_modalities}, fold {run + 1}/{cv_folds}", level=1)
             else:
-                print(f"\nTraining {config_name} with modalities: {selected_modalities}, run {run + 1}/{num_iterations}")
+                vprint(f"\nTraining {config_name} with modalities: {selected_modalities}, run {run + 1}/{num_iterations}", level=1)
             
             training_successful = False
             max_retries = 3
