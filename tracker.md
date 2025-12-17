@@ -771,3 +771,102 @@ All hard-coded values replaced with imports from production_config.py:
 - **Maintainability**: Easier to understand and modify configuration
 - **Experimentation**: Can easily swap config files for different experiments
 - **Documentation**: Each parameter documented with purpose and typical ranges
+
+## 2025-12-16 - Made main.py Fully Configurable via CLI and Config File
+
+### CLI Interface Improvements
+
+**Updated argparse** (lines 1844-1950):
+- Added comprehensive help documentation with examples
+- Made all parameters configurable via command-line flags
+- Changed default `--mode` to 'search' for modality testing
+- Changed default `--train_patient_percentage` to 0.67
+- Added detailed descriptions for each parameter
+- Added usage examples in `--help` output
+- Added configuration summary printed at runtime
+
+**CLI Parameters**:
+- `--mode`: search, specialized, or grid_search (default: search)
+- `--data_percentage`: 1-100, percentage of data to use (default: 100.0)
+- `--train_patient_percentage`: 0.0-1.0, train/val split (default: 0.67)
+- `--n_runs`: Number of independent runs with different splits (default: 3)
+
+**Runtime Configuration Display**:
+- Shows all settings before starting
+- Displays config source (production_config.py)
+- Shows modality search mode and combinations count
+- Lists key hyperparameters (image size, batch size, epochs)
+
+### Modality Search Configuration
+
+**Added to production_config.py** (lines 175-200):
+- `ALL_MODALITIES`: List of all available modalities
+- `MODALITY_SEARCH_MODE`: 'all' (test all 31) or 'custom' (test specific)
+- `EXCLUDED_COMBINATIONS`: List of combinations to skip
+- `INCLUDED_COMBINATIONS`: List to test when mode='custom'
+- `RESULTS_CSV_FILENAME`: Output CSV filename
+
+**Updated main_search()** (lines 1677-1735):
+- Reads modality configuration from production_config.py
+- Supports two modes:
+  - 'all': Tests all 31 combinations (minus excluded)
+  - 'custom': Tests only INCLUDED_COMBINATIONS
+- Prints detailed summary before starting
+- Shows total combinations and training sessions
+- Uses configurable CSV filename from config
+
+### Usage Documentation
+
+**Created USAGE_GUIDE.md**:
+- Comprehensive guide for running production pipeline
+- CLI parameter documentation with examples
+- Configuration file explanation
+- Example workflows (quick test, pilot, full production)
+- Runtime estimates and tips
+- Troubleshooting section
+- Comparison with demo scripts
+
+**Examples from guide**:
+```bash
+# Quick test
+python src/main.py --mode search --data_percentage 10 --n_runs 1
+
+# Production run
+python src/main.py --mode search --data_percentage 100 --train_patient_percentage 0.70 --n_runs 5
+
+# Custom combinations
+# Edit production_config.py: MODALITY_SEARCH_MODE = 'custom'
+python src/main.py --mode search
+```
+
+### Benefits
+
+- **No Code Editing Required**: All configuration via CLI flags and config file
+- **User-Friendly**: Clear help messages and examples
+- **Flexible**: Easy to run quick tests or full production runs
+- **Well-Documented**: USAGE_GUIDE.md provides complete instructions
+- **Reproducible**: Settings displayed at start of each run
+- **Easy Experimentation**: Switch between all combinations or custom subsets
+- **Production-Ready**: Proper CLI interface for research pipeline
+
+### Changes Summary
+
+1. **production_config.py**: Added modality search configuration section
+2. **main.py**:
+   - Enhanced argparse with detailed help and examples
+   - Updated main_search() to use config
+   - Fixed execution to use CLI args instead of hard-coded values
+   - Added runtime configuration display
+3. **USAGE_GUIDE.md**: Created comprehensive usage documentation
+
+### Migration from Previous Workflow
+
+**Before** (manual code editing):
+1. Edit line 1852 in main.py: `main('search', 100, 0.70, 5)`
+2. Edit lines 1691-1713 to configure modality combinations
+3. Run: `python src/main.py`
+
+**Now** (CLI-based):
+1. Configure once in production_config.py (if needed)
+2. Run: `python src/main.py --mode search --train_patient_percentage 0.70 --n_runs 5`
+3. Or use defaults: `python src/main.py`
