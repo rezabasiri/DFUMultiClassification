@@ -2113,6 +2113,27 @@ Configuration:
         (default: 3)"""
     )
 
+    parser.add_argument(
+        "--resume_mode",
+        type=str,
+        choices=['fresh', 'auto', 'from_data', 'from_models', 'from_predictions'],
+        default='auto',
+        help="""Control checkpoint resumption and cleanup behavior:
+        'fresh': Delete ALL checkpoints (models, predictions, cache, CSV) - start completely fresh
+        'auto': Keep all checkpoints, auto-resume from latest state (default)
+        'from_data': Keep processed data only, delete models/predictions - retrain from scratch
+        'from_models': Keep model weights, delete predictions - regenerate predictions only
+        'from_predictions': Keep Block A predictions, delete Block B gating models - retrain ensemble only
+
+        Use Cases:
+        - fresh: New experiment, clean slate
+        - auto: Continue interrupted training
+        - from_data: Retrain with different hyperparameters
+        - from_models: Regenerate predictions after model changes
+        - from_predictions: Fine-tune gating network only
+        (default: auto)"""
+    )
+
     args = parser.parse_args()
 
     # Print configuration
@@ -2120,6 +2141,7 @@ Configuration:
     print("DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE")
     print("="*80)
     print(f"Mode: {args.mode}")
+    print(f"Resume mode: {args.resume_mode}")
     print(f"Data percentage: {args.data_percentage}%")
     if args.cv_folds > 1:
         print(f"Cross-validation: {args.cv_folds}-fold CV (patient-level)")
@@ -2140,6 +2162,10 @@ Configuration:
         else:
             print(f"Will test {len(INCLUDED_COMBINATIONS)} custom combinations")
     print("="*80 + "\n")
+
+    # Handle resume mode cleanup
+    from src.utils.config import cleanup_for_resume_mode
+    cleanup_for_resume_mode(resume_mode=args.resume_mode)
 
     # Clear memory before starting
     clear_gpu_memory()
