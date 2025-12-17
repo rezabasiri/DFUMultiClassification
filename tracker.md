@@ -431,3 +431,7 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 ## 2025-12-17 — Fix n_runs default to enable cv_folds
 
 **src/main.py**: Changed `--n_runs` default from 3 to None; fixed backwards compatibility check to properly detect when user hasn't specified n_runs, allowing cv_folds to work correctly.
+
+## 2025-12-17 — Fix resume mode fresh: comprehensive checkpoint cleanup patterns
+
+**src/utils/config.py**: Added `*pred*.npy` and `*label*.npy` patterns to catch all prediction/label file variants (pred_run*, combo_pred*, true_label_run*); added `gating_network_run_*_results.csv` pattern for gating results; applied to both 'fresh' and 'from_data' modes.
