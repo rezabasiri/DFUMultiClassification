@@ -255,3 +255,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/training/training_utils.py**: Added missing imports: `random`, `gc`, `glob`, and `clear_gpu_memory` from `src.utils.debug`.
 
+## 2025-12-17 — Handle list input in cross_validation_manual_split
+
+**src/training/training_utils.py**: Modified `cross_validation_manual_split()` to accept modality list and convert to expected dict format. Added import of `BATCH_SIZE`, `MAX_EPOCHS`, `IMAGE_SIZE` from production_config.
+
