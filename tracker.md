@@ -954,3 +954,36 @@ sys.path.insert(0, project_root)
 
 ### Result
 Now `python src/main.py` works correctly from the project root directory, just like the demo scripts.
+
+## 2025-12-16 - Fixed Missing Keras Layer Imports in main.py
+
+### Issue
+Running `python src/main.py` resulted in:
+```
+NameError: name 'Layer' is not defined
+```
+at line 1240 where `TransformerBlock(Layer)` is defined.
+
+### Root Cause
+Missing imports for Keras layer classes used in main.py:
+- Layer (base class for custom layers)
+- Dense, Dropout, LayerNormalization (used in transformer blocks)
+- MultiHeadAttention (used in attention mechanisms)
+- Input, GlobalAveragePooling1D, Add (used in model building)
+- Model (for creating models)
+- K (Keras backend for low-level operations)
+
+### Fix Applied
+
+**src/main.py** (lines 30-34):
+Added comprehensive Keras imports:
+```python
+from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add
+from tensorflow.keras.models import Model
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.optimizers import Adam
+import tensorflow.keras.backend as K
+```
+
+### Result
+All Keras classes used in main.py are now properly imported. The script can now run without NameError exceptions.
