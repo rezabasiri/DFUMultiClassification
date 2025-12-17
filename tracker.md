@@ -413,3 +413,34 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 ## 2025-12-17 — Ensure consistent train/valid splits across modality combinations
 
 **src/data/dataset_utils.py**: Added `save_patient_split()` and `load_patient_split()` functions to save/load patient splits per run. Modified `prepare_cached_datasets()` to check for existing split first - if found, reuses it; if not, generates and saves it. This ensures all modality combinations within the same run use identical train/valid patient splits, preventing data leakage. Different runs still use different random seeds for cross-validation robustness.
+
+## 2025-12-17 — Implement k-fold cross-validation with patient-level splitting
+
+Major refactoring to replace repeated random holdout validation with proper k-fold cross-validation. This ensures all data is validated exactly once across folds and provides more robust performance estimates.
+
+**src/data/dataset_utils.py**:
+- Added `create_patient_folds()`: Generates k-fold splits with patient-level stratification by class. Groups patients by majority class, distributes across folds evenly, validates class balance within max_imbalance threshold (default 0.3).
+- Modified `prepare_cached_datasets()`: Now accepts optional `train_patients` and `valid_patients` parameters for pre-computed splits from k-fold CV.
+
+**src/training/training_utils.py**:
+- Updated `cross_validation_manual_split()`: Added `cv_folds` parameter (default=3). When `cv_folds > 1`, generates patient folds once and reuses splits across all modality combinations. When `cv_folds <= 1`, performs single train/valid split. Maintains backwards compatibility with `n_runs` parameter (deprecated).
+- Fold iterations named "Fold X/Y" for k-fold CV, "Run X/Y" for legacy mode.
+- Pre-computed patient splits passed to `prepare_cached_datasets()` to ensure consistency.
+
+**src/main.py**:
+- Added `--cv_folds` CLI argument (default=3, set to 0 or 1 for single split without CV).
+- Updated `main()` and `main_search()` signatures to accept both `n_runs` (deprecated) and `cv_folds`.
+- Updated configuration printing to show "k-fold CV (patient-level)" when using k-fold mode.
+- Updated gating network ensemble loop to use appropriate iteration naming.
+
+**README.md**:
+- Added "Two-Block Training Workflow" section documenting Block A (individual model training) and Block B (gating network ensemble).
+- Clarified that all modality combinations use identical train/valid patient splits within each run/fold.
+- Explained gating network only activates with 2+ modality combinations.
+
+**Benefits**:
+- All data validated exactly once per fold (no repeated or missed samples)
+- Patient-level stratification prevents data leakage
+- Class-balanced folds for robust evaluation
+- Better statistical properties than random holdout
+- Backwards compatible with existing code using n_runs
