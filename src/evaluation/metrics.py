@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from src.utils.config import CLASS_LABELS
+from src.utils.verbosity import vprint
 
 def track_misclassifications(y_true, y_pred, sample_ids, selected_modalities, result_dir):
     """
@@ -118,7 +119,7 @@ def analyze_misclassifications(result_dir):
     """
     misclass_file = os.path.join(result_dir, 'frequent_misclassifications.csv')
     if not os.path.exists(misclass_file):
-        print("No misclassification file found.")
+        vprint("No misclassification, level=1 file found.")
         return
     
     df = pd.read_csv(misclass_file)
@@ -163,7 +164,7 @@ def filter_frequent_misclassifications(data, result_dir, thresholds={'I': 12, 'P
     """
     misclass_file = os.path.join(result_dir, 'frequent_misclassifications_saved.csv')
     if not os.path.exists(misclass_file):
-        print("No misclassification file found. Using original dataset.")
+        vprint("No misclassification, level=1 file found. Using original dataset.")
         return data
     
     # Load misclassification data
