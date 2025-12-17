@@ -446,4 +446,7 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 **src/utils/verbosity.py**: Created verbosity utility with `vprint()`, `init_progress_bar()`, `update_progress()`, `close_progress()` functions; 4 levels (0=minimal, 1=normal, 2=detailed, 3=progress_bar).
 **src/utils/production_config.py**: Added `VERBOSITY` parameter (default=1) and progress bar settings.
 **src/main.py**: Added `--verbosity` CLI argument; fixed "Train labels unique" to show actual classes instead of one-hot values; fixed "run 1 of None" display; integrated vprint() and progress bar showing completion %, elapsed time, ETA, accuracy/F1.
-**src/training/training_utils.py**: Fixed training message to display fold/run number correctly instead of "run 1 of None".
+**src/training/training_utils.py**: Fixed training message to display fold/run number correctly instead of "run 1 of None"; replaced 40+ print statements with vprint() at level 1-2.
+**src/data/dataset_utils.py**: Replaced 30+ print statements with vprint() at level 2 for class distributions, alpha values, unique cases.
+**src/data/image_processing.py**: Replaced print statements with vprint() for modality sample counts.
+**src/evaluation/metrics.py**: Replaced print statements with vprint() for misclassification file loading messages.
