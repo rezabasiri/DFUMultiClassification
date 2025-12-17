@@ -686,9 +686,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             print(f"\nRun {run + 1} is already complete. Moving to next run...")
             continue
 
-        # Try to load aggregated predictions first
-        run_predictions_list_t, run_true_labels_t = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
-        run_predictions_list_v, run_true_labels_v = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
+        # Try to load aggregated predictions first (only useful when training multiple configs for same modalities)
+        # In search mode (single config per combination), skip this to force fresh training
+        run_predictions_list_t, run_true_labels_t = None, None
+        run_predictions_list_v, run_true_labels_v = None, None
+
+        if len(configs) > 1:
+            # Only check for existing predictions if we have multiple configs (specialized mode)
+            run_predictions_list_t, run_true_labels_t = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
+            run_predictions_list_v, run_true_labels_v = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
+
         if run_predictions_list_t is not None and run_predictions_list_v is not None and run_true_labels_t is not None and run_true_labels_v is not None:
             print(f"\nLoaded aggregated predictions for run {run + 1}")
             print(f"Number of models: {len(run_predictions_list_t)}")
