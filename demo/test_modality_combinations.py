@@ -50,10 +50,13 @@ def run_single_fold(modalities, config, fold_num=0, total_folds=1):
 
     # Load data
     data_paths = get_data_paths()
-    best_matching_csv = data_paths['best_matching_csv']
+    # Use demo-specific best matching CSV instead of production one
+    result_dir = get_project_paths()[1]  # Get result directory
+    best_matching_csv = os.path.join(result_dir, 'demo_best_matching.csv')
 
     if not os.path.exists(best_matching_csv):
-        raise FileNotFoundError(f"{best_matching_csv} not found!")
+        raise FileNotFoundError(f"Demo best matching CSV not found: {best_matching_csv}\n"
+                                f"Please run demo/test_workflow.py first to generate it.")
 
     best_matching = pd.read_csv(best_matching_csv)
 
