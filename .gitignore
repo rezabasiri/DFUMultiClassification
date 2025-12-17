@@ -32,7 +32,7 @@ results/runs/
 results/checkpoints/
 results/demo_tf_records/
 results/tf_records/
-results/demo/
+# results/demo/
 results/models/
 results/csv/
 results/misclassifications/
