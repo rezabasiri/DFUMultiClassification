@@ -405,3 +405,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 Removed previously tracked CSV files from git to respect `results/csv/` gitignore entry.
 
+## 2025-12-17 — Fix search mode: each combination trains independently
+
+**src/training/training_utils.py** (lines 689-698): Modified `cross_validation_manual_split()` to only load existing predictions when `len(configs) > 1` (specialized mode with multiple configs for same modalities). In search mode (single config per combination), now forces fresh training for each modality combination instead of incorrectly reusing predictions from previous combinations.
+
