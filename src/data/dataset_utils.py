@@ -17,7 +17,7 @@ from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
-from src.utils.verbosity import vprint
+from src.utils.verbosity import vprint, get_verbosity
 from src.data.image_processing import load_and_preprocess_image
 from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn
 
@@ -106,9 +106,9 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         valid_classes = set(valid_data['Healing Phase Abs'].unique())
 
         if len(train_classes) < 3 or len(valid_classes) < 3:
-            print(f"Warning: Fold {fold_idx + 1} missing classes (train: {train_classes}, valid: {valid_classes})")
+            vprint(f"Warning: Fold {fold_idx + 1} missing classes (train: {train_classes}, valid: {valid_classes})", level=1)
         elif max_diff > max_imbalance:
-            print(f"Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})")
+            vprint(f"Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
 
         fold_splits.append((train_patients, valid_patients))
 
@@ -140,8 +140,8 @@ def save_patient_split(run, train_patients, valid_patients, checkpoint_dir=None)
     np.savez(split_file,
              train_patients=train_patients,
              valid_patients=valid_patients)
-    print(f"Saved patient split for run {run + 1} to {split_file}")
-    print(f"  Train patients: {len(train_patients)}, Valid patients: {len(valid_patients)}")
+    vprint(f"Saved patient split for run {run + 1} to {split_file}", level=1)
+    vprint(f"  Train patients: {len(train_patients)}, Valid patients: {len(valid_patients)}", level=1)
 
 
 def load_patient_split(run, checkpoint_dir=None):
@@ -164,8 +164,8 @@ def load_patient_split(run, checkpoint_dir=None):
         data = np.load(split_file)
         train_patients = data['train_patients']
         valid_patients = data['valid_patients']
-        print(f"Loaded existing patient split for run {run + 1} from {split_file}")
-        print(f"  Train patients: {len(train_patients)}, Valid patients: {len(valid_patients)}")
+        vprint(f"Loaded existing patient split for run {run + 1} from {split_file}", level=1)
+        vprint(f"  Train patients: {len(train_patients)}, Valid patients: {len(valid_patients)}", level=1)
         return train_patients, valid_patients
 
     return None, None
@@ -225,8 +225,8 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
                 return img_array
             
             except Exception as e:
-                print(f"Error in _process_image: {str(e)}")
-                print(f"Error type: {type(e)}")
+                vprint(f"Error in _process_image: {str(e)}", level=1)
+                vprint(f"Error type: {type(e)}", level=1)
                 import traceback
                 traceback.print_exc()
                 return np.zeros((image_size, image_size, 3), dtype=np.float32)
@@ -307,10 +307,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
             # Convert to appropriate numpy dtype
             if col in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
                 tensor_slices[col] = df[col].astype(str).values
-                print(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}")
+                vprint(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}", level=2)
             elif col in ['Healing Phase Abs']:
                 tensor_slices[col] = df[col].astype(np.int32).values
-                print(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}")
+                vprint(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}", level=2)
             else:
                 tensor_slices[col] = df[col].astype(np.float32).values
         # Create dataset
@@ -393,19 +393,19 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
     valid_classes = set(valid_data['Healing Phase Abs'].unique())
     
     if len(train_classes) != 3 or len(valid_classes) != 3:
-        if verbose:
+        if verbose and get_verbosity() <= 2:
             print(f"Missing classes - Train: {train_classes}, Valid: {valid_classes}")
         return False
-    
+
     # Compare class distributions
     train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
     valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
-    
-    if verbose:
+
+    if verbose and get_verbosity() <= 2:
         print("\nClass distributions:")
         print("Training:", dict(train_dist.round(3)))
         print("Validation:", dict(valid_dist.round(3)))
-    
+
     # Check if class ratios are reasonably similar
     max_diff = 0
     for cls in [0, 1, 2]:
@@ -414,11 +414,11 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
         diff = abs(train_ratio - valid_ratio)
         max_diff = max(max_diff, diff)
         if diff > max_ratio_diff:
-            if verbose:
+            if verbose and get_verbosity() <= 2:
                 print(f"Class {cls} ratio difference too high: {diff:.3f}")
             return False
-    
-    if verbose:
+
+    if verbose and get_verbosity() <= 2:
         print(f"Maximum ratio difference: {max_diff:.3f}")
     return True
 
@@ -470,13 +470,14 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
             ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
             ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-            vprint("\nClass distributions:")
-            print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-            print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+            vprint("\nClass distributions:", level=2)
+            if get_verbosity() <= 2:
+                print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
     else:
         # Generate a new split (first modality combination for this run)
         if not for_shape_inference:
-            print(f"Generating new patient split for run {run + 1} (will be reused for all combinations)")
+            vprint(f"Generating new patient split for run {run + 1} (will be reused for all combinations)", level=1)
         max_retries = 2000
         best_split_diff = float('inf')
         best_split = None
@@ -506,13 +507,14 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Check if split is valid
             if check_split_validity(train_data, valid_data, max_ratio_diff=max_split_diff):
                 if not for_shape_inference:
-                    print(f"Found valid split after {attempt + 1} attempts")
-                    print("\nFinal class distributions:")
+                    vprint(f"Found valid split after {attempt + 1} attempts", level=2)
+                    vprint("\nFinal class distributions:", level=2)
                     # Create ordered distributions
                     ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
                     ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-                    print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-                    print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+                    if get_verbosity() <= 2:
+                        print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                        print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
                     # Save the split so all subsequent modality combinations use the same split
                     save_patient_split(run, train_patients, valid_patients)
@@ -520,8 +522,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
             if attempt == max_retries - 1:
                 if not for_shape_inference:
-                    print(f"Warning: Could not find optimal split after {max_retries} attempts.")
-                    print(f"Using best found split with max difference of {best_split_diff:.3f}")
+                    vprint(f"Warning: Could not find optimal split after {max_retries} attempts.", level=1)
+                    vprint(f"Using best found split with max difference of {best_split_diff:.3f}", level=1)
                 if best_split is not None:
                     train_data, valid_data = best_split
                     train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
@@ -532,15 +534,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
 
                     if not for_shape_inference:
-                        print("\nBest found class distributions:")
-                        print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-                        print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+                        vprint("\nBest found class distributions:", level=2)
+                        if get_verbosity() <= 2:
+                            print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                            print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
                         # Save the split so all subsequent modality combinations use the same split
                         save_patient_split(run, train_patients, valid_patients)
                 else:
                     if not for_shape_inference:
-                        print("No valid split found with all classes present in both sets")
+                        vprint("No valid split found with all classes present in both sets", level=1)
                     raise ValueError("Could not create valid data split")
     
     # Determine columns to keep based on selected modalities
@@ -595,9 +598,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         
         # Print original distribution with ordered classes
         counts = Counter(y_alpha)
-        vprint("Original class distribution (ordered):")
-        for class_idx in [0, 1, 2]:  # Explicit ordering
-            print(f"Class {class_idx}: {counts[class_idx]}")
+        vprint("Original class distribution (ordered):", level=2)
+        if get_verbosity() <= 2:
+            for class_idx in [0, 1, 2]:  # Explicit ordering
+                print(f"Class {class_idx}: {counts[class_idx]}")
         # Calculate alpha values from original distribution
         total_samples = sum(counts.values())
         class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
@@ -606,8 +610,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         alpha_sum = sum(alpha_values)
         alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
-        vprint("\nCalculated alpha values from original distribution:")
-        vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}")
+        vprint("\nCalculated alpha values from original distribution:", level=2)
+        vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
         if not apply_sampling:
             # Return same format as sampling case
             resampled_df = df.copy()
@@ -636,9 +640,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             
             # Print intermediate results with ordered classes
             under_counts = Counter(y_under)
-            print("\nAfter undersampling (ordered):")
-            for class_idx in [0, 1, 2]:
-                print(f"Class {class_idx}: {under_counts[class_idx]}")
+            vprint("\nAfter undersampling (ordered):", level=2)
+            if get_verbosity() <= 2:
+                for class_idx in [0, 1, 2]:
+                    print(f"Class {class_idx}: {under_counts[class_idx]}")
             
             # Set final targets
             final_target = {
@@ -655,30 +660,32 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             
             # Print final results with ordered classes
             final_counts = Counter(y_resampled)
-            print("\nAfter oversampling (ordered):")
-            for class_idx in [0, 1, 2]:
-                print(f"Class {class_idx}: {final_counts[class_idx]}")
-            
+            vprint("\nAfter oversampling (ordered):", level=2)
+            if get_verbosity() <= 2:
+                for class_idx in [0, 1, 2]:
+                    print(f"Class {class_idx}: {final_counts[class_idx]}")
+
             # Reconstruct DataFrame
             resampled_df = pd.DataFrame(X_resampled, columns=X.columns)
             resampled_df['Healing Phase Abs'] = y_resampled
             resampled_df = resampled_df.reset_index(drop=True)
-        
+
             # Verify final order of classes
-            print("\nVerifying final class distribution...")
+            vprint("\nVerifying final class distribution...", level=2)
             final_verify = Counter(resampled_df['Healing Phase Abs'])
             assert all(final_verify[i] == count_items[1][0] for i in [0, 1, 2]), "Classes not properly balanced"
             
             return resampled_df, alpha_values
             
         except Exception as e:
-            print(f"Error in mixed sampling: {str(e)}")
-            print("Falling back to simple random oversampling...")
+            vprint(f"Error in mixed sampling: {str(e)}", level=1)
+            vprint("Falling back to simple random oversampling...", level=1)
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
-            vprint("Original class distribution (ordered):")
-            for class_idx in [0, 1, 2]:  # Explicit ordering
-                print(f"Class {class_idx}: {counts[class_idx]}")
+            vprint("Original class distribution (ordered):", level=2)
+            if get_verbosity() <= 2:
+                for class_idx in [0, 1, 2]:  # Explicit ordering
+                    print(f"Class {class_idx}: {counts[class_idx]}")
             # Calculate alpha values from original distribution
             total_samples = sum(counts.values())
             class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
@@ -696,24 +703,26 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             
             # Print final results with ordered classes
             final_counts = Counter(y_resampled)
-            print("\nAfter oversampling (ordered):")
-            for class_idx in [0, 1, 2]:
-                print(f"Class {class_idx}: {final_counts[class_idx]}")
-            
+            vprint("\nAfter oversampling (ordered):", level=2)
+            if get_verbosity() <= 2:
+                for class_idx in [0, 1, 2]:
+                    print(f"Class {class_idx}: {final_counts[class_idx]}")
+
             return resampled_df, alpha_values
     if 'metadata' in selected_modalities:
         # Calculate class weights for Random Forest models
         unique_cases = train_data[['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']].drop_duplicates().copy()
-        print(f"\nUnique cases: {len(unique_cases)} (before oversampling)")
-        
+        vprint(f"\nUnique cases: {len(unique_cases)} (before oversampling)", level=2)
+
         # Create binary labels on unique cases
         unique_cases['label_bin1'] = (unique_cases['Healing Phase Abs'] > 0).astype(int)
         unique_cases['label_bin2'] = (unique_cases['Healing Phase Abs'] > 1).astype(int)
-        
+
         # Print true class distributions
-        vprint("\nTrue binary label distributions (unique cases):")
-        print("Binary1:", unique_cases['label_bin1'].value_counts())
-        print("Binary2:", unique_cases['label_bin2'].value_counts())
+        vprint("\nTrue binary label distributions (unique cases):", level=2)
+        if get_verbosity() <= 2:
+            print("Binary1:", unique_cases['label_bin1'].value_counts())
+            print("Binary2:", unique_cases['label_bin2'].value_counts())
         
         # Calculate weights using only unique cases
         class_weights_binary1 = compute_class_weight(
@@ -843,7 +852,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 if is_training:
                     try:
                         import tensorflow_decision_forests as tfdf
-                        print("Using TensorFlow Decision Forests")
+                        vprint("Using TensorFlow Decision Forests", level=2)
                         
                         # Create models
                         rf_model1 = tfdf.keras.RandomForestModel(
@@ -1108,7 +1117,7 @@ class BatchVisualizationCallback(tf.keras.callbacks.Callback):
                             ids = batch_inputs['sample_id'][i].numpy()
                             patient_info = f"\nP{int(ids[0]):03d}A{int(ids[1]):02d}D{int(ids[2]):d}"
                         except Exception as e:
-                            print(f"Error getting patient info: {str(e)}")
+                            vprint(f"Error getting patient info: {str(e)}", level=2)
                         
                         axes[i, 0].text(-0.1, -0.15, 
                                     f"Sample {i}\nTrue: {label}\nPred: {pred_label}{patient_info}", 
@@ -1124,9 +1133,9 @@ class BatchVisualizationCallback(tf.keras.callbacks.Callback):
                 plt.savefig(save_path, bbox_inches='tight', dpi=400)
                 plt.close(fig)
                 
-                print(f"\nBatch visualization saved for epoch {epoch + 1}")
+                vprint(f"\nBatch visualization saved for epoch {epoch + 1}", level=1)
             except Exception as e:
-                print(f"Error during batch visualization: {str(e)}")
+                vprint(f"Error during batch visualization: {str(e)}", level=1)
 def visualize_dataset(train_dataset, selected_modalities, save_dir, 
                      max_samples_per_page=5, dataset_portion=100, 
                      dpi=400, max_batches=None, total_samples=None):
@@ -1172,8 +1181,8 @@ def visualize_dataset(train_dataset, selected_modalities, save_dir,
         batch_size = first_batch[1].shape[0]
         break
     
-    print(f"Processing dataset (batch size: {batch_size})")
-    print(f"Will create pages with up to {max_samples_per_page} samples each")
+    vprint(f"Processing dataset (batch size: {batch_size})", level=2)
+    vprint(f"Will create pages with up to {max_samples_per_page} samples each", level=2)
     
     # Process the dataset
     for batch in train_dataset:
@@ -1280,7 +1289,7 @@ def visualize_dataset(train_dataset, selected_modalities, save_dir,
                 plt.savefig(save_path, bbox_inches='tight', dpi=dpi)
                 plt.close(fig)
                 
-                print(f"Saved page {page_num} ({processed_samples} samples)")
+                vprint(f"Saved page {page_num} ({processed_samples} samples)", level=2)
                 
                 # Reset for next page
                 current_page_samples = []
@@ -1354,9 +1363,9 @@ def visualize_dataset(train_dataset, selected_modalities, save_dir,
         plt.savefig(save_path, bbox_inches='tight', dpi=dpi)
         plt.close(fig)
         
-        print(f"Saved final page {page_num} ({processed_samples} total samples)")
-    
-    print(f"\nVisualization complete! Created {page_num} pages with {processed_samples} samples")
+        vprint(f"Saved final page {page_num} ({processed_samples} total samples)", level=2)
+
+    vprint(f"\nVisualization complete! Created {page_num} pages with {processed_samples} samples", level=2)
     return processed_samples
 class TrainingHistoryCallback(tf.keras.callbacks.Callback):
     def __init__(self, save_dir='training_plots', update_freq=1):
@@ -1406,7 +1415,7 @@ class TrainingHistoryCallback(tf.keras.callbacks.Callback):
                     plt.savefig(save_path, bbox_inches='tight', dpi=150)
                     plt.close()
         except Exception as e:
-            print(f"Error during training history plot: {str(e)}")
+            vprint(f"Error during training history plot: {str(e)}", level=1)
             
 def plot_net_confusion_matrix(y_true, y_pred, save_dir='evaluation_plots'):
     """
@@ -1435,9 +1444,10 @@ def plot_net_confusion_matrix(y_true, y_pred, save_dir='evaluation_plots'):
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
     plt.close()
     
-    print("\nNet Confusion Matrix Results:")
-    print(classification_report(y_true, y_pred, 
-                              target_names=present_class_names, 
-                              labels=present_classes))
-    print(f"Net Cohen's Kappa: {cohen_kappa_score(y_true, y_pred, weights='quadratic'):.4f}")
+    vprint("\nNet Confusion Matrix Results:", level=1)
+    if get_verbosity() <= 1:
+        print(classification_report(y_true, y_pred,
+                                  target_names=present_class_names,
+                                  labels=present_classes))
+    vprint(f"Net Cohen's Kappa: {cohen_kappa_score(y_true, y_pred, weights='quadratic'):.4f}", level=1)
 

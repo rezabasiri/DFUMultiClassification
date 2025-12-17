@@ -23,7 +23,7 @@ import seaborn as sns
 
 from src.utils.config import get_project_paths, get_output_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
-from src.utils.verbosity import vprint
+from src.utils.verbosity import vprint, get_verbosity
 from src.utils.production_config import (
     GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
@@ -70,7 +70,7 @@ class NaNMonitorCallback(tf.keras.callbacks.Callback):
         logs = logs or {}
         if 'val_weighted_f1_score' in logs:
             if np.isnan(logs['val_weighted_f1_score']):
-                print("\nNaN detected in validation weighted F1 score. Triggering training restart...")
+                vprint("\nNaN detected in validation weighted F1 score. Triggering training restart...", level=1)
                 self.nan_detected = True
                 self.model.stop_training = True
 def clean_up_training_resources():
@@ -86,7 +86,7 @@ def clean_up_training_resources():
             for i, gpu in enumerate(gpus):
                 tf.config.experimental.reset_memory_stats(f'GPU:{i}')
     except Exception as e:
-        print(f"Error clearing memory stats: {str(e)}")
+        vprint(f"Error clearing memory stats: {str(e)}", level=2)
     
     # Remove cache files
     cache_patterns = [
@@ -103,9 +103,9 @@ def clean_up_training_resources():
                 try:
                     os.remove(cache_file)
                 except Exception as e:
-                    print(f"Warning: Could not remove cache file {cache_file}: {str(e)}")
+                    vprint(f"Warning: Could not remove cache file {cache_file}: {str(e)}", level=2)
         except Exception as e:
-            print(f"Warning: Error while processing pattern {pattern}: {str(e)}")
+            vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
 def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     modality_str = '_'.join(sorted(selected_modalities))
@@ -159,7 +159,7 @@ class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
         if self.is_escaping:
             if current < self.best:
                 # Escape was successful, reset state
-                print(f'\nEscape successful! New best {self.monitor}: {current:.6f}')
+                vprint(f'\nEscape successful! New best {self.monitor}: {current:.6f}', level=2)
                 self.best = current
                 self.wait = 0
                 self.plateau_count = 0
@@ -187,7 +187,7 @@ class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
             # If we've hit enough plateaus, try escaping
             if self.plateau_count >= self.escape_patience:
                 new_lr = current_lr * self.escape_factor
-                print(f'\nAttempting to escape plateau by increasing LR from {current_lr:.2e} to {new_lr:.2e}')
+                vprint(f'\nAttempting to escape plateau by increasing LR from {current_lr:.2e} to {new_lr:.2e}', level=2)
                 tf.keras.backend.set_value(self.model.optimizer.lr, new_lr)
                 self.is_escaping = True
                 self.escape_epoch = epoch
@@ -367,7 +367,7 @@ class ModalityContributionCallback(tf.keras.callbacks.Callback):
             
         if improved:
             self.best = current
-            print(f"\nGenerating modality contribution analysis for epoch {epoch + 1}")
+            vprint(f"\nGenerating modality contribution analysis for epoch {epoch + 1}", level=2)
             
             # # Find layers with attention outputs
             # modality_outputs = {}
@@ -491,7 +491,7 @@ def average_attention_values(result_dir, num_runs):
                 modality_names = data['modality_names']
     
     if not all_attention_outputs:
-        print("No attention values found!")
+        vprint("No attention values found!", level=1)
         return
 
     # Prepare data for violin plots
@@ -610,7 +610,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     """
     # Handle backwards compatibility: if n_runs is specified, use it
     if n_runs is not None:
-        print(f"Warning: n_runs parameter is deprecated. Please use cv_folds instead.")
+        vprint(f"Warning: n_runs parameter is deprecated. Please use cv_folds instead.", level=1)
         cv_folds = 0  # Force single split mode when using legacy n_runs
         use_legacy_mode = True
         num_iterations = n_runs
@@ -651,7 +651,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 if variant_idx >= num_variants:
                     break
 
-            print(f"Created {len(configs)} config variants for {modality_name} with different loss parameters")
+            vprint(f"Created {len(configs)} config variants for {modality_name} with different loss parameters", level=2)
         else:
             # Original behavior: single config
             configs = {
@@ -742,14 +742,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             run_predictions_list_v, run_true_labels_v = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
 
         if run_predictions_list_t is not None and run_predictions_list_v is not None and run_true_labels_t is not None and run_true_labels_v is not None:
-            print(f"\nLoaded aggregated predictions for run {run + 1}")
-            print(f"Number of models: {len(run_predictions_list_t)}")
-            print(f"Shape of predictions from first model: {run_predictions_list_t[0].shape}")
-            print(f"Labels shape: {run_true_labels_t.shape}")
-            
+            vprint(f"\nLoaded aggregated predictions for run {run + 1}", level=1)
+            vprint(f"Number of models: {len(run_predictions_list_t)}", level=2)
+            vprint(f"Shape of predictions from first model: {run_predictions_list_t[0].shape}", level=2)
+            vprint(f"Labels shape: {run_true_labels_t.shape}", level=2)
+
             # Proceed directly to gating network training with loaded predictions
             if len(run_predictions_list_t) == len(configs) and len(run_predictions_list_v) == len(configs):
-                print(f"\nTraining gating network for run {run + 1}...")
+                vprint(f"\nTraining gating network for run {run + 1}...", level=1)
                 try:
                     # Import here to avoid circular dependency
                     from src.main import train_gating_network
@@ -779,24 +779,24 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         'confusion_matrix': confusion_matrix(gating_labels, final_predictions)
                     }
                     
-                    print(f"\nGating Network Results for Run {run + 1}:")
-                    print(f"Accuracy: {gating_metrics['accuracy']:.4f}")
-                    print(f"F1 Macro: {gating_metrics['f1_macro']:.4f}")
-                    print(f"Kappa: {gating_metrics['kappa']:.4f}")
-                    
+                    vprint(f"\nGating Network Results for Run {run + 1}:", level=1)
+                    vprint(f"Accuracy: {gating_metrics['accuracy']:.4f}", level=1)
+                    vprint(f"F1 Macro: {gating_metrics['f1_macro']:.4f}", level=1)
+                    vprint(f"Kappa: {gating_metrics['kappa']:.4f}", level=1)
+
                     all_gating_results.append(gating_metrics)
                     save_run_results(gating_metrics, run + 1, result_dir)
                     continue  # Move to next run
-                    
+
                 except Exception as e:
-                    print(f"Error in gating network training: {str(e)}")
+                    vprint(f"Error in gating network training: {str(e)}", level=1)
                     # Fall through to regenerate predictions
                     run_predictions_list_t = []
                     run_predictions_list_v = []
                     run_true_labels_t = None
                     run_true_labels_v = None
             else:
-                print(f"Found incomplete set of predictions ({len(run_predictions_list_t)} of {len(configs)})")
+                vprint(f"Found incomplete set of predictions ({len(run_predictions_list_t)} of {len(configs)})", level=1)
                 run_predictions_list_t = []
                 run_predictions_list_v = []
                 run_true_labels_t = None
@@ -810,7 +810,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         # Get list of completed configs for this run
         completed_configs = get_completed_configs_for_run(run + 1, configs.keys(), ck_path, dataset_type='valid')
         if completed_configs:
-            print(f"\nFound completed configs for run {run + 1}: {completed_configs}")
+            vprint(f"\nFound completed configs for run {run + 1}: {completed_configs}", level=1)
         
         # Initialize data manager for this run
         data_manager = ProcessedDataManager(data.copy(), directory)
@@ -861,12 +861,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         except:
                             pass
             except Exception as e:
-                print(f"Error in cleanup between configs: {str(e)}")
+                vprint(f"Error in cleanup between configs: {str(e)}", level=2)
             # First check if this config is in completed_configs
             if config_name in completed_configs:
                 predictions_t, labels_t = load_run_predictions(run + 1, config_name, ck_path, dataset_type='train')
                 predictions_v, labels_v = load_run_predictions(run + 1, config_name, ck_path, dataset_type='valid')
-                print(f"\nLoading existing predictions for {config_name}")
+                vprint(f"\nLoading existing predictions for {config_name}", level=1)
                 run_predictions_list_t.append(predictions_t)
                 if run_true_labels_t is None:
                     run_true_labels_t = labels_t
@@ -943,8 +943,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         class_weights_dict = {0: 4, 1: 1, 2: 4}
                         class_weights = [4, 1, 4]
                     # alpha_value = [4, 1, 4]  # Equal class weights
-                    print(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_value]}")
-                    print(f"Class weights: {class_weights_dict} or {class_weights}")
+                    vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_value]}", level=2)
+                    vprint(f"Class weights: {class_weights_dict} or {class_weights}", level=2)
                     
                     # Create and train model
                     with strategy.scope():
@@ -1042,10 +1042,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         # Train model
                         if os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
                             model.load_weights(create_checkpoint_filename(selected_modalities, run+1, config_name))
-                            print("Loaded existing weights")
+                            vprint("Loaded existing weights", level=1)
                         else:
-                            print("No existing pretrained weights found")
-                            print(f"Total model trainable weights: {len(model.trainable_weights)}")
+                            vprint("No existing pretrained weights found", level=1)
+                            vprint(f"Total model trainable weights: {len(model.trainable_weights)}", level=2)
                             history = model.fit(
                                 train_dataset_dis,
                                 epochs=max_epochs,
@@ -1143,17 +1143,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         run_metrics.append(metrics_dict)
                         
                         # Print results
-                        print(f"\nRun {run + 1} Results for {config_name}:")
-                        print(classification_report(y_true_v, y_pred_v,
-                                                target_names=CLASS_LABELS,
-                                                labels=[0, 1, 2],
-                                                zero_division=0))
-                        print(f"Cohen's Kappa: {kappa:.4f}")
-                        
+                        vprint(f"\nRun {run + 1} Results for {config_name}:", level=1)
+                        if get_verbosity() <= 1:
+                            print(classification_report(y_true_v, y_pred_v,
+                                                    target_names=CLASS_LABELS,
+                                                    labels=[0, 1, 2],
+                                                    zero_division=0))
+                        vprint(f"Cohen's Kappa: {kappa:.4f}", level=1)
+
                         training_successful = True
 
                 except Exception as e:
-                    print(f"Error during training: {str(e)}")
+                    vprint(f"Error during training: {str(e)}", level=1)
                     clean_up_training_resources()
                     retry_count += 1
                     continue
@@ -1170,19 +1171,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         
         # Train gating network if we have all predictions
         if len(run_predictions_list_v) == len(configs) and len(run_predictions_list_t) == len(configs):
-            print(f"\nTraining gating network for run {run + 1}...")
+            vprint(f"\nTraining gating network for run {run + 1}...", level=1)
             try:
                 # # First validate and correct predictions
                 # truncated_predictions_t, run_true_labels_t = correct_and_validate_predictions(
                 #     run_predictions_list_t, run_true_labels_t, "train")
-                
+
                 # # Process validation data
                 # truncated_predictions_v, run_true_labels_v = correct_and_validate_predictions(
                 #     run_predictions_list_v, run_true_labels_v, "valid")
-                
-                print(f"\nNumber of models: {len(run_predictions_list_t)}")
+
+                vprint(f"\nNumber of models: {len(run_predictions_list_t)}", level=2)
             except Exception as e:
-                print(f"Error in prediction validation: {str(e)}")
+                vprint(f"Error in prediction validation: {str(e)}", level=1)
             try:
                 # Import here to avoid circular dependency
                 from src.main import train_gating_network
@@ -1212,17 +1213,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     'confusion_matrix': confusion_matrix(gating_labels, final_predictions)
                 }
                 
-                print(f"\nGating Network Results for Run {run + 1}:")
-                print(f"Accuracy: {gating_metrics['accuracy']:.4f}")
-                print(f"F1 Macro: {gating_metrics['f1_macro']:.4f}")
-                print(f"Kappa: {gating_metrics['kappa']:.4f}")
-                
+                vprint(f"\nGating Network Results for Run {run + 1}:", level=1)
+                vprint(f"Accuracy: {gating_metrics['accuracy']:.4f}", level=1)
+                vprint(f"F1 Macro: {gating_metrics['f1_macro']:.4f}", level=1)
+                vprint(f"Kappa: {gating_metrics['kappa']:.4f}", level=1)
+
                 all_gating_results.append(gating_metrics)
                 # Save individual run results
                 save_run_results(gating_metrics, run + 1, result_dir)
-                
+
             except Exception as e:
-                print(f"Error in gating network training for run {run + 1}: {str(e)}")
+                vprint(f"Error in gating network training for run {run + 1}: {str(e)}", level=1)
                 gating_metrics = None
             
             all_runs_metrics.extend(run_metrics)
@@ -1232,8 +1233,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 gc.collect()
                 clear_gpu_memory()
             except Exception as e:
-                print(f"Error clearing memory stats: {str(e)}")
-        
+                vprint(f"Error clearing memory stats: {str(e)}", level=2)
+
     # Save aggregated results
     save_aggregated_results(all_runs_metrics, configs, result_dir)
     save_gating_results(all_gating_results, result_dir)
@@ -1256,17 +1257,17 @@ def correct_and_validate_predictions(predictions_list, true_labels, dataset_type
     # Validate and correct predictions
     for i, preds in enumerate(predictions_list):
         if not isinstance(preds, np.ndarray) or preds is None:
-            print(f"Warning: Invalid {dataset_type} predictions from model {i}. Skipping...")
+            vprint(f"Warning: Invalid {dataset_type} predictions from model {i}. Skipping...", level=1)
             continue
-            
+
         preds = np.array(preds, dtype=np.float32)
         if len(preds.shape) != 2:
-            print(f"Warning: Invalid {dataset_type} shape {preds.shape} from model {i}. Skipping...")
+            vprint(f"Warning: Invalid {dataset_type} shape {preds.shape} from model {i}. Skipping...", level=1)
             continue
-        
+
         # Check and correct predictions
         if preds.shape[1] != 3:
-            print(f"Warning: Model {i} {dataset_type} predictions have {preds.shape[1]} classes instead of 3")
+            vprint(f"Warning: Model {i} {dataset_type} predictions have {preds.shape[1]} classes instead of 3", level=1)
             corrected = np.zeros((preds.shape[0], 3), dtype=np.float32)
             for c in range(min(preds.shape[1], 3)):
                 corrected[:, c] = preds[:, c]
@@ -1449,7 +1450,7 @@ def save_aggregated_results(all_metrics, configs, result_dir):
         writer.writeheader()
         writer.writerows(results)
     
-    print(f"Results saved to {csv_filename}")
+    vprint(f"Results saved to {csv_filename}", level=1)
 def save_run_predictions(run_number, config_name, predictions, true_labels, ck_path, dataset_type='valid'):
     """Save predictions and true labels for a specific run and config."""
     pred_file = os.path.join(ck_path, f'pred_run{run_number}_{config_name}_{dataset_type}.npy')
@@ -1495,7 +1496,7 @@ def save_combination_predictions(run_number, combination_name, predictions, labe
 
     np.save(preds_file, predictions)
     np.save(labels_file, labels)
-    print(f"Saved {combination_name} predictions to {preds_file}")
+    vprint(f"Saved {combination_name} predictions to {preds_file}", level=1)
 
 
 def load_combination_predictions(run_number, combination_name, ck_path, dataset_type='valid'):
@@ -1518,45 +1519,45 @@ def save_aggregated_predictions(run_number, predictions_list, true_labels, ck_pa
     corrected_predictions = []
     for i, preds in enumerate(predictions_list):
         if preds is None:
-            print(f"Warning: Predictions from model {i} are None. Skipping...")
+            vprint(f"Warning: Predictions from model {i} are None. Skipping...", level=1)
             continue
-            
+
         preds = np.array(preds)
         if len(preds.shape) != 2:
-            print(f"Warning: Invalid shape {preds.shape} from model {i}. Skipping...")
+            vprint(f"Warning: Invalid shape {preds.shape} from model {i}. Skipping...", level=1)
             continue
-            
+
         # Check if we have predictions for all three classes
         if preds.shape[1] != 3:
-            print(f"Warning: Model {i} predictions have {preds.shape[1]} classes instead of 3")
+            vprint(f"Warning: Model {i} predictions have {preds.shape[1]} classes instead of 3", level=1)
             # Create corrected array with proper shape
             corrected_preds = np.zeros((preds.shape[0], 3))
-            
+
             # Copy existing predictions
             for c in range(min(preds.shape[1], 3)):
                 corrected_preds[:, c] = preds[:, c]
-                
+
             # For missing classes, set very low confidence
             for c in range(preds.shape[1], 3):
                 # Use small non-zero value to avoid numerical issues
                 corrected_preds[:, c] = 1e-7
-                
+
             # Renormalize probabilities to sum to 1
             row_sums = corrected_preds.sum(axis=1, keepdims=True)
             corrected_preds = corrected_preds / row_sums
-            
-            print(f"Corrected predictions shape: {corrected_preds.shape}")
+
+            vprint(f"Corrected predictions shape: {corrected_preds.shape}", level=2)
             corrected_predictions.append(corrected_preds)
         else:
             corrected_predictions.append(preds)
-    
+
     # Final validation
     if not corrected_predictions:
         raise ValueError("No valid predictions to save")
-    
+
     shapes = [p.shape for p in corrected_predictions]
     if len(set(shapes)) > 1:
-        print(f"Warning: Inconsistent shapes after correction: {shapes}")
+        vprint(f"Warning: Inconsistent shapes after correction: {shapes}", level=1)
         # Find minimum number of samples across all predictions
         min_samples = min(s[0] for s in shapes)
         # Truncate all predictions to minimum length
@@ -1569,7 +1570,7 @@ def save_aggregated_predictions(run_number, predictions_list, true_labels, ck_pa
         if true_labels is not None:
             np.save(aggregated_labels_file, true_labels)
     except Exception as e:
-        print(f"Error saving predictions: {str(e)}")
+        vprint(f"Error saving predictions: {str(e)}", level=1)
         raise
 
 def is_run_complete(run_number, ck_path):
@@ -1636,23 +1637,23 @@ def main_with_specialized_evaluation(data_percentage=100, train_patient_percenta
     clear_cache_files()
     
     # Prepare initial dataset
-    print("Preparing initial dataset...")
-    data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, 
-                         list(set([mod for config in configs.values() 
+    vprint("Preparing initial dataset...", level=1)
+    data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file,
+                         list(set([mod for config in configs.values()
                                  for mod in config['modalities']])))
-    
+
     # Filter frequent misclassifications
-    print("Filtering frequent misclassifications...")
+    vprint("Filtering frequent misclassifications...", level=1)
     data = filter_frequent_misclassifications(
-        data, result_dir, 
+        data, result_dir,
         thresholds={'I': 3, 'P': 2, 'R': 3}
     )
-    
+
     if data_percentage < 100:
         data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
-    
+
     # Run cross-validation
-    print("\nStarting cross-validation...")
+    vprint("\nStarting cross-validation...", level=1)
     metrics, confusion_matrices, histories = cross_validation_manual_split(
         data, configs, train_patient_percentage, n_runs
     )
@@ -1722,8 +1723,8 @@ def clear_cache_files():
             for cache_file in cache_files:
                 try:
                     os.remove(cache_file)
-                    print(f"Removed cache file: {cache_file}")
+                    vprint(f"Removed cache file: {cache_file}", level=2)
                 except Exception as e:
-                    print(f"Warning: Could not remove cache file {cache_file}: {str(e)}")
+                    vprint(f"Warning: Could not remove cache file {cache_file}: {str(e)}", level=2)
         except Exception as e:
-            print(f"Warning: Error while processing pattern {pattern}: {str(e)}")
+            vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
