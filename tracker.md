@@ -410,76 +410,20 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 **src/training/training_utils.py** (lines 689-698): Modified `cross_validation_manual_split()` to only load existing predictions when `len(configs) > 1` (specialized mode with multiple configs for same modalities). In search mode (single config per combination), now forces fresh training for each modality combination instead of incorrectly reusing predictions from previous combinations.
 
 
+
 ## 2025-12-17 — Ensure consistent train/valid splits across modality combinations
 
-**src/data/dataset_utils.py**: Added `save_patient_split()` and `load_patient_split()` functions to save/load patient splits per run. Modified `prepare_cached_datasets()` to check for existing split first - if found, reuses it; if not, generates and saves it. This ensures all modality combinations within the same run use identical train/valid patient splits, preventing data leakage. Different runs still use different random seeds for cross-validation robustness.
+**src/data/dataset_utils.py**: Added `save_patient_split()` and `load_patient_split()` to persist patient splits across combinations; modified `prepare_cached_datasets()` to load existing splits ensuring all combinations use identical train/valid patients per run.
 
 ## 2025-12-17 — Implement k-fold cross-validation with patient-level splitting
 
-Major refactoring to replace repeated random holdout validation with proper k-fold cross-validation. This ensures all data is validated exactly once across folds and provides more robust performance estimates.
-
-**src/data/dataset_utils.py**:
-- Added `create_patient_folds()`: Generates k-fold splits with patient-level stratification by class. Groups patients by majority class, distributes across folds evenly, validates class balance within max_imbalance threshold (default 0.3).
-- Modified `prepare_cached_datasets()`: Now accepts optional `train_patients` and `valid_patients` parameters for pre-computed splits from k-fold CV.
-
-**src/training/training_utils.py**:
-- Updated `cross_validation_manual_split()`: Added `cv_folds` parameter (default=3). When `cv_folds > 1`, generates patient folds once and reuses splits across all modality combinations. When `cv_folds <= 1`, performs single train/valid split. Maintains backwards compatibility with `n_runs` parameter (deprecated).
-- Fold iterations named "Fold X/Y" for k-fold CV, "Run X/Y" for legacy mode.
-- Pre-computed patient splits passed to `prepare_cached_datasets()` to ensure consistency.
-
-**src/main.py**:
-- Added `--cv_folds` CLI argument (default=3, set to 0 or 1 for single split without CV).
-- Updated `main()` and `main_search()` signatures to accept both `n_runs` (deprecated) and `cv_folds`.
-- Updated configuration printing to show "k-fold CV (patient-level)" when using k-fold mode.
-- Updated gating network ensemble loop to use appropriate iteration naming.
-
-**README.md**:
-- Added "Two-Block Training Workflow" section documenting Block A (individual model training) and Block B (gating network ensemble).
-- Clarified that all modality combinations use identical train/valid patient splits within each run/fold.
-- Explained gating network only activates with 2+ modality combinations.
-
-**Benefits**:
-- All data validated exactly once per fold (no repeated or missed samples)
-- Patient-level stratification prevents data leakage
-- Class-balanced folds for robust evaluation
-- Better statistical properties than random holdout
-- Backwards compatible with existing code using n_runs
+**src/data/dataset_utils.py**: Added `create_patient_folds()` for stratified patient-level k-fold splitting; modified `prepare_cached_datasets()` to accept pre-computed patient splits.
+**src/training/training_utils.py**: Updated `cross_validation_manual_split()` with `cv_folds` parameter (default=3) for proper k-fold CV; maintains backwards compatibility with deprecated `n_runs`.
+**src/main.py**: Added `--cv_folds` CLI argument; updated `main()` and `main_search()` signatures.
+**README.md**: Added two-block training workflow documentation.
 
 ## 2025-12-17 — Add resume mode with intelligent checkpoint management
 
-Implemented comprehensive checkpoint management system to control what gets deleted or kept between training runs. Enables efficient experimentation and recovery from interruptions.
-
-**src/utils/config.py**:
-- Added `cleanup_for_resume_mode()` function with 5 resume modes:
-  - **fresh**: Delete everything (models, predictions, cache, CSV results) for complete fresh start
-  - **auto**: Keep all checkpoints, auto-resume from latest state (default behavior)
-  - **from_data**: Keep processed data only, delete models/predictions/splits to retrain from scratch
-  - **from_models**: Keep model weights, delete predictions to regenerate predictions only
-  - **from_predictions**: Keep Block A predictions, delete Block B gating models to retrain ensemble only
-- Selectively deletes files using glob patterns for each category
-- Prints cleanup statistics showing how many files deleted per category
-- Comprehensive error handling for file deletion
-
-**src/main.py**:
-- Added `--resume_mode` CLI argument (choices: fresh, auto, from_data, from_models, from_predictions)
-- Default is 'auto' for backwards compatibility and smart resumption
-- Comprehensive help text documenting each mode and use cases
-- Calls `cleanup_for_resume_mode()` at startup before training begins
-- Display resume mode in configuration printout
-
-**README.md**:
-- Added "Resume and Checkpoint Management" section with detailed documentation
-- Documented all 5 resume modes with code examples
-- Explained what each mode keeps vs deletes
-- Provided typical workflows for common scenarios:
-  - Interrupted training: use auto mode (just rerun)
-  - Hyperparameter tuning: use from_data mode
-  - Gating network experiments: use from_predictions mode
-- Clear use case descriptions for each resume mode
-
-**Benefits**:
-- Time-saving: Resume from appropriate checkpoint instead of retraining everything
-- Safety: Explicit modes prevent accidental deletion
-- Flexibility: Supports various experimentation workflows
-- User-friendly: Clear feedback about cleanup actions
-- Efficient iteration: Train Block A once, iterate on Block B
+**src/utils/config.py**: Added `cleanup_for_resume_mode()` function with 5 modes (fresh/auto/from_data/from_models/from_predictions) for selective file deletion.
+**src/main.py**: Added `--resume_mode` CLI argument (default='auto'); calls cleanup function at startup.
+**README.md**: Added "Resume and Checkpoint Management" section with mode documentation and workflows.
