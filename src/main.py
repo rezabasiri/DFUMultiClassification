@@ -50,6 +50,7 @@ import shap
 
 # Project imports - organized by module
 from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS, RANDOM_SEED
+from src.utils.production_config import *  # Import all production configuration parameters
 from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
@@ -107,12 +108,8 @@ tf.random.set_seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
 
-# TensorFlow configuration
-os.environ["OMP_NUM_THREADS"] = "2"
-os.environ['TF_NUM_INTEROP_THREADS'] = '2'
-os.environ['TF_NUM_INTRAOP_THREADS'] = '4'
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
-os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+# TensorFlow configuration - using production_config values
+apply_environment_config()  # Apply threading and determinism settings
 tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
 
 # Distributed strategy
@@ -138,11 +135,11 @@ thermal_bb_file = data_paths['bb_thermal_csv']
 depth_bb = pd.read_csv(depth_bb_file)
 thermal_bb = pd.read_csv(thermal_bb_file)
 
-#%% Training Parameters
-image_size = 64
-global_batch_size = 30
+#%% Training Parameters - using production_config values
+image_size = IMAGE_SIZE
+global_batch_size = GLOBAL_BATCH_SIZE
 batch_size = global_batch_size // strategy.num_replicas_in_sync
-n_epochs = 1000
+n_epochs = N_EPOCHS
 
 #%% Main Function Section
 #%% Main Function
@@ -247,7 +244,7 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
             return class_analysis
 
         def on_epoch_end(self, epoch, logs=None):
-            if (epoch + 1) % 1 == 0:
+            if (epoch + 1) % ATTENTION_VIS_FREQUENCY == 0:
                 print(f"\nProcessing attention visualization for epoch {epoch + 1}")
                 
                 attention_layer = None
@@ -274,11 +271,11 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
                         Avg_model_weights = np.mean(model_weights, axis=(0, 1))
                         Avg_class_weights = np.mean(class_weights, axis=(0, 1))
                         
-                        # Define global min and max values for consistent scaling
-                        model_vmin = 0.075  # minimum from all model attention weights
-                        model_vmax = 0.275  # maximum from all model attention weights
-                        class_vmin = 0.20   # minimum from all class attention weights
-                        class_vmax = 0.45   # maximum from all class attention weights
+                        # Define global min and max values for consistent scaling - from production_config
+                        model_vmin = ATTENTION_MODEL_VMIN
+                        model_vmax = ATTENTION_MODEL_VMAX
+                        class_vmin = ATTENTION_CLASS_VMIN
+                        class_vmax = ATTENTION_CLASS_VMAX
                         # Create model name mapping
                         model_names = {
                             '1': 'Metadata',
@@ -605,7 +602,7 @@ def attention_entropy_loss(attention_scores):
     def calculate_entropy(scores):
         # Normalize scores
         scores = tf.nn.softmax(scores, axis=-1)
-        epsilon = 1e-10
+        epsilon = ENTROPY_EPSILON
         scores = tf.clip_by_value(scores, epsilon, 1.0)
         
         # Calculate entropy
@@ -620,9 +617,9 @@ def attention_entropy_loss(attention_scores):
     
     model_entropy = calculate_entropy(attention_scores['model_attention'])
     class_entropy = calculate_entropy(attention_scores['class_attention'])
-    
-    # Balance between model and class attention
-    return 0.7 * model_entropy + 0.3 * class_entropy
+
+    # Balance between model and class attention - from production_config
+    return ENTROPY_MODEL_WEIGHT * model_entropy + ENTROPY_CLASS_WEIGHT * class_entropy
 
 def custom_loss(model):
     def loss_function(y_true, y_pred):
@@ -638,9 +635,9 @@ def custom_loss(model):
             attention_scores = attention_layer.get_attention_scores()
             if all(v is not None for v in attention_scores.values()):
                 entropy_loss = attention_entropy_loss(attention_scores)
-                
-                # Dynamic entropy weight based on training progress
-                entropy_weight = 0.2 * (1.0 - tf.exp(-base_loss))
+
+                # Dynamic entropy weight based on training progress - from production_config
+                entropy_weight = ENTROPY_LOSS_WEIGHT * (1.0 - tf.exp(-base_loss))
                 
                 total_loss = base_loss - entropy_weight * entropy_loss
                 
@@ -657,12 +654,12 @@ def custom_loss(model):
     
     return loss_function
 class DynamicLRSchedule(tf.keras.callbacks.Callback):
-    def __init__(self, 
-                 initial_lr=1e-3,
-                 min_lr=1e-14,
-                 exploration_epochs=10,
-                 cycle_length=30,
-                 cycle_multiplier=2.0):
+    def __init__(self,
+                 initial_lr=LR_SCHEDULE_INITIAL_LR,
+                 min_lr=LR_SCHEDULE_MIN_LR,
+                 exploration_epochs=LR_SCHEDULE_EXPLORATION_EPOCHS,
+                 cycle_length=LR_SCHEDULE_CYCLE_LENGTH,
+                 cycle_multiplier=LR_SCHEDULE_CYCLE_MULTIPLIER):
         super(DynamicLRSchedule, self).__init__()
         self.initial_lr = initial_lr
         self.min_lr = min_lr
@@ -706,9 +703,9 @@ class DynamicLRSchedule(tf.keras.callbacks.Callback):
                     self.patience_counter = 0
                 else:
                     self.patience_counter += 1
-                    # If loss hasn't improved for a while, reduce max learning rate
-                    if self.patience_counter >= 5:
-                        self.initial_lr *= 0.8
+                    # If loss hasn't improved for a while, reduce max learning rate - from production_config
+                    if self.patience_counter >= LR_SCHEDULE_PATIENCE_THRESHOLD:
+                        self.initial_lr *= LR_SCHEDULE_DECAY_FACTOR
                         self.patience_counter = 0
         
         # Set the learning rate
@@ -720,11 +717,11 @@ class DynamicLRSchedule(tf.keras.callbacks.Callback):
         logs['lr'] = lr
 def ImprovedGatingNetwork(num_models=16, num_classes=3):
     input_layer = tf.keras.layers.Input(shape=(num_models, num_classes))
-    
-    # Main attention and processing
+
+    # Main attention and processing - using production_config values
     dual_attention_output = DualLevelAttentionLayer(
-        num_heads=max(8, num_models+1), #16 for 15 modesl (best value)
-        key_dim=max(16, 2*(num_models+1)), #32 for 15 modesl (best value)
+        num_heads=max(8, num_models + GATING_NUM_HEADS_MULTIPLIER),
+        key_dim=max(16, GATING_KEY_DIM_MULTIPLIER * (num_models + 1)),
         num_classes=num_classes
     )(input_layer)
     
@@ -763,7 +760,7 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     # Build the model
     model = ImprovedGatingNetwork(len(train_data[0]), 3)
     model.compile(
-        optimizer=Adam(learning_rate=1e-3),
+        optimizer=Adam(learning_rate=GATING_LEARNING_RATE),
         loss=custom_loss(model),
         metrics=['accuracy', weighted_acc]
     )
@@ -778,30 +775,24 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     # # Distribute datasets
     # train_dataset = strategy.experimental_distribute_dataset(train_dataset)
     # val_dataset = strategy.experimental_distribute_dataset(val_dataset)
-    # Setup callbacks
+    # Setup callbacks - using production_config values
     callbacks2 = [
-        # DynamicLRSchedule(
-        #     initial_lr=1e-4,
-        #     min_lr=1e-12,
-        #     exploration_epochs=10,
-        #     cycle_length=30,
-        #     cycle_multiplier=2.0
-        # ),
+        # DynamicLRSchedule can be enabled with custom parameters
         tf.keras.callbacks.ReduceLROnPlateau(
             monitor='loss',
-            factor=0.5,
-            patience=5,
-            min_lr=1e-9,
-            min_delta=2e-3,
+            factor=GATING_REDUCE_LR_FACTOR,
+            patience=GATING_REDUCE_LR_PATIENCE,
+            min_lr=GATING_REDUCE_LR_MIN_LR,
+            min_delta=GATING_REDUCE_LR_MIN_DELTA,
             verbose=0,
             mode='min'
         ),
         tf.keras.callbacks.EarlyStopping(
             monitor='val_weighted_accuracy',
-            patience=20,
+            patience=GATING_EARLY_STOP_PATIENCE,
             restore_best_weights=True,
-            verbose=2,
-            min_delta=2e-2,
+            verbose=GATING_EARLY_STOP_VERBOSE,
+            min_delta=GATING_EARLY_STOP_MIN_DELTA,
             mode='max'
         )
     ]
@@ -814,26 +805,25 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     # Add custom history to callbacks
     callbacks2.append(CustomHistory())
     
-    # Add deterministic data handling
+    # Add deterministic data handling - using production_config values
     dataset = tf.data.Dataset.from_tensor_slices((train_data, train_labels))
-    dataset = dataset.batch(64, drop_remainder=True)  # Fixed batch size
+    dataset = dataset.batch(GATING_BATCH_SIZE, drop_remainder=True)  # From production_config
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     val_dataset = tf.data.Dataset.from_tensor_slices((val_data, val_labels))
     val_dataset = val_dataset.batch(len(val_labels), drop_remainder=False)
     val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
-    
-    # Train the model
+
+    # Train the model - using production_config values
     history = model.fit(
         dataset,
         class_weight=class_weights_dict,
-        epochs=1000,
-        # batch_size=64, Only use when using train_data and val_data directly
-        # batch_size=len(val_data), # do this ONLY when running the create_attention_visualization_callback, permorance may get affected when different than 64
+        epochs=GATING_EPOCHS,
+        # batch_size is set in dataset.batch() above
         validation_data=val_dataset,
         callbacks=callbacks2,
         shuffle=True,
-        verbose=0
+        verbose=GATING_VERBOSE
     )
 
     # Predict outputs
@@ -967,16 +957,15 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
         available_models = set(range(len(train_predictions_list)))
         # excluded_models = set()
         available_indices = list(available_models)
-        # Manually exclude models
-        for i in [800000]:
+        # Manually exclude models - from production_config
+        for i in SEARCH_EXCLUDED_MODELS:
             if i in available_indices:
                 available_indices.remove(i)
-        # num_models = len(available_indices) - 1 - 0 #- 5  # Start with all models except 6 !!!!!!!! Hard CODED CHANGE
-        num_models = len(available_indices) - 1 - 0 #- 5  # Start with all models except 6 !!!!!!!! Hard CODED CHANGE
-        if num_models == 2:
-            steps = [2]
+        num_models = len(available_indices) - 1 - 0  # Start with all models except 1
+        if num_models == SEARCH_MIN_MODELS:
+            steps = [SEARCH_MIN_MODELS]
         else:
-            steps = list(np.sort(range(min_models, num_models, max(int(0.20*(num_models)), 1)))) + [len(available_indices) - 1]
+            steps = list(np.sort(range(min_models, num_models, max(int(SEARCH_STEP_SIZE_FRACTION * num_models), 1)))) + [len(available_indices) - 1]
         print(f"Explornig Steps: {steps}")
         while num_models >= min_models:
             # Progressively exclude models
@@ -997,10 +986,11 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
             random.shuffle(all_combinations)
             max_tries_min = min(max_tries, len(all_combinations))
             print(f"Max tries: {max_tries_min}")
-            
+
             from tqdm import tqdm
-            
-            num_processes = min(3, os.cpu_count() or 1)  # Use at most 6 cores
+
+            # Parallel processing - from production_config
+            num_processes = min(SEARCH_NUM_PROCESSES, os.cpu_count() or 1)
             with Pool(processes=num_processes) as pool:
                 process_func = partial(process_trial, 
                                     all_combinations=all_combinations,
@@ -1102,8 +1092,8 @@ def load_progress(run_number):
     }
     
     predictions = None
-    max_retries = 6
-    retry_delay = 0.4
+    max_retries = PROGRESS_MAX_RETRIES
+    retry_delay = PROGRESS_RETRY_DELAY
     
     # Load progress dict if exists
     for attempt in range(max_retries):
@@ -1134,8 +1124,8 @@ def save_progress(run_number, completed_combination=None, best_metrics=None, bes
     import time
     progress_file = os.path.join(result_dir, f'training_progress_run{run_number}.json')
     predictions_file = os.path.join(result_dir, f'best_predictions_run{run_number}.npy')
-    max_retries = 6
-    retry_delay = 0.4
+    max_retries = PROGRESS_MAX_RETRIES
+    retry_delay = PROGRESS_RETRY_DELAY
     
     for attempt in range(max_retries):
         try:
@@ -1262,14 +1252,14 @@ class TransformerBlock(Layer):
         ffn_output = self.dropout2(ffn_output, training=training)
         return self.layernorm2(out1 + ffn_output)
 
-def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=32):
+def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=HIERARCHICAL_EMBEDDING_DIM):
     """
     Creates a hierarchical attention network for combining model predictions
-    
+
     Args:
         num_models: Number of base models
         num_classes: Number of classification classes (3 for I,P,R)
-        embedding_dim: Dimension of the embedding space
+        embedding_dim: Dimension of the embedding space (from production_config)
     """
     # Input shape: (batch_size, num_models, num_classes)
     inputs = Input(shape=(num_models, num_classes))
@@ -1304,11 +1294,11 @@ def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=32
     phase_embedded = Dense(embedding_dim)(phase_concatenated)
     phase_embedded = Add()([phase_embedded, pos_encoding])
     
-    # Transformer for inter-phase relationships
+    # Transformer for inter-phase relationships - from production_config
     transformer_output = TransformerBlock(
         embed_dim=embedding_dim,
-        num_heads=2,
-        ff_dim=embedding_dim * 2
+        num_heads=HIERARCHICAL_NUM_HEADS,
+        ff_dim=embedding_dim * HIERARCHICAL_FF_DIM_MULTIPLIER
     )(phase_embedded)
     
     # Final classification layer with residual connection
@@ -1325,7 +1315,7 @@ def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=32
     # outputs = Dense(num_classes, activation='softmax')(combined)
     
     return Model(inputs=inputs, outputs=outputs)
-def focal_loss_gating_network(gamma=2.0, alpha=None):
+def focal_loss_gating_network(gamma=HIERARCHICAL_FOCAL_GAMMA, alpha=HIERARCHICAL_FOCAL_ALPHA):
     def focal_loss_fixed(y_true, y_pred):
         epsilon = K.epsilon()
         y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
@@ -1340,15 +1330,15 @@ def focal_loss_gating_network(gamma=2.0, alpha=None):
                          
         return K.mean(alpha_factor * focusing_factor * K.binary_crossentropy(y_true, y_pred))
     return focal_loss_fixed
-def train_hierarchical_gating_network(predictions_list, true_labels, n_splits=3, patience=20):
+def train_hierarchical_gating_network(predictions_list, true_labels, n_splits=CV_N_SPLITS, patience=HIERARCHICAL_PATIENCE):
     """
     Train the hierarchical gating network using cross-validation
-    
+
     Args:
         predictions_list: List of model predictions arrays
         true_labels: True class labels (one-hot encoded)
-        n_splits: Number of cross-validation splits
-        patience: Early stopping patience
+        n_splits: Number of cross-validation splits (from production_config)
+        patience: Early stopping patience (from production_config)
     """
     print("\nTraining hierarchical gating network with cross-validation...")
     
@@ -1365,9 +1355,9 @@ def train_hierarchical_gating_network(predictions_list, true_labels, n_splits=3,
     predictions_list = [preds[:min_length] for preds in predictions_list]
     true_labels = true_labels[:min_length]
     
-    
-    # kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+    # kf = KFold(n_splits=n_splits, shuffle=True, random_state=CV_RANDOM_STATE)
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=CV_SHUFFLE, random_state=CV_RANDOM_STATE)
     
     # Initialize arrays for predictions and metrics
     combined_predictions = np.zeros_like(true_labels)
@@ -1387,33 +1377,32 @@ def train_hierarchical_gating_network(predictions_list, true_labels, n_splits=3,
         X_val = stacked_predictions[val_idx]
         y_val = true_labels[val_idx]
         
-        # Create and compile model
+        # Create and compile model - using production_config values
         model = create_hierarchical_gating_network(
             num_models=len(predictions_list),
             num_classes=true_labels.shape[1],
-            embedding_dim=32
+            embedding_dim=HIERARCHICAL_EMBEDDING_DIM
         )
         class_weights = {
             0: len(true_labels) / (3 * np.sum(np.argmax(true_labels, axis=1) == 0)),  # I
             1: len(true_labels) / (3 * np.sum(np.argmax(true_labels, axis=1) == 1)),  # P
             2: len(true_labels) / (3 * np.sum(np.argmax(true_labels, axis=1) == 2))   # R
         }
-        # alpha = list(class_weights.values())
-        loss = focal_loss_gating_network(gamma=3.0, alpha=None)
-        # loss = create_focal_ordinal_loss_with_params(ordinal_weight=1.5, gamma=3.0, alpha=[0.598, 0.315, 1.597])
+        # Use focal loss with config parameters
+        loss = focal_loss_gating_network(gamma=HIERARCHICAL_FOCAL_GAMMA, alpha=HIERARCHICAL_FOCAL_ALPHA)
         model.compile(
-            optimizer=Adam(learning_rate=1e-3),
+            optimizer=Adam(learning_rate=HIERARCHICAL_LEARNING_RATE),
             loss=loss,
             metrics=['accuracy'],
         )
-        
-        # Train with early stopping
+
+        # Train with early stopping - using production_config values
         history = model.fit(
             X_train, y_train,
             validation_data=(X_val, y_val),
             # class_weight=class_weights,
-            epochs=500,
-            batch_size=32,
+            epochs=HIERARCHICAL_EPOCHS,
+            batch_size=HIERARCHICAL_BATCH_SIZE,
             callbacks=[
                 EarlyStopping(
                     monitor='loss',
@@ -1423,12 +1412,12 @@ def train_hierarchical_gating_network(predictions_list, true_labels, n_splits=3,
                 ),
                 tf.keras.callbacks.ReduceLROnPlateau(
                     monitor='loss',
-                    factor=0.5,
-                    patience=7,
-                    min_lr=1e-12
+                    factor=HIERARCHICAL_REDUCE_LR_FACTOR,
+                    patience=HIERARCHICAL_REDUCE_LR_PATIENCE,
+                    min_lr=HIERARCHICAL_REDUCE_LR_MIN_LR
                 )
             ],
-            verbose=2
+            verbose=HIERARCHICAL_VERBOSE
         )
         
         # Get predictions for validation fold
