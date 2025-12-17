@@ -33,3 +33,9 @@ results/checkpoints/
 results/tf_records/
 results/demo/
 *.log
+
+# raw data
+data/raw/Depth_Map_IMG/
+data/raw/Depth_RGB/
+data/raw/Thermal_Map_IMG/
+data/raw/Thermal_RGB/
