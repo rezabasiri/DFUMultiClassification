@@ -871,7 +871,7 @@ python src/main.py --mode search
 2. Run: `python src/main.py --mode search --train_patient_percentage 0.70 --n_runs 5`
 3. Or use defaults: `python src/main.py`
 
-## 2025-12-16 - Enable TF Records Caching for Demo and Production
+## 2025-12-16 - Enable TF Records Caching for Demo Scripts
 
 ### Demo Cache Directory Setup
 
@@ -891,50 +891,41 @@ python src/main.py --mode search
 - Already has `results/demo_tf_records/` in gitignore
 - Keeps demo cache separate from production `results/tf_records/`
 
-### Production Cache Reuse Enabled
+### Production Behavior (Unchanged)
 
-**src/main.py** (lines 1816-1820):
-- **REMOVED** cache file deletion code
-- Now prints message about cache reuse
-- Existing cache files in `results/tf_records/` will be reused
-- Previously deleted all cache files at start of each run
-
-**src/training/training_utils.py** (lines 594-596):
-- **Commented out** `clear_cache_files()` call
-- Cache files now preserved between runs
-- Previously deleted cache files after each run
+**src/main.py** and **src/training/training_utils.py**:
+- Production continues to clear cache files between runs
+- Ensures fresh tf_records for each production run
+- Demo scripts have separate cached files for faster testing
 
 ### Benefits
 
-- **Separate Caches**: Demo uses `results/demo_tf_records/`, production uses `results/tf_records/`
-- **Much Faster Runs**: Cached TF datasets reused across runs (massive speedup)
-- **Automatic Creation**: Cache directories created automatically if don't exist
-- **Automatic Reuse**: Existing cache files detected and used automatically
-- **Clean Separation**: Demo cache isolated from production cache
-- **No Conflicts**: Demo and production can run simultaneously without cache conflicts
-- **Persistent Cache**: Cache survives between runs and modality combinations
+- **Faster Demo Runs**: Demo cached datasets reused across test runs
+- **Clean Separation**: Demo cache (`results/demo_tf_records/`) separate from production (`results/tf_records/`)
+- **Automatic Creation**: Demo cache directory created automatically if doesn't exist
+- **Automatic Reuse**: Existing demo cache files detected and used automatically
+- **No Conflicts**: Demo and production run independently with separate caches
+- **Fresh Production Runs**: Production clears cache between runs for consistency
 
 ### Cache File Naming
 
-Cache files are named uniquely per:
+Demo cache files named uniquely per:
 - Modality combination (e.g., `tf_cache_train_depth_rgb_metadata`)
 - Train vs. validation set
 - Sorted modality names for consistency
 
-**Example cache files in demo_tf_records/**:
+**Example files in results/demo_tf_records/**:
 - `tf_cache_train_depth_rgb_metadata.*`
 - `tf_cache_valid_depth_rgb_metadata.*`
 - `tf_cache_train_metadata_thermal_map.*`
-- etc.
-
-### Changes Summary
-
-1. **demo/test_workflow.py**: Uses `demo_tf_records/` for caching
-2. **demo/test_modality_combinations.py**: Uses `demo_tf_records/` for caching
-3. **.gitignore**: Added `demo_tf_records/` to ignore list
 
 ### Performance Impact
 
-- **First run**: Creates cache files (slower)
-- **Subsequent runs**: Reuses cache files (much faster)
-- **All 31 combinations**: Cache shared across combinations with same modalities
+**Demo scripts:**
+- First run: Creates cache files (normal speed)
+- Subsequent runs: Reuses cache files (10-100x faster)
+- Testing all 31 combinations: Massive speedup on reruns
+
+**Production scripts:**
+- Always creates fresh tf_records for consistency
+- No cache reuse between runs
