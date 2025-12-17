@@ -27,7 +27,7 @@ Categories:
 # Core training hyperparameters
 IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
 GLOBAL_BATCH_SIZE = 30  # Total batch size across all GPU replicas
-N_EPOCHS = 3  # Maximum number of training epochs
+N_EPOCHS = 150  # Maximum number of training epochs
 
 # =============================================================================
 # Verbosity and Progress Tracking
@@ -38,7 +38,7 @@ N_EPOCHS = 3  # Maximum number of training epochs
 # 1 = NORMAL: Standard output (default - current behavior)
 # 2 = DETAILED: Include debug info, intermediate metrics
 # 3 = FULL: Everything + progress bars with time estimates
-VERBOSITY = 1  # Default verbosity level
+VERBOSITY = 3  # Default verbosity level
 
 # Progress bar settings (used when VERBOSITY >= 3)
 SHOW_PROGRESS_BAR = True  # Enable/disable progress bar
@@ -194,7 +194,7 @@ PROGRESS_RETRY_DELAY = 0.4  # Delay between retries (seconds)
 ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
 
 # Search mode: 'all' tests all 31 combinations, 'custom' uses INCLUDED_COMBINATIONS
-MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
+MODALITY_SEARCH_MODE = 'all'  # Options: 'all', 'custom'
 
 # Combinations to exclude (list of tuples)
 EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
