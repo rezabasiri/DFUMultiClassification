@@ -127,7 +127,10 @@ print("STEP 3: DATASET PREPARATION")
 print("=" * 80)
 
 print("\n📊 Creating demo best matching dataset...")
-best_matching_csv = os.path.join(result_dir, 'demo_best_matching.csv')
+# Use results/demo directory for demo-specific files
+demo_dir = os.path.join(result_dir, 'demo')
+os.makedirs(demo_dir, exist_ok=True)
+best_matching_csv = os.path.join(demo_dir, 'demo_best_matching.csv')
 
 try:
     if os.path.exists(best_matching_csv):
@@ -511,7 +514,7 @@ print("STEP 11: SAVING TEST RESULTS")
 print("=" * 80)
 
 try:
-    test_results_path = os.path.join(result_dir, 'test_workflow_results.txt')
+    test_results_path = os.path.join(demo_dir, 'test_workflow_results.txt')
 
     with open(test_results_path, 'w') as f:
         f.write("DFU Multi-Classification Workflow Test Results\n")

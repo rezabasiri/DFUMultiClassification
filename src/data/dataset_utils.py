@@ -393,7 +393,7 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
     valid_classes = set(valid_data['Healing Phase Abs'].unique())
     
     if len(train_classes) != 3 or len(valid_classes) != 3:
-        if verbose and get_verbosity() <= 2:
+        if verbose and get_verbosity() == 2:
             print(f"Missing classes - Train: {train_classes}, Valid: {valid_classes}")
         return False
 
@@ -401,7 +401,7 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
     train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
     valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
 
-    if verbose and get_verbosity() <= 2:
+    if verbose and get_verbosity() == 2:
         print("\nClass distributions:")
         print("Training:", dict(train_dist.round(3)))
         print("Validation:", dict(valid_dist.round(3)))
@@ -414,11 +414,11 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
         diff = abs(train_ratio - valid_ratio)
         max_diff = max(max_diff, diff)
         if diff > max_ratio_diff:
-            if verbose and get_verbosity() <= 2:
+            if verbose and get_verbosity() == 2:
                 print(f"Class {cls} ratio difference too high: {diff:.3f}")
             return False
 
-    if verbose and get_verbosity() <= 2:
+    if verbose and get_verbosity() == 2:
         print(f"Maximum ratio difference: {max_diff:.3f}")
     return True
 
@@ -471,7 +471,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
             ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
             vprint("\nClass distributions:", level=2)
-            if get_verbosity() <= 2:
+            if get_verbosity() == 2:
                 print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
                 print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
     else:
@@ -512,7 +512,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     # Create ordered distributions
                     ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
                     ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-                    if get_verbosity() <= 2:
+                    if get_verbosity() == 2:
                         print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
                         print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
@@ -535,7 +535,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                     if not for_shape_inference:
                         vprint("\nBest found class distributions:", level=2)
-                        if get_verbosity() <= 2:
+                        if get_verbosity() == 2:
                             print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
                             print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
@@ -599,7 +599,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         # Print original distribution with ordered classes
         counts = Counter(y_alpha)
         vprint("Original class distribution (ordered):", level=2)
-        if get_verbosity() <= 2:
+        if get_verbosity() == 2:
             for class_idx in [0, 1, 2]:  # Explicit ordering
                 print(f"Class {class_idx}: {counts[class_idx]}")
         # Calculate alpha values from original distribution
@@ -641,7 +641,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Print intermediate results with ordered classes
             under_counts = Counter(y_under)
             vprint("\nAfter undersampling (ordered):", level=2)
-            if get_verbosity() <= 2:
+            if get_verbosity() == 2:
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {under_counts[class_idx]}")
             
@@ -661,7 +661,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Print final results with ordered classes
             final_counts = Counter(y_resampled)
             vprint("\nAfter oversampling (ordered):", level=2)
-            if get_verbosity() <= 2:
+            if get_verbosity() == 2:
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
@@ -683,7 +683,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
             vprint("Original class distribution (ordered):", level=2)
-            if get_verbosity() <= 2:
+            if get_verbosity() == 2:
                 for class_idx in [0, 1, 2]:  # Explicit ordering
                     print(f"Class {class_idx}: {counts[class_idx]}")
             # Calculate alpha values from original distribution
@@ -704,7 +704,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Print final results with ordered classes
             final_counts = Counter(y_resampled)
             vprint("\nAfter oversampling (ordered):", level=2)
-            if get_verbosity() <= 2:
+            if get_verbosity() == 2:
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
@@ -720,7 +720,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
         # Print true class distributions
         vprint("\nTrue binary label distributions (unique cases):", level=2)
-        if get_verbosity() <= 2:
+        if get_verbosity() == 2:
             print("Binary1:", unique_cases['label_bin1'].value_counts())
             print("Binary2:", unique_cases['label_bin2'].value_counts())
         
@@ -1444,10 +1444,10 @@ def plot_net_confusion_matrix(y_true, y_pred, save_dir='evaluation_plots'):
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
     plt.close()
     
-    vprint("\nNet Confusion Matrix Results:", level=1)
-    if get_verbosity() <= 1:
+    vprint("\nNet Confusion Matrix Results:", level=0)
+    if get_verbosity() <= 1 or get_verbosity() == 3:
         print(classification_report(y_true, y_pred,
                                   target_names=present_class_names,
                                   labels=present_classes))
-    vprint(f"Net Cohen's Kappa: {cohen_kappa_score(y_true, y_pred, weights='quadratic'):.4f}", level=1)
+    vprint(f"Net Cohen's Kappa: {cohen_kappa_score(y_true, y_pred, weights='quadratic'):.4f}", level=0)
 

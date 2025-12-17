@@ -8,6 +8,7 @@ from imblearn.under_sampling import RandomUnderSampler
 from src.data.generative_augmentation_v1_3 import create_enhanced_augmentation_fn
 from src.data.preprocessing import load_and_preprocess_image
 from src.utils.config import get_project_paths, get_data_paths
+from src.utils.verbosity import vprint, get_verbosity
 
 # Get paths from centralized config
 directory, result_dir, root = get_project_paths()
@@ -293,9 +294,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         unique_cases['label_bin2'] = (unique_cases['Healing Phase Abs'] > 1).astype(int)
         
         # Print true class distributions
-        print("\nTrue binary label distributions (unique cases):")
-        print("Binary1:", unique_cases['label_bin1'].value_counts())
-        print("Binary2:", unique_cases['label_bin2'].value_counts())
+        vprint("\nTrue binary label distributions (unique cases):", level=2)
+        if get_verbosity() == 2:
+            print("Binary1:", unique_cases['label_bin1'].value_counts())
+            print("Binary2:", unique_cases['label_bin2'].value_counts())
         
         # Calculate weights using only unique cases
         class_weights_binary1 = compute_class_weight(
