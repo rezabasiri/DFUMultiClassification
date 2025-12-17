@@ -409,3 +409,7 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 
 **src/training/training_utils.py** (lines 689-698): Modified `cross_validation_manual_split()` to only load existing predictions when `len(configs) > 1` (specialized mode with multiple configs for same modalities). In search mode (single config per combination), now forces fresh training for each modality combination instead of incorrectly reusing predictions from previous combinations.
 
+
+## 2025-12-17 — Ensure consistent train/valid splits across modality combinations
+
+**src/data/dataset_utils.py**: Added `save_patient_split()` and `load_patient_split()` functions to save/load patient splits per run. Modified `prepare_cached_datasets()` to check for existing split first - if found, reuses it; if not, generates and saves it. This ensures all modality combinations within the same run use identical train/valid patient splits, preventing data leakage. Different runs still use different random seeds for cross-validation robustness.
