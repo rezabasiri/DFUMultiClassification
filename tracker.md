@@ -358,3 +358,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/training/training_utils.py** (lines 668, 1090): Added local import `from src.main import train_gating_network` inside functions to avoid circular dependency. Import placed at point of use rather than module level.
 
+## 2025-12-17 — Add WeightedAccuracy import to main.py
+
+**src/main.py** (line 96): Added `WeightedAccuracy` to imports from `src.training.training_utils`.
+

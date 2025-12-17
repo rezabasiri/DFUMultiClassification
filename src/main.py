@@ -93,7 +93,7 @@ from src.training.training_utils import (
     save_run_results, save_run_metrics, save_gating_results,
     save_aggregated_results, save_run_predictions, load_run_predictions,
     get_completed_configs_for_run, load_aggregated_predictions,
-    save_aggregated_predictions, is_run_complete
+    save_aggregated_predictions, is_run_complete, WeightedAccuracy
 )
 from src.evaluation.metrics import filter_frequent_misclassifications, track_misclassifications
 
