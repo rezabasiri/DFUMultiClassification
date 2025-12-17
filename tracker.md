@@ -362,3 +362,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/main.py** (line 96): Added `WeightedAccuracy` to imports from `src.training.training_utils`.
 
+## 2025-12-17 — Skip gating network for single model
+
+**src/main.py** (lines 915-919): Added early return in `train_gating_network()` when only 1 model is present. Gating network requires at least 2 models to combine; with single model, returns predictions directly.
+

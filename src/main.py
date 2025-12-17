@@ -911,6 +911,12 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
     print(f"Number of models: {len(train_predictions_list)}")
     print(f"Shape of first model predictions: {train_predictions_list[0].shape}")
     print(f"Shape of true labels: {train_labels.shape}")
+
+    # Skip gating network training if there's only 1 model (nothing to combine)
+    if len(train_predictions_list) < 2:
+        print(f"Skipping gating network: only {len(train_predictions_list)} model(s), need at least 2 to combine")
+        # Return the single model's predictions directly
+        return valid_predictions_list[0], valid_labels
     excluded_models = set()
     excluded_temp = set()
     
