@@ -12,25 +12,11 @@ def get_project_paths():
     Returns:
         tuple: (directory, result_dir, root) paths
     """
-    # Define paths based on platform
-    if os.path.exists("/Volumes/Expansion/DFUCalgary"):
-        directory = "/Volumes/Expansion/DFUCalgary"  # For Mac
-        result_dir = directory
-    elif os.path.exists("G:/DFUCalgary"):
-        directory = "G:/DFUCalgary"  # For Windows
-        result_dir = directory
-    elif os.path.exists("/project/6086937/basirire/multimodal"):
-        directory = "/project/6086937/basirire/multimodal"  # Compute Canada
-        result_dir = "/scratch/basirire/multimodal/Phase_Specefic_Calssification_With_Generative_Augmentation/results_dir"
-    elif os.path.exists("C:/Users/90rez/OneDrive - University of Toronto/PhDUofT/ZivotData"):
-        directory = "C:/Users/90rez/OneDrive - University of Toronto/PhDUofT/ZivotData"  # For OneDrive
-        result_dir = os.path.join(directory, 'Codes/MultimodalClassification/Phase_Specefic_Calssification_With_Generative_Augmentation/results_dir')
-    else:
-        # Default to current repository structure
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        directory = project_root
-        result_dir = os.path.join(project_root, 'results')
-        print(f"Using local repository structure: {directory}")
+    # Default to current repository structure
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    directory = project_root
+    result_dir = os.path.join(project_root, 'results')
+    print(f"Using local repository structure: {directory}")
 
     root = os.path.join(directory, "data")
 
