@@ -20,6 +20,7 @@ import seaborn as sns
 
 from src.utils.config import get_project_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
+from src.utils.production_config import BATCH_SIZE, MAX_EPOCHS, IMAGE_SIZE
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -576,16 +577,28 @@ def average_attention_values(result_dir, num_runs):
 def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=3):
     """
     Perform cross-validation using cached dataset pipeline.
-    
+
     Args:
         data: Input DataFrame
-        configs: Dictionary of configurations for different modality combinations
+        configs: Dictionary of configurations for different modality combinations, or a list of modalities
         train_patient_percentage: Percentage of data to use for training
         n_runs: Number of cross-validation runs
-    
+
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
     """
+    # Handle configs being passed as a list instead of dict
+    if isinstance(configs, list):
+        modality_name = '+'.join(configs)
+        configs = {
+            modality_name: {
+                'modalities': configs,
+                'batch_size': BATCH_SIZE,
+                'max_epochs': MAX_EPOCHS,
+                'image_size': IMAGE_SIZE
+            }
+        }
+
     all_metrics = []
     all_confusion_matrices = []
     all_histories = []
