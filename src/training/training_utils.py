@@ -215,7 +215,7 @@ class ProcessedDataManager:
         # Set image shapes
         print("Setting image shapes...")
         for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
-            self.all_modality_shapes[modality] = (image_size, image_size, 3)
+            self.all_modality_shapes[modality] = (IMAGE_SIZE, IMAGE_SIZE, 3)
         
         del temp_train, temp_data
         gc.collect()
