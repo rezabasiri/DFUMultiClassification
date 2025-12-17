@@ -251,6 +251,11 @@ print("=" * 80)
 
 print("\n🔨 Creating TensorFlow datasets...")
 try:
+    # Create demo-specific cache directory under results
+    demo_cache_dir = os.path.join(result_dir, 'demo_tf_records')
+    os.makedirs(demo_cache_dir, exist_ok=True)
+    print(f"  Cache directory: {demo_cache_dir}")
+
     # Note: We're passing the FULL dataset, the function will split it internally by patient
     # This ensures proper patient-level splitting
     datasets_output = prepare_cached_datasets(
@@ -258,7 +263,7 @@ try:
         TEST_CONFIG['selected_modalities'],
         train_patient_percentage=TEST_CONFIG['train_patient_percentage'],
         batch_size=TEST_CONFIG['batch_size'],
-        cache_dir=None,  # Don't cache for test
+        cache_dir=demo_cache_dir,  # Use demo-specific cache directory
         gen_manager=None,  # No generative augmentation for test
         aug_config=None,   # No augmentation config
         run=0,

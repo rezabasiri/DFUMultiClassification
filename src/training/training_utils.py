@@ -589,10 +589,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     all_runs_metrics = []
     
     for run in range(n_runs):
-        # Clean up after each modality combination
+        # Clean up GPU memory after each run
         try:
             clear_gpu_memory()
-            clear_cache_files()
+            # NOTE: Cache files are kept to speed up subsequent runs
+            # clear_cache_files()  # Commented out to reuse cached datasets
         except Exception as e:
             print(f"Error clearing memory stats: {str(e)}")
         # Reset random seeds for next run

@@ -870,3 +870,71 @@ python src/main.py --mode search
 1. Configure once in production_config.py (if needed)
 2. Run: `python src/main.py --mode search --train_patient_percentage 0.70 --n_runs 5`
 3. Or use defaults: `python src/main.py`
+
+## 2025-12-16 - Enable TF Records Caching for Demo and Production
+
+### Demo Cache Directory Setup
+
+**demo/test_workflow.py** (lines 254-257, 266):
+- Creates `results/demo_tf_records/` directory
+- Uses this directory for TensorFlow dataset caching
+- Reuses existing cached files if they exist (speeds up subsequent runs)
+- Previously used `cache_dir=None` (no caching)
+
+**demo/test_modality_combinations.py** (lines 63-65, 74):
+- Creates `results/demo_tf_records/` directory
+- Uses this directory for TensorFlow dataset caching
+- Reuses existing cached files across all 31 modality combinations
+- Previously used `cache_dir=None` (no caching)
+
+**.gitignore** (line 33):
+- Already has `results/demo_tf_records/` in gitignore
+- Keeps demo cache separate from production `results/tf_records/`
+
+### Production Cache Reuse Enabled
+
+**src/main.py** (lines 1816-1820):
+- **REMOVED** cache file deletion code
+- Now prints message about cache reuse
+- Existing cache files in `results/tf_records/` will be reused
+- Previously deleted all cache files at start of each run
+
+**src/training/training_utils.py** (lines 594-596):
+- **Commented out** `clear_cache_files()` call
+- Cache files now preserved between runs
+- Previously deleted cache files after each run
+
+### Benefits
+
+- **Separate Caches**: Demo uses `results/demo_tf_records/`, production uses `results/tf_records/`
+- **Much Faster Runs**: Cached TF datasets reused across runs (massive speedup)
+- **Automatic Creation**: Cache directories created automatically if don't exist
+- **Automatic Reuse**: Existing cache files detected and used automatically
+- **Clean Separation**: Demo cache isolated from production cache
+- **No Conflicts**: Demo and production can run simultaneously without cache conflicts
+- **Persistent Cache**: Cache survives between runs and modality combinations
+
+### Cache File Naming
+
+Cache files are named uniquely per:
+- Modality combination (e.g., `tf_cache_train_depth_rgb_metadata`)
+- Train vs. validation set
+- Sorted modality names for consistency
+
+**Example cache files in demo_tf_records/**:
+- `tf_cache_train_depth_rgb_metadata.*`
+- `tf_cache_valid_depth_rgb_metadata.*`
+- `tf_cache_train_metadata_thermal_map.*`
+- etc.
+
+### Changes Summary
+
+1. **demo/test_workflow.py**: Uses `demo_tf_records/` for caching
+2. **demo/test_modality_combinations.py**: Uses `demo_tf_records/` for caching
+3. **.gitignore**: Added `demo_tf_records/` to ignore list
+
+### Performance Impact
+
+- **First run**: Creates cache files (slower)
+- **Subsequent runs**: Reuses cache files (much faster)
+- **All 31 combinations**: Cache shared across combinations with same modalities
