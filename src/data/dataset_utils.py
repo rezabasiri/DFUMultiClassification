@@ -423,7 +423,7 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
 
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
                           batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1, image_size=128,
-                          train_patients=None, valid_patients=None):
+                          train_patients=None, valid_patients=None, for_shape_inference=False):
     """
     Prepare cached datasets with proper metadata handling based on selected modalities.
 
@@ -433,6 +433,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         image_size: Target image size for preprocessing (default: 128)
         train_patients: Optional pre-computed list of training patient IDs (for k-fold CV)
         valid_patients: Optional pre-computed list of validation patient IDs (for k-fold CV)
+        for_shape_inference: If True, use quick split without messages (for metadata shape detection only)
     """
     random.seed(42 + run * (run + 3))
     tf.random.set_seed(42 + run * (run + 3))
@@ -450,26 +451,31 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
     # Use pre-computed patient splits if provided (k-fold CV), otherwise try to load/generate
     if train_patients is None or valid_patients is None:
-        # Try to load existing patient split for this run to ensure consistency across modality combinations
-        train_patients, valid_patients = load_patient_split(run)
+        # Only try to load if not doing shape inference
+        if not for_shape_inference:
+            # Try to load existing patient split for this run to ensure consistency across modality combinations
+            train_patients, valid_patients = load_patient_split(run)
 
     if train_patients is not None and valid_patients is not None:
-        # Use the loaded split
-        print(f"Using consistent patient split across all modality combinations for run {run + 1}")
+        # Use the loaded/provided split
+        if not for_shape_inference:
+            print(f"Using consistent patient split across all modality combinations for run {run + 1}")
         train_data = data[data['Patient#'].isin(train_patients)]
         valid_data = data[data['Patient#'].isin(valid_patients)]
 
-        # Display distributions
-        train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
-        valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
-        ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
-        ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-        print("\nClass distributions:")
-        print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-        print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+        # Display distributions (skip for shape inference)
+        if not for_shape_inference:
+            train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
+            valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
+            ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
+            ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
+            print("\nClass distributions:")
+            print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+            print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
     else:
         # Generate a new split (first modality combination for this run)
-        print(f"Generating new patient split for run {run + 1} (will be reused for all combinations)")
+        if not for_shape_inference:
+            print(f"Generating new patient split for run {run + 1} (will be reused for all combinations)")
         max_retries = 2000
         best_split_diff = float('inf')
         best_split = None
@@ -498,21 +504,23 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
             # Check if split is valid
             if check_split_validity(train_data, valid_data, max_ratio_diff=max_split_diff):
-                print(f"Found valid split after {attempt + 1} attempts")
-                print("\nFinal class distributions:")
-                # Create ordered distributions
-                ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
-                ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-                print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-                print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+                if not for_shape_inference:
+                    print(f"Found valid split after {attempt + 1} attempts")
+                    print("\nFinal class distributions:")
+                    # Create ordered distributions
+                    ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
+                    ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
+                    print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                    print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
-                # Save the split so all subsequent modality combinations use the same split
-                save_patient_split(run, train_patients, valid_patients)
+                    # Save the split so all subsequent modality combinations use the same split
+                    save_patient_split(run, train_patients, valid_patients)
                 break
 
             if attempt == max_retries - 1:
-                print(f"Warning: Could not find optimal split after {max_retries} attempts.")
-                print(f"Using best found split with max difference of {best_split_diff:.3f}")
+                if not for_shape_inference:
+                    print(f"Warning: Could not find optimal split after {max_retries} attempts.")
+                    print(f"Using best found split with max difference of {best_split_diff:.3f}")
                 if best_split is not None:
                     train_data, valid_data = best_split
                     train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
@@ -522,14 +530,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
                     ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
 
-                    print("\nBest found class distributions:")
-                    print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
-                    print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
+                    if not for_shape_inference:
+                        print("\nBest found class distributions:")
+                        print("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                        print("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
-                    # Save the split so all subsequent modality combinations use the same split
-                    save_patient_split(run, train_patients, valid_patients)
+                        # Save the split so all subsequent modality combinations use the same split
+                        save_patient_split(run, train_patients, valid_patients)
                 else:
-                    print("No valid split found with all classes present in both sets")
+                    if not for_shape_inference:
+                        print("No valid split found with all classes present in both sets")
                     raise ValueError("Could not create valid data split")
     
     # Determine columns to keep based on selected modalities
