@@ -435,3 +435,8 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 ## 2025-12-17 — Fix resume mode fresh: comprehensive checkpoint cleanup patterns
 
 **src/utils/config.py**: Added `*pred*.npy` and `*label*.npy` patterns to catch all prediction/label file variants (pred_run*, combo_pred*, true_label_run*); added `gating_network_run_*_results.csv` pattern for gating results; applied to both 'fresh' and 'from_data' modes.
+
+## 2025-12-17 — Fix patient split confusion between k-fold CV and legacy systems
+
+**src/data/dataset_utils.py**: Added `for_shape_inference` parameter to suppress patient split messages and file operations during metadata shape detection.
+**src/training/training_utils.py**: Updated metadata shape detection call to use `for_shape_inference=True`; prevents confusing messages from both k-fold CV and legacy split systems.
