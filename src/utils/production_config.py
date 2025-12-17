@@ -186,7 +186,9 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata',),  # Test with metadata only for quick validation
+    # ('metadata',),  # Test1 with metadata only for quick validation
+    # ('metadata','depth_rgb'), # Test2 with metadata and depth_rgb for quick validation
+    ('metadata','depth_rgb', 'depth_map'), # Test3 with metadata, depth_rgb, and depth_map for quick validation
     # ('depth_rgb',), ('depth_map',), ('thermal_map',),
     # ('metadata','depth_rgb'), ('metadata','depth_map'), ('metadata','thermal_map'),
     # ('depth_rgb','depth_map'), ('depth_rgb','thermal_map'),
