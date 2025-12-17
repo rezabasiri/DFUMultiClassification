@@ -168,7 +168,7 @@ def create_focal_ordinal_loss_with_params(ordinal_weight, gamma, alpha):
 
     def loss_fn(y_true, y_pred):
         # Print shapes for debugging (only at verbosity level 2)
-        if get_verbosity() <= 2:
+        if get_verbosity() == 2:
             print(f"\nLoss function shapes:")
             print(f"y_true shape: {tf.shape(y_true)}")
             print(f"y_pred shape: {tf.shape(y_pred)}")
@@ -186,7 +186,7 @@ def create_focal_ordinal_loss_with_params(ordinal_weight, gamma, alpha):
         focal_loss = focal_weight * cross_entropy
 
         # Print intermediate values for first sample (only at verbosity level 2)
-        if get_verbosity() <= 2:
+        if get_verbosity() == 2:
             print("\nIntermediate values (first sample):")
             print(f"Cross entropy: {cross_entropy[0]}")
             print(f"Focal weight: {focal_weight[0]}")
@@ -201,14 +201,14 @@ def create_focal_ordinal_loss_with_params(ordinal_weight, gamma, alpha):
         ordinal_penalty = tf.square(tf.cast(true_class, tf.float32) - tf.cast(pred_class, tf.float32))
 
         # Print ordinal penalty information (only at verbosity level 2)
-        if get_verbosity() <= 2:
+        if get_verbosity() == 2:
             print(f"Ordinal penalty (first 5 samples): {ordinal_penalty[:5]}")
 
         # Combine losses
         total_loss = focal_loss + ordinal_weight * ordinal_penalty
 
         # Print final loss (only at verbosity level 2)
-        if get_verbosity() <= 2:
+        if get_verbosity() == 2:
             print(f"Final loss (first 5 samples): {total_loss[:5]}")
         return total_loss
 
@@ -412,7 +412,7 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
                 
                     except Exception as e:
                         vprint(f"Error in attention visualization: {str(e)}", level=1)
-                        if get_verbosity() <= 2:
+                        if get_verbosity() == 2:
                             print("Detailed error information:")
                             import traceback
                             traceback.print_exc()
@@ -1126,13 +1126,13 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
                 num_models = steps[-1]
             else:
                 break
-    # Final Results
-    vprint("\nFinal Results:", level=1)
-    vprint("==============", level=1)
-    vprint(f"Best Cohen's Kappa: {best_kappa:.4f}", level=1)
-    vprint(f"Best Accuracy: {best_accuracy:.4f}", level=1)
-    vprint(f"Best Weighted Accuracy: {best_weighted_accuracy:.4f}", level=1)
-    vprint(f"Best Loss: {best_loss:.4f}", level=1)
+    # Final Results (level=0 to show at all verbosity levels including progress bar)
+    vprint("\nFinal Results:", level=0)
+    vprint("==============", level=0)
+    vprint(f"Best Cohen's Kappa: {best_kappa:.4f}", level=0)
+    vprint(f"Best Accuracy: {best_accuracy:.4f}", level=0)
+    vprint(f"Best Weighted Accuracy: {best_weighted_accuracy:.4f}", level=0)
+    vprint(f"Best Loss: {best_loss:.4f}", level=0)
     # if best_combination:
     #     print(f"Best Model Combination: {best_combination}")
     #     if excluded_models:
@@ -1515,7 +1515,7 @@ def train_hierarchical_gating_network(predictions_list, true_labels, n_splits=CV
     # Calculate average attention weights across folds
     overall_attention = np.mean(fold_attention_weights, axis=0)
     vprint("\nOverall model importance weights:", level=1)
-    if get_verbosity() <= 1:
+    if get_verbosity() == 1:
         for i, weight in enumerate(overall_attention):
             print(f"Model {i + 1}: {np.mean(weight):.3f}")
     
@@ -1538,13 +1538,13 @@ def calculate_and_save_metrics(true_labels, predictions, result_dir, configs):
         'kappa': cohen_kappa_score(true_labels, predictions, weights='quadratic')
     }
     
-    # Print results
-    vprint("\nFinal Results:", level=1)
-    if get_verbosity() <= 1:
+    # Print results (level=0 to show at all verbosity levels including progress bar)
+    vprint("\nFinal Results:", level=0)
+    if get_verbosity() <= 1 or get_verbosity() == 3:
         print(classification_report(true_labels, predictions,
                                   target_names=CLASS_LABELS,
                                   labels=[0, 1, 2]))
-    vprint(f"\nCohen's Kappa: {metrics['kappa']:.4f}", level=1)
+    vprint(f"\nCohen's Kappa: {metrics['kappa']:.4f}", level=0)
     
     # Save confusion matrix
     cm = confusion_matrix(true_labels, predictions, labels=[0, 1, 2])
@@ -1598,7 +1598,7 @@ def create_focal_ordinal_loss2(ordinal_weight, gamma, alpha):
     vprint(f"Alpha: {alpha}", level=2)
     def loss_fn(y_true, y_pred):
         if not hasattr(loss_fn, 'params_verified'):
-            if get_verbosity() <= 2:
+            if get_verbosity() == 2:
                 print("\nVerifying loss parameters during first call:")
                 print(f"Current gamma: {gamma}")
                 print(f"Current alpha: {alpha}")
@@ -1923,7 +1923,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
     # Close progress bar
     close_progress()
 
-    vprint(f"\nAll results saved to {csv_filename}")
+    vprint(f"\nAll results saved to {csv_filename}", level=0)
 
     # After all combinations are trained, run gating network ensemble across modality combinations
     if len(combinations_to_process) >= 2:
@@ -1970,7 +1970,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
 
             if len(all_train_predictions) >= 2:
                 vprint(f"\nTraining gating network with {len(all_train_predictions)} modality combinations:", level=1)
-                if get_verbosity() <= 2:
+                if get_verbosity() == 2:
                     for name in combination_names:
                         print(f"  - {name}")
 
@@ -2004,15 +2004,59 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
                         ensemble_f1 = f1_score(gating_valid_labels, final_preds, average='macro')
                         ensemble_kappa = cohen_kappa_score(gating_valid_labels, final_preds)
 
-                        vprint(f"\nGating Network Ensemble Results for Run {run + 1}:", level=1)
-                        vprint(f"  Accuracy: {ensemble_accuracy:.4f}", level=1)
-                        vprint(f"  F1 Macro: {ensemble_f1:.4f}", level=1)
-                        vprint(f"  Kappa: {ensemble_kappa:.4f}", level=1)
+                        vprint(f"\nGating Network Ensemble Results for Run {run + 1}:", level=0)
+                        vprint(f"  Accuracy: {ensemble_accuracy:.4f}", level=0)
+                        vprint(f"  F1 Macro: {ensemble_f1:.4f}", level=0)
+                        vprint(f"  Kappa: {ensemble_kappa:.4f}", level=0)
                 except Exception as e:
                     vprint(f"Error in gating network ensemble for run {run + 1}: {str(e)}", level=1)
             else:
                 vprint(f"  Not enough predictions loaded ({len(all_train_predictions)}) for gating network ensemble", level=1)
-    
+
+    # Final summary - read CSV and show best results (shown at all verbosity levels)
+    vprint(f"\n{'='*80}", level=0)
+    vprint("FINAL SUMMARY - BEST MODALITY COMBINATIONS", level=0)
+    vprint(f"{'='*80}", level=0)
+    kappa_col = "Cohen's Kappa (Mean)"
+    kappa_std_col = "Cohen's Kappa (Std)"
+    try:
+        results_df = pd.read_csv(csv_filename)
+        if len(results_df) > 0:
+            # Best by accuracy
+            best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
+            best_acc_row = results_df.loc[best_acc_idx]
+            vprint(f"\nBest by Accuracy:", level=0)
+            vprint(f"  Modalities: {best_acc_row['Modalities']}", level=0)
+            vprint(f"  Accuracy: {best_acc_row['Accuracy (Mean)']:.4f} ± {best_acc_row['Accuracy (Std)']:.4f}", level=0)
+            vprint(f"  F1 Macro: {best_acc_row['Macro Avg F1-score (Mean)']:.4f}", level=0)
+            vprint(f"  Kappa: {best_acc_row[kappa_col]:.4f}", level=0)
+
+            # Best by F1 macro
+            best_f1_idx = results_df['Macro Avg F1-score (Mean)'].idxmax()
+            if best_f1_idx != best_acc_idx:
+                best_f1_row = results_df.loc[best_f1_idx]
+                vprint(f"\nBest by F1 Macro:", level=0)
+                vprint(f"  Modalities: {best_f1_row['Modalities']}", level=0)
+                vprint(f"  Accuracy: {best_f1_row['Accuracy (Mean)']:.4f}", level=0)
+                vprint(f"  F1 Macro: {best_f1_row['Macro Avg F1-score (Mean)']:.4f} ± {best_f1_row['Macro Avg F1-score (Std)']:.4f}", level=0)
+                vprint(f"  Kappa: {best_f1_row[kappa_col]:.4f}", level=0)
+
+            # Best by Kappa
+            best_kappa_idx = results_df[kappa_col].idxmax()
+            if best_kappa_idx != best_acc_idx and best_kappa_idx != best_f1_idx:
+                best_kappa_row = results_df.loc[best_kappa_idx]
+                vprint(f"\nBest by Kappa:", level=0)
+                vprint(f"  Modalities: {best_kappa_row['Modalities']}", level=0)
+                vprint(f"  Accuracy: {best_kappa_row['Accuracy (Mean)']:.4f}", level=0)
+                vprint(f"  F1 Macro: {best_kappa_row['Macro Avg F1-score (Mean)']:.4f}", level=0)
+                vprint(f"  Kappa: {best_kappa_row[kappa_col]:.4f} ± {best_kappa_row[kappa_std_col]:.4f}", level=0)
+
+            vprint(f"\nTotal combinations tested: {len(results_df)}", level=0)
+    except Exception as e:
+        vprint(f"Could not generate summary: {str(e)}", level=1)
+
+    vprint(f"{'='*80}\n", level=0)
+
 def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
     """
     Combined main function that can run either modality search or specialized evaluation.

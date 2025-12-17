@@ -1142,14 +1142,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         save_run_metrics(metrics_dict, run + 1, result_dir)
                         run_metrics.append(metrics_dict)
                         
-                        # Print results
-                        vprint(f"\nRun {run + 1} Results for {config_name}:", level=1)
-                        if get_verbosity() <= 1:
+                        # Print results (level=0 for final metrics to show at all verbosity levels)
+                        vprint(f"\nRun {run + 1} Results for {config_name}:", level=0)
+                        if get_verbosity() <= 1 or get_verbosity() == 3:
                             print(classification_report(y_true_v, y_pred_v,
                                                     target_names=CLASS_LABELS,
                                                     labels=[0, 1, 2],
                                                     zero_division=0))
-                        vprint(f"Cohen's Kappa: {kappa:.4f}", level=1)
+                        vprint(f"Cohen's Kappa: {kappa:.4f}", level=0)
 
                         training_successful = True
 

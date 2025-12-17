@@ -463,3 +463,37 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 **src/training/training_utils.py**: Changed 1 guard from `get_verbosity() == 1` to `get_verbosity() <= 1`.
 
 Semantics: `<= 2` means "show at levels 0, 1, 2 but NOT at level 3 (progress bar mode)". This is clearer than `== 2` and ensures proper behavior at all verbosity levels while still suppressing output in progress bar mode.
+
+## 2025-12-17 — Show final metrics at verbosity 3 (progress bar mode)
+
+**src/main.py**: Changed final results output from `level=1` to `level=0` to show at all verbosity levels:
+- `train_model_combination()`: Final Results section now shows at level=0
+- `calculate_and_save_metrics()`: Final Results and classification_report now show at level=0 or level=3
+- `main_search()`: Gating Network Ensemble Results now show at level=0
+- Added new FINAL SUMMARY section at end of `main_search()` that reads CSV and displays best modality combinations by accuracy, F1, and kappa (level=0)
+
+**src/training/training_utils.py**: Changed run results output from `level=1` to `level=0` for final metrics display.
+**src/data/dataset_utils.py**: Changed Net Confusion Matrix Results from `level=1` to `level=0`.
+
+## 2025-12-17 — Fix verbosity guards to use correct logic
+
+Corrected guard logic for verbosity levels:
+- **Level 2 debug output**: Changed from `get_verbosity() <= 2` back to `get_verbosity() == 2` to show ONLY at level 2
+- **Level 1 normal output**: Changed from `get_verbosity() <= 1` to `get_verbosity() == 1` for non-final output
+- **Final results**: Use `get_verbosity() <= 1 or get_verbosity() == 3` to show at levels 0, 1, and 3
+
+Files updated:
+- **src/main.py**: Fixed 7 debug guards to `== 2` and 1 normal guard to `== 1`
+- **src/data/dataset_utils.py**: Fixed 13 debug guards to `== 2`
+- **src/data/caching.py**: Added verbosity import; wrapped Binary1/Binary2 prints with `== 2` guard
+
+Verbosity levels now work correctly:
+- Level 0 (MINIMAL): Only config header + final results
+- Level 1 (NORMAL): Standard progress info + final results
+- Level 2 (DETAILED): Everything including debug info (Binary distributions, alpha values, shapes)
+- Level 3 (PROGRESS_BAR): Clean progress bar + final results after completion
+
+## 2025-12-17 — Move demo_best_matching.csv to results/demo
+
+**demo/test_workflow.py**: Updated to save `demo_best_matching.csv` to `results/demo/` instead of `results/`; creates demo directory if needed.
+**demo/test_modality_combinations.py**: Updated to look for `demo_best_matching.csv` in `results/demo/` directory.
