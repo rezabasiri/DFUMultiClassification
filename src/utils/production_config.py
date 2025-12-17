@@ -199,6 +199,12 @@ INCLUDED_COMBINATIONS = [
 # Results file naming
 RESULTS_CSV_FILENAME = 'modality_combination_results.csv'  # Output CSV filename
 
+# Multiple configs per modality combination for gating network
+# Set to True to create multiple configs with different loss parameters for each modality combination
+# This enables gating network to combine multiple models per combination
+SEARCH_MULTIPLE_CONFIGS = True  # Enable multiple configs in search mode
+SEARCH_CONFIG_VARIANTS = 2  # Number of config variants to create per modality combination
+
 # =============================================================================
 # Environment Configuration
 # =============================================================================
