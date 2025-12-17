@@ -440,3 +440,10 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 
 **src/data/dataset_utils.py**: Added `for_shape_inference` parameter to suppress patient split messages and file operations during metadata shape detection.
 **src/training/training_utils.py**: Updated metadata shape detection call to use `for_shape_inference=True`; prevents confusing messages from both k-fold CV and legacy split systems.
+
+## 2025-12-17 — Add verbosity system with progress bar support
+
+**src/utils/verbosity.py**: Created verbosity utility with `vprint()`, `init_progress_bar()`, `update_progress()`, `close_progress()` functions; 4 levels (0=minimal, 1=normal, 2=detailed, 3=progress_bar).
+**src/utils/production_config.py**: Added `VERBOSITY` parameter (default=1) and progress bar settings.
+**src/main.py**: Added `--verbosity` CLI argument; fixed "Train labels unique" to show actual classes instead of one-hot values; fixed "run 1 of None" display; integrated vprint() and progress bar showing completion %, elapsed time, ETA, accuracy/F1.
+**src/training/training_utils.py**: Fixed training message to display fold/run number correctly instead of "run 1 of None".
