@@ -218,11 +218,12 @@ class ProcessedDataManager:
         print("Processing metadata shape...")
         temp_data = self.data.copy()
         temp_train, _, _, _, _, _ = prepare_cached_datasets(
-            temp_data, 
-            ['metadata'], 
+            temp_data,
+            ['metadata'],
             train_patient_percentage=0.8,
             batch_size=1,
             run=0,
+            for_shape_inference=True
         )
         for batch in temp_train.take(1):
             self.all_modality_shapes['metadata'] = batch[0]['metadata_input'].shape[1:]
