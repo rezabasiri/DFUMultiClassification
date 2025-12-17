@@ -618,3 +618,27 @@ All 5 modalities supported in any combination:
 - main.py already imports from src/utils/config.py for some values
 - Document provides complete reference for future configuration work
 - User will decide later which parameters to move to config file
+
+## 2025-12-16 - Separated Demo Data from Production Data
+
+### File Separation
+- **results/demo_best_matching.csv**: Demo scripts now use separate best matching CSV
+  - Previously used production `best_matching.csv`
+  - Now uses `demo_best_matching.csv` to keep demo/test data isolated
+
+### Updated Demo Scripts
+- **demo/test_workflow.py** (line 130)
+  - Changed from `best_matching.csv` to `demo_best_matching.csv`
+  - Updated print message to "Creating demo best matching dataset..."
+
+- **demo/test_modality_combinations.py** (lines 54-59)
+  - Overrides `data_paths['best_matching_csv']` with demo-specific path
+  - Uses `os.path.join(result_dir, 'demo_best_matching.csv')`
+  - Enhanced error message to guide users to run test_workflow.py first
+  - Comments explain it's using demo-specific CSV instead of production
+
+### Benefits
+- Demo/test data completely isolated from production data
+- Prevents accidental modification of production best_matching.csv
+- Clear separation of concerns between demo and production workflows
+- Demo scripts can be run without affecting production data
