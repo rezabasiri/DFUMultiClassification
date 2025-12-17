@@ -664,6 +664,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             if len(run_predictions_list_t) == len(configs) and len(run_predictions_list_v) == len(configs):
                 print(f"\nTraining gating network for run {run + 1}...")
                 try:
+                    # Import here to avoid circular dependency
+                    from src.main import train_gating_network
+
                     # Convert labels back to class indices for gating network
                     gating_labels_t = np.argmax(run_true_labels_t, axis=1) if len(run_true_labels_t.shape) > 1 else run_true_labels_t
                     gating_labels_v = np.argmax(run_true_labels_v, axis=1) if len(run_true_labels_v.shape) > 1 else run_true_labels_v
@@ -1083,6 +1086,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             except Exception as e:
                 print(f"Error in prediction validation: {str(e)}")
             try:
+                # Import here to avoid circular dependency
+                from src.main import train_gating_network
+
                 # Convert labels back to class indices for gating network
                 gating_labels_t = np.argmax(run_true_labels_t, axis=1) if len(run_true_labels_t.shape) > 1 else run_true_labels_t
                 gating_labels_v = np.argmax(run_true_labels_v, axis=1) if len(run_true_labels_v.shape) > 1 else run_true_labels_v

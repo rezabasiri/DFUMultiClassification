@@ -354,3 +354,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/main.py**: Updated to use organized paths for CSV outputs.
 
+## 2025-12-17 — Fix train_gating_network import
+
+**src/training/training_utils.py** (lines 668, 1090): Added local import `from src.main import train_gating_network` inside functions to avoid circular dependency. Import placed at point of use rather than module level.
+
