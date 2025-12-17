@@ -237,3 +237,9 @@ import tensorflow.keras.backend as K
 ### Result
 All Keras classes used in main.py are now properly imported. The script can now run without NameError exceptions.
 
+---
+
+## 2025-12-17 — Remove undefined clear_cache_files() call
+
+**src/main.py** (line 1947): Removed call to undefined `clear_cache_files()` function. Cache clearing is already handled inside `main()` function at lines 1824-1842.
+
