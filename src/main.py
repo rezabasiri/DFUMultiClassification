@@ -1944,7 +1944,6 @@ Configuration:
     print("="*80 + "\n")
 
     # Clear memory before starting
-    clear_cache_files()
     clear_gpu_memory()
     reset_keras()
     clear_cuda_memory()
