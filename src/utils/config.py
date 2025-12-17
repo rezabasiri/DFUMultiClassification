@@ -92,3 +92,166 @@ RANDOM_SEED = 42
 
 # Class labels
 CLASS_LABELS = ['I', 'P', 'R']
+
+
+def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
+    """
+    Clean up files based on resume mode to control checkpoint behavior.
+
+    Resume modes:
+    - 'fresh': Delete everything (models, predictions, cache, CSV results) - start from scratch
+    - 'auto': Keep all checkpoints, resume from latest available state (default)
+    - 'from_data': Keep processed data, delete models/predictions/splits - retrain from scratch
+    - 'from_models': Keep model weights, delete predictions - regenerate predictions
+    - 'from_predictions': Keep Block A predictions, delete Block B gating models - retrain only ensemble
+
+    Args:
+        resume_mode: One of ['fresh', 'auto', 'from_data', 'from_models', 'from_predictions']
+        result_dir: Base results directory (optional)
+
+    Returns:
+        dict: Statistics about deleted files
+    """
+    import glob
+    import shutil
+
+    if result_dir is None:
+        _, result_dir, _ = get_project_paths()
+
+    output_paths = get_output_paths(result_dir)
+
+    deleted_stats = {
+        'models': 0,
+        'predictions': 0,
+        'csv_results': 0,
+        'patient_splits': 0,
+        'tf_cache': 0,
+        'progress_files': 0
+    }
+
+    def delete_files(pattern_list, stat_key):
+        """Helper to delete files matching patterns."""
+        count = 0
+        for pattern in pattern_list:
+            try:
+                files = glob.glob(pattern, recursive=True)
+                for file_path in files:
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                            count += 1
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                            count += 1
+                    except Exception as e:
+                        print(f"Warning: Could not delete {file_path}: {e}")
+            except Exception as e:
+                print(f"Warning: Error processing pattern {pattern}: {e}")
+        deleted_stats[stat_key] = count
+
+    if resume_mode == 'fresh':
+        print("\n🧹 FRESH START MODE: Deleting all checkpoints...")
+        print("="*80)
+
+        # Delete model weights
+        delete_files([
+            os.path.join(output_paths['models'], '*.h5'),
+            os.path.join(output_paths['models'], 'best_gating_model_*.h5'),
+        ], 'models')
+
+        # Delete predictions and labels
+        delete_files([
+            os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
+            os.path.join(output_paths['checkpoints'], '*labels*.npy'),
+            os.path.join(output_paths['checkpoints'], 'training_progress_*.json'),
+        ], 'predictions')
+
+        # Delete CSV results
+        delete_files([
+            os.path.join(output_paths['csv'], '*.csv'),
+        ], 'csv_results')
+
+        # Delete patient splits
+        delete_files([
+            os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),
+        ], 'patient_splits')
+
+        # Delete TensorFlow cache
+        delete_files([
+            os.path.join(result_dir, 'tf_cache_*'),
+            os.path.join(result_dir, 'tf_records/*'),
+        ], 'tf_cache')
+
+        # Delete progress files
+        delete_files([
+            os.path.join(output_paths['checkpoints'], 'progress_run*.json'),
+            os.path.join(output_paths['checkpoints'], 'best_predictions_run*.npy'),
+        ], 'progress_files')
+
+    elif resume_mode == 'from_data':
+        print("\n🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...")
+        print("="*80)
+
+        # Delete models, predictions, but keep processed data
+        delete_files([
+            os.path.join(output_paths['models'], '*.h5'),
+        ], 'models')
+
+        delete_files([
+            os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
+            os.path.join(output_paths['checkpoints'], '*labels*.npy'),
+            os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),
+        ], 'predictions')
+
+        delete_files([
+            os.path.join(result_dir, 'tf_cache_*'),
+        ], 'tf_cache')
+
+    elif resume_mode == 'from_models':
+        print("\n♻️  FROM MODELS MODE: Keeping models, deleting predictions...")
+        print("="*80)
+
+        # Keep models, delete predictions
+        delete_files([
+            os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
+            os.path.join(output_paths['checkpoints'], '*labels*.npy'),
+        ], 'predictions')
+
+        delete_files([
+            os.path.join(output_paths['checkpoints'], 'progress_run*.json'),
+        ], 'progress_files')
+
+    elif resume_mode == 'from_predictions':
+        print("\n⚡ FROM PREDICTIONS MODE: Keeping Block A predictions, deleting Block B gating models...")
+        print("="*80)
+
+        # Keep Block A predictions, delete gating network models
+        delete_files([
+            os.path.join(output_paths['models'], 'best_gating_model_*.h5'),
+        ], 'models')
+
+        delete_files([
+            os.path.join(output_paths['checkpoints'], 'progress_run*.json'),
+            os.path.join(output_paths['checkpoints'], 'best_predictions_run*.npy'),
+        ], 'progress_files')
+
+    elif resume_mode == 'auto':
+        print("\n✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...")
+        print("="*80)
+        # Don't delete anything, let the code auto-resume
+        pass
+
+    else:
+        raise ValueError(f"Invalid resume_mode: {resume_mode}. Must be one of: "
+                        "'fresh', 'auto', 'from_data', 'from_models', 'from_predictions'")
+
+    # Print statistics
+    if resume_mode != 'auto':
+        print("\nCleanup Statistics:")
+        for key, count in deleted_stats.items():
+            if count > 0:
+                print(f"  {key.replace('_', ' ').title()}: {count} files deleted")
+        print("="*80 + "\n")
+
+    return deleted_stats
+

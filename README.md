@@ -190,6 +190,75 @@ After identifying top-performing combinations from search mode:
 
 The gating network will ensemble predictions from all trained models.
 
+## Resume and Checkpoint Management
+
+The system supports intelligent checkpoint management with the `--resume_mode` flag to control what gets deleted/kept between runs:
+
+### Resume Modes
+
+**`--resume_mode fresh`** - Complete fresh start
+```bash
+# Delete everything: models, predictions, cache, CSV results
+# Use for: Starting a new experiment from scratch
+python src/main.py --mode search --resume_mode fresh --cv_folds 3
+```
+Deletes: Model weights (.h5), predictions (.npy), CSV results, patient splits, TF cache
+
+**`--resume_mode auto`** (default) - Smart resumption
+```bash
+# Keep all checkpoints, auto-resume from latest state
+# Use for: Continuing interrupted training
+python src/main.py --mode search --resume_mode auto --cv_folds 3
+```
+Keeps: Everything. The system automatically detects completed work and resumes.
+
+**`--resume_mode from_data`** - Retrain models
+```bash
+# Keep processed data, delete models and predictions
+# Use for: Retraining with different hyperparameters
+python src/main.py --mode search --resume_mode from_data --cv_folds 3
+```
+Keeps: Processed data (best_matching.csv, bounding boxes)
+Deletes: Model weights, predictions, patient splits, TF cache
+
+**`--resume_mode from_models`** - Regenerate predictions
+```bash
+# Keep model weights, delete predictions
+# Use for: Regenerating predictions after model architecture changes
+python src/main.py --mode search --resume_mode from_models --cv_folds 3
+```
+Keeps: Model weights (.h5 files)
+Deletes: Predictions, progress files
+
+**`--resume_mode from_predictions`** - Retrain ensemble only
+```bash
+# Keep Block A predictions, delete Block B gating models
+# Use for: Fine-tuning gating network hyperparameters
+python src/main.py --mode search --resume_mode from_predictions --cv_folds 3
+```
+Keeps: Block A individual model predictions
+Deletes: Gating network models, progress files
+
+### Typical Workflows
+
+**Interrupted training:**
+```bash
+# Just rerun with auto mode (default)
+python src/main.py --mode search --cv_folds 3
+```
+
+**Hyperparameter tuning:**
+```bash
+# Keep data, retrain models with new parameters
+python src/main.py --mode search --resume_mode from_data --cv_folds 3
+```
+
+**Gating network experiments:**
+```bash
+# Train Block A once, experiment with Block B
+python src/main.py --mode search --resume_mode from_predictions --cv_folds 3
+```
+
 ## Demo & Testing
 
 The `demo/` directory contains test scripts to validate the pipeline:
