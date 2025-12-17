@@ -30,6 +30,21 @@ GLOBAL_BATCH_SIZE = 30  # Total batch size across all GPU replicas
 N_EPOCHS = 3  # Maximum number of training epochs
 
 # =============================================================================
+# Verbosity and Progress Tracking
+# =============================================================================
+
+# Verbosity levels:
+# 0 = MINIMAL: Only essential info (errors, final results)
+# 1 = NORMAL: Standard output (default - current behavior)
+# 2 = DETAILED: Include debug info, intermediate metrics
+# 3 = FULL: Everything + progress bars with time estimates
+VERBOSITY = 1  # Default verbosity level
+
+# Progress bar settings (used when VERBOSITY >= 3)
+SHOW_PROGRESS_BAR = True  # Enable/disable progress bar
+PROGRESS_BAR_UPDATE_INTERVAL = 1  # Seconds between progress bar updates
+
+# =============================================================================
 # Gating Network Configuration
 # =============================================================================
 

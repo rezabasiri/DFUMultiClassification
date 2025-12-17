@@ -880,7 +880,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 print(f"\nNo existing data found for {config_name}, starting fresh")
             
             selected_modalities = config['modalities']
-            print(f"\nTraining {config_name} with modalities: {selected_modalities}, run {run + 1} of {n_runs}")
+            # Display proper iteration context
+            if not use_legacy_mode and cv_folds > 1:
+                print(f"\nTraining {config_name} with modalities: {selected_modalities}, fold {run + 1}/{cv_folds}")
+            else:
+                print(f"\nTraining {config_name} with modalities: {selected_modalities}, run {run + 1}/{num_iterations}")
             
             training_successful = False
             max_retries = 3

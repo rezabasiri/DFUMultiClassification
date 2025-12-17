@@ -61,6 +61,7 @@ import shap
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS, RANDOM_SEED
 from src.utils.production_config import *  # Import all production configuration parameters
 from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
+from src.utils.verbosity import set_verbosity, vprint, init_progress_bar, update_progress, close_progress
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
     create_best_matching_dataset, prepare_dataset, preprocess_image_data,
@@ -985,7 +986,8 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
 
         print(f"Train data shape: {train_data.shape}, Train labels shape: {train_labels_truncated.shape}")
         print(f"Val data shape: {val_data.shape}, Val labels shape: {val_labels_truncated.shape}")
-        print(f"Train labels unique: {np.unique(train_labels_truncated)}")
+        train_label_indices = np.argmax(train_labels_truncated, axis=1) if len(train_labels_truncated.shape) > 1 else train_labels_truncated
+        print(f"Train classes: {sorted(np.unique(train_label_indices).astype(int))}")
 
         predictions, loss, accuracy, kappa, model, val_weighted_acc = train_model_combination(train_data, val_data, train_labels_truncated, val_labels_truncated) 
         if best_accuracy and accuracy+val_weighted_acc >= best_accuracy+best_weighted_accuracy:
@@ -1807,26 +1809,30 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
     else:
         raise ValueError(f"Invalid MODALITY_SEARCH_MODE: {search_mode}. Must be 'all' or 'custom'")
 
-    print(f"Total combinations to test: {len(combinations_to_process)}")
-    print(f"Cross-validation mode: {cv_mode_name}")
-    print(f"Iterations per combination: {num_iterations}")
-    print(f"Total training sessions: {len(combinations_to_process) * num_iterations}")
-    print(f"Results will be saved to: {csv_filename}")
-    print(f"{'='*80}\n")
+    vprint(f"Total combinations to test: {len(combinations_to_process)}", level=1)
+    vprint(f"Cross-validation mode: {cv_mode_name}", level=1)
+    vprint(f"Iterations per combination: {num_iterations}", level=1)
+    vprint(f"Total training sessions: {len(combinations_to_process) * num_iterations}", level=1)
+    vprint(f"Results will be saved to: {csv_filename}", level=1)
+    vprint(f"{'='*80}\n", level=1)
 
-    for combination in combinations_to_process:
+    # Initialize progress bar for progress bar mode
+    total_steps = len(combinations_to_process)
+    init_progress_bar(total_steps, desc="Testing modality combinations")
+
+    for idx, combination in enumerate(combinations_to_process, 1):
     # for combination in [('metadata','depth_rgb','depth_map','thermal_map')]: #Cedar2
     # for combination in [1]:
         selected_modalities = list(combination)
         # selected_modalities = ['metadata', 'depth_rgb', 'thermal_map']
-        print(f"\nTesting modalities: {', '.join(selected_modalities)}")
+        vprint(f"\nTesting modalities: {', '.join(selected_modalities)}", level=1)
         # Load and prepare the dataset
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities)
         from src.evaluation.metrics import filter_frequent_misclassifications
         data = filter_frequent_misclassifications(data, result_dir)
         if data_percentage < 100:
             data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
-        print(f"Using {data_percentage}% of the data: {len(data)} samples")
+        vprint(f"Using {data_percentage}% of the data: {len(data)} samples", level=1)
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
         cv_results, confusion_matrices, histories = cross_validation_manual_split(
@@ -1887,7 +1893,11 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writerow(result)
 
-        print(f"Results for {', '.join(selected_modalities)} appended to {csv_filename}")
+        vprint(f"Results for {', '.join(selected_modalities)} appended to {csv_filename}", level=1)
+
+        # Update progress bar with current combination info
+        status = f"{'+'.join(selected_modalities)} | Acc: {avg_accuracy:.3f} | F1: {avg_f1_macro:.3f}"
+        update_progress(n=1, status=status)
 
         # Clean up after each modality combination
         try:
@@ -1900,16 +1910,19 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
         try:
             del data, run_data, cv_results, confusion_matrices, histories, result
         except Exception as e:
-            print(f"Error deleting variables: {str(e)}")
+            vprint(f"Error deleting variables: {str(e)}", level=2)
 
-    print(f"\nAll results saved to {csv_filename}")
+    # Close progress bar
+    close_progress()
+
+    vprint(f"\nAll results saved to {csv_filename}", level=1)
 
     # After all combinations are trained, run gating network ensemble across modality combinations
     if len(combinations_to_process) >= 2:
-        print(f"\n{'='*80}")
-        print(f"GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS")
-        print(f"{'='*80}")
-        print(f"Ensembling predictions from {len(combinations_to_process)} modality combinations")
+        vprint(f"\n{'='*80}", level=1)
+        vprint(f"GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS", level=1)
+        vprint(f"{'='*80}", level=1)
+        vprint(f"Ensembling predictions from {len(combinations_to_process)} modality combinations", level=1)
 
         for run in range(num_iterations):
             if n_runs is not None:
@@ -2134,34 +2147,51 @@ Configuration:
         (default: auto)"""
     )
 
+    parser.add_argument(
+        "--verbosity",
+        type=int,
+        choices=[0, 1, 2, 3],
+        default=1,
+        help="""Output verbosity level:
+        0 = MINIMAL: Only essential info (errors, final results)
+        1 = NORMAL: Standard output (default - current behavior)
+        2 = DETAILED: Include debug info, intermediate metrics
+        3 = PROGRESS_BAR: Print settings at start, then only progress bar with time estimates
+        (default: 1)"""
+    )
+
     args = parser.parse_args()
 
-    # Print configuration
-    print("\n" + "="*80)
-    print("DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE")
-    print("="*80)
-    print(f"Mode: {args.mode}")
-    print(f"Resume mode: {args.resume_mode}")
-    print(f"Data percentage: {args.data_percentage}%")
+    # Set verbosity level
+    set_verbosity(args.verbosity)
+
+    # Print configuration (always shown, even in progress bar mode)
+    vprint("\n" + "="*80, level=0)
+    vprint("DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE", level=0)
+    vprint("="*80, level=0)
+    vprint(f"Mode: {args.mode}", level=0)
+    vprint(f"Resume mode: {args.resume_mode}", level=0)
+    vprint(f"Data percentage: {args.data_percentage}%", level=0)
+    vprint(f"Verbosity: {args.verbosity} ({'MINIMAL' if args.verbosity == 0 else 'NORMAL' if args.verbosity == 1 else 'DETAILED' if args.verbosity == 2 else 'PROGRESS_BAR'})", level=0)
     if args.cv_folds > 1:
-        print(f"Cross-validation: {args.cv_folds}-fold CV (patient-level)")
+        vprint(f"Cross-validation: {args.cv_folds}-fold CV (patient-level)", level=0)
     else:
-        print(f"Train/validation split: {args.train_patient_percentage*100:.0f}% train / {(1-args.train_patient_percentage)*100:.0f}% val")
+        vprint(f"Train/validation split: {args.train_patient_percentage*100:.0f}% train / {(1-args.train_patient_percentage)*100:.0f}% val", level=0)
     if args.n_runs is not None:  # Only show if user explicitly provided legacy n_runs
-        print(f"Number of runs (legacy): {args.n_runs}")
-    print(f"\nConfiguration loaded from: src/utils/production_config.py")
-    print(f"Image size: {IMAGE_SIZE}x{IMAGE_SIZE}")
-    print(f"Batch size: {GLOBAL_BATCH_SIZE}")
-    print(f"Max epochs: {N_EPOCHS} (with early stopping)")
+        vprint(f"Number of runs (legacy): {args.n_runs}", level=0)
+    vprint(f"\nConfiguration loaded from: src/utils/production_config.py", level=0)
+    vprint(f"Image size: {IMAGE_SIZE}x{IMAGE_SIZE}", level=0)
+    vprint(f"Batch size: {GLOBAL_BATCH_SIZE}", level=0)
+    vprint(f"Max epochs: {N_EPOCHS} (with early stopping)", level=0)
     if args.mode == 'search':
-        print(f"Modality search mode: {MODALITY_SEARCH_MODE}")
+        vprint(f"Modality search mode: {MODALITY_SEARCH_MODE}", level=0)
         if MODALITY_SEARCH_MODE == 'all':
-            print(f"Will test all 31 modality combinations")
+            vprint(f"Will test all 31 modality combinations", level=0)
             if EXCLUDED_COMBINATIONS:
-                print(f"Excluding {len(EXCLUDED_COMBINATIONS)} combinations")
+                vprint(f"Excluding {len(EXCLUDED_COMBINATIONS)} combinations", level=0)
         else:
-            print(f"Will test {len(INCLUDED_COMBINATIONS)} custom combinations")
-    print("="*80 + "\n")
+            vprint(f"Will test {len(INCLUDED_COMBINATIONS)} custom combinations", level=0)
+    vprint("="*80 + "\n", level=0)
 
     # Handle resume mode cleanup
     from src.utils.config import cleanup_for_resume_mode
