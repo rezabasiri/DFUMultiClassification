@@ -60,6 +60,10 @@ def run_single_fold(modalities, config, fold_num=0, total_folds=1):
 
     best_matching = pd.read_csv(best_matching_csv)
 
+    # Create demo-specific cache directory under results
+    demo_cache_dir = os.path.join(result_dir, 'demo_tf_records')
+    os.makedirs(demo_cache_dir, exist_ok=True)
+
     # Prepare datasets
     train_dataset, pre_aug_dataset, val_dataset, steps_per_epoch, validation_steps, class_weights = \
         prepare_cached_datasets(
@@ -67,7 +71,7 @@ def run_single_fold(modalities, config, fold_num=0, total_folds=1):
             selected_modalities=modalities,
             train_patient_percentage=config['train_patient_percentage'],
             batch_size=config['batch_size'],
-            cache_dir=None,
+            cache_dir=demo_cache_dir,  # Use demo-specific cache directory
             gen_manager=None,
             aug_config=None,
             run=fold_num,  # Use fold number as run seed for different splits

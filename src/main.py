@@ -1813,25 +1813,11 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
         train_patient_percentage (float): Percentage of patients to use for training
         n_runs (int): Number of runs for cross-validation
     """
-    # Clear any existing cache files
-    import glob
-    cache_patterns = [
-        os.path.join(result_dir, 'tf_cache_train*'),
-        os.path.join(result_dir, 'tf_cache_valid*'),
-        'tf_cache_train*',
-        'tf_cache_valid*'
-    ]
-    
-    for pattern in cache_patterns:
-        try:
-            cache_files = glob.glob(pattern)
-            for cache_file in cache_files:
-                try:
-                    os.remove(cache_file)
-                except Exception as e:
-                    print(f"Warning: Could not remove cache file {cache_file}: {str(e)}")
-        except Exception as e:
-            print(f"Warning: Error while processing pattern {pattern}: {str(e)}")
+    # NOTE: Cache files in results/tf_records will be reused if they exist
+    # This speeds up subsequent runs with the same data
+    # If you need to regenerate cache files, manually delete results/tf_records/
+    print(f"\nCache directory: {os.path.join(result_dir, 'tf_records')}")
+    print("Existing cache files will be reused to speed up dataset loading.")
 
     if mode.lower() == 'search':
         main_search(data_percentage, train_patient_percentage, n_runs)
