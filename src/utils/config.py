@@ -16,7 +16,7 @@ def get_project_paths():
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     directory = project_root
     result_dir = os.path.join(project_root, 'results')
-    print(f"Using local repository structure: {directory}")
+    # print(f"Using local repository structure: {directory}")
 
     root = os.path.join(directory, "data")
 
