@@ -251,3 +251,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/main.py** (line 1754): Updated import from `MisclassificationFunctions` to `src.evaluation.metrics`.
 
+## 2025-12-17 — Add missing imports to training_utils.py
+
+**src/training/training_utils.py**: Added missing imports: `random`, `gc`, `glob`, and `clear_gpu_memory` from `src.utils.debug`.
+

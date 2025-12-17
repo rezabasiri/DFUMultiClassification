@@ -8,6 +8,9 @@ import pandas as pd
 import numpy as np
 import pickle
 import csv
+import random
+import gc
+import glob
 import tensorflow as tf
 from sklearn.metrics import accuracy_score, f1_score, classification_report, cohen_kappa_score, confusion_matrix
 import matplotlib
@@ -16,6 +19,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from src.utils.config import get_project_paths, CLASS_LABELS
+from src.utils.debug import clear_gpu_memory
 
 # Get paths
 directory, result_dir, root = get_project_paths()
