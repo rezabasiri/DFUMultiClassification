@@ -162,8 +162,11 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
         # Delete predictions and labels
         delete_files([
             os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
+            os.path.join(output_paths['checkpoints'], '*pred*.npy'),  # Catch pred_run* and combo_pred*
             os.path.join(output_paths['checkpoints'], '*labels*.npy'),
+            os.path.join(output_paths['checkpoints'], '*label*.npy'),  # Catch true_label_run*
             os.path.join(output_paths['checkpoints'], 'training_progress_*.json'),
+            os.path.join(output_paths['checkpoints'], 'gating_network_run_*_results.csv'),  # Gating results
         ], 'predictions')
 
         # Delete CSV results
@@ -199,8 +202,11 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
 
         delete_files([
             os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
+            os.path.join(output_paths['checkpoints'], '*pred*.npy'),  # Catch pred_run* and combo_pred*
             os.path.join(output_paths['checkpoints'], '*labels*.npy'),
+            os.path.join(output_paths['checkpoints'], '*label*.npy'),  # Catch true_label_run*
             os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),
+            os.path.join(output_paths['checkpoints'], 'gating_network_run_*_results.csv'),  # Gating results
         ], 'predictions')
 
         delete_files([
