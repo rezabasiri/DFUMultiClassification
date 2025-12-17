@@ -374,3 +374,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/training/training_utils.py** (lines 897-901): Modified model compilation to use loss parameters from config if available.
 
+## 2025-12-17 — Update README with system components documentation
+
+**README.md**: Added "System Components" section explaining multimodal fusion (GAMAN), gating network (late fusion ensemble), search mode, and cross-validation. Updated Quick Start with detailed usage examples for exploring modality combinations and training gating network ensemble.
+
