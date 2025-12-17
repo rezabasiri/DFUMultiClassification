@@ -271,3 +271,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/training/training_utils.py**: Added extraction of `batch_size`, `max_epochs`, `image_size` from configs dict and `gpus` list from TF config (lines 604-611).
 
+## 2025-12-17 — Add missing augmentation import to dataset_utils.py
+
+**src/data/dataset_utils.py**: Added import of `create_enhanced_augmentation_fn` from `src.data.generative_augmentation_v2`.
+
