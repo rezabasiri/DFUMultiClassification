@@ -642,3 +642,132 @@ All 5 modalities supported in any combination:
 - Prevents accidental modification of production best_matching.csv
 - Clear separation of concerns between demo and production workflows
 - Demo scripts can be run without affecting production data
+
+## 2025-12-16 - Centralized All Production Configuration in production_config.py
+
+### New Production Configuration Module
+- **src/utils/production_config.py**: Created comprehensive configuration file for all main.py hyperparameters
+  - Centralized 70+ configuration parameters previously hard-coded in main.py
+  - Organized into 13 logical categories with clear documentation
+  - Includes helper functions for easy access to grouped configurations
+  - All values kept identical to original - no functional changes
+
+### Configuration Categories
+
+1. **Training Parameters** (IMAGE_SIZE, GLOBAL_BATCH_SIZE, N_EPOCHS)
+   - Core training hyperparameters for main training loop
+
+2. **Gating Network Configuration** (architecture, training, callbacks)
+   - GATING_LEARNING_RATE, GATING_EPOCHS, GATING_BATCH_SIZE
+   - GATING_REDUCE_LR_* and GATING_EARLY_STOP_* callback parameters
+   - GATING_NUM_HEADS_MULTIPLIER, GATING_KEY_DIM_MULTIPLIER for architecture
+
+3. **Hierarchical Gating Network Configuration**
+   - HIERARCHICAL_EMBEDDING_DIM, HIERARCHICAL_NUM_HEADS, HIERARCHICAL_FF_DIM_MULTIPLIER
+   - HIERARCHICAL_LEARNING_RATE, HIERARCHICAL_EPOCHS, HIERARCHICAL_BATCH_SIZE
+   - HIERARCHICAL_REDUCE_LR_* callback parameters
+   - HIERARCHICAL_FOCAL_GAMMA, HIERARCHICAL_FOCAL_ALPHA for focal loss
+
+4. **Learning Rate Scheduler** (DynamicLRSchedule)
+   - LR_SCHEDULE_INITIAL_LR, LR_SCHEDULE_MIN_LR
+   - LR_SCHEDULE_EXPLORATION_EPOCHS, LR_SCHEDULE_CYCLE_LENGTH
+   - LR_SCHEDULE_PATIENCE_THRESHOLD, LR_SCHEDULE_DECAY_FACTOR
+
+5. **Model Combination Search**
+   - SEARCH_MIN_MODELS, SEARCH_MAX_TRIES, SEARCH_NUM_PROCESSES
+   - SEARCH_STEP_SIZE_FRACTION, SEARCH_EXCLUDED_MODELS
+
+6. **Attention Visualization**
+   - ATTENTION_VIS_FREQUENCY (visualization every N epochs)
+   - ATTENTION_MODEL_V{MIN,MAX}, ATTENTION_CLASS_V{MIN,MAX} (heatmap scales)
+
+7. **Attention Entropy Loss**
+   - ENTROPY_EPSILON, ENTROPY_MODEL_WEIGHT, ENTROPY_CLASS_WEIGHT
+   - ENTROPY_LOSS_WEIGHT (dynamic weight in loss function)
+
+8. **Loss Function Parameters**
+   - FOCAL_ORDINAL_WEIGHT, FOCAL_GAMMA, FOCAL_ALPHA (defaults)
+
+9. **Cross-Validation**
+   - CV_N_SPLITS, CV_RANDOM_STATE, CV_SHUFFLE
+
+10. **Grid Search**
+    - GRID_SEARCH_ORDINAL_WEIGHTS, GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS
+
+11. **File I/O**
+    - PROGRESS_MAX_RETRIES, PROGRESS_RETRY_DELAY (for robust file operations)
+
+12. **Environment Configuration**
+    - TF_OMP_NUM_THREADS, TF_NUM_INTEROP_THREADS, TF_NUM_INTRAOP_THREADS
+    - TF_DETERMINISTIC_OPS, TF_CUDNN_DETERMINISTIC
+    - apply_environment_config() helper function
+
+### Helper Functions Created
+- `get_gating_config()`: Returns gating network configuration dictionary
+- `get_hierarchical_config()`: Returns hierarchical gating configuration dictionary
+- `get_lr_schedule_config()`: Returns LR scheduler configuration dictionary
+- `get_search_config()`: Returns model search configuration dictionary
+- `get_attention_config()`: Returns attention mechanism configuration dictionary
+- `get_environment_config()`: Returns environment configuration dictionary
+- `apply_environment_config()`: Applies environment settings to os.environ
+
+### Updated src/main.py
+
+All hard-coded values replaced with imports from production_config.py:
+
+**Line 53**: Added `from src.utils.production_config import *`
+
+**Line 112**: Replaced environment config with `apply_environment_config()`
+
+**Lines 139-142**: Training parameters now use IMAGE_SIZE, GLOBAL_BATCH_SIZE, N_EPOCHS
+
+**Line 247**: Attention visualization frequency uses ATTENTION_VIS_FREQUENCY
+
+**Lines 275-278**: Heatmap ranges use ATTENTION_MODEL_V{MIN,MAX}, ATTENTION_CLASS_V{MIN,MAX}
+
+**Line 605**: Entropy epsilon uses ENTROPY_EPSILON
+
+**Line 622**: Entropy weighting uses ENTROPY_MODEL_WEIGHT, ENTROPY_CLASS_WEIGHT
+
+**Line 640**: Entropy loss weight uses ENTROPY_LOSS_WEIGHT
+
+**Lines 658-662**: DynamicLRSchedule defaults use LR_SCHEDULE_* parameters
+
+**Lines 707-709**: LR patience/decay use LR_SCHEDULE_PATIENCE_THRESHOLD, LR_SCHEDULE_DECAY_FACTOR
+
+**Lines 723-724**: Gating network architecture uses GATING_NUM_HEADS_MULTIPLIER, GATING_KEY_DIM_MULTIPLIER
+
+**Line 763**: Gating learning rate uses GATING_LEARNING_RATE
+
+**Lines 781-797**: Gating callbacks use GATING_REDUCE_LR_*, GATING_EARLY_STOP_* parameters
+
+**Lines 810, 821, 826**: Gating training uses GATING_BATCH_SIZE, GATING_EPOCHS, GATING_VERBOSE
+
+**Lines 961-968**: Model search uses SEARCH_EXCLUDED_MODELS, SEARCH_MIN_MODELS, SEARCH_STEP_SIZE_FRACTION
+
+**Line 993**: Parallel processing uses SEARCH_NUM_PROCESSES
+
+**Lines 1095-1096, 1127-1128**: Progress I/O uses PROGRESS_MAX_RETRIES, PROGRESS_RETRY_DELAY
+
+**Line 1255**: Hierarchical network embedding uses HIERARCHICAL_EMBEDDING_DIM
+
+**Lines 1300-1301**: Hierarchical transformer uses HIERARCHICAL_NUM_HEADS, HIERARCHICAL_FF_DIM_MULTIPLIER
+
+**Line 1318**: Hierarchical focal loss uses HIERARCHICAL_FOCAL_GAMMA, HIERARCHICAL_FOCAL_ALPHA
+
+**Lines 1333, 1360**: CV parameters use CV_N_SPLITS, CV_RANDOM_STATE, CV_SHUFFLE, HIERARCHICAL_PATIENCE
+
+**Lines 1384, 1392, 1394**: Hierarchical model uses HIERARCHICAL_EMBEDDING_DIM, focal loss, HIERARCHICAL_LEARNING_RATE
+
+**Lines 1404-1420**: Hierarchical training uses HIERARCHICAL_EPOCHS, HIERARCHICAL_BATCH_SIZE, HIERARCHICAL_REDUCE_LR_*, HIERARCHICAL_VERBOSE
+
+### Benefits
+
+- **Single Source of Truth**: All hyperparameters in one location
+- **Easy Hyperparameter Tuning**: Modify values in config file without touching main.py
+- **Better Organization**: Parameters grouped by category with clear documentation
+- **No Functional Changes**: All values kept identical - only centralized
+- **Helper Functions**: Convenient access to grouped configurations
+- **Maintainability**: Easier to understand and modify configuration
+- **Experimentation**: Can easily swap config files for different experiments
+- **Documentation**: Each parameter documented with purpose and typical ranges
