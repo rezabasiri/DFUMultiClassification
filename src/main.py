@@ -17,6 +17,7 @@ import pickle
 import argparse
 import math
 import csv
+import itertools
 from collections import Counter
 import gc
 
