@@ -200,10 +200,10 @@ INCLUDED_COMBINATIONS = [
 RESULTS_CSV_FILENAME = 'modality_combination_results.csv'  # Output CSV filename
 
 # Multiple configs per modality combination for gating network
-# Set to True to create multiple configs with different loss parameters for each modality combination
-# This enables gating network to combine multiple models per combination
-SEARCH_MULTIPLE_CONFIGS = True  # Enable multiple configs in search mode
-SEARCH_CONFIG_VARIANTS = 2  # Number of config variants to create per modality combination
+# Set to False in search mode - gating network is for combining DIFFERENT modality combinations, not configs
+# Set to True only if you want to test different loss parameters for the same modality combination
+SEARCH_MULTIPLE_CONFIGS = False  # Disabled: gating network should ensemble across modality combinations, not configs
+SEARCH_CONFIG_VARIANTS = 2  # Number of config variants to create per modality combination (if enabled)
 
 # =============================================================================
 # Environment Configuration
