@@ -450,3 +450,8 @@ Removed previously tracked CSV files from git to respect `results/csv/` gitignor
 **src/data/dataset_utils.py**: Replaced 30+ print statements with vprint() at level 2 for class distributions, alpha values, unique cases.
 **src/data/image_processing.py**: Replaced print statements with vprint() for modality sample counts.
 **src/evaluation/metrics.py**: Replaced print statements with vprint() for misclassification file loading messages.
+
+## 2025-12-17 — Fix f-string syntax errors from batch vprint replacement
+
+**src/main.py**: Removed duplicate level parameters and level parameters from inside f-string expressions.
+**src/data/dataset_utils.py**: Fixed f-string syntax errors where level parameter was incorrectly placed inside expressions.
