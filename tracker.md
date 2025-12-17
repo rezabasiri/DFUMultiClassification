@@ -275,3 +275,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/data/dataset_utils.py**: Added import of `create_enhanced_augmentation_fn` from `src.data.generative_augmentation_v2`.
 
+## 2025-12-17 — Add missing compute_class_weight import to training_utils.py
+
+**src/training/training_utils.py**: Added import of `compute_class_weight` from `sklearn.utils.class_weight`.
+
