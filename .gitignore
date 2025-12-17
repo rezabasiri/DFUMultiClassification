@@ -38,6 +38,10 @@ results/csv/
 results/misclassifications/
 results/visualizations/
 results/logs/
+results/attention_analysis/
+results/batch_visualizations_generative/
+results/training_plots_generative/
+results/metadata_confidence_logs/
 *.log
 
 # raw data

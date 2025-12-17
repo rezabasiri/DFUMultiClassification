@@ -378,3 +378,30 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **README.md**: Added "System Components" section explaining multimodal fusion (GAMAN), gating network (late fusion ensemble), search mode, and cross-validation. Updated Quick Start with detailed usage examples for exploring modality combinations and training gating network ensemble.
 
+## 2025-12-17 — Add gating network ensemble across modality combinations
+
+**src/training/training_utils.py** (lines 1431-1452): Added `save_combination_predictions()` and `load_combination_predictions()` functions to save/load predictions per modality combination.
+
+**src/main.py** (lines 97, 1775-1784, 1835-1914): Added import for new functions; added code to save predictions per combination after training; added new section "GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS" that loads predictions from all combinations and trains gating network to ensemble them.
+
+## 2025-12-17 — Fix train_model_combination for small datasets
+
+**src/main.py** (lines 753-782): Added input validation for empty data/labels; improved class weight calculation to handle missing classes gracefully.
+
+**src/main.py** (lines 857-861): Fixed batch size issue where `GATING_BATCH_SIZE=64` with only 42 samples caused empty dataset. Changed to `min(GATING_BATCH_SIZE, len(train_labels))` and `drop_remainder=False`.
+
+## 2025-12-17 — Organize gating outputs into proper directories
+
+**src/main.py**: Updated save paths for gating network outputs:
+- `best_gating_model_run{N}.h5` → `results/models/`
+- `training_progress_run{N}.json` → `results/checkpoints/`
+- `best_predictions_run{N}.npy` → `results/checkpoints/`
+- `model_combination_results_{N}.txt` → `results/csv/`
+
+**.gitignore**: Added additional output directories:
+- `results/batch_visualizations_generative/`
+- `results/training_plots_generative/`
+- `results/metadata_confidence_logs/`
+
+Removed previously tracked CSV files from git to respect `results/csv/` gitignore entry.
+

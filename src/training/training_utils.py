@@ -1422,9 +1422,33 @@ def load_aggregated_predictions(run_number, ck_path, dataset_type='valid'):
     """Load all predictions for a run if they exist."""
     aggregated_preds_file = os.path.join(ck_path, f'sum_pred_run{run_number}_{dataset_type}.npy')
     aggregated_labels_file = os.path.join(ck_path, f'sum_label_run{run_number}_{dataset_type}.npy')
-    
+
     if os.path.exists(aggregated_preds_file) and os.path.exists(aggregated_labels_file):
         return np.load(aggregated_preds_file), np.load(aggregated_labels_file)
+    return None, None
+
+
+def save_combination_predictions(run_number, combination_name, predictions, labels, ck_path, dataset_type='valid'):
+    """Save predictions for a specific modality combination."""
+    # Sanitize combination name for filename
+    safe_name = combination_name.replace('+', '_').replace(' ', '_')
+    preds_file = os.path.join(ck_path, f'combo_pred_{safe_name}_run{run_number}_{dataset_type}.npy')
+    labels_file = os.path.join(ck_path, f'combo_label_{safe_name}_run{run_number}_{dataset_type}.npy')
+
+    np.save(preds_file, predictions)
+    np.save(labels_file, labels)
+    print(f"Saved {combination_name} predictions to {preds_file}")
+
+
+def load_combination_predictions(run_number, combination_name, ck_path, dataset_type='valid'):
+    """Load predictions for a specific modality combination."""
+    # Sanitize combination name for filename
+    safe_name = combination_name.replace('+', '_').replace(' ', '_')
+    preds_file = os.path.join(ck_path, f'combo_pred_{safe_name}_run{run_number}_{dataset_type}.npy')
+    labels_file = os.path.join(ck_path, f'combo_label_{safe_name}_run{run_number}_{dataset_type}.npy')
+
+    if os.path.exists(preds_file) and os.path.exists(labels_file):
+        return np.load(preds_file), np.load(labels_file)
     return None, None
 
 def save_aggregated_predictions(run_number, predictions_list, true_labels, ck_path, dataset_type='valid'):

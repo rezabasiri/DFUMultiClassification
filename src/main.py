@@ -93,7 +93,8 @@ from src.training.training_utils import (
     save_run_results, save_run_metrics, save_gating_results,
     save_aggregated_results, save_run_predictions, load_run_predictions,
     get_completed_configs_for_run, load_aggregated_predictions,
-    save_aggregated_predictions, is_run_complete, WeightedAccuracy
+    save_aggregated_predictions, is_run_complete, WeightedAccuracy,
+    save_combination_predictions, load_combination_predictions
 )
 from src.evaluation.metrics import filter_frequent_misclassifications, track_misclassifications
 
@@ -748,22 +749,56 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     tf.random.set_seed(42)
     np.random.seed(42)
     random.seed(42)
-    
+
+    # Validate input data
+    if train_data is None or len(train_data) == 0:
+        raise ValueError("Train data is empty")
+    if train_labels is None or len(train_labels) == 0:
+        raise ValueError("Train labels is empty")
+
     # print(f"\nTraining model combination with {len(train_data[0])} models")
     if len(train_labels.shape) == 1:
         train_labels = tf.keras.utils.to_categorical(train_labels, num_classes=3)
         val_labels = tf.keras.utils.to_categorical(val_labels, num_classes=3)
-    
-    # Calculate class weights
-    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(np.argmax(train_labels, axis=1)), y=np.argmax(train_labels, axis=1))
-    class_weights_dict = {i: weight for i, weight in enumerate(class_weights)}
+
+    # Get class indices from labels
+    train_label_indices = np.argmax(train_labels, axis=1)
+    unique_classes = np.unique(train_label_indices)
+
+    print(f"Debug train_model_combination: train_labels shape={train_labels.shape}, indices shape={train_label_indices.shape}")
+    print(f"Debug: unique_classes={unique_classes}, train_label_indices[:10]={train_label_indices[:10]}")
+
+    # Handle case where not all classes are present
+    if len(unique_classes) == 0:
+        raise ValueError("No classes found in training labels")
+
+    # Calculate class weights (only for classes present)
+    try:
+        class_weights = compute_class_weight(class_weight='balanced', classes=unique_classes, y=train_label_indices)
+    except Exception as e:
+        print(f"Error in compute_class_weight: {e}")
+        print(f"  unique_classes type={type(unique_classes)}, shape={unique_classes.shape}")
+        print(f"  train_label_indices type={type(train_label_indices)}, shape={train_label_indices.shape}")
+        raise
+    class_weights_dict = {int(c): w for c, w in zip(unique_classes, class_weights)}
+    # Fill in missing classes with weight 1.0
+    for i in range(3):
+        if i not in class_weights_dict:
+            class_weights_dict[i] = 1.0
+
     # print(f"Class weights for Gating Network: {class_weights_dict}")
     tf.keras.backend.clear_session()
-    counts = Counter(np.argmax(train_labels, axis=1))
+    counts = Counter(train_label_indices)
     total_samples = sum(counts.values())
     class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
     median_freq = np.median(list(class_frequencies.values()))
-    alpha_values = [median_freq/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+    # Handle missing classes in frequency calculation
+    alpha_values = []
+    for i in [0, 1, 2]:
+        if i in class_frequencies:
+            alpha_values.append(median_freq/class_frequencies[i])
+        else:
+            alpha_values.append(1.0)  # Default weight for missing class
     alpha_sum = sum(alpha_values)
     alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
@@ -820,8 +855,10 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     callbacks2.append(CustomHistory())
     
     # Add deterministic data handling - using production_config values
+    # Use smaller batch size if data is too small
+    actual_batch_size = min(GATING_BATCH_SIZE, len(train_labels))
     dataset = tf.data.Dataset.from_tensor_slices((train_data, train_labels))
-    dataset = dataset.batch(GATING_BATCH_SIZE, drop_remainder=True)  # From production_config
+    dataset = dataset.batch(actual_batch_size, drop_remainder=False)  # Changed to False for small datasets
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     val_dataset = tf.data.Dataset.from_tensor_slices((val_data, val_labels))
@@ -942,10 +979,14 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
         print("\nTraining with all models...")
         train_data_truncated, train_labels_truncated = correct_and_validate_predictions(train_predictions_list, train_labels, "train")
         val_data_truncated, val_labels_truncated = correct_and_validate_predictions(valid_predictions_list, valid_labels, "valid")
-        
+
         train_data = np.stack(train_data_truncated, axis=1).astype(np.float32)
         val_data = np.stack(val_data_truncated, axis=1).astype(np.float32)
-        
+
+        print(f"Train data shape: {train_data.shape}, Train labels shape: {train_labels_truncated.shape}")
+        print(f"Val data shape: {val_data.shape}, Val labels shape: {val_labels_truncated.shape}")
+        print(f"Train labels unique: {np.unique(train_labels_truncated)}")
+
         predictions, loss, accuracy, kappa, model, val_weighted_acc = train_model_combination(train_data, val_data, train_labels_truncated, val_labels_truncated) 
         if best_accuracy and accuracy+val_weighted_acc >= best_accuracy+best_weighted_accuracy:
             best_accuracy = accuracy
@@ -955,7 +996,7 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
             best_predictions = predictions
             best_combination = list(range(len(train_predictions_list)))
             best_model = model
-            best_model.save(os.path.join(result_dir, f'best_gating_model_run{run_number}.h5'))
+            best_model.save(os.path.join(models_path, f'best_gating_model_run{run_number}.h5'))
         elif not best_accuracy:
             best_accuracy = accuracy
             best_weighted_accuracy = val_weighted_acc
@@ -964,7 +1005,7 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
             best_predictions = predictions
             best_combination = list(range(len(train_predictions_list)))
             best_model = model
-            best_model.save(os.path.join(result_dir, f'best_gating_model_run{run_number}.h5'))
+            best_model.save(os.path.join(models_path, f'best_gating_model_run{run_number}.h5'))
             
         # Save progress
         save_progress(run_number, completed_combination=all_models_key,best_metrics={'accuracy': best_accuracy, 'weighted_accuracy': best_weighted_accuracy ,'loss': best_loss, 'kappa': best_kappa},best_combination=best_combination,best_predictions=best_predictions)
@@ -1065,7 +1106,7 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
                             
                             write_save_best_combo_results(best_predictions, best_accuracy, best_weighted_accuracy, best_loss, valid_labels, best_combination, excluded_temp, result_dir, run_number)
                             save_progress(run_number, best_metrics={'accuracy': best_accuracy, 'weighted_accuracy': best_weighted_accuracy, 'loss': best_loss, 'kappa': best_kappa}, best_combination=best_combination,best_predictions=best_predictions)
-                            best_model.save(os.path.join(result_dir, f'best_gating_model_run{run_number}.h5'))
+                            best_model.save(os.path.join(models_path, f'best_gating_model_run{run_number}.h5'))
             if excluded_temp:
                 excluded_models = excluded_temp.copy()
             print(f"Excluding model(s) {excluded_models} from future combinations")
@@ -1096,8 +1137,8 @@ def train_gating_network(train_predictions_list, valid_predictions_list, train_l
 def load_progress(run_number):
     """Load progress from JSON file with error handling"""
     import time
-    progress_file = os.path.join(result_dir, f'training_progress_run{run_number}.json')
-    predictions_file = os.path.join(result_dir, f'best_predictions_run{run_number}.npy')
+    progress_file = os.path.join(ck_path, f'training_progress_run{run_number}.json')
+    predictions_file = os.path.join(ck_path, f'best_predictions_run{run_number}.npy')
     
     # Initialize default progress - note: no predictions here
     default_progress = {
@@ -1142,8 +1183,8 @@ def load_progress(run_number):
 def save_progress(run_number, completed_combination=None, best_metrics=None, best_combination=None, best_predictions=None):
     """Save progress to JSON file with proper separation of numpy arrays"""
     import time
-    progress_file = os.path.join(result_dir, f'training_progress_run{run_number}.json')
-    predictions_file = os.path.join(result_dir, f'best_predictions_run{run_number}.npy')
+    progress_file = os.path.join(ck_path, f'training_progress_run{run_number}.json')
+    predictions_file = os.path.join(ck_path, f'best_predictions_run{run_number}.npy')
     max_retries = PROGRESS_MAX_RETRIES
     retry_delay = PROGRESS_RETRY_DELAY
     
@@ -1213,8 +1254,8 @@ def write_save_best_combo_results(best_predictions, best_accuracy, best_weighted
     f1_weighted = f1_score(y_true, y_pred, average='weighted') 
     kappa = cohen_kappa_score(y_true, y_pred, weights='quadratic') 
 
-    # Save results to file 
-    results_file = os.path.join(result_dir, f'model_combination_results_{run_number}.txt') 
+    # Save results to file
+    results_file = os.path.join(csv_path, f'model_combination_results_{run_number}.txt') 
     with open(results_file, 'w') as f: 
         f.write("Model Training Results\n") 
         f.write("====================\n\n") 
@@ -1770,7 +1811,18 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
         cv_results, confusion_matrices, histories = cross_validation_manual_split(run_data, selected_modalities, train_patient_percentage, n_runs)
-          
+
+        # Save predictions per combination for later gating network ensemble
+        config_name = '+'.join(selected_modalities)
+        for run in range(n_runs):
+            # Load the aggregated predictions that were saved during cross_validation
+            train_preds, train_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
+            valid_preds, valid_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
+            if train_preds is not None and valid_preds is not None and len(train_preds) > 0 and len(valid_preds) > 0:
+                # Save as combination-specific file (use first prediction if multiple configs)
+                save_combination_predictions(run + 1, config_name, train_preds[0], train_labels, ck_path, dataset_type='train')
+                save_combination_predictions(run + 1, config_name, valid_preds[0], valid_labels, ck_path, dataset_type='valid')
+
         # Calculate average metrics and their standard deviations with error handling
         avg_accuracy = np.mean([m['accuracy'] for m in cv_results])
         std_accuracy = np.std([m['accuracy'] for m in cv_results])
@@ -1815,7 +1867,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
             writer.writerow(result)
 
         print(f"Results for {', '.join(selected_modalities)} appended to {csv_filename}")
-        
+
         # Clean up after each modality combination
         try:
             tf.keras.backend.clear_session()
@@ -1830,6 +1882,87 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
             print(f"Error deleting variables: {str(e)}")
 
     print(f"\nAll results saved to {csv_filename}")
+
+    # After all combinations are trained, run gating network ensemble across modality combinations
+    if len(combinations_to_process) >= 2:
+        print(f"\n{'='*80}")
+        print(f"GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS")
+        print(f"{'='*80}")
+        print(f"Ensembling predictions from {len(combinations_to_process)} modality combinations")
+
+        for run in range(n_runs):
+            print(f"\nRun {run + 1}/{n_runs}")
+
+            # Collect predictions from all modality combinations for this run
+            all_train_predictions = []
+            all_valid_predictions = []
+            train_labels = None
+            valid_labels = None
+            combination_names = []
+
+            for combination in combinations_to_process:
+                config_name = '+'.join(combination)
+
+                # Load predictions for this specific combination
+                train_preds, t_labels = load_combination_predictions(run + 1, config_name, ck_path, dataset_type='train')
+                valid_preds, v_labels = load_combination_predictions(run + 1, config_name, ck_path, dataset_type='valid')
+
+                if train_preds is not None and valid_preds is not None:
+                    all_train_predictions.append(train_preds)
+                    all_valid_predictions.append(valid_preds)
+                    combination_names.append(config_name)
+
+                    if train_labels is None:
+                        train_labels = t_labels
+                        valid_labels = v_labels
+
+                    print(f"  Loaded {config_name}: train shape {train_preds.shape}, valid shape {valid_preds.shape}")
+                else:
+                    print(f"  Warning: Could not load predictions for {config_name}")
+
+            if len(all_train_predictions) >= 2:
+                print(f"\nTraining gating network with {len(all_train_predictions)} modality combinations:")
+                for name in combination_names:
+                    print(f"  - {name}")
+
+                # Convert labels to class indices if needed
+                if train_labels is not None and len(train_labels.shape) > 1:
+                    gating_train_labels = np.argmax(train_labels, axis=1)
+                else:
+                    gating_train_labels = train_labels
+
+                if valid_labels is not None and len(valid_labels.shape) > 1:
+                    gating_valid_labels = np.argmax(valid_labels, axis=1)
+                else:
+                    gating_valid_labels = valid_labels
+
+                try:
+                    combined_predictions, final_labels = train_gating_network(
+                        all_train_predictions,
+                        all_valid_predictions,
+                        gating_train_labels,
+                        gating_valid_labels,
+                        run + 1,
+                        find_optimal=True,
+                        min_models=2,
+                        max_tries=100
+                    )
+
+                    # Calculate ensemble metrics
+                    if combined_predictions is not None:
+                        final_preds = np.argmax(combined_predictions, axis=1)
+                        ensemble_accuracy = accuracy_score(gating_valid_labels, final_preds)
+                        ensemble_f1 = f1_score(gating_valid_labels, final_preds, average='macro')
+                        ensemble_kappa = cohen_kappa_score(gating_valid_labels, final_preds)
+
+                        print(f"\nGating Network Ensemble Results for Run {run + 1}:")
+                        print(f"  Accuracy: {ensemble_accuracy:.4f}")
+                        print(f"  F1 Macro: {ensemble_f1:.4f}")
+                        print(f"  Kappa: {ensemble_kappa:.4f}")
+                except Exception as e:
+                    print(f"Error in gating network ensemble for run {run + 1}: {str(e)}")
+            else:
+                print(f"  Not enough predictions loaded ({len(all_train_predictions)}) for gating network ensemble")
     
 def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=3):
     """
