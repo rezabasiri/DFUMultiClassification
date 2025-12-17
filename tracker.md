@@ -247,3 +247,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/main.py** (line 20): Added `import itertools` for combinations generation in main_search().
 
+## 2025-12-17 — Fix MisclassificationFunctions import
+
+**src/main.py** (line 1754): Updated import from `MisclassificationFunctions` to `src.evaluation.metrics`.
+
