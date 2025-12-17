@@ -112,11 +112,11 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
 
         fold_splits.append((train_patients, valid_patients))
 
-        vprint(f"Fold {fold_idx + 1}/{n_folds}: {len(train_patients, level=2)} train patients, {len(valid_patients)} valid patients")
+        vprint(f"Fold {fold_idx + 1}/{n_folds}: {len(train_patients)} train patients, {len(valid_patients)} valid patients")
         ordered_train = {i: train_dist.get(i, 0) for i in [0, 1, 2]}
         ordered_valid = {i: valid_dist.get(i, 0) for i in [0, 1, 2]}
-        vprint(f"  Train dist: {{{', '.join([f'{k}: {v:.3f}' for k, v in ordered_train.items(, level=2)])}}}")
-        vprint(f"  Valid dist: {{{', '.join([f'{k}: {v:.3f}' for k, v in ordered_valid.items(, level=2)])}}}")
+        vprint(f"  Train dist: {{{', '.join([f'{k}: {v:.3f}' for k, v in ordered_train.items()])}}}")
+        vprint(f"  Valid dist: {{{', '.join([f'{k}: {v:.3f}' for k, v in ordered_valid.items()])}}}")
 
     return fold_splits
 
@@ -460,7 +460,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     if train_patients is not None and valid_patients is not None:
         # Use the loaded/provided split
         if not for_shape_inference:
-            vprint(f"Using consistent patient split across all modality combinations for run {run + 1}", level=2)
+            vprint(f"Using consistent patient split across all modality combinations for run {run + 1}")
         train_data = data[data['Patient#'].isin(train_patients)]
         valid_data = data[data['Patient#'].isin(valid_patients)]
 
@@ -470,9 +470,9 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
             ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
             ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-            vprint("\nClass distributions:", level=2)
-            vprint("Training:", {k: round(v, 3, level=2) for k, v in ordered_train.items()})
-            vprint("Validation:", {k: round(v, 3, level=2) for k, v in ordered_valid.items()})
+            vprint("\nClass distributions:")
+            vprint("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+            vprint("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
     else:
         # Generate a new split (first modality combination for this run)
         if not for_shape_inference:
@@ -511,8 +511,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     # Create ordered distributions
                     ordered_train = {i: train_dist[i] if i in train_dist else 0 for i in [0, 1, 2]}
                     ordered_valid = {i: valid_dist[i] if i in valid_dist else 0 for i in [0, 1, 2]}
-                    vprint("Training:", {k: round(v, 3, level=2) for k, v in ordered_train.items()})
-                    vprint("Validation:", {k: round(v, 3, level=2) for k, v in ordered_valid.items()})
+                    vprint("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                    vprint("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
                     # Save the split so all subsequent modality combinations use the same split
                     save_patient_split(run, train_patients, valid_patients)
@@ -533,8 +533,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                     if not for_shape_inference:
                         print("\nBest found class distributions:")
-                        vprint("Training:", {k: round(v, 3, level=2) for k, v in ordered_train.items()})
-                        vprint("Validation:", {k: round(v, 3, level=2) for k, v in ordered_valid.items()})
+                        vprint("Training:", {k: round(v, 3) for k, v in ordered_train.items()})
+                        vprint("Validation:", {k: round(v, 3) for k, v in ordered_valid.items()})
 
                         # Save the split so all subsequent modality combinations use the same split
                         save_patient_split(run, train_patients, valid_patients)
@@ -595,7 +595,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         
         # Print original distribution with ordered classes
         counts = Counter(y_alpha)
-        vprint("Original class distribution (ordered, level=2):")
+        vprint("Original class distribution (ordered):")
         for class_idx in [0, 1, 2]:  # Explicit ordering
             print(f"Class {class_idx}: {counts[class_idx]}")
         # Calculate alpha values from original distribution
@@ -606,8 +606,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         alpha_sum = sum(alpha_values)
         alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
-        vprint("\nCalculated alpha values from original distribution:", level=2)
-        vprint(f"Alpha values (ordered, level=2) [I, P, R]: {[round(a, 3) for a in alpha_values]}")
+        vprint("\nCalculated alpha values from original distribution:")
+        vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}")
         if not apply_sampling:
             # Return same format as sampling case
             resampled_df = df.copy()
@@ -676,7 +676,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             print("Falling back to simple random oversampling...")
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
-            vprint("Original class distribution (ordered, level=2):")
+            vprint("Original class distribution (ordered):")
             for class_idx in [0, 1, 2]:  # Explicit ordering
                 print(f"Class {class_idx}: {counts[class_idx]}")
             # Calculate alpha values from original distribution
@@ -711,9 +711,9 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         unique_cases['label_bin2'] = (unique_cases['Healing Phase Abs'] > 1).astype(int)
         
         # Print true class distributions
-        vprint("\nTrue binary label distributions (unique cases, level=2):")
-        vprint("Binary", unique_cases['label_bin1'].value_counts(, level=2))
-        vprint("Binary", unique_cases['label_bin2'].value_counts(, level=2))
+        vprint("\nTrue binary label distributions (unique cases):")
+        vprint("Binary", unique_cases['label_bin1'].value_counts())
+        vprint("Binary", unique_cases['label_bin2'].value_counts())
         
         # Calculate weights using only unique cases
         class_weights_binary1 = compute_class_weight(
@@ -900,7 +900,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         rf_model1.fit(dataset1)
                         rf_model2.fit(dataset2)
                     except ImportError:
-                        vprint("Using Scikit-learn RandomForestClassifier", level=2)
+                        vprint("Using Scikit-learn RandomForestClassifier")
                         from sklearn.ensemble import RandomForestClassifier
                         rf_model1 = RandomForestClassifier(
                             n_estimators=300,
