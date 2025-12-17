@@ -13,6 +13,7 @@ import gc
 import glob
 import tensorflow as tf
 from sklearn.metrics import accuracy_score, f1_score, classification_report, cohen_kappa_score, confusion_matrix
+from sklearn.utils.class_weight import compute_class_weight
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
