@@ -444,3 +444,42 @@ Major refactoring to replace repeated random holdout validation with proper k-fo
 - Class-balanced folds for robust evaluation
 - Better statistical properties than random holdout
 - Backwards compatible with existing code using n_runs
+
+## 2025-12-17 — Add resume mode with intelligent checkpoint management
+
+Implemented comprehensive checkpoint management system to control what gets deleted or kept between training runs. Enables efficient experimentation and recovery from interruptions.
+
+**src/utils/config.py**:
+- Added `cleanup_for_resume_mode()` function with 5 resume modes:
+  - **fresh**: Delete everything (models, predictions, cache, CSV results) for complete fresh start
+  - **auto**: Keep all checkpoints, auto-resume from latest state (default behavior)
+  - **from_data**: Keep processed data only, delete models/predictions/splits to retrain from scratch
+  - **from_models**: Keep model weights, delete predictions to regenerate predictions only
+  - **from_predictions**: Keep Block A predictions, delete Block B gating models to retrain ensemble only
+- Selectively deletes files using glob patterns for each category
+- Prints cleanup statistics showing how many files deleted per category
+- Comprehensive error handling for file deletion
+
+**src/main.py**:
+- Added `--resume_mode` CLI argument (choices: fresh, auto, from_data, from_models, from_predictions)
+- Default is 'auto' for backwards compatibility and smart resumption
+- Comprehensive help text documenting each mode and use cases
+- Calls `cleanup_for_resume_mode()` at startup before training begins
+- Display resume mode in configuration printout
+
+**README.md**:
+- Added "Resume and Checkpoint Management" section with detailed documentation
+- Documented all 5 resume modes with code examples
+- Explained what each mode keeps vs deletes
+- Provided typical workflows for common scenarios:
+  - Interrupted training: use auto mode (just rerun)
+  - Hyperparameter tuning: use from_data mode
+  - Gating network experiments: use from_predictions mode
+- Clear use case descriptions for each resume mode
+
+**Benefits**:
+- Time-saving: Resume from appropriate checkpoint instead of retraining everything
+- Safety: Explicit modes prevent accidental deletion
+- Flexibility: Supports various experimentation workflows
+- User-friendly: Clear feedback about cleanup actions
+- Efficient iteration: Train Block A once, iterate on Block B
