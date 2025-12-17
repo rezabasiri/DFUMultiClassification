@@ -111,7 +111,7 @@ SEARCH_EXCLUDED_MODELS = [800000]  # Models to exclude from search
 # =============================================================================
 
 # Visualization frequency
-ATTENTION_VIS_FREQUENCY = 1  # Visualize every N epochs (1 = every epoch)
+ATTENTION_VIS_FREQUENCY = 100  # Visualize every N epochs (1 = every epoch)
 
 # Heatmap scale ranges (fixed scales for consistent visualization)
 ATTENTION_MODEL_VMIN = 0.075  # Minimum value for model attention heatmap
