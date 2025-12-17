@@ -929,3 +929,28 @@ Demo cache files named uniquely per:
 **Production scripts:**
 - Always creates fresh tf_records for consistency
 - No cache reuse between runs
+
+## 2025-12-16 - Fixed main.py Import Path Error
+
+### Issue
+Running `python src/main.py` resulted in:
+```
+ModuleNotFoundError: No module named 'src'
+```
+
+### Root Cause
+main.py uses absolute imports (`from src.utils.config import ...`) but didn't add the project root to Python's module search path.
+
+### Fix Applied
+
+**src/main.py** (lines 9, 23-25):
+- Added `import sys` to imports
+- Added project root to sys.path before importing from src:
+```python
+# Add project root to path so we can import from src
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+```
+
+### Result
+Now `python src/main.py` works correctly from the project root directory, just like the demo scripts.

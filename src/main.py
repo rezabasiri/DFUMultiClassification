@@ -6,6 +6,7 @@ Multimodal deep learning for Diabetic Foot Ulcer healing phase classification.
 
 #%% Import Libraries and Configure Environment
 import os
+import sys
 import glob
 import pandas as pd
 import numpy as np
@@ -18,6 +19,10 @@ import math
 import csv
 from collections import Counter
 import gc
+
+# Add project root to path so we can import from src
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 # TensorFlow and Keras
 import tensorflow as tf
