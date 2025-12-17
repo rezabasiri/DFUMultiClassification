@@ -41,6 +41,37 @@ python src/main.py --mode search --data_percentage 100 --n_runs 3
 ### Cross-Validation
 Patient-level splitting ensures no data leakage between training and validation sets. Multiple runs with different random splits provide robust performance estimates with confidence intervals.
 
+### Two-Block Training Workflow
+
+The system uses a two-stage training architecture:
+
+**Block A - Individual Model Training:**
+- Each modality combination trains its own independent model
+- All combinations within the same run use **identical train/valid patient splits**
+- Example with 3 combinations:
+  - Model A trains on `['metadata', 'depth_rgb']` → produces predictions
+  - Model B trains on `['metadata', 'depth_rgb', 'thermal_map']` → produces predictions
+  - Model C trains on `['depth_rgb', 'depth_map']` → produces predictions
+- All three models see the same training patients and validation patients
+- Each model's predictions are saved for Block B
+
+**Block B - Gating Network Ensemble (Late Fusion):**
+- **Only activates if you have 2+ modality combinations**
+- Loads all predictions from Block A
+- Trains a second model (gating network) to optimally combine the predictions
+- Uses the **same validation data** that Block A used
+- Learns which "expert" model to trust for each sample
+- Final ensemble typically outperforms any individual model
+
+**Example:**
+```bash
+# Train 3 combinations → Block A trains 3 models, Block B trains ensemble
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+
+# Train 1 combination → Only Block A runs, no ensemble
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+```
+
 ## Project Structure
 
 ```

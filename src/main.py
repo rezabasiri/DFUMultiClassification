@@ -1735,9 +1735,15 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
         print(f"Best F1 Weighted: {best_score:.4f}")
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
+def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
     """
     Test all modality combinations and save results to CSV.
+
+    Args:
+        data_percentage: Percentage of data to use (1-100)
+        train_patient_percentage: Percentage of patients for training (ignored if cv_folds > 1)
+        n_runs: DEPRECATED - Use cv_folds instead
+        cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
 
     Configuration is read from production_config.py:
     - MODALITY_SEARCH_MODE: 'all' for all 31 combinations, 'custom' for INCLUDED_COMBINATIONS
@@ -1745,6 +1751,18 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
     - INCLUDED_COMBINATIONS: Combinations to include (when mode='custom')
     - RESULTS_CSV_FILENAME: Output CSV filename
     """
+    # Handle backwards compatibility
+    if n_runs is not None:
+        print(f"Warning: n_runs parameter is deprecated. Using it for backwards compatibility.")
+        num_iterations = n_runs
+        cv_mode_name = f"{n_runs} runs"
+    else:
+        if cv_folds <= 1:
+            num_iterations = 1
+            cv_mode_name = "single split"
+        else:
+            num_iterations = cv_folds
+            cv_mode_name = f"{cv_folds}-fold CV"
     # Use config for CSV filename (saved in organized csv subfolder)
     csv_filename = os.path.join(csv_path, RESULTS_CSV_FILENAME)
     fieldnames = ['Modalities', 'Accuracy (Mean)', 'Accuracy (Std)',
@@ -1790,8 +1808,9 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
         raise ValueError(f"Invalid MODALITY_SEARCH_MODE: {search_mode}. Must be 'all' or 'custom'")
 
     print(f"Total combinations to test: {len(combinations_to_process)}")
-    print(f"Runs per combination: {n_runs}")
-    print(f"Total training sessions: {len(combinations_to_process) * n_runs}")
+    print(f"Cross-validation mode: {cv_mode_name}")
+    print(f"Iterations per combination: {num_iterations}")
+    print(f"Total training sessions: {len(combinations_to_process) * num_iterations}")
     print(f"Results will be saved to: {csv_filename}")
     print(f"{'='*80}\n")
 
@@ -1810,11 +1829,13 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
         print(f"Using {data_percentage}% of the data: {len(data)} samples")
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
-        cv_results, confusion_matrices, histories = cross_validation_manual_split(run_data, selected_modalities, train_patient_percentage, n_runs)
+        cv_results, confusion_matrices, histories = cross_validation_manual_split(
+            run_data, selected_modalities, train_patient_percentage, n_runs=n_runs, cv_folds=cv_folds
+        )
 
         # Save predictions per combination for later gating network ensemble
         config_name = '+'.join(selected_modalities)
-        for run in range(n_runs):
+        for run in range(num_iterations):
             # Load the aggregated predictions that were saved during cross_validation
             train_preds, train_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
             valid_preds, valid_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
@@ -1890,8 +1911,14 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
         print(f"{'='*80}")
         print(f"Ensembling predictions from {len(combinations_to_process)} modality combinations")
 
-        for run in range(n_runs):
-            print(f"\nRun {run + 1}/{n_runs}")
+        for run in range(num_iterations):
+            if n_runs is not None:
+                iter_name = f"Run {run + 1}/{num_iterations}"
+            elif cv_folds > 1:
+                iter_name = f"Fold {run + 1}/{num_iterations}"
+            else:
+                iter_name = f"Iteration {run + 1}/{num_iterations}"
+            print(f"\n{iter_name}")
 
             # Collect predictions from all modality combinations for this run
             all_train_predictions = []
@@ -1964,15 +1991,16 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
             else:
                 print(f"  Not enough predictions loaded ({len(all_train_predictions)}) for gating network ensemble")
     
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=3):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
     """
     Combined main function that can run either modality search or specialized evaluation.
-    
+
     Args:
         mode (str): Either 'search' or 'specialized' to determine which analysis to run
         data_percentage (float): Percentage of data to use
-        train_patient_percentage (float): Percentage of patients to use for training
-        n_runs (int): Number of runs for cross-validation
+        train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
+        n_runs (int): DEPRECATED - Number of runs for random holdout validation
+        cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
     """
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
@@ -1995,7 +2023,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
             print(f"Warning: Error while processing pattern {pattern}: {str(e)}")
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, n_runs)
+        main_search(data_percentage, train_patient_percentage, n_runs=n_runs, cv_folds=cv_folds)
     elif mode.lower() == 'specialized':
         main_with_specialized_evaluation(data_percentage, train_patient_percentage, n_runs)
     else:
@@ -2065,10 +2093,23 @@ Configuration:
         "--n_runs",
         type=int,
         default=3,
-        help="""Number of independent runs with different random patient splits.
+        help="""DEPRECATED: Use --cv_folds instead for proper cross-validation.
+        Number of independent runs with different random patient splits.
         Results are averaged across runs with standard deviation.
         More runs = more robust results but longer runtime.
         Examples: 1 (quick test), 3 (standard), 5 (robust)
+        (default: 3)"""
+    )
+
+    parser.add_argument(
+        "--cv_folds",
+        type=int,
+        default=3,
+        help="""Number of cross-validation folds with patient-level splitting.
+        Each fold uses a different subset as validation.
+        All data is validated exactly once across all folds.
+        Set to 0 or 1 for single train/val split (no cross-validation).
+        Examples: 0 (single split), 3 (3-fold CV), 5 (5-fold CV)
         (default: 3)"""
     )
 
@@ -2080,8 +2121,12 @@ Configuration:
     print("="*80)
     print(f"Mode: {args.mode}")
     print(f"Data percentage: {args.data_percentage}%")
-    print(f"Train/validation split: {args.train_patient_percentage*100:.0f}% train / {(1-args.train_patient_percentage)*100:.0f}% val")
-    print(f"Number of runs: {args.n_runs}")
+    if args.cv_folds > 1:
+        print(f"Cross-validation: {args.cv_folds}-fold CV (patient-level)")
+    else:
+        print(f"Train/validation split: {args.train_patient_percentage*100:.0f}% train / {(1-args.train_patient_percentage)*100:.0f}% val")
+    if args.n_runs is not None and args.n_runs != 3:  # Only show if non-default
+        print(f"Number of runs (legacy): {args.n_runs}")
     print(f"\nConfiguration loaded from: src/utils/production_config.py")
     print(f"Image size: {IMAGE_SIZE}x{IMAGE_SIZE}")
     print(f"Batch size: {GLOBAL_BATCH_SIZE}")
@@ -2102,7 +2147,7 @@ Configuration:
     clear_cuda_memory()
 
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.n_runs)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.n_runs, args.cv_folds)
 
     # Clear memory after completion
     clear_gpu_memory()
