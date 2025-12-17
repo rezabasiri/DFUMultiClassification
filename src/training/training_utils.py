@@ -21,6 +21,8 @@ import seaborn as sns
 from src.utils.config import get_project_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
 from src.utils.production_config import GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE
+from src.data.dataset_utils import prepare_cached_datasets
+from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager
 
 # Get paths
 directory, result_dir, root = get_project_paths()

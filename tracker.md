@@ -259,3 +259,7 @@ All Keras classes used in main.py are now properly imported. The script can now 
 
 **src/training/training_utils.py**: Modified `cross_validation_manual_split()` to accept modality list and convert to expected dict format. Fixed imports to use correct names: `GLOBAL_BATCH_SIZE`, `N_EPOCHS`, `IMAGE_SIZE` from production_config.
 
+## 2025-12-17 — Add dataset and augmentation imports to training_utils.py
+
+**src/training/training_utils.py**: Added `prepare_cached_datasets` from `src.data.dataset_utils` and `AugmentationConfig`, `GenerativeAugmentationManager` from `src.data.generative_augmentation_v2`.
+
