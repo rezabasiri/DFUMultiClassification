@@ -17,6 +17,30 @@ This project implements a multimodal classification system for DFU healing phase
 - **Multimodal Integration**: Combines multiple imaging modalities with clinical data
 - **Ensemble Framework**: Adaptive phase weighting for improved performance
 
+## System Components
+
+### Multimodal Fusion (GAMAN)
+The core model that combines different input modalities (metadata, depth images, thermal images) within a single neural network. Each modality is processed through its own branch, then fused using attention mechanisms to produce a single prediction. This is **early/intermediate fusion** where features are combined during model training.
+
+### Gating Network (Late Fusion Ensemble)
+A meta-learning component that combines predictions from multiple models trained on **different modality combinations**. For example:
+- Model A: trained on `[metadata, depth_rgb]`
+- Model B: trained on `[metadata, depth_rgb, thermal_map]`
+- Model C: trained on `[depth_rgb, depth_map]`
+
+The gating network learns which "expert" model to trust for each sample, creating an ensemble that outperforms individual models. This is **late fusion** where complete models are ensembled after training.
+
+### Search Mode
+An exploration tool that systematically tests all possible modality combinations (31 combinations from 5 modalities) to identify which combinations perform best. Each combination is trained and evaluated independently, with results saved to CSV for comparison.
+
+**Usage:**
+```bash
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+```
+
+### Cross-Validation
+Patient-level splitting ensures no data leakage between training and validation sets. Multiple runs with different random splits provide robust performance estimates with confidence intervals.
+
 ## Project Structure
 
 ```
@@ -98,9 +122,42 @@ The `Healing Phase Abs` column contains three classes:
 
 ## Quick Start
 
-1. Configure paths in `src/utils/config.py` for your environment
-2. Prepare data in the `data/raw/` directory
-3. Run training: `python src/main.py`
+### 1. Setup
+```bash
+# Configure paths in src/utils/config.py for your environment
+# Place your data in data/raw/ directory with proper structure
+```
+
+### 2. Explore Modality Combinations (Search Mode)
+Test all modality combinations to find the best performers:
+```bash
+# Full exploration with 3 cross-validation runs
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+
+# Quick test with 5% of data
+python src/main.py --mode search --data_percentage 5 --n_runs 1
+```
+
+Results saved to: `results/csv/modality_combination_results.csv`
+
+### 3. Train Gating Network Ensemble
+After identifying top-performing combinations from search mode:
+
+1. Edit `src/utils/production_config.py` to set your chosen combinations:
+   ```python
+   INCLUDED_COMBINATIONS = [
+       ('metadata', 'depth_rgb'),
+       ('metadata', 'depth_rgb', 'thermal_map'),
+       ('depth_rgb', 'depth_map'),
+   ]
+   ```
+
+2. Run search mode - this will train all combinations and automatically run the gating network:
+   ```bash
+   python src/main.py --mode search --data_percentage 100 --n_runs 3
+   ```
+
+The gating network will ensemble predictions from all trained models.
 
 ## Demo & Testing
 
