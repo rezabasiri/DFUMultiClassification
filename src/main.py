@@ -2092,13 +2092,13 @@ Configuration:
     parser.add_argument(
         "--n_runs",
         type=int,
-        default=3,
+        default=None,
         help="""DEPRECATED: Use --cv_folds instead for proper cross-validation.
         Number of independent runs with different random patient splits.
         Results are averaged across runs with standard deviation.
         More runs = more robust results but longer runtime.
         Examples: 1 (quick test), 3 (standard), 5 (robust)
-        (default: 3)"""
+        (deprecated - use --cv_folds)"""
     )
 
     parser.add_argument(
@@ -2147,7 +2147,7 @@ Configuration:
         print(f"Cross-validation: {args.cv_folds}-fold CV (patient-level)")
     else:
         print(f"Train/validation split: {args.train_patient_percentage*100:.0f}% train / {(1-args.train_patient_percentage)*100:.0f}% val")
-    if args.n_runs is not None and args.n_runs != 3:  # Only show if non-default
+    if args.n_runs is not None:  # Only show if user explicitly provided legacy n_runs
         print(f"Number of runs (legacy): {args.n_runs}")
     print(f"\nConfiguration loaded from: src/utils/production_config.py")
     print(f"Image size: {IMAGE_SIZE}x{IMAGE_SIZE}")
