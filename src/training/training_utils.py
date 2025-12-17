@@ -601,6 +601,15 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             }
         }
 
+    # Extract common parameters from configs (all configs should have same values)
+    first_config = next(iter(configs.values()))
+    batch_size = first_config['batch_size']
+    max_epochs = first_config['max_epochs']
+    image_size = first_config['image_size']
+
+    # Get GPU info
+    gpus = tf.config.list_physical_devices('GPU')
+
     all_metrics = []
     all_confusion_matrices = []
     all_histories = []
