@@ -186,14 +186,9 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    # 2 modalities without metadata
-    ('depth_rgb', 'depth_map'),
-    # 2 modalities with metadata
     ('metadata', 'depth_rgb'),
-    # 3 modalities without metadata
-    ('depth_rgb', 'depth_map', 'thermal_map'),
-    # 3 modalities with metadata
-    ('metadata', 'depth_rgb', 'depth_map'),
+    ('metadata', 'depth_rgb', 'thermal_map'),
+    ('depth_rgb', 'depth_map'),
 ]
 
 # Results file naming

@@ -1,2 +1,0 @@
-config,modalities,accuracy,f1_macro,f1_weighted,I_f1,P_f1,R_f1,kappa
-metadata+depth_rgb,metadata+depth_rgb,0.7,0.45342312008978675,0.6659932659932659,0.5454545454545454,0.8148148148148148,0.0,0.1964285714285715
