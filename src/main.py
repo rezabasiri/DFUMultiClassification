@@ -1751,7 +1751,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=3):
         print(f"\nTesting modalities: {', '.join(selected_modalities)}")
         # Load and prepare the dataset
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities)
-        from MisclassificationFunctions import filter_frequent_misclassifications
+        from src.evaluation.metrics import filter_frequent_misclassifications
         data = filter_frequent_misclassifications(data, result_dir)
         if data_percentage < 100:
             data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
