@@ -505,8 +505,17 @@ Verbosity levels now work correctly:
 **requirements.txt**: Pinned PyTorch (2.1.2), torchvision (0.16.2), transformers (4.35.0), and diffusers (0.23.0) for compatibility with TensorFlow 2.15.1 CUDA 12.2; fixes `register_pytree_node` AttributeError on RTX 5090.
 **test_imports.py**: Created import verification script to test TensorFlow, PyTorch, transformers, and diffusers compatibility.
 
-## 2025-12-21 — Enable class balancing via resampling
+## 2025-12-21 — Class balancing investigation and fixes
 
-**src/data/dataset_utils.py** (line 749): Changed `apply_sampling=False` to `apply_sampling=True` to enable over/undersampling for class balance. Critical fix for training with imbalanced or small datasets - prevents models from defaulting to majority class prediction by balancing training data to equal samples per class.
 **src/data/dataset_utils.py** (lines 621-656): Fixed resampling control flow bug - removed undefined `OverSampleOnly` that caused NameError and always fell back to exception handler. Now properly implements simple oversampling strategy when mix=False.
 **debug_modality_isolation.py**: Created diagnostic script to verify modality isolation in datasets and detect potential data leakage between combinations.
+
+**Issue discovered**: Enabling resampling (apply_sampling=True) caused train/validation distribution mismatch - training on balanced data but validating on imbalanced data led to model collapse (predicting single class per fold).
+
+**Final solution** (line 694): Disabled resampling (apply_sampling=False) to maintain consistent train/validation distributions. Class balancing now handled via alpha values (inverse class frequency weights) in focal loss function.
+
+**src/training/training_utils.py** (lines 325-376): Added MacroF1Score metric class - computes macro-averaged F1 score, robust to class imbalance (treats all classes equally regardless of frequency).
+**src/training/training_utils.py** (line 1013): Added macro_f1 to model metrics for monitoring during training.
+**src/training/training_utils.py** (line 1039): Changed ModelCheckpoint to monitor 'val_macro_f1' instead of 'val_weighted_accuracy' for selecting best model weights.
+
+Alpha values verified to be calculated from training class frequencies (not hardcoded) - inverse proportional weighting gives higher importance to minority classes.
