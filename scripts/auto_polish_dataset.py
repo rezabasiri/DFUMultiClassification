@@ -39,9 +39,9 @@ class DatasetPolisher:
 
     def __init__(self,
                  modalities,
-                 min_f1_per_class=0.30,
-                 min_macro_f1=0.35,
-                 min_kappa=0.15,
+                 min_f1_per_class=0.42,
+                 min_macro_f1=0.48,
+                 min_kappa=0.35,
                  max_iterations=5,
                  min_dataset_size=500,
                  cv_folds=5,
@@ -53,9 +53,9 @@ class DatasetPolisher:
 
         Args:
             modalities: List of modalities to train (must include 'metadata')
-            min_f1_per_class: Minimum F1 score required for each class
-            min_macro_f1: Minimum macro F1 score
-            min_kappa: Minimum Cohen's Kappa
+            min_f1_per_class: Minimum F1 score required for each class (POC medical standard)
+            min_macro_f1: Minimum macro F1 score (balanced performance)
+            min_kappa: Minimum Cohen's Kappa ("fair" clinical agreement standard)
             max_iterations: Maximum polishing iterations
             min_dataset_size: Minimum dataset size (safety limit)
             cv_folds: Number of CV folds for metadata training
@@ -496,21 +496,25 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Polish dataset for metadata + images, then train all
+  # Polish dataset for metadata + images with POC medical standards (defaults)
   python scripts/auto_polish_dataset.py --modalities metadata depth_rgb depth_map
+  # Uses: F1≥0.42 per class, Macro F1≥0.48, Kappa≥0.35 (fair clinical agreement)
 
-  # More aggressive quality requirements
+  # Higher quality for production-ready model
+  python scripts/auto_polish_dataset.py \\
+      --modalities metadata depth_rgb \\
+      --min_f1_per_class 0.50 \\
+      --min_macro_f1 0.55 \\
+      --min_kappa 0.45 \\
+      --max_iterations 10
+
+  # Quick test with relaxed requirements
   python scripts/auto_polish_dataset.py \\
       --modalities metadata depth_rgb \\
       --min_f1_per_class 0.35 \\
       --min_macro_f1 0.40 \\
-      --min_kappa 0.20
-
-  # Quick test with fewer folds/runs
-  python scripts/auto_polish_dataset.py \\
-      --modalities metadata depth_rgb \\
+      --min_kappa 0.25 \\
       --cv_folds 3 \\
-      --n_runs 1 \\
       --max_iterations 3
 
 How it works:
@@ -525,14 +529,14 @@ How it works:
     parser.add_argument('--modalities', nargs='+', required=True,
                         help='Modalities to train (must include metadata)')
 
-    parser.add_argument('--min_f1_per_class', type=float, default=0.30,
-                        help='Minimum F1 score for each class (default: 0.30)')
+    parser.add_argument('--min_f1_per_class', type=float, default=0.42,
+                        help='Minimum F1 score for each class - POC medical standard (default: 0.42)')
 
-    parser.add_argument('--min_macro_f1', type=float, default=0.35,
-                        help='Minimum macro F1 score (default: 0.35)')
+    parser.add_argument('--min_macro_f1', type=float, default=0.48,
+                        help='Minimum macro F1 score - balanced performance target (default: 0.48)')
 
-    parser.add_argument('--min_kappa', type=float, default=0.15,
-                        help='Minimum Cohen\'s Kappa (default: 0.15)')
+    parser.add_argument('--min_kappa', type=float, default=0.35,
+                        help='Minimum Cohen\'s Kappa - "fair" clinical agreement (default: 0.35)')
 
     parser.add_argument('--max_iterations', type=int, default=5,
                         help='Maximum polishing iterations (default: 5)')
