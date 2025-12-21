@@ -1019,7 +1019,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                                 patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
                                 monitor='val_macro_f1',  # Changed from val_loss to macro F1
-                                min_delta=0.01,  # Increased from 0.001 to require meaningful improvements
+                                min_delta=0.001,  # Require 0.1% improvement (was 0.01, too strict)
                                 mode='max',  # Maximize F1, not minimize loss
                                 verbose=1
                             ),
@@ -1027,7 +1027,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                                 factor=0.50,
                                 patience=REDUCE_LR_PATIENCE,
                                 monitor='val_macro_f1',  # Changed from val_loss to macro F1
-                                min_delta=0.005,  # Increased from 0.001
+                                min_delta=0.0005,  # Reduced from 0.005 to allow smaller improvements
                                 min_lr=1e-10,
                                 mode='max',  # Maximize F1, not minimize loss
                             ),
