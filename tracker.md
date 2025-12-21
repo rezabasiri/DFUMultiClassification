@@ -504,3 +504,8 @@ Verbosity levels now work correctly:
 
 **requirements.txt**: Pinned PyTorch (2.1.2), torchvision (0.16.2), transformers (4.35.0), and diffusers (0.23.0) for compatibility with TensorFlow 2.15.1 CUDA 12.2; fixes `register_pytree_node` AttributeError on RTX 5090.
 **test_imports.py**: Created import verification script to test TensorFlow, PyTorch, transformers, and diffusers compatibility.
+
+## 2025-12-21 — Enable class balancing via resampling
+
+**src/data/dataset_utils.py** (line 749): Changed `apply_sampling=False` to `apply_sampling=True` to enable mixed over/undersampling for class balance. Critical fix for training with imbalanced or small datasets - prevents models from defaulting to majority class prediction by balancing training data to equal samples per class.
+**debug_modality_isolation.py**: Created diagnostic script to verify modality isolation in datasets and detect potential data leakage between combinations.
