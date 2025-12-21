@@ -6,12 +6,14 @@ tensorflow==2.15.1
 keras==2.15.0
 
 # PyTorch (for generative augmentation with Stable Diffusion)
-torch>=2.0.0
-torchvision>=0.15.0
+# PINNED for compatibility with TensorFlow 2.15.1 CUDA 12.2
+torch==2.1.2
+torchvision==0.16.2
 
 # Diffusion Models
-diffusers>=0.21.0
-transformers>=4.30.0
+# PINNED for compatibility with PyTorch 2.1.2
+diffusers==0.23.0
+transformers==4.35.0
 
 # Data Processing
 pandas>=1.5.0
