@@ -11,15 +11,19 @@ The key insight: If metadata can't learn certain samples even after filtering,
 they're likely noise or annotation errors. Remove them before expensive
 multi-modal training.
 
-Threshold Scaling:
-Misclassification thresholds automatically scale with n_runs (number of training runs).
-Since max misclass count = n_runs, thresholds are set as percentages:
+Threshold Scaling & Random Seeds:
+Runs k-fold CV multiple times with DIFFERENT random seeds for independent fold assignments.
+Each run: base_random_seed + run_number (e.g., seeds 43, 44, 45 for base=42, n_runs=3).
+Misclassifications accumulate across runs → max count = n_runs.
+Thresholds set as percentages of n_runs:
 - P class (dominant, 60%): 50% of n_runs (aggressive filtering)
 - I class (minority, 30%): 67% of n_runs (moderate filtering)
 - R class (rarest, 10%): 100% of n_runs (conservative, only exclude if always wrong)
 
-Example: n_runs=3 → P=2 (50%), I=2 (67%), R=3 (100%)
-Example: n_runs=10 → P=5 (50%), I=7 (67%), R=10 (100%)
+Example: n_runs=3 → P=1 (33%), I=2 (67%), R=3 (100%)
+Example: n_runs=10 → P=5 (50%), I=6 (60%), R=10 (100%)
+
+Each run generates different fold assignments → robust misclassification detection.
 
 Usage:
     python scripts/auto_polish_dataset.py --modalities metadata depth_rgb depth_map
@@ -54,8 +58,9 @@ class DatasetPolisher:
                  min_kappa=0.35,
                  max_iterations=5,
                  min_dataset_size=500,
-                 cv_folds=5,
-                 n_runs=3,
+                 cv_folds=1,  # Single split per run (fast polishing, use 5 for final training)
+                 n_runs=3,  # Multiple runs with different seeds (3-5 recommended)
+                 base_random_seed=42,  # Base seed (each run uses base_seed + run_number)
                  initial_thresholds=None,
                  threshold_reduction_factor=0.8):
         """
@@ -68,8 +73,9 @@ class DatasetPolisher:
             min_kappa: Minimum Cohen's Kappa ("fair" clinical agreement standard)
             max_iterations: Maximum polishing iterations
             min_dataset_size: Minimum dataset size (safety limit)
-            cv_folds: Number of CV folds for metadata training
-            n_runs: Number of runs for metadata training
+            cv_folds: Number of CV folds (default: 5)
+            n_runs: Number of runs with different random seeds (default: 3)
+            base_random_seed: Base seed, each run uses base_seed + run_idx (default: 42)
             initial_thresholds: Starting thresholds {'I': x, 'P': y, 'R': z}
             threshold_reduction_factor: How aggressively to lower thresholds (0.8 = 20% reduction)
         """
@@ -84,16 +90,17 @@ class DatasetPolisher:
         self.min_dataset_size = min_dataset_size
         self.cv_folds = cv_folds
         self.n_runs = n_runs
+        self.base_random_seed = base_random_seed
         self.threshold_reduction_factor = threshold_reduction_factor
 
-        # Initial thresholds - proportional to n_runs and class distribution
-        # Max possible misclass count = n_runs (each sample tested once per run)
+        # Thresholds proportional to n_runs (max misclass count = n_runs)
+        # Each run uses different random seed → independent fold assignments
         # Strategy: Lower threshold for dominant P class, higher for rare R class
         if initial_thresholds is None:
             self.thresholds = {
-                'P': max(1, int(0.50 * n_runs)),  # 50% - dominant class (60%), can filter more
+                'P': max(1, int(0.50 * n_runs)),  # 50% - dominant class (60%), filter more
                 'I': max(1, int(0.67 * n_runs)),  # 67% - minority class (30%), moderate
-                'R': max(1, int(1.00 * n_runs))   # 100% - rarest class (10%), only if always wrong
+                'R': max(1, int(1.00 * n_runs))   # 100% - rarest class (10%), protect most
             }
         else:
             self.thresholds = initial_thresholds
@@ -106,13 +113,23 @@ class DatasetPolisher:
         self.polished_samples = None  # List of sample IDs to keep
 
     def run_metadata_training(self, iteration):
-        """Run metadata-only training to evaluate current dataset quality."""
+        """
+        Run metadata-only training multiple times with different random seeds.
+
+        Each run uses base_random_seed + run_idx for independent fold assignments.
+        Misclassifications accumulate across runs → max count = n_runs.
+        """
         print("\n" + "="*70)
-        print(f"ITERATION {iteration}: METADATA-ONLY TRAINING")
+        print(f"ITERATION {iteration}: METADATA-ONLY TRAINING ({self.n_runs} runs)")
         print("="*70)
 
-        # Clean up previous run
-        cleanup_for_resume_mode('fresh')
+        # Show thresholds with percentages
+        thresh_str = "Thresholds (count/runs): "
+        thresh_str += ", ".join([f"{k}={v}/{self.n_runs} ({100*v/self.n_runs:.0f}%)"
+                                  for k, v in sorted(self.thresholds.items())])
+        print(f"\n{thresh_str}")
+        print(f"Running {self.cv_folds}-fold CV {self.n_runs} times with different random seeds")
+        print(f"Seeds: {[self.base_random_seed + i for i in range(1, self.n_runs + 1)]}\n")
 
         # Temporarily override INCLUDED_COMBINATIONS to only train metadata
         config_path = project_root / 'src' / 'utils' / 'production_config.py'
@@ -138,34 +155,51 @@ class DatasetPolisher:
             with open(config_path, 'w') as f:
                 f.write(modified_config)
 
-            # Prepare command
-            cmd = [
-                'python', 'src/main.py',
-                '--mode', 'search',
-                '--cv_folds', str(self.cv_folds),
-                '--verbosity', '1'  # Reduce noise
-            ]
+            # Run training n_runs times with different random seeds
+            # Misclassification CSV accumulates across runs
+            for run_idx in range(1, self.n_runs + 1):
+                print(f"\n{'─'*70}")
+                print(f"RUN {run_idx}/{self.n_runs} (seed={self.base_random_seed + run_idx})")
+                print(f"{'─'*70}")
 
-            # Add threshold arguments if not first iteration
-            if iteration > 1:
-                cmd.extend(['--threshold_I', str(self.thresholds['I'])])
-                cmd.extend(['--threshold_P', str(self.thresholds['P'])])
-                cmd.extend(['--threshold_R', str(self.thresholds['R'])])
+                # Set environment variable to control random seed for fold generation
+                os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_idx)
 
-            print(f"\nRunning: {' '.join(cmd)}")
-            # Show thresholds with percentages for transparency
-            thresh_str = "Thresholds (count/runs): "
-            thresh_str += ", ".join([f"{k}={v}/{self.n_runs} ({100*v/self.n_runs:.0f}%)"
-                                      for k, v in sorted(self.thresholds.items())])
-            print(thresh_str)
-            print("\n⏳ Training metadata only (this may take 15-30 minutes)...\n")
+                # Prepare command
+                cmd = [
+                    'python', 'src/main.py',
+                    '--mode', 'search',
+                    '--cv_folds', str(self.cv_folds),
+                    '--verbosity', '1',  # Reduce noise
+                    '--resume_mode', 'fresh' if run_idx == 1 else 'auto'  # Only clean on first run
+                ]
 
-            # Run training with live output
-            result = subprocess.run(cmd, cwd=project_root)
+                # Add threshold arguments if not first iteration
+                if iteration > 1:
+                    cmd.extend(['--threshold_I', str(self.thresholds['I'])])
+                    cmd.extend(['--threshold_P', str(self.thresholds['P'])])
+                    cmd.extend(['--threshold_R', str(self.thresholds['R'])])
 
-            if result.returncode != 0:
-                print(f"\n❌ Training failed with return code {result.returncode}")
-                return None
+                if run_idx == 1:
+                    print(f"⏳ First run may take 15-30 minutes...")
+                else:
+                    print(f"⏳ Accumulating misclassifications (run {run_idx})...")
+
+                # Run training with live output
+                result = subprocess.run(cmd, cwd=project_root, env=os.environ.copy())
+
+                if result.returncode != 0:
+                    print(f"\n❌ Training failed on run {run_idx} with return code {result.returncode}")
+                    return None
+
+            # Clear environment variable
+            if 'CROSS_VAL_RANDOM_SEED' in os.environ:
+                del os.environ['CROSS_VAL_RANDOM_SEED']
+
+            print(f"\n{'='*70}")
+            print(f"✅ Completed {self.n_runs} runs with independent fold assignments")
+            print(f"Misclassification counts accumulated (max count = {self.n_runs})")
+            print(f"{'='*70}\n")
 
             # Extract performance metrics from CSV files (output not captured)
             return self.extract_metrics_from_files()
