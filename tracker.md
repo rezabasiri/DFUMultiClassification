@@ -519,3 +519,7 @@ Verbosity levels now work correctly:
 **src/training/training_utils.py** (line 1039): Changed ModelCheckpoint to monitor 'val_macro_f1' instead of 'val_weighted_accuracy' for selecting best model weights.
 
 Alpha values verified to be calculated from training class frequencies (not hardcoded) - inverse proportional weighting gives higher importance to minority classes.
+
+**src/training/training_utils.py** (line 1610): Fixed error handling - `save_aggregated_predictions()` now skips empty lists with warning instead of raising ValueError.
+**src/training/training_utils.py** (line 1211): Training errors now always visible (level=0) even at verbosity 3; added traceback output at level=2.
+**src/training/training_utils.py** (line 1224): Added check after training retry loop to warn if training completely failed.
