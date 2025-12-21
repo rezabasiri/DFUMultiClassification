@@ -507,5 +507,6 @@ Verbosity levels now work correctly:
 
 ## 2025-12-21 — Enable class balancing via resampling
 
-**src/data/dataset_utils.py** (line 749): Changed `apply_sampling=False` to `apply_sampling=True` to enable mixed over/undersampling for class balance. Critical fix for training with imbalanced or small datasets - prevents models from defaulting to majority class prediction by balancing training data to equal samples per class.
+**src/data/dataset_utils.py** (line 749): Changed `apply_sampling=False` to `apply_sampling=True` to enable over/undersampling for class balance. Critical fix for training with imbalanced or small datasets - prevents models from defaulting to majority class prediction by balancing training data to equal samples per class.
+**src/data/dataset_utils.py** (lines 621-656): Fixed resampling control flow bug - removed undefined `OverSampleOnly` that caused NameError and always fell back to exception handler. Now properly implements simple oversampling strategy when mix=False.
 **debug_modality_isolation.py**: Created diagnostic script to verify modality isolation in datasets and detect potential data leakage between combinations.
