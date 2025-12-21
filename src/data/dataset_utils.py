@@ -612,11 +612,38 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         alpha_sum = sum(alpha_values)
         alpha_values = [alpha/alpha_sum for alpha in alpha_values]
 
-        # Cap individual alpha values to prevent extreme weights
-        # Don't renormalize after capping - this would scale values back up
-        MAX_ALPHA = 0.5  # Since sum=1.0, max 0.5 means no class can dominate (>50%)
-        alpha_values = [min(alpha, MAX_ALPHA) for alpha in alpha_values]
-        # Final sum will be < 1.0 when capping occurs, which is acceptable
+        # Cap and redistribute: prevent extreme weights while maintaining sum=1.0
+        # Iteratively cap at MAX_ALPHA and redistribute excess to other classes
+        MAX_ALPHA = 0.5  # No class can dominate (>50% of total weight)
+        for _ in range(len(alpha_values)):  # Max iterations = number of classes
+            # Find class with maximum alpha
+            max_idx = alpha_values.index(max(alpha_values))
+
+            if alpha_values[max_idx] <= MAX_ALPHA:
+                break  # No more capping needed
+
+            # Calculate excess over the cap
+            excess = alpha_values[max_idx] - MAX_ALPHA
+            alpha_values[max_idx] = MAX_ALPHA
+
+            # Find classes that can receive redistribution (< MAX_ALPHA)
+            can_receive = [i for i in range(len(alpha_values)) if alpha_values[i] < MAX_ALPHA]
+
+            if not can_receive:
+                break  # All at max, will normalize below
+
+            # Redistribute proportionally to remaining capacity (room to grow)
+            capacities = [MAX_ALPHA - alpha_values[i] for i in can_receive]
+            total_capacity = sum(capacities)
+
+            if total_capacity > 0:
+                for i in can_receive:
+                    capacity_fraction = (MAX_ALPHA - alpha_values[i]) / total_capacity
+                    alpha_values[i] += excess * capacity_fraction
+
+        # Final normalization to ensure sum=1.0 (handles floating point precision)
+        alpha_sum = sum(alpha_values)
+        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
 
         vprint("\nCalculated alpha values from original distribution:", level=2)
         vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
