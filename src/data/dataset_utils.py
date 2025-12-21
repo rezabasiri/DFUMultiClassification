@@ -614,7 +614,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
         # Cap and redistribute: prevent extreme weights while maintaining sum=1.0
         # Iteratively cap at MAX_ALPHA and redistribute excess to other classes
-        MAX_ALPHA = 0.5  # No class can dominate (>50% of total weight)
+        MAX_ALPHA = 0.7  # Allow higher weights for extreme imbalance (e.g., 10% minority class)
         for _ in range(len(alpha_values)):  # Max iterations = number of classes
             # Find class with maximum alpha
             max_idx = alpha_values.index(max(alpha_values))
