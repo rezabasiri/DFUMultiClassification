@@ -530,6 +530,6 @@ Alpha values verified to be calculated from training class frequencies (not hard
 
 **src/data/dataset_utils.py** (lines 611-619): Fixed alpha value capping - normalize to sum=1.0, cap at MAX_ALPHA=0.5, NO post-cap renormalization (which would scale values back up). Example: [0.288, 0.135, 0.577] → capped [0.288, 0.135, 0.5] (sum=0.923). This prevents extreme class weighting that causes model collapse.
 **src/training/training_utils.py** (line 1011): Reduced learning rate from 1e-3 to 1e-4 to prevent overshooting and collapse.
-**src/training/training_utils.py** (line 1022): Increased EarlyStopping min_delta from 0.001 to 0.01 to require meaningful improvements (prevents stopping at epoch 1 with tiny macro F1).
-**src/training/training_utils.py** (line 1030): Increased ReduceLROnPlateau min_delta from 0.001 to 0.005.
+**src/training/training_utils.py** (line 1022): Reduced EarlyStopping min_delta to 0.001 (was 0.01, too strict - caused premature stopping).
+**src/training/training_utils.py** (line 1030): Reduced ReduceLROnPlateau min_delta to 0.0005 (was 0.005, too strict).
 **src/utils/production_config.py** (lines 29, 33-34, 61-62): Optimized for RTX 5090 - increased batch sizes (30→128), reduced epochs (50→30), added EARLY_STOP_PATIENCE and REDUCE_LR_PATIENCE configs.
