@@ -207,7 +207,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 INCLUDED_COMBINATIONS = [
     ('metadata',),
     ('depth_map',),
-    # ('depth_rgb',),
+    ('depth_rgb',),
     # ('metadata', 'depth_rgb', 'thermal_map'),
     # ('metadata','depth_rgb',),
 ]
