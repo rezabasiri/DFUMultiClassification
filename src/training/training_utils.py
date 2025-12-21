@@ -752,6 +752,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     'image_size': IMAGE_SIZE
                 }
             }
+    else:
+        # configs is already a dict - ensure all configs have required keys
+        # This handles backward compatibility and external callers
+        for config_name, config_dict in configs.items():
+            if 'batch_size' not in config_dict:
+                config_dict['batch_size'] = GLOBAL_BATCH_SIZE
+            if 'max_epochs' not in config_dict:
+                config_dict['max_epochs'] = N_EPOCHS
+            if 'image_size' not in config_dict:
+                config_dict['image_size'] = IMAGE_SIZE
 
     # Extract common parameters from configs (all configs should have same values)
     first_config = next(iter(configs.values()))
