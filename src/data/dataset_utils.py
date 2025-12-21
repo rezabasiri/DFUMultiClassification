@@ -746,7 +746,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         class_weight_dict_binary1=None
         class_weight_dict_binary2=None
     
-    train_data, alpha_values = apply_mixed_sampling_to_df(train_data, apply_sampling=False, mix=False)
+    train_data, alpha_values = apply_mixed_sampling_to_df(train_data, apply_sampling=True, mix=False)
     
     def preprocess_split(split_data, is_training=True, class_weight_dict_binary1=None, 
                             class_weight_dict_binary2=None, rf_model1=None, rf_model2=None, imputation_data=None):
