@@ -322,6 +322,59 @@ class WeightedAccuracy(tf.keras.metrics.Metric):
         self.weighted_true_positives.assign(0.0)
         self.total_samples.assign(0.0)
 
+class MacroF1Score(tf.keras.metrics.Metric):
+    """Macro-averaged F1 score metric - robust to class imbalance."""
+    def __init__(self, num_classes=3, name='macro_f1', **kwargs):
+        super(MacroF1Score, self).__init__(name=name, **kwargs)
+        self.num_classes = num_classes
+        # Per-class true positives, false positives, false negatives
+        self.tp = self.add_weight(name='tp', shape=(num_classes,), initializer='zeros')
+        self.fp = self.add_weight(name='fp', shape=(num_classes,), initializer='zeros')
+        self.fn = self.add_weight(name='fn', shape=(num_classes,), initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # Convert to class indices
+        y_pred = tf.argmax(y_pred, axis=-1)
+        y_true = tf.argmax(y_true, axis=-1)
+
+        # Calculate per-class metrics
+        for class_id in range(self.num_classes):
+            # True positives: predicted class_id AND true class_id
+            tp = tf.reduce_sum(tf.cast(
+                tf.logical_and(tf.equal(y_pred, class_id), tf.equal(y_true, class_id)),
+                tf.float32
+            ))
+            # False positives: predicted class_id BUT not true class_id
+            fp = tf.reduce_sum(tf.cast(
+                tf.logical_and(tf.equal(y_pred, class_id), tf.not_equal(y_true, class_id)),
+                tf.float32
+            ))
+            # False negatives: not predicted class_id BUT true class_id
+            fn = tf.reduce_sum(tf.cast(
+                tf.logical_and(tf.not_equal(y_pred, class_id), tf.equal(y_true, class_id)),
+                tf.float32
+            ))
+
+            # Update weights for this class
+            self.tp[class_id].assign_add(tp)
+            self.fp[class_id].assign_add(fp)
+            self.fn[class_id].assign_add(fn)
+
+    def result(self):
+        # Calculate F1 per class
+        precision = self.tp / (self.tp + self.fp + 1e-7)
+        recall = self.tp / (self.tp + self.fn + 1e-7)
+        f1_per_class = 2 * precision * recall / (precision + recall + 1e-7)
+
+        # Macro average (equal weight to each class)
+        macro_f1 = tf.reduce_mean(f1_per_class)
+        return macro_f1
+
+    def reset_state(self):
+        self.tp.assign(tf.zeros((self.num_classes,)))
+        self.fp.assign(tf.zeros((self.num_classes,)))
+        self.fn.assign(tf.zeros((self.num_classes,)))
+
 def analyze_modality_contributions(attention_outputs, modality_names):
     """Normalize attention values from each modality to [0, 1] range"""
     normalized_outputs = []
@@ -957,8 +1010,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         gamma = config.get('gamma', 2.0)
                         alpha = config.get('alpha', class_weights)
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                        macro_f1 = MacroF1Score(num_classes=3)
                         model.compile(optimizer=Adam(learning_rate=1e-3, clipnorm=1.0), loss=loss,
-                            metrics=['accuracy', weighted_f1_score, weighted_acc, CohenKappa(num_classes=3)]
+                            metrics=['accuracy', weighted_f1_score, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
@@ -982,7 +1036,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             ),
                             tf.keras.callbacks.ModelCheckpoint(
                                 create_checkpoint_filename(selected_modalities, run+1, config_name),
-                                monitor='val_weighted_accuracy',
+                                monitor='val_macro_f1',
                                 save_best_only=True,
                                 mode='max',
                                 save_weights_only=True
