@@ -545,3 +545,4 @@ Alpha values verified to be calculated from training class frequencies (not hard
 **src/training/training_utils.py** (lines 1087-1091): Integrated PeriodicEpochPrintCallback into training when EPOCH_PRINT_INTERVAL > 0.
 **src/training/training_utils.py** (lines 1153-1158): Updated fit verbosity logic - uses verbose=0 with callback for periodic printing, verbose=2 for all epochs otherwise.
 **src/utils/production_config.py** (lines 28-34): Increased training parameters for production: N_EPOCHS 20→100, EARLY_STOP_PATIENCE 10→20, REDUCE_LR_PATIENCE 3→5. IMAGE_SIZE kept at 64 (model hardcoded to 64x64), BATCH_SIZE kept at 128.
+**src/main.py** (line 1999): Disabled gating network optimal search (find_optimal=False) - search was hanging in infinite loop during model combination testing. Gating network now uses simple average ensemble instead of optimized combination search.
