@@ -337,28 +337,24 @@ class MacroF1Score(tf.keras.metrics.Metric):
         y_pred = tf.argmax(y_pred, axis=-1)
         y_true = tf.argmax(y_true, axis=-1)
 
-        # Calculate per-class metrics
-        for class_id in range(self.num_classes):
-            # True positives: predicted class_id AND true class_id
-            tp = tf.reduce_sum(tf.cast(
-                tf.logical_and(tf.equal(y_pred, class_id), tf.equal(y_true, class_id)),
-                tf.float32
-            ))
-            # False positives: predicted class_id BUT not true class_id
-            fp = tf.reduce_sum(tf.cast(
-                tf.logical_and(tf.equal(y_pred, class_id), tf.not_equal(y_true, class_id)),
-                tf.float32
-            ))
-            # False negatives: not predicted class_id BUT true class_id
-            fn = tf.reduce_sum(tf.cast(
-                tf.logical_and(tf.not_equal(y_pred, class_id), tf.equal(y_true, class_id)),
-                tf.float32
-            ))
+        # Calculate per-class metrics using vectorized operations
+        # Create one-hot encodings for efficient computation
+        y_true_one_hot = tf.one_hot(y_true, self.num_classes)
+        y_pred_one_hot = tf.one_hot(y_pred, self.num_classes)
 
-            # Update weights for this class
-            self.tp[class_id].assign_add(tp)
-            self.fp[class_id].assign_add(fp)
-            self.fn[class_id].assign_add(fn)
+        # True positives: both predicted and true
+        tp_per_class = tf.reduce_sum(y_true_one_hot * y_pred_one_hot, axis=0)
+
+        # False positives: predicted but not true
+        fp_per_class = tf.reduce_sum((1 - y_true_one_hot) * y_pred_one_hot, axis=0)
+
+        # False negatives: true but not predicted
+        fn_per_class = tf.reduce_sum(y_true_one_hot * (1 - y_pred_one_hot), axis=0)
+
+        # Update weights - use assign_add on the entire tensor, not individual elements
+        self.tp.assign_add(tp_per_class)
+        self.fp.assign_add(fp_per_class)
+        self.fn.assign_add(fn_per_class)
 
     def result(self):
         # Calculate F1 per class
