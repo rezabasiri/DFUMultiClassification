@@ -1017,18 +1017,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             EarlyStopping(
                                 patience=20,
                                 restore_best_weights=True,
-                                monitor='val_loss', #'loss',
-                                min_delta=0.01,
-                                mode='min',
+                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                min_delta=0.001,  # Smaller delta for F1 score
+                                mode='max',  # Maximize F1, not minimize loss
                                 verbose=1
                             ),
                             ReduceLROnPlateau(
                                 factor=0.50,
                                 patience=5,
-                                monitor='val_loss', #'loss',
-                                min_delta=0.01,
+                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                min_delta=0.001,  # Smaller delta for F1 score
                                 min_lr=1e-10,
-                                mode='min',
+                                mode='max',  # Maximize F1, not minimize loss
                             ),
                             tf.keras.callbacks.ModelCheckpoint(
                                 create_checkpoint_filename(selected_modalities, run+1, config_name),
