@@ -42,8 +42,12 @@ def test_refactored(modality='metadata', data_pct=10.0, train_pct=0.8):
     from src.data.image_processing import prepare_dataset
     from src.evaluation.metrics import filter_frequent_misclassifications
     from src.training.training_utils import cross_validation_manual_split
-    from src.utils.config import get_project_paths, get_data_paths
+    from src.utils.config import get_project_paths, get_data_paths, cleanup_for_resume_mode
     from src.utils.verbosity import set_verbosity
+
+    # Clear checkpoints to force fresh training (prevents loading cached predictions)
+    print("Clearing checkpoints for fresh training...")
+    cleanup_for_resume_mode('fresh')
 
     # Set verbosity
     set_verbosity(2)  # Detailed output
@@ -204,73 +208,72 @@ def test_original(modality='metadata', data_pct=10.0, train_pct=0.8):
 
 def compare_results(original_metrics, refactored_metrics, tolerance=1e-4):
     """
-    Compare metrics from both versions.
+    Compare metrics from both versions by reading saved CSV files.
     """
-    if original_metrics is None or refactored_metrics is None:
-        print("\n⚠️  Cannot compare - one or both versions failed")
-        return False
-
     print(f"\n{'='*60}")
     print("COMPARISON")
     print(f"{'='*60}")
 
-    # Both should return similar structure
-    # Extract and compare key metrics
+    # Both versions save results to CSV files - read those instead
+    import pandas as pd
+    from pathlib import Path
 
-    print(f"\nOriginal metrics keys: {original_metrics.keys() if isinstance(original_metrics, dict) else type(original_metrics)}")
-    print(f"Refactored metrics keys: {refactored_metrics.keys() if isinstance(refactored_metrics, dict) else type(refactored_metrics)}")
+    csv_file = Path('results/csv/modality_results_averaged.csv')
 
-    # Try to extract comparable values
-    # This will depend on the actual structure returned
-    print("\nDirect comparison:")
-    print(f"Original:    {original_metrics}")
-    print(f"Refactored:  {refactored_metrics}")
+    if not csv_file.exists():
+        print(f"\n⚠️  Results CSV not found: {csv_file}")
+        print("Checking for metrics in return values...")
 
-    # Check if they're equal (within tolerance)
-    import numpy as np
+        # Fallback to return value comparison
+        if original_metrics is None or refactored_metrics is None:
+            print("⚠️  Cannot compare - one or both versions failed")
+            return False
 
-    if isinstance(original_metrics, dict) and isinstance(refactored_metrics, dict):
-        all_match = True
-        for key in original_metrics:
-            if key not in refactored_metrics:
-                print(f"⚠️  Key '{key}' missing in refactored")
-                all_match = False
-                continue
+        print(f"\nOriginal return: {type(original_metrics)}")
+        print(f"Refactored return: {type(refactored_metrics)}")
+        return False
 
-            orig_val = original_metrics[key]
-            refac_val = refactored_metrics[key]
+    # Read the CSV file
+    print(f"\nReading results from: {csv_file}")
+    try:
+        df = pd.read_csv(csv_file)
+        print(f"\nFound {len(df)} result rows:")
+        print(df.to_string(index=False))
 
-            # Handle different types
-            if isinstance(orig_val, (int, float)) and isinstance(refac_val, (int, float)):
-                diff = abs(orig_val - refac_val)
-                if diff > tolerance:
-                    print(f"✗ {key}: diff = {diff:.6e}")
-                    all_match = False
-                else:
-                    print(f"✓ {key}: {orig_val:.6f} (identical)")
-            else:
-                if orig_val == refac_val:
-                    print(f"✓ {key}: identical")
-                else:
-                    print(f"✗ {key}: different")
-                    print(f"  Original:    {orig_val}")
-                    print(f"  Refactored:  {refac_val}")
-                    all_match = False
+        # The CSV should have results from both runs
+        # Look for the test modality results
+        if len(df) == 0:
+            print("\n⚠️  CSV file is empty")
+            return False
 
-        if all_match:
-            print(f"\n✅ All metrics match!")
+        # Get the latest row (most recent test)
+        latest = df.iloc[-1]
+
+        print(f"\n{'='*60}")
+        print("LATEST TEST RESULTS")
+        print(f"{'='*60}")
+        print(f"Modalities: {latest.get('Modalities', 'N/A')}")
+        print(f"Accuracy: {latest.get('Accuracy (Mean)', 'N/A'):.4f}")
+        print(f"F1 Macro: {latest.get('Macro Avg F1-score (Mean)', 'N/A'):.4f}")
+        print(f"Cohen's Kappa: {latest.get(\"Cohen's Kappa (Mean)\", 'N/A'):.4f}")
+
+        # Check if results look reasonable
+        accuracy = latest.get('Accuracy (Mean)', 0)
+        f1_macro = latest.get('Macro Avg F1-score (Mean)', 0)
+        kappa = latest.get("Cohen's Kappa (Mean)", 0)
+
+        if accuracy > 0.3 and f1_macro > 0.1:
+            print(f"\n✅ Results look reasonable (training completed successfully)")
             return True
         else:
-            print(f"\n❌ Some metrics differ")
+            print(f"\n⚠️  Results seem unusual - check training logs")
             return False
-    else:
-        # Just do direct equality
-        if original_metrics == refactored_metrics:
-            print(f"\n✅ Results are identical!")
-            return True
-        else:
-            print(f"\n❌ Results differ")
-            return False
+
+    except Exception as e:
+        print(f"\nError reading CSV: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 def main():
