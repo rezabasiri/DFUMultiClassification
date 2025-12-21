@@ -1097,8 +1097,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         else:
                             vprint("No existing pretrained weights found", level=1)
                             vprint(f"Total model trainable weights: {len(model.trainable_weights)}", level=2)
-                            # Show per-epoch progress at verbosity 2+
-                            fit_verbose = 1 if get_verbosity() >= 2 else 0
+                            if selected_modalities == ['metadata']:
+                                vprint("Metadata-only: Minimal training on final layer", level=2)
+                            # Use verbose=2 for one line per epoch, verbose=0 for silent
+                            fit_verbose = 2 if get_verbosity() >= 2 else 0
                             history = model.fit(
                                 train_dataset_dis,
                                 epochs=max_epochs,
