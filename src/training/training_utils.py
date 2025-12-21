@@ -1157,6 +1157,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             if selected_modalities == ['metadata']:
                                 vprint("Metadata-only: Minimal training on final layer", level=2)
 
+                            # DEBUG: Print training configuration
+                            print("\n" + "="*60)
+                            print("REFACTORED CODE - TRAINING CONFIGURATION")
+                            print("="*60)
+                            print(f"Learning rate: {model.optimizer.learning_rate.numpy()}")
+                            print(f"Epochs: {max_epochs}")
+                            print(f"Steps per epoch: {steps_per_epoch}")
+                            print(f"Validation steps: {validation_steps}")
+                            print(f"EarlyStopping: monitor=val_macro_f1, patience={EARLY_STOP_PATIENCE}, min_delta=0.001, mode=max")
+                            print(f"ReduceLROnPlateau: monitor=val_macro_f1, patience={REDUCE_LR_PATIENCE}, min_delta=0.0005, mode=max")
+                            print(f"ModelCheckpoint: monitor=val_macro_f1, mode=max")
+                            print("="*60 + "\n")
+
                             # Determine verbosity for model.fit()
                             # If using periodic callback, use verbose=0 and let callback handle printing
                             # Otherwise use verbose=2 for one line per epoch
