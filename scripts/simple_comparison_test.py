@@ -213,11 +213,13 @@ def test_original(modality='metadata', data_pct=10.0, train_pct=0.8):
         cleanup_for_resume_mode('fresh')
 
         # Run cross-validation (original uses n_runs parameter)
+        # force_fresh=True prevents loading cached weights
         metrics, confusion_matrices, histories = main_orig.cross_validation_manual_split(
             data,
             configs,
             train_pct,
-            1  # n_runs=1 for single run
+            1,  # n_runs=1 for single run
+            force_fresh=True  # Force fresh training for comparison
         )
 
         print(f"\n{'='*60}")
