@@ -1208,7 +1208,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         training_successful = True
 
                 except Exception as e:
-                    vprint(f"Error during training: {str(e)}", level=1)
+                    vprint(f"Error during training (attempt {retry_count + 1}/{max_retries}): {str(e)}", level=0)
+                    import traceback
+                    vprint(f"Traceback: {traceback.format_exc()}", level=2)
                     clean_up_training_resources()
                     retry_count += 1
                     continue
@@ -1217,7 +1219,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     # Clean up
                     gen_manager.cleanup()
                     gc.collect()
-                    
+
+            # Check if training succeeded
+            if not training_successful:
+                vprint(f"ERROR: Training failed for {config_name} after {max_retries} attempts. Skipping this configuration.", level=0)
+                continue
+
         
         save_run_metrics(run_metrics, run + 1, result_dir)
         save_aggregated_predictions(run + 1, run_predictions_list_t, run_true_labels_t, ck_path, dataset_type='train')
@@ -1607,7 +1614,8 @@ def save_aggregated_predictions(run_number, predictions_list, true_labels, ck_pa
 
     # Final validation
     if not corrected_predictions:
-        raise ValueError("No valid predictions to save")
+        vprint(f"Warning: No predictions to save for run {run_number} ({dataset_type}). Skipping...", level=0)
+        return  # Skip saving instead of raising error
 
     shapes = [p.shape for p in corrected_predictions]
     if len(set(shapes)) > 1:
