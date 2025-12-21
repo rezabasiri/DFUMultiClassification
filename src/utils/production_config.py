@@ -158,7 +158,7 @@ ENTROPY_LOSS_WEIGHT = 0.2  # Base weight for entropy in total loss
 
 # Focal ordinal loss defaults (when not specified)
 FOCAL_ORDINAL_WEIGHT = 0.5  # Default ordinal penalty weight
-FOCAL_GAMMA = 2.0  # Default focal loss gamma
+FOCAL_GAMMA = 1.0  # Reduced from 2.0 to be less aggressive with easy examples
 FOCAL_ALPHA = 0.25  # Default focal loss alpha
 
 # =============================================================================
