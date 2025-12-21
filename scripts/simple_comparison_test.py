@@ -344,6 +344,17 @@ def compare_results(original_metrics, refactored_metrics, tolerance=1e-2):
         return False
 
 
+def cleanup_comparison_files():
+    """Clean up all temporary files created during comparison"""
+    print(f"\n{'='*60}")
+    print("CLEANING UP COMPARISON FILES")
+    print(f"{'='*60}\n")
+
+    from src.utils.config import cleanup_for_resume_mode
+    cleanup_for_resume_mode('fresh')
+    print("✅ Cleanup complete - all comparison files deleted")
+
+
 def main():
     import argparse
 
@@ -358,6 +369,8 @@ def main():
                        help="Skip testing original code")
     parser.add_argument("--skip_refactored", action='store_true',
                        help="Skip testing refactored code")
+    parser.add_argument("--no-cleanup", action='store_true',
+                       help="Keep comparison files after test (default: cleanup)")
 
     args = parser.parse_args()
 
@@ -369,26 +382,38 @@ def main():
 
     original_metrics = None
     refactored_metrics = None
+    success = False
 
-    # Test original
-    if not args.skip_original:
-        original_metrics = test_original(args.modality, args.data_pct, args.train_pct)
-    else:
-        print("\nSkipping original code test")
+    try:
+        # Test original
+        if not args.skip_original:
+            original_metrics = test_original(args.modality, args.data_pct, args.train_pct)
+        else:
+            print("\nSkipping original code test")
 
-    # Test refactored
-    if not args.skip_refactored:
-        refactored_metrics = test_refactored(args.modality, args.data_pct, args.train_pct)
-    else:
-        print("\nSkipping refactored code test")
+        # Test refactored
+        if not args.skip_refactored:
+            refactored_metrics = test_refactored(args.modality, args.data_pct, args.train_pct)
+        else:
+            print("\nSkipping refactored code test")
 
-    # Compare
-    if not args.skip_original and not args.skip_refactored:
-        success = compare_results(original_metrics, refactored_metrics)
-        sys.exit(0 if success else 1)
-    else:
-        print("\nSkipped comparison (one or both versions not tested)")
-        sys.exit(0)
+        # Compare
+        if not args.skip_original and not args.skip_refactored:
+            success = compare_results(original_metrics, refactored_metrics)
+        else:
+            print("\nSkipped comparison (one or both versions not tested)")
+            success = True
+
+    finally:
+        # Cleanup unless --no-cleanup flag is set
+        if not args.no_cleanup:
+            cleanup_comparison_files()
+        else:
+            print(f"\n⚠️  Keeping comparison files (--no-cleanup flag set)")
+            print("   Files are in: results/models/, results/checkpoints/, results/csv/")
+            print("   To clean up later, run: python -c 'from src.utils.config import cleanup_for_resume_mode; cleanup_for_resume_mode(\"fresh\")'")
+
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
