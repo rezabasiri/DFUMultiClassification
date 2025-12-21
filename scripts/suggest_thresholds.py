@@ -5,6 +5,10 @@ This script examines frequent_misclassifications_total.csv and recommends
 class-specific thresholds that help reduce data imbalance while preserving
 minority classes.
 
+Important: Misclassification counts scale with n_runs. Maximum possible count = n_runs.
+Thresholds must be ≤ n_runs to filter anything. This script auto-detects max count
+and suggests appropriate thresholds based on actual data distribution.
+
 Usage:
     python scripts/suggest_thresholds.py
     python scripts/suggest_thresholds.py --csv results/frequent_misclassifications_total.csv
@@ -79,6 +83,12 @@ def suggest_thresholds(csv_file, strategy='balanced'):
     if stats is None:
         return None
 
+    # Detect maximum misclassification count to infer n_runs
+    max_misclass = max([stats[phase]['max'] for phase in stats if phase in stats])
+    print(f"\n💡 Maximum misclassification count observed: {max_misclass}")
+    print(f"   This suggests n_runs ≈ {max_misclass} (each sample tested once per run)")
+    print(f"   Note: Thresholds must be ≤ {max_misclass} to have any effect")
+
     print("\n" + "="*70)
     print(f"SUGGESTED THRESHOLDS (Strategy: {strategy.upper()})")
     print("="*70)
@@ -106,8 +116,8 @@ def suggest_thresholds(csv_file, strategy='balanced'):
         # Apply class-specific multiplier
         adjusted_threshold = base_threshold * multipliers[phase]
 
-        # Ensure minimum threshold of 2 (need at least 2 misclassifications to exclude)
-        suggested = max(2, int(adjusted_threshold))
+        # Ensure minimum threshold of 1 (exclude if misclassified at least once)
+        suggested = max(1, int(adjusted_threshold))
 
         suggestions[phase] = suggested
 

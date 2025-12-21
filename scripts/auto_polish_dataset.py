@@ -11,6 +11,16 @@ The key insight: If metadata can't learn certain samples even after filtering,
 they're likely noise or annotation errors. Remove them before expensive
 multi-modal training.
 
+Threshold Scaling:
+Misclassification thresholds automatically scale with n_runs (number of training runs).
+Since max misclass count = n_runs, thresholds are set as percentages:
+- P class (dominant, 60%): 50% of n_runs (aggressive filtering)
+- I class (minority, 30%): 67% of n_runs (moderate filtering)
+- R class (rarest, 10%): 100% of n_runs (conservative, only exclude if always wrong)
+
+Example: n_runs=3 → P=2 (50%), I=2 (67%), R=3 (100%)
+Example: n_runs=10 → P=5 (50%), I=7 (67%), R=10 (100%)
+
 Usage:
     python scripts/auto_polish_dataset.py --modalities metadata depth_rgb depth_map
     python scripts/auto_polish_dataset.py --modalities metadata depth_rgb --min_f1_per_class 0.35
@@ -76,12 +86,17 @@ class DatasetPolisher:
         self.n_runs = n_runs
         self.threshold_reduction_factor = threshold_reduction_factor
 
-        # Initial thresholds (conservative - exclude less)
-        self.thresholds = initial_thresholds or {
-            'I': 8,  # Minority class - protect
-            'P': 6,  # Dominant class - can filter more
-            'R': 10  # Rarest class - protect most
-        }
+        # Initial thresholds - proportional to n_runs and class distribution
+        # Max possible misclass count = n_runs (each sample tested once per run)
+        # Strategy: Lower threshold for dominant P class, higher for rare R class
+        if initial_thresholds is None:
+            self.thresholds = {
+                'P': max(1, int(0.50 * n_runs)),  # 50% - dominant class (60%), can filter more
+                'I': max(1, int(0.67 * n_runs)),  # 67% - minority class (30%), moderate
+                'R': max(1, int(1.00 * n_runs))   # 100% - rarest class (10%), only if always wrong
+            }
+        else:
+            self.thresholds = initial_thresholds
 
         # Get project paths
         self.directory, self.result_dir, self.root = get_project_paths()
@@ -138,7 +153,11 @@ class DatasetPolisher:
                 cmd.extend(['--threshold_R', str(self.thresholds['R'])])
 
             print(f"\nRunning: {' '.join(cmd)}")
-            print(f"Thresholds: {self.thresholds}")
+            # Show thresholds with percentages for transparency
+            thresh_str = "Thresholds (count/runs): "
+            thresh_str += ", ".join([f"{k}={v}/{self.n_runs} ({100*v/self.n_runs:.0f}%)"
+                                      for k, v in sorted(self.thresholds.items())])
+            print(thresh_str)
             print("\n⏳ Training metadata only (this may take 15-30 minutes)...\n")
 
             # Run training with live output
@@ -318,13 +337,14 @@ class DatasetPolisher:
                 elif gap > 0.05:  # Moderately bad
                     reduction = 0.7  # 30% reduction
 
-                new_thresholds[cls] = max(2, int(new_thresholds[cls] * reduction))
+                # Reduce threshold but never below 1
+                new_thresholds[cls] = max(1, int(new_thresholds[cls] * reduction))
 
         # Ensure P (dominant class) has lower threshold than I and R
         if new_thresholds['P'] >= new_thresholds['I']:
-            new_thresholds['P'] = max(2, new_thresholds['I'] - 1)
+            new_thresholds['P'] = max(1, new_thresholds['I'] - 1)
         if new_thresholds['P'] >= new_thresholds['R']:
-            new_thresholds['P'] = max(2, new_thresholds['R'] - 2)
+            new_thresholds['P'] = max(1, new_thresholds['R'] - 1)
 
         return new_thresholds
 
