@@ -2692,16 +2692,17 @@ def average_attention_values(result_dir, num_runs):
             for run_idx, run_mean in enumerate(run_means_per_modality[i]):
                 f.write(f"Run {run_idx + 1}: {run_mean:.4f}\n")
             f.write("\n")
-def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=3):
+def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=3, force_fresh=False):
     """
     Perform cross-validation using cached dataset pipeline.
-    
+
     Args:
         data: Input DataFrame
         configs: Dictionary of configurations for different modality combinations
         train_patient_percentage: Percentage of data to use for training
         n_runs: Number of cross-validation runs
-    
+        force_fresh: If True, force fresh training even if weights exist (TEMPORARY - for comparison testing)
+
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
     """
@@ -3020,7 +3021,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                                 ))
 
                         # Train model
-                        if os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
+                        # TEMPORARY MODIFICATION FOR COMPARISON TESTING
+                        # To revert: remove 'not force_fresh and' from the condition below
+                        # Original code:
+                        # if os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
+                        if not force_fresh and os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
                             model.load_weights(create_checkpoint_filename(selected_modalities, run+1, config_name))
                             print("Loaded existing weights")
                         else:
