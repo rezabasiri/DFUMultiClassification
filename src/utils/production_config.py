@@ -27,7 +27,7 @@ Categories:
 # Core training hyperparameters
 IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
 GLOBAL_BATCH_SIZE = 30  # Total batch size across all GPU replicas
-N_EPOCHS = 150  # Maximum number of training epochs
+N_EPOCHS = 20  # Maximum number of training epochs
 
 # =============================================================================
 # Verbosity and Progress Tracking
@@ -54,7 +54,7 @@ GATING_KEY_DIM_MULTIPLIER = 2  # key_dim = max(16, multiplier * (num_models + 1)
 
 # Training parameters
 GATING_LEARNING_RATE = 1e-3  # Adam optimizer learning rate
-GATING_EPOCHS = 1000  # Maximum number of epochs
+GATING_EPOCHS = 50  # Maximum number of epochs
 GATING_BATCH_SIZE = 64  # Batch size for gating network training
 GATING_VERBOSE = 0  # Training verbosity (0=silent, 1=progress bar, 2=epoch)
 
@@ -80,7 +80,7 @@ HIERARCHICAL_FF_DIM_MULTIPLIER = 2  # Feed-forward dim = embedding_dim * this
 
 # Training parameters
 HIERARCHICAL_LEARNING_RATE = 1e-3  # Adam optimizer learning rate
-HIERARCHICAL_EPOCHS = 500  # Maximum number of epochs
+HIERARCHICAL_EPOCHS = 50  # Maximum number of epochs
 HIERARCHICAL_BATCH_SIZE = 32  # Batch size for hierarchical training
 HIERARCHICAL_PATIENCE = 20  # Early stopping patience
 HIERARCHICAL_VERBOSE = 2  # Training verbosity
@@ -194,16 +194,18 @@ PROGRESS_RETRY_DELAY = 0.4  # Delay between retries (seconds)
 ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
 
 # Search mode: 'all' tests all 31 combinations, 'custom' uses INCLUDED_COMBINATIONS
-MODALITY_SEARCH_MODE = 'all'  # Options: 'all', 'custom'
+MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
 
 # Combinations to exclude (list of tuples)
 EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb'),
+    ('metadata',),
+    ('depth_map',),
+    ('depth_rgb',),
     # ('metadata', 'depth_rgb', 'thermal_map'),
-    ('depth_rgb', 'depth_map'),
+    ('metadata','depth_rgb',),
 ]
 
 # Results file naming
