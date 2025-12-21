@@ -1206,12 +1206,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
 
                         # Show confusion matrix at verbosity 2 to diagnose collapse
                         if get_verbosity() == 2:
-                            from sklearn.metrics import confusion_matrix
-                            cm = confusion_matrix(y_true_v, y_pred_v, labels=[0, 1, 2])
+                            cm_display = confusion_matrix(y_true_v, y_pred_v, labels=[0, 1, 2])
                             vprint("\nConfusion Matrix (validation):", level=2)
                             vprint(f"        Predicted: I    P    R", level=2)
                             for i, label in enumerate(['Inflam', 'Prolif', 'Remodl']):
-                                vprint(f"Actual {label}: {cm[i][0]:4d} {cm[i][1]:4d} {cm[i][2]:4d}", level=2)
+                                vprint(f"Actual {label}: {cm_display[i][0]:4d} {cm_display[i][1]:4d} {cm_display[i][2]:4d}", level=2)
 
                         training_successful = True
 
