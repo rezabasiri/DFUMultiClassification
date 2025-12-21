@@ -1996,7 +1996,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
                         gating_train_labels,
                         gating_valid_labels,
                         run + 1,
-                        find_optimal=True,
+                        find_optimal=False,  # Disabled: gating network search was hanging
                         min_models=2,
                         max_tries=100
                     )
