@@ -3031,6 +3031,20 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         else:
                             print("No existing pretrained weights found")
                             print(f"Total model trainable weights: {len(model.trainable_weights)}")
+
+                            # DEBUG: Print training configuration
+                            print("\n" + "="*60)
+                            print("ORIGINAL CODE - TRAINING CONFIGURATION")
+                            print("="*60)
+                            print(f"Learning rate: {model.optimizer.learning_rate.numpy()}")
+                            print(f"Epochs: {n_epochs}")
+                            print(f"Steps per epoch: {steps_per_epoch}")
+                            print(f"Validation steps: {validation_steps}")
+                            print(f"EarlyStopping: monitor=val_loss, patience=20, min_delta=0.01, mode=min")
+                            print(f"ReduceLROnPlateau: monitor=val_loss, patience=5, min_delta=0.01, mode=min")
+                            print(f"ModelCheckpoint: monitor=val_weighted_accuracy, mode=max")
+                            print("="*60 + "\n")
+
                             history = model.fit(
                                 train_dataset_dis,
                                 epochs=n_epochs,
