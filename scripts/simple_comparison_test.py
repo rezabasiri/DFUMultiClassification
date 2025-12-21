@@ -148,6 +148,11 @@ def test_original(modality='metadata', data_pct=10.0, train_pct=0.8):
     print(f"Data: {data_pct}%, Train: {train_pct}")
     print(f"{'='*60}\n")
 
+    # Clear checkpoints first to force fresh training
+    print("Clearing checkpoints for fresh training...")
+    from src.utils.config import cleanup_for_resume_mode
+    cleanup_for_resume_mode('fresh')
+
     # Import from original
     # We need to import the module dynamically to avoid conflicts
     import importlib.util
