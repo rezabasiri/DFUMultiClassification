@@ -99,33 +99,66 @@ class DatasetPolisher:
         # Clean up previous run
         cleanup_for_resume_mode('fresh')
 
-        # Prepare command
-        cmd = [
-            'python', 'src/main.py',
-            '--mode', 'search',
-            '--cv_folds', str(self.cv_folds),
-            '--verbosity', '1'  # Reduce noise
-        ]
+        # Temporarily override INCLUDED_COMBINATIONS to only train metadata
+        config_path = project_root / 'src' / 'utils' / 'production_config.py'
+        backup_path = project_root / 'src' / 'utils' / 'production_config.py.backup'
 
-        # Add threshold arguments if not first iteration
-        if iteration > 1:
-            cmd.extend(['--threshold_I', str(self.thresholds['I'])])
-            cmd.extend(['--threshold_P', str(self.thresholds['P'])])
-            cmd.extend(['--threshold_R', str(self.thresholds['R'])])
+        # Read current config
+        with open(config_path, 'r') as f:
+            original_config = f.read()
 
-        print(f"\nRunning: {' '.join(cmd)}")
-        print(f"Thresholds: {self.thresholds}")
-        print("\n⏳ Training metadata (this may take 15-30 minutes)...\n")
+        # Create backup
+        with open(backup_path, 'w') as f:
+            f.write(original_config)
 
-        # Run training with live output
-        result = subprocess.run(cmd, cwd=project_root)
+        try:
+            # Modify INCLUDED_COMBINATIONS to only include metadata
+            import re
+            modified_config = re.sub(
+                r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
+                "INCLUDED_COMBINATIONS = [\n    ('metadata',),  # Temporary: polishing iteration\n]",
+                original_config
+            )
 
-        if result.returncode != 0:
-            print(f"\n❌ Training failed with return code {result.returncode}")
-            return None
+            with open(config_path, 'w') as f:
+                f.write(modified_config)
 
-        # Extract performance metrics from CSV files (output not captured)
-        return self.extract_metrics_from_files()
+            # Prepare command
+            cmd = [
+                'python', 'src/main.py',
+                '--mode', 'search',
+                '--cv_folds', str(self.cv_folds),
+                '--verbosity', '1'  # Reduce noise
+            ]
+
+            # Add threshold arguments if not first iteration
+            if iteration > 1:
+                cmd.extend(['--threshold_I', str(self.thresholds['I'])])
+                cmd.extend(['--threshold_P', str(self.thresholds['P'])])
+                cmd.extend(['--threshold_R', str(self.thresholds['R'])])
+
+            print(f"\nRunning: {' '.join(cmd)}")
+            print(f"Thresholds: {self.thresholds}")
+            print("\n⏳ Training metadata only (this may take 15-30 minutes)...\n")
+
+            # Run training with live output
+            result = subprocess.run(cmd, cwd=project_root)
+
+            if result.returncode != 0:
+                print(f"\n❌ Training failed with return code {result.returncode}")
+                return None
+
+            # Extract performance metrics from CSV files (output not captured)
+            return self.extract_metrics_from_files()
+
+        finally:
+            # Always restore original config
+            with open(backup_path, 'r') as f:
+                original_config = f.read()
+            with open(config_path, 'w') as f:
+                f.write(original_config)
+            # Remove backup
+            backup_path.unlink(missing_ok=True)
 
     def extract_metrics_from_files(self):
         """Extract performance metrics from CSV files."""
