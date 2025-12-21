@@ -208,6 +208,10 @@ def test_original(modality='metadata', data_pct=10.0, train_pct=0.8):
 
         print(f"\nRunning cross-validation with configs: {configs}")
 
+        # Do another cleanup right before training to catch any files created during setup
+        print("\n⚠️  Clearing any files created during setup...")
+        cleanup_for_resume_mode('fresh')
+
         # Run cross-validation (original uses n_runs parameter)
         metrics, confusion_matrices, histories = main_orig.cross_validation_manual_split(
             data,
