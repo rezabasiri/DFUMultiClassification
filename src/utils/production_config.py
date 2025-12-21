@@ -25,9 +25,9 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (128x128 pixels, increased from 64 for better feature extraction)
-GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas (reduced from 128 due to larger images)
-N_EPOCHS = 100  # Maximum number of training epochs (increased from 20 for thorough training)
+IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
+GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
+N_EPOCHS = 100  # Maximum number of training epochs (increased for thorough training)
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
