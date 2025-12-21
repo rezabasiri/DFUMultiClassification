@@ -25,13 +25,13 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
-N_EPOCHS = 20  # Maximum number of training epochs
+IMAGE_SIZE = 128  # Image dimensions (128x128 pixels, increased from 64 for better feature extraction)
+GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas (reduced from 128 due to larger images)
+N_EPOCHS = 100  # Maximum number of training epochs (increased from 20 for thorough training)
 
 # Early stopping and learning rate
-EARLY_STOP_PATIENCE = 10  # Epochs to wait before stopping (reduced for faster testing)
-REDUCE_LR_PATIENCE = 3  # Epochs to wait before reducing LR (reduced for faster testing)
+EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
+REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR (increased for longer training)
 
 # =============================================================================
 # Verbosity and Progress Tracking
@@ -43,6 +43,9 @@ REDUCE_LR_PATIENCE = 3  # Epochs to wait before reducing LR (reduced for faster 
 # 2 = DETAILED: Include debug info, intermediate metrics
 # 3 = FULL: Everything + progress bars with time estimates
 VERBOSITY = 3  # Default verbosity level
+
+# Epoch printing settings
+EPOCH_PRINT_INTERVAL = 50  # Print training progress every N epochs (0 = print all epochs)
 
 # Progress bar settings (used when VERBOSITY >= 3)
 SHOW_PROGRESS_BAR = True  # Enable/disable progress bar

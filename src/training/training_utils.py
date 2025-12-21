@@ -26,7 +26,7 @@ from src.utils.debug import clear_gpu_memory
 from src.utils.verbosity import vprint, get_verbosity
 from src.utils.production_config import (
     GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
-    EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE,
+    EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE, EPOCH_PRINT_INTERVAL,
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
     GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT
 )
@@ -58,6 +58,46 @@ class EpochMemoryCallback(tf.keras.callbacks.Callback):
         if gpus:
             for i, _ in enumerate(gpus):
                 tf.config.experimental.reset_memory_stats(f'GPU:{i}')
+
+class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
+    """Print epoch metrics only every N epochs to reduce output clutter"""
+    def __init__(self, print_interval=50, total_epochs=20):
+        super().__init__()
+        self.print_interval = print_interval if print_interval > 0 else 1
+        self.total_epochs = total_epochs
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        epoch_num = epoch + 1  # Convert 0-indexed to 1-indexed
+
+        # Print if: first epoch, last epoch, or at interval
+        should_print = (
+            epoch_num == 1 or
+            epoch_num == self.total_epochs or
+            epoch_num % self.print_interval == 0
+        )
+
+        if should_print:
+            metrics_str = f"Epoch {epoch_num}/{self.total_epochs}"
+            if 'loss' in logs:
+                metrics_str += f" - loss: {logs['loss']:.4f}"
+            if 'val_loss' in logs:
+                metrics_str += f" - val_loss: {logs['val_loss']:.4f}"
+            if 'accuracy' in logs:
+                metrics_str += f" - acc: {logs['accuracy']:.4f}"
+            if 'val_accuracy' in logs:
+                metrics_str += f" - val_acc: {logs['val_accuracy']:.4f}"
+            if 'macro_f1' in logs:
+                metrics_str += f" - macro_f1: {logs['macro_f1']:.4f}"
+            if 'val_macro_f1' in logs:
+                metrics_str += f" - val_macro_f1: {logs['val_macro_f1']:.4f}"
+            if 'cohen_kappa' in logs:
+                metrics_str += f" - kappa: {logs['cohen_kappa']:.4f}"
+            if 'val_cohen_kappa' in logs:
+                metrics_str += f" - val_kappa: {logs['val_cohen_kappa']:.4f}"
+
+            print(metrics_str)
+
 class NaNMonitorCallback(tf.keras.callbacks.Callback):
     """
     Custom callback to monitor for NaN values in validation metrics
@@ -1043,6 +1083,13 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             NaNMonitorCallback()
                         ]
 
+                        # Add periodic epoch print callback if using interval
+                        if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                            callbacks.append(PeriodicEpochPrintCallback(
+                                print_interval=EPOCH_PRINT_INTERVAL,
+                                total_epochs=max_epochs
+                            ))
+
                         # visualize_dataset(
                         #     train_dataset=train_dataset,
                         #     selected_modalities=selected_modalities,
@@ -1099,8 +1146,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             vprint(f"Total model trainable weights: {len(model.trainable_weights)}", level=2)
                             if selected_modalities == ['metadata']:
                                 vprint("Metadata-only: Minimal training on final layer", level=2)
-                            # Use verbose=2 for one line per epoch, verbose=0 for silent
-                            fit_verbose = 2 if get_verbosity() >= 2 else 0
+
+                            # Determine verbosity for model.fit()
+                            # If using periodic callback, use verbose=0 and let callback handle printing
+                            # Otherwise use verbose=2 for one line per epoch
+                            if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                fit_verbose = 0  # Callback will handle printing
+                            elif get_verbosity() >= 2:
+                                fit_verbose = 2  # Print every epoch
+                            else:
+                                fit_verbose = 0  # Silent
                             history = model.fit(
                                 train_dataset_dis,
                                 epochs=max_epochs,
