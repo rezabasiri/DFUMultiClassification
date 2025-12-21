@@ -1008,7 +1008,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         alpha = config.get('alpha', class_weights)
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
                         macro_f1 = MacroF1Score(num_classes=3)
-                        model.compile(optimizer=Adam(learning_rate=1e-3, clipnorm=1.0), loss=loss,
+                        model.compile(optimizer=Adam(learning_rate=1e-4, clipnorm=1.0), loss=loss,  # Reduced LR from 1e-3 to 1e-4
                             metrics=['accuracy', weighted_f1_score, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
@@ -1019,7 +1019,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                                 patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
                                 monitor='val_macro_f1',  # Changed from val_loss to macro F1
-                                min_delta=0.001,  # Smaller delta for F1 score
+                                min_delta=0.01,  # Increased from 0.001 to require meaningful improvements
                                 mode='max',  # Maximize F1, not minimize loss
                                 verbose=1
                             ),
@@ -1027,7 +1027,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                                 factor=0.50,
                                 patience=REDUCE_LR_PATIENCE,
                                 monitor='val_macro_f1',  # Changed from val_loss to macro F1
-                                min_delta=0.001,  # Smaller delta for F1 score
+                                min_delta=0.005,  # Increased from 0.001
                                 min_lr=1e-10,
                                 mode='max',  # Maximize F1, not minimize loss
                             ),
