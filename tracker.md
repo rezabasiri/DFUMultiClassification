@@ -524,3 +524,4 @@ Alpha values verified to be calculated from training class frequencies (not hard
 **src/training/training_utils.py** (line 1211): Training errors now always visible (level=0) even at verbosity 3; added traceback output at level=2.
 **src/training/training_utils.py** (line 1224): Added check after training retry loop to warn if training completely failed.
 **src/training/training_utils.py** (lines 335-357): Fixed MacroF1Score.update_state() - replaced loop with vectorized one-hot encoding operations and assign_add on entire tensor (fixes SymbolicTensor AttributeError during graph execution).
+**src/main.py** (line 13): Set TF_CPP_MIN_LOG_LEVEL='1' before TensorFlow import to suppress INFO messages like "Local rendezvous recv item cancelled" at verbosity 3.
