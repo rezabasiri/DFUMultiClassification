@@ -26,6 +26,7 @@ from src.utils.debug import clear_gpu_memory
 from src.utils.verbosity import vprint, get_verbosity
 from src.utils.production_config import (
     GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
+    EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE,
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
     GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT
 )
@@ -1015,7 +1016,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         valid_dataset_dis = strategy.experimental_distribute_dataset(valid_dataset)
                         callbacks = [
                             EarlyStopping(
-                                patience=20,
+                                patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
                                 monitor='val_macro_f1',  # Changed from val_loss to macro F1
                                 min_delta=0.001,  # Smaller delta for F1 score
@@ -1024,7 +1025,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             ),
                             ReduceLROnPlateau(
                                 factor=0.50,
-                                patience=5,
+                                patience=REDUCE_LR_PATIENCE,
                                 monitor='val_macro_f1',  # Changed from val_loss to macro F1
                                 min_delta=0.001,  # Smaller delta for F1 score
                                 min_lr=1e-10,
