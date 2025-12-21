@@ -26,8 +26,12 @@ Categories:
 
 # Core training hyperparameters
 IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-GLOBAL_BATCH_SIZE = 30  # Total batch size across all GPU replicas
+GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
 N_EPOCHS = 20  # Maximum number of training epochs
+
+# Early stopping and learning rate
+EARLY_STOP_PATIENCE = 10  # Epochs to wait before stopping (reduced for faster testing)
+REDUCE_LR_PATIENCE = 3  # Epochs to wait before reducing LR (reduced for faster testing)
 
 # =============================================================================
 # Verbosity and Progress Tracking
@@ -54,8 +58,8 @@ GATING_KEY_DIM_MULTIPLIER = 2  # key_dim = max(16, multiplier * (num_models + 1)
 
 # Training parameters
 GATING_LEARNING_RATE = 1e-3  # Adam optimizer learning rate
-GATING_EPOCHS = 50  # Maximum number of epochs
-GATING_BATCH_SIZE = 64  # Batch size for gating network training
+GATING_EPOCHS = 30  # Maximum number of epochs (reduced for faster testing)
+GATING_BATCH_SIZE = 128  # Batch size for gating network training (increased for faster training)
 GATING_VERBOSE = 0  # Training verbosity (0=silent, 1=progress bar, 2=epoch)
 
 # Callbacks - ReduceLROnPlateau
