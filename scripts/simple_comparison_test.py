@@ -255,7 +255,10 @@ def compare_results(original_metrics, refactored_metrics, tolerance=1e-4):
         print(f"Modalities: {latest.get('Modalities', 'N/A')}")
         print(f"Accuracy: {latest.get('Accuracy (Mean)', 'N/A'):.4f}")
         print(f"F1 Macro: {latest.get('Macro Avg F1-score (Mean)', 'N/A'):.4f}")
-        print(f"Cohen's Kappa: {latest.get(\"Cohen's Kappa (Mean)\", 'N/A'):.4f}")
+
+        # Extract kappa value (can't use backslash in f-string)
+        kappa_value = latest.get("Cohen's Kappa (Mean)", 'N/A')
+        print(f"Cohen's Kappa: {kappa_value:.4f}")
 
         # Check if results look reasonable
         accuracy = latest.get('Accuracy (Mean)', 0)
