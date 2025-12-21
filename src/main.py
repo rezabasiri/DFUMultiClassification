@@ -1749,7 +1749,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
+def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_folds=3, thresholds=None):
     """
     Test all modality combinations and save results to CSV.
 
@@ -1841,7 +1841,10 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
         # Load and prepare the dataset
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities)
         from src.evaluation.metrics import filter_frequent_misclassifications
-        data = filter_frequent_misclassifications(data, result_dir)
+        if thresholds is not None:
+            data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
+        else:
+            data = filter_frequent_misclassifications(data, result_dir)
         if data_percentage < 100:
             data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
         vprint(f"Using {data_percentage}% of the data: {len(data)} samples")
@@ -2061,7 +2064,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=None, cv_folds=3, thresholds=None):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2071,6 +2074,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
         train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
         n_runs (int): DEPRECATED - Number of runs for random holdout validation
         cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
+        thresholds (dict): Misclassification filtering thresholds {'I': x, 'P': y, 'R': z}
     """
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
@@ -2093,7 +2097,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
             vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, n_runs=n_runs, cv_folds=cv_folds)
+        main_search(data_percentage, train_patient_percentage, n_runs=n_runs, cv_folds=cv_folds, thresholds=thresholds)
     elif mode.lower() == 'specialized':
         main_with_specialized_evaluation(data_percentage, train_patient_percentage, n_runs)
     else:
@@ -2217,6 +2221,39 @@ Configuration:
         (default: 1)"""
     )
 
+    parser.add_argument(
+        "--threshold_I",
+        type=int,
+        default=None,
+        help="""Misclassification filtering threshold for Inflammatory (I) class.
+        Lower threshold = exclude more misclassified samples.
+        Use with frequent_misclassifications_saved.csv for iterative data polishing.
+        Example: 5 (exclude samples misclassified 5+ times)
+        (default: None - uses filter function defaults)"""
+    )
+
+    parser.add_argument(
+        "--threshold_P",
+        type=int,
+        default=None,
+        help="""Misclassification filtering threshold for Proliferative (P) class.
+        Lower threshold = exclude more misclassified samples.
+        Typically lower than I/R to reduce dominant class imbalance.
+        Example: 3 (exclude samples misclassified 3+ times)
+        (default: None - uses filter function defaults)"""
+    )
+
+    parser.add_argument(
+        "--threshold_R",
+        type=int,
+        default=None,
+        help="""Misclassification filtering threshold for Remodeling (R) class.
+        Lower threshold = exclude more misclassified samples.
+        Typically higher than I/P to protect rare minority class.
+        Example: 8 (exclude samples misclassified 8+ times)
+        (default: None - uses filter function defaults)"""
+    )
+
     args = parser.parse_args()
 
     # Set verbosity level
@@ -2273,8 +2310,20 @@ Configuration:
     reset_keras()
     clear_cuda_memory()
 
+    # Build thresholds dict if any threshold is specified
+    thresholds = None
+    if args.threshold_I is not None or args.threshold_P is not None or args.threshold_R is not None:
+        thresholds = {}
+        if args.threshold_I is not None:
+            thresholds['I'] = args.threshold_I
+        if args.threshold_P is not None:
+            thresholds['P'] = args.threshold_P
+        if args.threshold_R is not None:
+            thresholds['R'] = args.threshold_R
+        vprint(f"Misclassification filtering thresholds: {thresholds}", level=0)
+
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.n_runs, args.cv_folds)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.n_runs, args.cv_folds, thresholds)
 
     # Clear memory after completion
     clear_gpu_memory()
