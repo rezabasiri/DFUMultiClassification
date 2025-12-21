@@ -34,12 +34,18 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     Args:
         data: DataFrame with 'Patient#' and 'Healing Phase Abs' columns
         n_folds: Number of folds (default: 3)
-        random_state: Random seed for reproducibility
+        random_state: Random seed for reproducibility (can be overridden by CROSS_VAL_RANDOM_SEED env var)
         max_imbalance: Maximum allowed class distribution difference between folds (default: 0.3)
 
     Returns:
         List of tuples (train_patients, valid_patients) for each fold
     """
+    # Allow environment variable to override random_state for multi-run scenarios
+    # This enables running k-fold CV multiple times with different seeds
+    import os
+    if 'CROSS_VAL_RANDOM_SEED' in os.environ:
+        random_state = int(os.environ['CROSS_VAL_RANDOM_SEED'])
+
     np.random.seed(random_state)
     random.seed(random_state)
 
