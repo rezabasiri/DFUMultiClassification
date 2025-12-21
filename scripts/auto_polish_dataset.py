@@ -115,17 +115,50 @@ class DatasetPolisher:
 
         print(f"\nRunning: {' '.join(cmd)}")
         print(f"Thresholds: {self.thresholds}")
+        print("\n⏳ Training metadata (this may take 15-30 minutes)...\n")
 
-        # Run training
-        result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
+        # Run training with live output
+        result = subprocess.run(cmd, cwd=project_root)
 
         if result.returncode != 0:
             print(f"\n❌ Training failed with return code {result.returncode}")
-            print("STDERR:", result.stderr[-1000:])  # Last 1000 chars
             return None
 
-        # Extract performance metrics from output
-        return self.extract_metrics(result.stdout)
+        # Extract performance metrics from CSV files (output not captured)
+        return self.extract_metrics_from_files()
+
+    def extract_metrics_from_files(self):
+        """Extract performance metrics from CSV files."""
+        metrics = {
+            'f1_per_class': {'I': 0.0, 'P': 0.0, 'R': 0.0},
+            'macro_f1': 0.0,
+            'kappa': 0.0,
+            'accuracy': 0.0
+        }
+
+        # Read from CSV files
+        csv_file = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
+        if os.path.exists(csv_file):
+            try:
+                df = pd.read_csv(csv_file)
+                if len(df) > 0:
+                    # Get the metadata row (should be only one)
+                    metadata_rows = df[df['Modalities'].str.contains('metadata', case=False, na=False)]
+                    if len(metadata_rows) > 0:
+                        row = metadata_rows.iloc[-1]  # Latest metadata result
+                        metrics['macro_f1'] = row.get('Macro Avg F1-score (Mean)', 0.0)
+                        metrics['kappa'] = row.get("Cohen's Kappa (Mean)", 0.0)
+                        metrics['accuracy'] = row.get('Accuracy (Mean)', 0.0)
+
+                        # Try to get per-class F1 if available
+                        for i, cls in enumerate(['I', 'P', 'R']):
+                            col_name = f'Class {i} F1-score (Mean)'
+                            if col_name in row:
+                                metrics['f1_per_class'][cls] = row[col_name]
+            except Exception as e:
+                print(f"⚠️  Could not read metrics from CSV: {e}")
+
+        return metrics
 
     def extract_metrics(self, output):
         """Extract performance metrics from training output."""
@@ -337,8 +370,9 @@ class DatasetPolisher:
 
         print(f"\nRunning: {' '.join(cmd)}")
         print(f"Using polished dataset with thresholds: {final_thresholds}")
+        print("\n⏳ Training all modalities (this may take 30-60 minutes)...\n")
 
-        # Run training
+        # Run training with live output
         result = subprocess.run(cmd, cwd=project_root)
 
         return result.returncode == 0
