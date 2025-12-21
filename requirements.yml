@@ -1,0 +1,40 @@
+name: dfu_gpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+
+  # Core scientific stack (pin NumPy < 2 for broad compatibility)
+  - numpy>=1.23.5,<2.0
+  - pandas>=1.5.0
+  - pillow>=9.3.0
+
+  # ML stack (PINNED to prevent imblearn/sklearn import errors)
+  - scikit-learn=1.6.1
+  - imbalanced-learn=0.12.4
+
+  # Visualization / utilities
+  - matplotlib>=3.6.0
+  - seaborn>=0.12.0
+  - tqdm>=4.64.0
+  - opencv>=4.7.0
+
+  # Dev tools (optional)
+  - jupyter
+  - ipykernel
+  - black
+  - flake8
+
+  # Pip-only packages (GPU TensorFlow and fast-moving libs)
+  - pip:
+      # TensorFlow GPU (installs CUDA runtime + cuDNN user-space libs automatically)
+      - tensorflow[and-cuda]==2.15.1
+      - keras==2.15.0
+
+      # Diffusion / transformers stack
+      - transformers>=4.30.0
+      - diffusers>=0.21.0
+
+      # Interpretability
+      - shap>=0.42.0
