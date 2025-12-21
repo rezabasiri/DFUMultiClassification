@@ -544,4 +544,4 @@ Alpha values verified to be calculated from training class frequencies (not hard
 **src/training/training_utils.py** (lines 62-99): Added PeriodicEpochPrintCallback class - prints epoch 1, last epoch, and every Nth epoch with key metrics in single line.
 **src/training/training_utils.py** (lines 1087-1091): Integrated PeriodicEpochPrintCallback into training when EPOCH_PRINT_INTERVAL > 0.
 **src/training/training_utils.py** (lines 1153-1158): Updated fit verbosity logic - uses verbose=0 with callback for periodic printing, verbose=2 for all epochs otherwise.
-**src/utils/production_config.py** (lines 28-34): Increased training parameters for production: IMAGE_SIZE 64→128, N_EPOCHS 20→100, BATCH_SIZE 128→64, EARLY_STOP_PATIENCE 10→20, REDUCE_LR_PATIENCE 3→5.
+**src/utils/production_config.py** (lines 28-34): Increased training parameters for production: N_EPOCHS 20→100, EARLY_STOP_PATIENCE 10→20, REDUCE_LR_PATIENCE 3→5. IMAGE_SIZE kept at 64 (model hardcoded to 64x64), BATCH_SIZE kept at 128.
