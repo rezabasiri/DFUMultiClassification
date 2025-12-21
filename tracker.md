@@ -527,3 +527,9 @@ Alpha values verified to be calculated from training class frequencies (not hard
 **src/main.py** (line 13): Set TF_CPP_MIN_LOG_LEVEL='1' before TensorFlow import to suppress INFO messages like "Local rendezvous recv item cancelled" at verbosity 3.
 
 **Critical fix - Callback alignment** (lines 1017-1032): Changed EarlyStopping and ReduceLROnPlateau to monitor 'val_macro_f1' (mode=max) instead of 'val_loss' (mode=min). Previously, EarlyStopping restored epoch 1 weights (best loss but collapsed model) while ModelCheckpoint saved best macro F1 weights (different epoch). Now all callbacks aligned on same metric, preventing model collapse.
+
+**src/data/dataset_utils.py** (lines 613-618): Cap alpha values at 1.5 maximum to prevent extreme class weighting (fold 2 had R=2.022 which caused collapse). Renormalize after capping to maintain sum=3.0.
+**src/training/training_utils.py** (line 1011): Reduced learning rate from 1e-3 to 1e-4 to prevent overshooting and collapse.
+**src/training/training_utils.py** (line 1022): Increased EarlyStopping min_delta from 0.001 to 0.01 to require meaningful improvements (prevents stopping at epoch 1 with tiny macro F1).
+**src/training/training_utils.py** (line 1030): Increased ReduceLROnPlateau min_delta from 0.001 to 0.005.
+**src/utils/production_config.py** (lines 29, 33-34, 61-62): Optimized for RTX 5090 - increased batch sizes (30→128), reduced epochs (50→30), added EARLY_STOP_PATIENCE and REDUCE_LR_PATIENCE configs.
