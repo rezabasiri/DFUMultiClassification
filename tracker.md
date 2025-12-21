@@ -497,3 +497,10 @@ Verbosity levels now work correctly:
 
 **demo/test_workflow.py**: Updated to save `demo_best_matching.csv` to `results/demo/` instead of `results/`; creates demo directory if needed.
 **demo/test_modality_combinations.py**: Updated to look for `demo_best_matching.csv` in `results/demo/` directory.
+
+---
+
+## 2025-12-21 — Pin library versions for GPU cluster compatibility
+
+**requirements.txt**: Pinned PyTorch (2.1.2), torchvision (0.16.2), transformers (4.35.0), and diffusers (0.23.0) for compatibility with TensorFlow 2.15.1 CUDA 12.2; fixes `register_pytree_node` AttributeError on RTX 5090.
+**test_imports.py**: Created import verification script to test TensorFlow, PyTorch, transformers, and diffusers compatibility.
