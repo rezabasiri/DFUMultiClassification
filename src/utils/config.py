@@ -172,6 +172,11 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
         # Delete CSV results
         delete_files([
             os.path.join(output_paths['csv'], '*.csv'),
+            # Also delete CSVs created by main_original.py in results/ root
+            os.path.join(result_dir, 'frequent_misclassifications_*.csv'),
+            os.path.join(result_dir, 'modality_results_*.csv'),
+            os.path.join(result_dir, 'gating_network_*.csv'),
+            os.path.join(result_dir, 'best_matching.csv'),
         ], 'csv_results')
 
         # Delete patient splits
