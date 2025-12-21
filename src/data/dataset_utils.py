@@ -613,12 +613,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         alpha_values = [alpha/alpha_sum for alpha in alpha_values]
 
         # Cap individual alpha values to prevent extreme weights
+        # Don't renormalize after capping - this would scale values back up
         MAX_ALPHA = 0.5  # Since sum=1.0, max 0.5 means no class can dominate (>50%)
         alpha_values = [min(alpha, MAX_ALPHA) for alpha in alpha_values]
-
-        # Renormalize to sum=1.0 to maintain consistent loss magnitude across folds
-        alpha_sum = sum(alpha_values)
-        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
+        # Final sum will be < 1.0 when capping occurs, which is acceptable
 
         vprint("\nCalculated alpha values from original distribution:", level=2)
         vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
