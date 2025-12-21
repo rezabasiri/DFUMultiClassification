@@ -538,3 +538,4 @@ Alpha values verified to be calculated from training class frequencies (not hard
 **src/utils/production_config.py** (line 161): Reduced FOCAL_GAMMA from 2.0 to 1.0 - less aggressive focal loss allows better learning of minority classes.
 **src/utils/production_config.py** (lines 29, 33-34, 61-62): Optimized for RTX 5090 - increased batch sizes (30→128), reduced epochs (50→30), added EARLY_STOP_PATIENCE and REDUCE_LR_PATIENCE configs.
 **src/models/builders.py**: Verified model architectures match main_original.py - metadata branch and image branch (depth_rgb) are identical.
+**src/training/training_utils.py** (line 1209): Fixed confusion_matrix scope error - removed duplicate import, renamed variable to cm_display to avoid conflict with existing cm variable at line 1179.
