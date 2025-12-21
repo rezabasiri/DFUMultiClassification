@@ -620,66 +620,11 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         
         count_items = [(count, index) for index, count in counts.items()]
         count_items.sort()
-        try:
-            if not mix:
-                OverSampleOnly
-                
-            del resampled_df
-            # Calculate intermediate targets maintaining class order
-            intermediate_target = {
-                count_items[1][1]: count_items[1][0],          # Keep I class (0) as is
-                count_items[2][1]: count_items[1][0],          # Reduce P class (1) to match I class
-                count_items[0][1]: counts[2]           # Keep R class (2) as is
-            }
-            
-            undersampler = RandomUnderSampler(
-                sampling_strategy=intermediate_target,
-                random_state=42 + run * (run + 3)
-            )
-            X_under, y_under = undersampler.fit_resample(X, y)
-            
-            # Print intermediate results with ordered classes
-            under_counts = Counter(y_under)
-            vprint("\nAfter undersampling (ordered):", level=2)
-            if get_verbosity() == 2:
-                for class_idx in [0, 1, 2]:
-                    print(f"Class {class_idx}: {under_counts[class_idx]}")
-            
-            # Set final targets
-            final_target = {
-                count_items[1][1]: count_items[1][0],          # Keep I class as is
-                count_items[2][1]: count_items[1][0],          # Keep P class as reduced
-                count_items[0][1]: count_items[1][0]           # Boost R class to match
-            }
-            
-            oversampler = RandomOverSampler(
-                sampling_strategy=final_target,
-                random_state=42 + run * (run + 3)
-            )
-            X_resampled, y_resampled = oversampler.fit_resample(X_under, y_under)
-            
-            # Print final results with ordered classes
-            final_counts = Counter(y_resampled)
-            vprint("\nAfter oversampling (ordered):", level=2)
-            if get_verbosity() == 2:
-                for class_idx in [0, 1, 2]:
-                    print(f"Class {class_idx}: {final_counts[class_idx]}")
 
-            # Reconstruct DataFrame
-            resampled_df = pd.DataFrame(X_resampled, columns=X.columns)
-            resampled_df['Healing Phase Abs'] = y_resampled
-            resampled_df = resampled_df.reset_index(drop=True)
-
-            # Verify final order of classes
-            vprint("\nVerifying final class distribution...", level=2)
-            final_verify = Counter(resampled_df['Healing Phase Abs'])
-            assert all(final_verify[i] == count_items[1][0] for i in [0, 1, 2]), "Classes not properly balanced"
-            
-            return resampled_df, alpha_values
-            
-        except Exception as e:
-            vprint(f"Error in mixed sampling: {str(e)}", level=1)
-            vprint("Falling back to simple random oversampling...", level=1)
+        # Choose sampling strategy
+        if not mix:
+            # Simple oversampling strategy (default with mix=False)
+            vprint("Using simple random oversampling...", level=2)
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
             vprint("Original class distribution (ordered):", level=2)
