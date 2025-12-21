@@ -528,7 +528,7 @@ Alpha values verified to be calculated from training class frequencies (not hard
 
 **Critical fix - Callback alignment** (lines 1017-1032): Changed EarlyStopping and ReduceLROnPlateau to monitor 'val_macro_f1' (mode=max) instead of 'val_loss' (mode=min). Previously, EarlyStopping restored epoch 1 weights (best loss but collapsed model) while ModelCheckpoint saved best macro F1 weights (different epoch). Now all callbacks aligned on same metric, preventing model collapse.
 
-**src/data/dataset_utils.py** (lines 613-617): Cap alpha values at 1.5 maximum to prevent extreme class weighting (fold 2 had R=2.022 which caused collapse). Removed renormalization after capping as it scaled values back up, defeating the cap (e.g., capped 1.5 would become 1.625 after renorm).
+**src/data/dataset_utils.py** (lines 611-621): Improved alpha value normalization - changed from sum=3.0 to sum=1.0 (standard for focal loss) with MAX_ALPHA=0.5. Cap applied after initial normalization, then renormalize to maintain sum=1.0 for consistent loss magnitude across folds. This prevents extreme weights (e.g., fold 2 R=0.577→0.5) while keeping loss scale comparable.
 **src/training/training_utils.py** (line 1011): Reduced learning rate from 1e-3 to 1e-4 to prevent overshooting and collapse.
 **src/training/training_utils.py** (line 1022): Increased EarlyStopping min_delta from 0.001 to 0.01 to require meaningful improvements (prevents stopping at epoch 1 with tiny macro F1).
 **src/training/training_utils.py** (line 1030): Increased ReduceLROnPlateau min_delta from 0.001 to 0.005.
