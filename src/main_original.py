@@ -2692,7 +2692,7 @@ def average_attention_values(result_dir, num_runs):
             for run_idx, run_mean in enumerate(run_means_per_modality[i]):
                 f.write(f"Run {run_idx + 1}: {run_mean:.4f}\n")
             f.write("\n")
-def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=3, force_fresh=False):
+def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=3):
     """
     Perform cross-validation using cached dataset pipeline.
 
@@ -2701,7 +2701,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         configs: Dictionary of configurations for different modality combinations
         train_patient_percentage: Percentage of data to use for training
         n_runs: Number of cross-validation runs
-        force_fresh: If True, force fresh training even if weights exist (TEMPORARY - for comparison testing)
 
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
@@ -3021,30 +3020,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                                 ))
 
                         # Train model
-                        # TEMPORARY MODIFICATION FOR COMPARISON TESTING
-                        # To revert: remove 'not force_fresh and' from the condition below
-                        # Original code:
-                        # if os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
-                        if not force_fresh and os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
+                        if os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
                             model.load_weights(create_checkpoint_filename(selected_modalities, run+1, config_name))
                             print("Loaded existing weights")
                         else:
                             print("No existing pretrained weights found")
                             print(f"Total model trainable weights: {len(model.trainable_weights)}")
-
-                            # DEBUG: Print training configuration
-                            print("\n" + "="*60)
-                            print("ORIGINAL CODE - TRAINING CONFIGURATION")
-                            print("="*60)
-                            print(f"Learning rate: {model.optimizer.learning_rate.numpy()}")
-                            print(f"Epochs: {n_epochs}")
-                            print(f"Steps per epoch: {steps_per_epoch}")
-                            print(f"Validation steps: {validation_steps}")
-                            print(f"EarlyStopping: monitor=val_loss, patience=20, min_delta=0.01, mode=min")
-                            print(f"ReduceLROnPlateau: monitor=val_loss, patience=5, min_delta=0.01, mode=min")
-                            print(f"ModelCheckpoint: monitor=val_weighted_accuracy, mode=max")
-                            print("="*60 + "\n")
-
                             history = model.fit(
                                 train_dataset_dis,
                                 epochs=n_epochs,
