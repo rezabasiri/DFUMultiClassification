@@ -546,3 +546,8 @@ Alpha values verified to be calculated from training class frequencies (not hard
 **src/training/training_utils.py** (lines 1153-1158): Updated fit verbosity logic - uses verbose=0 with callback for periodic printing, verbose=2 for all epochs otherwise.
 **src/utils/production_config.py** (lines 28-34): Increased training parameters for production: N_EPOCHS 20→100, EARLY_STOP_PATIENCE 10→20, REDUCE_LR_PATIENCE 3→5. IMAGE_SIZE kept at 64 (model hardcoded to 64x64), BATCH_SIZE kept at 128.
 **src/main.py** (line 1999): Disabled gating network optimal search (find_optimal=False) - search was hanging in infinite loop during model combination testing. Gating network now uses simple average ensemble instead of optimized combination search.
+
+## 2025-12-21 — Systematic comparison tool for validating refactored code
+
+**scripts/compare_main_versions.py**: Created comprehensive comparison tool to validate that refactored main.py produces identical results to main_original.py. Tests individual modalities and combinations systematically. Runs both versions with same config (cv_folds=0, n_runs=1 for deterministic comparison), extracts metrics from CSV files, and reports differences.
+**scripts/COMPARISON_README.md**: Created detailed documentation for comparison testing strategy, usage examples, troubleshooting guide, and interpretation of results. Includes systematic testing phases from individual modalities to complex combinations.
