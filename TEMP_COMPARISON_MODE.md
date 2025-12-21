@@ -63,7 +63,38 @@ python scripts/simple_comparison_test.py metadata
 
 # Should see matching alpha values in both versions:
 # Alpha values (ordered) [I, P, R]: [0.748, 0.282, 1.971]
+
+# Keep files for inspection (skip automatic cleanup)
+python scripts/simple_comparison_test.py metadata --no-cleanup
+
+# Test with more data
+python scripts/simple_comparison_test.py metadata --data_pct 50
 ```
+
+## File Management
+
+**Automatic Cleanup** (default):
+- Comparison files are automatically deleted after test completes
+- Keeps repository clean
+- No manual cleanup needed
+
+**Manual Control**:
+```bash
+# Keep files after test
+python scripts/simple_comparison_test.py metadata --no-cleanup
+
+# Manual cleanup later
+python -c "from src.utils.config import cleanup_for_resume_mode; cleanup_for_resume_mode('fresh')"
+```
+
+**What Gets Created**:
+- Model weights: `results/models/*.h5`
+- Predictions: `results/checkpoints/*pred*.npy`
+- Patient splits: `results/checkpoints/patient_split*.npz`
+- CSV results: `results/csv/*.csv`
+- TF cache: `results/tf_records/`
+
+**Gitignore Coverage**: ✅ All comparison files are automatically ignored by `.gitignore`
 
 ---
 
