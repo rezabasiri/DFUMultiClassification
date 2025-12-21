@@ -1,0 +1,40 @@
+Model Training Results
+====================
+
+Overall Metrics:
+--------------
+Final Accuracy: 0.2632
+Final Weighted Accuracy: 0.3660
+Final Loss: 1.4289
+Cohen's Kappa: 0.0000
+
+F1 Scores:
+----------
+Class 0 (Inflammatory): 0.4167
+Class 1 (Proliferative): 0.0000
+Class 2 (Remodeling): 0.0000
+Macro Average F1: 0.1389
+Weighted Average F1: 0.1096
+
+Model Information:
+-----------------
+Selected Models: [0]
+
+
+Detailed Metrics:
+---------------
+Confusion Matrix:
+[[10  0  0]
+ [25  0  0]
+ [ 3  0  0]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.26      1.00      0.42        10
+           1       0.00      0.00      0.00        25
+           2       0.00      0.00      0.00         3
+
+    accuracy                           0.26        38
+   macro avg       0.09      0.33      0.14        38
+weighted avg       0.07      0.26      0.11        38
