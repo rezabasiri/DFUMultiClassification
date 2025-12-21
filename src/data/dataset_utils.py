@@ -607,14 +607,18 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
         median_freq = np.median(list(class_frequencies.values()))
         alpha_values = [median_freq/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
-        alpha_sum = sum(alpha_values)
-        alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
-        # Cap alpha values to prevent extreme weights that cause model collapse
-        MAX_ALPHA = 1.5
+        # Normalize to sum=1.0 first (standard for focal loss)
+        alpha_sum = sum(alpha_values)
+        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
+
+        # Cap individual alpha values to prevent extreme weights
+        MAX_ALPHA = 0.5  # Since sum=1.0, max 0.5 means no class can dominate (>50%)
         alpha_values = [min(alpha, MAX_ALPHA) for alpha in alpha_values]
-        # Don't renormalize after capping - accept that sum will be < 3.0
-        # Renormalizing would scale capped values back up, defeating the cap
+
+        # Renormalize to sum=1.0 to maintain consistent loss magnitude across folds
+        alpha_sum = sum(alpha_values)
+        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
 
         vprint("\nCalculated alpha values from original distribution:", level=2)
         vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
