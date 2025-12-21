@@ -7,6 +7,10 @@ Multimodal deep learning for Diabetic Foot Ulcer healing phase classification.
 #%% Import Libraries and Configure Environment
 import os
 import sys
+
+# Suppress TensorFlow C++ logging (must be set before importing TensorFlow)
+# This will be overridden later based on verbosity level, but default to minimal logging
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '1')  # Default: suppress INFO messages
 import glob
 import pandas as pd
 import numpy as np
@@ -2228,7 +2232,7 @@ Configuration:
         warnings.filterwarnings('ignore', message='.*CUDA.*')
         warnings.filterwarnings('ignore', message='.*cuDNN.*')
         np.seterr(all='ignore')  # Suppress all NumPy warnings
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow warnings
+        # Note: TF_CPP_MIN_LOG_LEVEL must be set before TensorFlow import (done at top of file)
         logging.getLogger('tensorflow').setLevel(logging.ERROR)
         logging.getLogger('absl').setLevel(logging.ERROR)
 
