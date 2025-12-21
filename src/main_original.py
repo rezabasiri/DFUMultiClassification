@@ -2909,15 +2909,21 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         
                     steps_per_epoch = master_steps_per_epoch
                     validation_steps = master_validation_steps
-                    if config_name.endswith('1'):    
+
+                    # Initialize defaults (prevents UnboundLocalError)
+                    alpha_value = master_alpha_value
+                    class_weights_dict = {i: 1 for i in range(3)}
+                    class_weights = [1, 1, 1]
+
+                    if config_name.endswith('1'):
                         alpha_value = master_alpha_value # Proportional class weights (When no mixed_sampling is used)
                         class_weights_dict = {i: 1 for i in range(3)}
                         class_weights = [1, 1, 1]
-                    if config_name.endswith('2'):
+                    elif config_name.endswith('2'):
                         alpha_value = [1, 1, 1]
                         class_weights_dict = master_class_weights_dict
                         class_weights = master_class_weights
-                    if config_name.endswith('3'):
+                    elif config_name.endswith('3'):
                         alpha_value = [4, 1, 4]
                         class_weights_dict = {0: 4, 1: 1, 2: 4}
                         class_weights = [4, 1, 4]
