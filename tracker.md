@@ -551,3 +551,5 @@ Alpha values verified to be calculated from training class frequencies (not hard
 
 **scripts/compare_main_versions.py**: Created comprehensive comparison tool to validate that refactored main.py produces identical results to main_original.py. Tests individual modalities and combinations systematically. Runs both versions with same config (cv_folds=0, n_runs=1 for deterministic comparison), extracts metrics from CSV files, and reports differences.
 **scripts/COMPARISON_README.md**: Created detailed documentation for comparison testing strategy, usage examples, troubleshooting guide, and interpretation of results. Includes systematic testing phases from individual modalities to complex combinations.
+**scripts/simple_comparison_test.py**: Created simpler direct comparison test that runs both versions in same process for easier debugging. Uses smaller default dataset (5%) for quick testing.
+**src/training/training_utils.py** (lines 755-764): Fixed KeyError when configs dict doesn't include batch_size/max_epochs/image_size keys - now adds defaults from production_config.py for backward compatibility with external callers and test scripts.
