@@ -528,12 +528,13 @@ Alpha values verified to be calculated from training class frequencies (not hard
 
 **Critical fix - Callback alignment** (lines 1017-1032): Changed EarlyStopping and ReduceLROnPlateau to monitor 'val_macro_f1' (mode=max) instead of 'val_loss' (mode=min). Previously, EarlyStopping restored epoch 1 weights (best loss but collapsed model) while ModelCheckpoint saved best macro F1 weights (different epoch). Now all callbacks aligned on same metric, preventing model collapse.
 
-**src/data/dataset_utils.py** (lines 611-646): Smart alpha redistribution algorithm - iteratively caps maximum value at 0.5 and redistributes excess to other classes proportionally based on remaining capacity. Maintains sum=1.0 while preventing extreme weights. Example: [0.288, 0.135, 0.577] → [0.316, 0.184, 0.5]. Classes with more room to grow receive more of the redistributed weight.
-**src/data/dataset_utils.py** (line 617): Increased MAX_ALPHA from 0.5 to 0.7 to handle extreme class imbalance (10% minority class). Redistribution algorithm still prevents any class from exceeding 0.7.
+**src/data/dataset_utils.py** (lines 611-646): Smart alpha redistribution algorithm - iteratively caps maximum value at MAX_ALPHA and redistributes excess to other classes proportionally based on remaining capacity. Maintains sum=1.0 while preventing extreme weights. Example: [0.288, 0.135, 0.577] → [0.316, 0.184, 0.5]. Classes with more room to grow receive more of the redistributed weight.
+**src/data/dataset_utils.py** (line 617): MAX_ALPHA=0.5 to prevent any class from dominating (>50% focal loss weight).
 **src/training/training_utils.py** (line 1011): Reduced learning rate from 1e-3 to 1e-4 to prevent overshooting and collapse.
 **src/training/training_utils.py** (line 1022): Reduced EarlyStopping min_delta to 0.001 (was 0.01, too strict - caused premature stopping).
 **src/training/training_utils.py** (line 1030): Reduced ReduceLROnPlateau min_delta to 0.0005 (was 0.005, too strict).
-**src/training/training_utils.py** (lines 1101-1109): Added conditional verbosity for model.fit() - shows per-epoch metrics (loss, accuracy, F1, kappa) when verbosity >= 2.
+**src/training/training_utils.py** (line 1100-1101): Added metadata-only training message to clarify minimal training on final layer.
+**src/training/training_utils.py** (line 1103): Changed fit verbose from 1 to 2 - displays one line per epoch instead of multi-line progress bars (eliminates 1/4, 2/4, 4/4 output).
 **src/training/training_utils.py** (lines 1208-1214): Added confusion matrix display at verbosity 2 after each run to diagnose collapse patterns (which classes model predicts vs actual).
 **src/utils/production_config.py** (line 161): Reduced FOCAL_GAMMA from 2.0 to 1.0 - less aggressive focal loss allows better learning of minority classes.
 **src/utils/production_config.py** (lines 29, 33-34, 61-62): Optimized for RTX 5090 - increased batch sizes (30→128), reduced epochs (50→30), added EARLY_STOP_PATIENCE and REDUCE_LR_PATIENCE configs.
