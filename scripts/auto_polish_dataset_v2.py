@@ -461,7 +461,7 @@ class BayesianDatasetPolisher:
                 # Update config for this specific modality
                 modified_config = re.sub(
                     r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
-                    f"INCLUDED_COMBINATIONS = [\n    (('{modality_name}',)),  # Temporary: Phase 1 detection\n]",
+                    f"INCLUDED_COMBINATIONS = [\n    ('{modality_name}',),  # Temporary: Phase 1 detection\n]",
                     original_config
                 )
                 with open(config_path, 'w') as f:
