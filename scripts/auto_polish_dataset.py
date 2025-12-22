@@ -169,19 +169,22 @@ class DatasetPolisher:
                 print(f"RUN {run_idx}/{self.n_runs} (seed={self.base_random_seed + run_idx})")
                 print(f"{'─'*70}")
 
-                # Clean up predictions/models from previous run but keep patient splits
-                # This ensures each run trains fresh but uses consistent fold assignments
+                # Clean up predictions/models/patient splits from previous run
+                # We MUST delete patient splits to force regeneration with new random seed
+                # This ensures each run has truly independent fold assignments
                 if run_idx > 1:
                     import glob
                     import shutil
                     from src.utils.config import get_output_paths
                     output_paths = get_output_paths(self.result_dir)
 
-                    # Delete predictions and models but NOT patient splits or CSV accumulation
+                    # Delete predictions, models, AND patient splits (to force regeneration with new seed)
+                    # Keep only misclassification CSV for accumulation across runs
                     patterns = [
                         os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
                         os.path.join(output_paths['checkpoints'], '*pred*.npy'),
                         os.path.join(output_paths['checkpoints'], '*label*.npy'),
+                        os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),  # DELETE to force new splits!
                         os.path.join(output_paths['models'], '*.h5'),
                     ]
                     for pattern in patterns:
