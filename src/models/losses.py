@@ -30,7 +30,12 @@ class WeightedF1Score(tf.keras.metrics.Metric):
         y_true_cls = tf.argmax(y_true, axis=1)
         y_pred_cls = tf.argmax(y_pred, axis=1)
 
-        # Calculate confusion matrix elements for each class
+        # Calculate confusion matrix elements for each class using vectorized operations
+        # This approach works correctly with distributed strategies
+        tp_batch = []
+        fp_batch = []
+        fn_batch = []
+
         for class_id in range(3):
             y_true_class = tf.cast(tf.equal(y_true_cls, class_id), tf.float32)
             y_pred_class = tf.cast(tf.equal(y_pred_cls, class_id), tf.float32)
@@ -39,9 +44,14 @@ class WeightedF1Score(tf.keras.metrics.Metric):
             fp = tf.reduce_sum((1 - y_true_class) * y_pred_class)
             fn = tf.reduce_sum(y_true_class * (1 - y_pred_class))
 
-            self.true_positives[class_id].assign_add(tp)
-            self.false_positives[class_id].assign_add(fp)
-            self.false_negatives[class_id].assign_add(fn)
+            tp_batch.append(tp)
+            fp_batch.append(fp)
+            fn_batch.append(fn)
+
+        # Stack and add to weights (works with distributed strategy)
+        self.true_positives.assign_add(tf.stack(tp_batch))
+        self.false_positives.assign_add(tf.stack(fp_batch))
+        self.false_negatives.assign_add(tf.stack(fn_batch))
 
     def result(self):
         # Calculate F1 for each class
