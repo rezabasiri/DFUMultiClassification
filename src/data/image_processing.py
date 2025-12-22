@@ -13,6 +13,7 @@ from PIL import Image
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 from src.utils.config import get_project_paths, get_data_paths
+from src.utils.verbosity import vprint
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -230,9 +231,9 @@ def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalitie
         raise ValueError("No valid modalities selected")
     
     # Print the number of samples for each selected modality
-    print("Number of samples for each selected modality:")
+    vprint("Number of samples for each selected modality:", level=1)
     for key in matched_files:
-        print(f"  {key}: {len(matched_files[key])}")
+        vprint(f"  {key}: {len(matched_files[key])}", level=1)
     
     return best_matching_df
 def preprocess_image_data(train_data, test_data, target_class, selected_modalities):
