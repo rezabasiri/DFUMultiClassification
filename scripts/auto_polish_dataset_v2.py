@@ -244,17 +244,19 @@ class BayesianDatasetPolisher:
                 # Set random seed via environment variable
                 os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_idx)
 
+                # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
                 cmd = [
                     'python', 'src/main.py',
                     '--mode', 'search',
                     '--cv_folds', str(self.phase1_cv_folds),
-                    '--verbosity', '1'
+                    '--verbosity', '1',
+                    '--resume_mode', 'fresh'  # Force fresh training for each run
                 ]
 
                 if run_idx == 1:
-                    print(f"⏳ Training run {run_idx}...")
+                    print(f"⏳ Training run {run_idx} (fresh mode)...")
                 else:
-                    print(f"⏳ Accumulating misclassifications (run {run_idx})...")
+                    print(f"⏳ Accumulating misclassifications (run {run_idx}, fresh mode)...")
 
                 result = subprocess.run(cmd, cwd=project_root, env=os.environ.copy())
 
@@ -537,18 +539,19 @@ class BayesianDatasetPolisher:
             with open(config_path, 'w') as f:
                 f.write(modified_config)
 
-            # Run training with thresholds
+            # Run training with thresholds - use fresh mode for clean evaluation
             cmd = [
                 'python', 'src/main.py',
                 '--mode', 'search',
                 '--cv_folds', str(self.phase2_cv_folds),
                 '--verbosity', '0',  # Minimal output during optimization
+                '--resume_mode', 'fresh',  # Force fresh training for each evaluation
                 '--threshold_I', str(thresholds['I']),
                 '--threshold_P', str(thresholds['P']),
                 '--threshold_R', str(thresholds['R'])
             ]
 
-            print(f"⏳ Training with cv_folds={self.phase2_cv_folds}...")
+            print(f"⏳ Training with cv_folds={self.phase2_cv_folds} (fresh mode)...")
             result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
 
             if result.returncode != 0:
