@@ -318,6 +318,22 @@ class BayesianDatasetPolisher:
         print("PHASE 2: BAYESIAN THRESHOLD OPTIMIZATION")
         print("="*70)
 
+        # Ensure original dataset size is set (in case Phase 1 was skipped)
+        if self.original_dataset_size is None:
+            self.original_dataset_size = self.get_original_dataset_size()
+            if self.original_dataset_size:
+                print(f"\nOriginal dataset size: {self.original_dataset_size} samples")
+                min_samples = int(self.original_dataset_size * self.min_dataset_fraction)
+                print(f"Minimum dataset size after filtering: {min_samples} samples ({self.min_dataset_fraction*100:.0f}%)")
+
+        # Verify misclassification file exists
+        misclass_file = os.path.join(self.result_dir, 'frequent_misclassifications_total.csv')
+        if not os.path.exists(misclass_file):
+            print(f"\n❌ ERROR: Misclassification file not found: {misclass_file}")
+            print("   Phase 1 must complete successfully before running Phase 2.")
+            print("   Run without --phase2-only to execute both phases.\n")
+            return False, None
+
         # Check if scikit-optimize is available
         try:
             from skopt import gp_minimize
