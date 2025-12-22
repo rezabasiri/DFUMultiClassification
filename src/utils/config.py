@@ -169,14 +169,14 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
             os.path.join(output_paths['checkpoints'], 'gating_network_run_*_results.csv'),  # Gating results
         ], 'predictions')
 
-        # Delete CSV results
+        # Delete CSV results (but keep best_matching.csv - it's static patient-to-image mapping)
         delete_files([
             os.path.join(output_paths['csv'], '*.csv'),
             # Also delete CSVs created by main_original.py in results/ root
             os.path.join(result_dir, 'frequent_misclassifications_*.csv'),
             os.path.join(result_dir, 'modality_results_*.csv'),
             os.path.join(result_dir, 'gating_network_*.csv'),
-            os.path.join(result_dir, 'best_matching.csv'),
+            # NOTE: best_matching.csv is preserved - it's static patient-to-image mapping
         ], 'csv_results')
 
         # Delete patient splits
