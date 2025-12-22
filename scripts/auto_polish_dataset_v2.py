@@ -381,20 +381,20 @@ class BayesianDatasetPolisher:
             print("   Falling back to grid search...")
             return self.phase2_grid_search()
 
-        # Define search space (percentage-based)
-        # P: 30-70%, I: 50-90%, R: 80-100% of phase1_n_runs
+        # Define search space (percentage-based, symmetric ranges)
+        # All classes: 10-100% - let balanced F1 metric handle class distribution
         search_space = [
-            Integer(int(0.30 * self.phase1_n_runs), int(0.70 * self.phase1_n_runs), name='threshold_P'),
-            Integer(int(0.50 * self.phase1_n_runs), int(0.90 * self.phase1_n_runs), name='threshold_I'),
-            Integer(int(0.80 * self.phase1_n_runs), int(1.00 * self.phase1_n_runs), name='threshold_R')
+            Integer(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs), name='threshold_P'),
+            Integer(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs), name='threshold_I'),
+            Integer(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs), name='threshold_R')
         ]
 
-        print(f"\nSearch Space:")
-        print(f"  P (dominant): {search_space[0].low}-{search_space[0].high} " +
+        print(f"\nSearch Space (symmetric for all classes):")
+        print(f"  P: {search_space[0].low}-{search_space[0].high} " +
               f"({search_space[0].low/self.phase1_n_runs*100:.0f}%-{search_space[0].high/self.phase1_n_runs*100:.0f}%)")
-        print(f"  I (minority): {search_space[1].low}-{search_space[1].high} " +
+        print(f"  I: {search_space[1].low}-{search_space[1].high} " +
               f"({search_space[1].low/self.phase1_n_runs*100:.0f}%-{search_space[1].high/self.phase1_n_runs*100:.0f}%)")
-        print(f"  R (rarest):   {search_space[2].low}-{search_space[2].high} " +
+        print(f"  R: {search_space[2].low}-{search_space[2].high} " +
               f"({search_space[2].low/self.phase1_n_runs*100:.0f}%-{search_space[2].high/self.phase1_n_runs*100:.0f}%)")
 
         print(f"\nOptimization Settings:")
@@ -507,10 +507,10 @@ class BayesianDatasetPolisher:
         print("\n🔍 Using grid search (fallback)...")
         print("⚠️  This will be slower than Bayesian optimization")
 
-        # Define coarse grid
-        p_range = range(int(0.30 * self.phase1_n_runs), int(0.70 * self.phase1_n_runs) + 1, 2)
-        i_range = range(int(0.50 * self.phase1_n_runs), int(0.90 * self.phase1_n_runs) + 1, 2)
-        r_range = range(int(0.80 * self.phase1_n_runs), int(1.00 * self.phase1_n_runs) + 1)
+        # Define coarse grid (symmetric ranges 10-100% for all classes)
+        p_range = range(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs) + 1, 2)
+        i_range = range(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs) + 1, 2)
+        r_range = range(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs) + 1, 2)
 
         from itertools import product
         grid = list(product(p_range, i_range, r_range))
@@ -660,14 +660,30 @@ class BayesianDatasetPolisher:
         """Save optimization results to JSON."""
         results_file = os.path.join(self.result_dir, 'bayesian_optimization_results.json')
 
+        # Convert numpy types to native Python types for JSON serialization
+        def convert_to_native(obj):
+            """Recursively convert numpy types to native Python types."""
+            if isinstance(obj, dict):
+                return {k: convert_to_native(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_native(item) for item in obj]
+            elif isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                return obj
+
         results = {
             'timestamp': datetime.now().isoformat(),
             'phase1_n_runs': self.phase1_n_runs,
             'phase2_n_evaluations': self.phase2_n_evaluations,
-            'best_thresholds': self.best_thresholds,
+            'best_thresholds': convert_to_native(self.best_thresholds),
             'best_score': float(self.best_score),
-            'optimization_history': self.optimization_history,
-            'original_dataset_size': self.original_dataset_size
+            'optimization_history': convert_to_native(self.optimization_history),
+            'original_dataset_size': int(self.original_dataset_size) if self.original_dataset_size else None
         }
 
         with open(results_file, 'w') as f:
