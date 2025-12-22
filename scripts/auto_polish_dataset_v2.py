@@ -148,7 +148,7 @@ class BayesianDatasetPolisher:
         class_counts = Counter(remaining_samples)
         return {'I': class_counts.get('I', 0), 'P': class_counts.get('P', 0), 'R': class_counts.get('R', 0)}
 
-    def calculate_constraint_penalties(self, thresholds, metrics):
+    def calculate_constraint_penalties(self, thresholds, metrics, filtered_size=None):
         """
         Calculate smooth constraint penalties (integrated into optimization score).
 
@@ -158,11 +158,24 @@ class BayesianDatasetPolisher:
         Args:
             thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
             metrics: Dict with performance metrics
+            filtered_size: Number of samples after filtering (optional, for dataset size penalty)
 
         Returns:
             dict: Penalties for each constraint (0 = satisfied, >0 = violated)
         """
         penalties = {}
+
+        # Penalty 0: Dataset size (exponential penalty below threshold)
+        if filtered_size is not None and self.original_dataset_size is not None:
+            min_size = int(self.original_dataset_size * self.min_dataset_fraction)
+            if filtered_size < min_size:
+                # Heavy exponential penalty for dataset too small
+                violation = (min_size - filtered_size) / min_size  # 0-1 range
+                penalties['dataset_size'] = 5 * (np.exp(3 * violation) - 1)  # Heavy penalty
+            else:
+                penalties['dataset_size'] = 0.0
+        else:
+            penalties['dataset_size'] = 0.0
 
         # Penalty 1: Minimum F1 per class (exponential penalty below threshold)
         min_f1 = min(metrics['f1_per_class'].values())
@@ -275,7 +288,7 @@ class BayesianDatasetPolisher:
 
         return balance_score
 
-    def calculate_combined_score(self, metrics, thresholds):
+    def calculate_combined_score(self, metrics, thresholds, filtered_size=None):
         """
         Calculate enhanced combined optimization score with soft constraint penalties.
 
@@ -284,6 +297,7 @@ class BayesianDatasetPolisher:
         Base Score: 0.3×macro_f1 + 0.5×min_per_class_f1 + 0.1×kappa + 0.1×balance_score
 
         Penalties (smooth, integrated for Bayesian optimization):
+        - dataset_size_penalty: Heavy exponential when filtered dataset < 50% of original
         - min_f1_penalty: Exponential penalty when any class F1 < 0.25
         - min_samples_penalty: Linear penalty when any class < 30 samples
         - imbalance_penalty: Linear penalty when class ratio > 5.0
@@ -292,9 +306,10 @@ class BayesianDatasetPolisher:
         Args:
             metrics: Dict with 'macro_f1', 'f1_per_class', 'kappa'
             thresholds: Dict with threshold values
+            filtered_size: Number of samples after filtering (for dataset size penalty)
 
         Returns:
-            float: Combined score (higher is better, can be negative if heavily penalized)
+            tuple: (final_score, penalties_dict)
         """
         # Base performance score
         macro_f1 = metrics['macro_f1']
@@ -305,7 +320,7 @@ class BayesianDatasetPolisher:
         base_score = 0.3 * macro_f1 + 0.5 * min_f1 + 0.1 * kappa + 0.1 * balance_score
 
         # Calculate constraint penalties (smooth, differentiable)
-        penalties = self.calculate_constraint_penalties(thresholds, metrics)
+        penalties = self.calculate_constraint_penalties(thresholds, metrics, filtered_size)
         total_penalty = sum(penalties.values())
 
         # Final score = base performance - penalties
@@ -619,11 +634,12 @@ class BayesianDatasetPolisher:
         print(f"  Evaluations: {self.phase2_n_evaluations}")
         print(f"  CV folds per evaluation: {self.phase2_cv_folds}")
         print(f"  Score: 0.3×macro_f1 + 0.5×min_f1 + 0.1×kappa + 0.1×balance - penalties")
-        print(f"\nSoft Constraints (integrated penalties guide optimizer):")
-        print(f"  Dataset size: ≥{self.min_dataset_fraction*100:.0f}% of original (hard limit)")
+        print(f"\nSoft Constraints (smooth penalties guide optimizer):")
+        print(f"  Dataset size: Target ≥{self.min_dataset_fraction*100:.0f}% of original (heavy exp penalty)")
         print(f"  Min F1 per class: Target ≥{self.min_f1_threshold} (exponential penalty)")
         print(f"  Min samples per class: Target ≥{self.min_samples_per_class} (linear penalty)")
-        print(f"  Max class imbalance: Target ≤{self.max_class_imbalance_ratio}x (linear penalty)\n")
+        print(f"  Max class imbalance: Target ≤{self.max_class_imbalance_ratio}x (linear penalty)")
+        print(f"\nAll constraints are soft - optimizer learns from violations!\n")
 
         # Objective function
         @use_named_args(search_space)
@@ -650,19 +666,8 @@ class BayesianDatasetPolisher:
             print(f"Dataset after filtering: {filtered_size}/{self.original_dataset_size} samples " +
                   f"({filtered_size/self.original_dataset_size*100:.1f}%)")
 
-            if filtered_size < min_size:
-                print(f"❌ Rejected: Below minimum size ({min_size})")
-                penalty_score = -10.0  # Large penalty
-                self.optimization_history.append({
-                    'evaluation': eval_num,
-                    'thresholds': threshold_dict,
-                    'score': penalty_score,
-                    'filtered_size': filtered_size,
-                    'rejected': True
-                })
-                return -penalty_score  # Return positive for minimization
-
-            # Train and evaluate
+            # No hard rejection - let penalty guide the optimizer
+            # Train and evaluate (even if below min_size, penalty will handle it)
             metrics = self.train_with_thresholds(threshold_dict)
 
             if metrics is None:
@@ -693,9 +698,9 @@ class BayesianDatasetPolisher:
                 })
                 return -penalty_score
 
-            # Calculate score with penalties
+            # Calculate score with penalties (including dataset size penalty)
             balance_score = self.get_class_balance_score(threshold_dict)
-            score, penalties = self.calculate_combined_score(metrics, threshold_dict)
+            score, penalties = self.calculate_combined_score(metrics, threshold_dict, filtered_size)
 
             print(f"Results:")
             print(f"  Macro F1: {metrics['macro_f1']:.4f}")
@@ -771,14 +776,13 @@ class BayesianDatasetPolisher:
             print(f"\nEvaluation {eval_num}/{len(grid)}")
             print(f"Thresholds: {threshold_dict}")
 
-            # Check size constraint
+            # Get filtered dataset size
             filtered_size = self.get_filtered_dataset_size(threshold_dict)
             min_size = int(self.original_dataset_size * self.min_dataset_fraction)
+            print(f"Dataset after filtering: {filtered_size}/{self.original_dataset_size} samples " +
+                  f"({filtered_size/self.original_dataset_size*100:.1f}%)")
 
-            if filtered_size < min_size:
-                print(f"❌ Rejected: Dataset too small ({filtered_size} < {min_size})")
-                continue
-
+            # No hard rejection - let penalty guide optimization
             # Train and evaluate
             metrics = self.train_with_thresholds(threshold_dict)
             if metrics is None:
@@ -790,7 +794,7 @@ class BayesianDatasetPolisher:
                 print(f"❌ Rejected: {rejection_reason}")
                 continue
 
-            score, penalties = self.calculate_combined_score(metrics, threshold_dict)
+            score, penalties = self.calculate_combined_score(metrics, threshold_dict, filtered_size)
             balance_score = self.get_class_balance_score(threshold_dict)
             penalty_str = f", Penalties: {sum(penalties.values()):.2f}" if sum(penalties.values()) > 0 else ""
             print(f"Score: {score:.4f} (Balance: {balance_score:.3f}, Min F1: {min(metrics['f1_per_class'].values()):.3f}{penalty_str})")
