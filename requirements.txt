@@ -2,18 +2,15 @@
 # Multimodal Deep Learning for Diabetic Foot Ulcer Healing Phase Classification
 
 # Core Deep Learning
-tensorflow==2.15.1
-keras==2.15.0
+tensorflow==2.18.1
 
 # PyTorch (for generative augmentation with Stable Diffusion)
-# PINNED for compatibility with TensorFlow 2.15.1 CUDA 12.2
-torch==2.1.2
-torchvision==0.16.2
+torch>=2.1.0
+torchvision>=0.16.0
 
 # Diffusion Models
-# PINNED for compatibility with PyTorch 2.1.2
-diffusers==0.23.0
-transformers==4.35.0
+diffusers>=0.23.0
+transformers>=4.35.0
 
 # Data Processing
 pandas>=1.5.0
@@ -22,6 +19,7 @@ pillow>=9.3.0
 
 # Machine Learning (PINNED to avoid imblearn/sklearn breakage)
 scikit-learn==1.6.1
+scikit-optimize>=0.9.0
 imbalanced-learn==0.12.4
 
 # Visualization
