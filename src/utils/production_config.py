@@ -26,7 +26,9 @@ Categories:
 
 # Core training hyperparameters
 IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
+# IMAGE_SIZE = 12  # Image dimensions (12x12 pixels)
+# GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
+GLOBAL_BATCH_SIZE = 32  # Total batch size across all GPU replicas (local GPU)
 N_EPOCHS = 100  # Maximum number of training epochs (increased for thorough training)
 
 # Early stopping and learning rate
