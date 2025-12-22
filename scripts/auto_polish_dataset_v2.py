@@ -55,6 +55,10 @@ from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 
+# Force TensorFlow to use only GPU 0 (TITAN Xp) - must be set before subprocess calls
+# This ensures all child processes also use GPU 0
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -516,7 +520,7 @@ class BayesianDatasetPolisher:
 
                     # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
                     cmd = [
-                        'python', 'src/main.py',
+                        sys.executable, 'src/main.py',
                         '--mode', 'search',
                         '--cv_folds', str(self.phase1_cv_folds),
                         '--verbosity', '0',
@@ -883,7 +887,7 @@ class BayesianDatasetPolisher:
 
             # Run training with thresholds - use fresh mode for clean evaluation
             cmd = [
-                'python', 'src/main.py',
+                sys.executable, 'src/main.py',
                 '--mode', 'search',
                 '--cv_folds', str(self.phase2_cv_folds),
                 '--verbosity', '0',  # Minimal output during optimization

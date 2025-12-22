@@ -150,7 +150,8 @@ def clean_up_training_resources():
 
 def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     modality_str = '_'.join(sorted(selected_modalities))
-    checkpoint_name = f'{modality_str}_{run}_{config_name}.h5'
+    # Keras 3 (TF 2.16+) requires .weights.h5 extension when using save_weights_only=True
+    checkpoint_name = f'{modality_str}_{run}_{config_name}.weights.h5'
     return os.path.join(models_path, checkpoint_name)
 class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
     def __init__(self, monitor='val_loss', factor=0.5, patience=5, 
@@ -1285,7 +1286,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 except Exception as e:
                     vprint(f"Error during training (attempt {retry_count + 1}/{max_retries}): {str(e)}", level=0)
                     import traceback
-                    vprint(f"Traceback: {traceback.format_exc()}", level=2)
+                    vprint(f"Traceback: {traceback.format_exc()}", level=0)  # Always show traceback
                     clean_up_training_resources()
                     retry_count += 1
                     continue

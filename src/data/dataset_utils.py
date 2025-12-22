@@ -335,8 +335,8 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
-    steps = np.ceil(n_samples / batch_size)
-    k = int(steps * batch_size)  # Total number of samples needed
+    steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
+    k = steps * batch_size  # Total number of samples needed
     
     # Cache the dataset with unique filename per modality combination
     modality_suffix = '_'.join(sorted(selected_modalities))  # e.g., "depth_rgb_metadata"
