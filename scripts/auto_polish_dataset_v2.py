@@ -129,11 +129,29 @@ class BayesianDatasetPolisher:
 
     def get_original_dataset_size(self):
         """Get original dataset size before any filtering."""
-        # Read from data directory
+        # Try multiple sources to get dataset size
+
+        # Option 1: Read from balanced CSV if it exists
         data_path = os.path.join(self.directory, 'balanced_combined_healing_phases.csv')
         if os.path.exists(data_path):
             df = pd.read_csv(data_path)
             return len(df)
+
+        # Option 2: Get from misclassification CSV (count unique Sample_IDs)
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
+        if os.path.exists(misclass_file):
+            df = pd.read_csv(misclass_file)
+            unique_samples = df['Sample_ID'].nunique()
+            return unique_samples
+
+        # Option 3: Read from raw data
+        raw_data_path = os.path.join(self.directory, 'data', 'raw', 'DataMaster_Processed_V12_WithMissing.csv')
+        if os.path.exists(raw_data_path):
+            df = pd.read_csv(raw_data_path)
+            return len(df)
+
         return None
 
     def get_filtered_dataset_size(self, thresholds):
@@ -155,6 +173,11 @@ class BayesianDatasetPolisher:
             return self.original_dataset_size
 
         df = pd.read_csv(misclass_file)
+
+        # If original_dataset_size not set, get it from misclassification CSV
+        if self.original_dataset_size is None:
+            self.original_dataset_size = df['Sample_ID'].nunique()
+            print(f"ℹ️  Inferred dataset size from misclassification CSV: {self.original_dataset_size} samples")
 
         # Count samples that would be excluded
         excluded_samples = set()
