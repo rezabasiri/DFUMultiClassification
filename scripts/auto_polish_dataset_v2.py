@@ -185,14 +185,28 @@ class BayesianDatasetPolisher:
         else:
             penalties['dataset_size'] = 0.0
 
-        # Penalty 1: Minimum F1 per class (exponential penalty below threshold)
+        # Penalty 1: Minimum F1 per class (log-barrier + exponential penalty)
+        # Uses log-barrier that approaches infinity as any F1 approaches zero
+        # This provides smooth gradients for Bayesian optimization
         min_f1 = min(metrics['f1_per_class'].values())
+
+        # Log-barrier penalty: smooth increase as F1 decreases toward zero
+        # Formula: -k * log(f1 + eps) where k controls steepness
+        # Designed to be ~0 for F1 > 0.5, then increase smoothly toward infinity at F1=0
+        epsilon = 0.01  # Small constant to avoid log(0)
+        # Scale factor: at F1=0.5, penalty ≈ 0; at F1=0.1, penalty ≈ 1; at F1=0, penalty → ∞
+        k = 0.3  # Controls steepness
+        log_barrier = k * max(0, -np.log((min_f1 + epsilon) / (0.5 + epsilon)))
+
+        # Exponential component for threshold violation (kicks in below min_f1_threshold)
         if min_f1 < self.min_f1_threshold:
-            # Exponential penalty: gets much worse as F1 drops further below threshold
             violation = self.min_f1_threshold - min_f1
-            penalties['min_f1'] = np.exp(5 * violation) - 1  # Smooth exponential
+            exp_penalty = np.exp(5 * violation) - 1
         else:
-            penalties['min_f1'] = 0.0
+            exp_penalty = 0.0
+
+        # Combined: log-barrier provides smooth gradient toward zero, exp adds extra push below threshold
+        penalties['min_f1'] = log_barrier + exp_penalty
 
         # Penalty 2 & 3: Class counts and imbalance
         class_counts = self.get_class_counts(thresholds)
