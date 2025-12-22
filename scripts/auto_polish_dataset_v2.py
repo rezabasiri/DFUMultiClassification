@@ -166,7 +166,8 @@ class BayesianDatasetPolisher:
         """
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
-        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
+        # Use saved Phase 1 data to avoid contamination from Phase 2 training
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
 
         if not os.path.exists(misclass_file):
             print(f"⚠️  Misclassification file not found: {misclass_file}")
@@ -307,6 +308,16 @@ class BayesianDatasetPolisher:
             print(f"✅ PHASE 1 COMPLETE")
             print(f"{'='*70}")
 
+            # Save Phase 1 misclassification data (preserve it before Phase 2 starts)
+            import shutil
+            output_paths = get_output_paths(self.result_dir)
+            misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
+            misclass_saved = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
+
+            if os.path.exists(misclass_file):
+                shutil.copy2(misclass_file, misclass_saved)
+                print(f"\n💾 Saved Phase 1 misclassification data to: frequent_misclassifications_saved.csv")
+
             # Analyze misclassifications
             self.show_misclass_summary()
 
@@ -322,7 +333,9 @@ class BayesianDatasetPolisher:
 
     def show_misclass_summary(self):
         """Show summary of accumulated misclassifications."""
-        misclass_file = os.path.join(self.result_dir, 'frequent_misclassifications_total.csv')
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
 
         if not os.path.exists(misclass_file):
             print("\n⚠️  No misclassification file found")
@@ -361,12 +374,12 @@ class BayesianDatasetPolisher:
                 min_samples = int(self.original_dataset_size * self.min_dataset_fraction)
                 print(f"Minimum dataset size after filtering: {min_samples} samples ({self.min_dataset_fraction*100:.0f}%)")
 
-        # Verify misclassification file exists
+        # Verify Phase 1 saved misclassification file exists
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
-        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
         if not os.path.exists(misclass_file):
-            print(f"\n❌ ERROR: Misclassification file not found: {misclass_file}")
+            print(f"\n❌ ERROR: Phase 1 misclassification file not found: {misclass_file}")
             print("   Phase 1 must complete successfully before running Phase 2.")
             print("   Run without --phase2-only to execute both phases.\n")
             return False, None
