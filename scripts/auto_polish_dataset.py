@@ -123,6 +123,13 @@ class DatasetPolisher:
         print(f"ITERATION {iteration}: METADATA-ONLY TRAINING ({self.n_runs} runs)")
         print("="*70)
 
+        # Clean up from previous iteration (only on iteration 1, clean everything)
+        if iteration == 1:
+            cleanup_for_resume_mode('fresh')
+        else:
+            # For subsequent iterations, only clean predictions/models but keep patient splits
+            cleanup_for_resume_mode('from_data')
+
         # Show thresholds with percentages
         thresh_str = "Thresholds (count/runs): "
         thresh_str += ", ".join([f"{k}={v}/{self.n_runs} ({100*v/self.n_runs:.0f}%)"
@@ -156,22 +163,43 @@ class DatasetPolisher:
                 f.write(modified_config)
 
             # Run training n_runs times with different random seeds
-            # Misclassification CSV accumulates across runs
+            # Each run must train fresh (delete predictions but keep patient splits)
             for run_idx in range(1, self.n_runs + 1):
                 print(f"\n{'─'*70}")
                 print(f"RUN {run_idx}/{self.n_runs} (seed={self.base_random_seed + run_idx})")
                 print(f"{'─'*70}")
 
+                # Clean up predictions/models from previous run but keep patient splits
+                # This ensures each run trains fresh but uses consistent fold assignments
+                if run_idx > 1:
+                    import glob
+                    import shutil
+                    from src.utils.config import get_output_paths
+                    output_paths = get_output_paths(self.result_dir)
+
+                    # Delete predictions and models but NOT patient splits or CSV accumulation
+                    patterns = [
+                        os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
+                        os.path.join(output_paths['checkpoints'], '*pred*.npy'),
+                        os.path.join(output_paths['checkpoints'], '*label*.npy'),
+                        os.path.join(output_paths['models'], '*.h5'),
+                    ]
+                    for pattern in patterns:
+                        for file_path in glob.glob(pattern):
+                            try:
+                                os.remove(file_path)
+                            except Exception:
+                                pass
+
                 # Set environment variable to control random seed for fold generation
                 os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_idx)
 
-                # Prepare command
+                # Prepare command - always use 'auto' mode to preserve patient splits
                 cmd = [
                     'python', 'src/main.py',
                     '--mode', 'search',
                     '--cv_folds', str(self.cv_folds),
                     '--verbosity', '1',  # Reduce noise
-                    '--resume_mode', 'fresh' if run_idx == 1 else 'auto'  # Only clean on first run
                 ]
 
                 # Add threshold arguments if not first iteration
@@ -183,7 +211,7 @@ class DatasetPolisher:
                 if run_idx == 1:
                     print(f"⏳ First run may take 15-30 minutes...")
                 else:
-                    print(f"⏳ Accumulating misclassifications (run {run_idx})...")
+                    print(f"⏳ Run {run_idx} - Training with different random seed...")
 
                 # Run training with live output
                 result = subprocess.run(cmd, cwd=project_root, env=os.environ.copy())
@@ -224,25 +252,42 @@ class DatasetPolisher:
 
         # Read from CSV files
         csv_file = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
-        if os.path.exists(csv_file):
-            try:
-                df = pd.read_csv(csv_file)
-                if len(df) > 0:
-                    # Get the metadata row (should be only one)
-                    metadata_rows = df[df['Modalities'].str.contains('metadata', case=False, na=False)]
-                    if len(metadata_rows) > 0:
-                        row = metadata_rows.iloc[-1]  # Latest metadata result
-                        metrics['macro_f1'] = row.get('Macro Avg F1-score (Mean)', 0.0)
-                        metrics['kappa'] = row.get("Cohen's Kappa (Mean)", 0.0)
-                        metrics['accuracy'] = row.get('Accuracy (Mean)', 0.0)
+        if not os.path.exists(csv_file):
+            print(f"⚠️  Metrics file not found: {csv_file}")
+            return metrics
 
-                        # Try to get per-class F1 if available
-                        for i, cls in enumerate(['I', 'P', 'R']):
-                            col_name = f'Class {i} F1-score (Mean)'
-                            if col_name in row:
-                                metrics['f1_per_class'][cls] = row[col_name]
-            except Exception as e:
-                print(f"⚠️  Could not read metrics from CSV: {e}")
+        try:
+            # Check if file is empty
+            if os.path.getsize(csv_file) == 0:
+                print(f"⚠️  Metrics file is empty: {csv_file}")
+                return metrics
+
+            df = pd.read_csv(csv_file)
+            if len(df) == 0:
+                print(f"⚠️  No data in metrics file")
+                return metrics
+
+            # Get the metadata row (should be only one)
+            metadata_rows = df[df['Modalities'].str.contains('metadata', case=False, na=False)]
+            if len(metadata_rows) == 0:
+                print(f"⚠️  No metadata results found in CSV")
+                return metrics
+
+            row = metadata_rows.iloc[-1]  # Latest metadata result
+            metrics['macro_f1'] = float(row.get('Macro Avg F1-score (Mean)', 0.0))
+            metrics['kappa'] = float(row.get("Cohen's Kappa (Mean)", 0.0))
+            metrics['accuracy'] = float(row.get('Accuracy (Mean)', 0.0))
+
+            # Try to get per-class F1 if available
+            for i, cls in enumerate(['I', 'P', 'R']):
+                col_name = f'Class {i} F1-score (Mean)'
+                if col_name in row:
+                    metrics['f1_per_class'][cls] = float(row[col_name])
+
+            print(f"✓ Extracted metrics: Acc={metrics['accuracy']:.3f}, F1={metrics['macro_f1']:.3f}, Kappa={metrics['kappa']:.3f}")
+
+        except Exception as e:
+            print(f"⚠️  Could not read metrics from CSV: {e}")
 
         return metrics
 
