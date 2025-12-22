@@ -3,22 +3,26 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from src.utils.config import CLASS_LABELS
+from src.utils.config import CLASS_LABELS, get_output_paths
 from src.utils.verbosity import vprint
 
 def track_misclassifications(y_true, y_pred, sample_ids, selected_modalities, result_dir):
     """
     Track uniquely misclassified examples and update the CSV file.
-    
+
     Args:
         y_true: True labels (numpy array)
         y_pred: Predicted labels (numpy array)
         sample_ids: Array of sample identifiers
         result_dir: Directory to save the CSV file
     """
+    # Use organized output paths - save to misclassifications subdirectory
+    output_paths = get_output_paths(result_dir)
+    misclass_dir = output_paths['misclassifications']
+
     modality_str = '_'.join(sorted(selected_modalities))
-    misclass_file = os.path.join(result_dir, f'frequent_misclassifications_{modality_str}.csv')
-    misclass_file_total = os.path.join(result_dir, f'frequent_misclassifications_total.csv')
+    misclass_file = os.path.join(misclass_dir, f'frequent_misclassifications_{modality_str}.csv')
+    misclass_file_total = os.path.join(misclass_dir, f'frequent_misclassifications_total.csv')
     
     # Create DataFrame of current misclassifications
     misclassified_mask = (y_true != y_pred)
@@ -153,16 +157,19 @@ def analyze_misclassifications(result_dir):
 def filter_frequent_misclassifications(data, result_dir, thresholds={'I': 12, 'P': 9, 'R': 12}):
     """
     Filter out samples that are frequently misclassified based on healing phase-specific thresholds.
-    
+
     Args:
         data: Original DataFrame
         result_dir: Directory containing the misclassifications CSV
         thresholds: Dictionary with misclassification count thresholds for each class
-    
+
     Returns:
         Filtered DataFrame
     """
-    misclass_file = os.path.join(result_dir, 'frequent_misclassifications_saved.csv')
+    # Use organized output paths - read from misclassifications subdirectory
+    output_paths = get_output_paths(result_dir)
+    misclass_dir = output_paths['misclassifications']
+    misclass_file = os.path.join(misclass_dir, 'frequent_misclassifications_saved.csv')
     if not os.path.exists(misclass_file):
         vprint("No misclassification, level=1 file found. Using original dataset.")
         return data

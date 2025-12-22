@@ -146,7 +146,9 @@ class BayesianDatasetPolisher:
         Returns:
             Number of samples that would remain
         """
-        misclass_file = os.path.join(self.result_dir, 'frequent_misclassifications_total.csv')
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
 
         if not os.path.exists(misclass_file):
             print(f"⚠️  Misclassification file not found: {misclass_file}")
@@ -193,6 +195,16 @@ class BayesianDatasetPolisher:
 
         # Clean up everything for fresh start
         cleanup_for_resume_mode('fresh')
+
+        # Clear misclassifications directory for fresh start
+        from src.utils.config import get_output_paths
+        import shutil
+        output_paths = get_output_paths(self.result_dir)
+        misclass_dir = output_paths['misclassifications']
+        if os.path.exists(misclass_dir):
+            shutil.rmtree(misclass_dir)
+        os.makedirs(misclass_dir, exist_ok=True)
+        print(f"🗑️  Cleared misclassifications directory: {misclass_dir}\n")
 
         # Temporarily override INCLUDED_COMBINATIONS
         config_path = project_root / 'src' / 'utils' / 'production_config.py'
@@ -327,7 +339,9 @@ class BayesianDatasetPolisher:
                 print(f"Minimum dataset size after filtering: {min_samples} samples ({self.min_dataset_fraction*100:.0f}%)")
 
         # Verify misclassification file exists
-        misclass_file = os.path.join(self.result_dir, 'frequent_misclassifications_total.csv')
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
         if not os.path.exists(misclass_file):
             print(f"\n❌ ERROR: Misclassification file not found: {misclass_file}")
             print("   Phase 1 must complete successfully before running Phase 2.")
