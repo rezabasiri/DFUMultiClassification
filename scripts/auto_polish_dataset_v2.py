@@ -482,7 +482,14 @@ class BayesianDatasetPolisher:
                     '--resume_mode', 'fresh'  # Force fresh training for each run
                 ]
 
-                result = subprocess.run(cmd, cwd=project_root, env=os.environ.copy())
+                # Suppress all subprocess output - only show progress bar
+                result = subprocess.run(
+                    cmd,
+                    cwd=project_root,
+                    env=os.environ.copy(),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
 
                 if result.returncode != 0:
                     print(f"\n❌ Training failed on run {run_idx}")
