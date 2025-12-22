@@ -442,10 +442,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         valid_patients: Optional pre-computed list of validation patient IDs (for k-fold CV)
         for_shape_inference: If True, use quick split without messages (for metadata shape detection only)
     """
-    random.seed(42 + run * (run + 3))
-    tf.random.set_seed(42 + run * (run + 3))
-    np.random.seed(42 + run * (run + 3))
-    os.environ['PYTHONHASHSEED'] = f"{42 + run * (run + 3)}"
+    # Allow environment variable to override random seed for multi-run scenarios
+    if 'CROSS_VAL_RANDOM_SEED' in os.environ:
+        seed = int(os.environ['CROSS_VAL_RANDOM_SEED'])
+    else:
+        seed = 42 + run * (run + 3)
+
+    random.seed(seed)
+    tf.random.set_seed(seed)
+    np.random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
     # Create a deep copy of the data
     data = data1.copy(deep=True)
     data = data.reset_index(drop=True)
