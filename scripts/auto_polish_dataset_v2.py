@@ -49,6 +49,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from datetime import datetime
+from tqdm import tqdm
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -405,18 +406,14 @@ class BayesianDatasetPolisher:
         print("\n" + "="*70)
         print("PHASE 1: MISCLASSIFICATION DETECTION")
         print("="*70)
-        print(f"\nRunning {self.phase1_n_runs} training runs with different random seeds")
-        print(f"CV folds: {self.phase1_cv_folds} (fast detection)")
-        print(f"Seeds: {[self.base_random_seed + i for i in range(1, self.phase1_n_runs + 1)]}")
-        print(f"\nThis will create a comprehensive misclassification profile")
-        print(f"Max misclassification count: {self.phase1_n_runs}\n")
 
         # Get original dataset size
         self.original_dataset_size = self.get_original_dataset_size()
         if self.original_dataset_size:
-            print(f"Original dataset size: {self.original_dataset_size} samples")
             min_samples = int(self.original_dataset_size * self.min_dataset_fraction)
-            print(f"Minimum dataset size after filtering: {min_samples} samples ({self.min_dataset_fraction*100:.0f}%)\n")
+            print(f"Dataset: {self.original_dataset_size} samples (min after filtering: {min_samples})")
+
+        print(f"Running {self.phase1_n_runs} detection runs (CV folds={self.phase1_cv_folds}, verbosity=silent)\n")
 
         # Clean up everything for fresh start
         cleanup_for_resume_mode('fresh')
@@ -429,7 +426,6 @@ class BayesianDatasetPolisher:
         if os.path.exists(misclass_dir):
             shutil.rmtree(misclass_dir)
         os.makedirs(misclass_dir, exist_ok=True)
-        print(f"🗑️  Cleared misclassifications directory: {misclass_dir}\n")
 
         # Temporarily override INCLUDED_COMBINATIONS
         config_path = project_root / 'src' / 'utils' / 'production_config.py'
@@ -451,11 +447,7 @@ class BayesianDatasetPolisher:
                 f.write(modified_config)
 
             # Run multiple times with different seeds
-            for run_idx in range(1, self.phase1_n_runs + 1):
-                print(f"\n{'─'*70}")
-                print(f"RUN {run_idx}/{self.phase1_n_runs} (seed={self.base_random_seed + run_idx})")
-                print(f"{'─'*70}")
-
+            for run_idx in tqdm(range(1, self.phase1_n_runs + 1), desc="Phase 1 Progress", unit="run"):
                 # Clean up predictions/models/patient splits from previous run
                 # We MUST delete patient splits to force regeneration with new random seed
                 if run_idx > 1:
@@ -486,14 +478,9 @@ class BayesianDatasetPolisher:
                     'python', 'src/main.py',
                     '--mode', 'search',
                     '--cv_folds', str(self.phase1_cv_folds),
-                    '--verbosity', '1',
+                    '--verbosity', '0',
                     '--resume_mode', 'fresh'  # Force fresh training for each run
                 ]
-
-                if run_idx == 1:
-                    print(f"⏳ Training run {run_idx} (fresh mode)...")
-                else:
-                    print(f"⏳ Accumulating misclassifications (run {run_idx}, fresh mode)...")
 
                 result = subprocess.run(cmd, cwd=project_root, env=os.environ.copy())
 
