@@ -219,16 +219,19 @@ class BayesianDatasetPolisher:
                 print(f"RUN {run_idx}/{self.phase1_n_runs} (seed={self.base_random_seed + run_idx})")
                 print(f"{'─'*70}")
 
-                # Clean up predictions between runs
+                # Clean up predictions/models/patient splits from previous run
+                # We MUST delete patient splits to force regeneration with new random seed
                 if run_idx > 1:
                     import glob
                     from src.utils.config import get_output_paths
                     output_paths = get_output_paths(self.result_dir)
 
+                    # Delete everything except misclassification CSV (which accumulates)
                     patterns = [
                         os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
                         os.path.join(output_paths['checkpoints'], '*pred*.npy'),
                         os.path.join(output_paths['checkpoints'], '*label*.npy'),
+                        os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),  # DELETE to force new splits!
                         os.path.join(output_paths['models'], '*.h5'),
                     ]
                     for pattern in patterns:
