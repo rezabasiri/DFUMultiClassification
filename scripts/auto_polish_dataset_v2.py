@@ -148,9 +148,65 @@ class BayesianDatasetPolisher:
         class_counts = Counter(remaining_samples)
         return {'I': class_counts.get('I', 0), 'P': class_counts.get('P', 0), 'R': class_counts.get('R', 0)}
 
+    def calculate_constraint_penalties(self, thresholds, metrics):
+        """
+        Calculate smooth constraint penalties (integrated into optimization score).
+
+        Uses exponential penalties that increase smoothly as constraints are violated.
+        This gives the Bayesian optimizer gradient information to learn from.
+
+        Args:
+            thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
+            metrics: Dict with performance metrics
+
+        Returns:
+            dict: Penalties for each constraint (0 = satisfied, >0 = violated)
+        """
+        penalties = {}
+
+        # Penalty 1: Minimum F1 per class (exponential penalty below threshold)
+        min_f1 = min(metrics['f1_per_class'].values())
+        if min_f1 < self.min_f1_threshold:
+            # Exponential penalty: gets much worse as F1 drops further below threshold
+            violation = self.min_f1_threshold - min_f1
+            penalties['min_f1'] = np.exp(5 * violation) - 1  # Smooth exponential
+        else:
+            penalties['min_f1'] = 0.0
+
+        # Penalty 2 & 3: Class counts and imbalance
+        class_counts = self.get_class_counts(thresholds)
+        counts = np.array(list(class_counts.values()))
+
+        # Empty class - extreme penalty
+        if np.any(counts == 0):
+            penalties['empty_class'] = 10.0  # Very high but still distinguishable
+        else:
+            penalties['empty_class'] = 0.0
+
+            # Minimum samples per class (smooth penalty below threshold)
+            min_samples = min(counts)
+            if min_samples < self.min_samples_per_class:
+                violation = (self.min_samples_per_class - min_samples) / self.min_samples_per_class
+                penalties['min_samples'] = 2 * violation  # Linear penalty, scaled
+            else:
+                penalties['min_samples'] = 0.0
+
+            # Maximum class imbalance ratio (smooth penalty above threshold)
+            ratio = max(counts) / min(counts)
+            if ratio > self.max_class_imbalance_ratio:
+                violation = (ratio - self.max_class_imbalance_ratio) / self.max_class_imbalance_ratio
+                penalties['imbalance'] = 2 * violation  # Linear penalty, scaled
+            else:
+                penalties['imbalance'] = 0.0
+
+        return penalties
+
     def check_hard_constraints(self, thresholds, metrics):
         """
-        Check hard constraints that must be satisfied.
+        Check EXTREME violations only (catastrophic failures).
+
+        Most constraints are now soft penalties integrated into the score.
+        This only catches truly unusable solutions (e.g., empty dataset).
 
         Args:
             thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
@@ -159,33 +215,12 @@ class BayesianDatasetPolisher:
         Returns:
             tuple: (is_valid, rejection_reason)
         """
-        # Constraint 1: Minimum F1 threshold for each class
-        min_f1 = min(metrics['f1_per_class'].values())
-        if min_f1 < self.min_f1_threshold:
-            worst_class = min(metrics['f1_per_class'], key=metrics['f1_per_class'].get)
-            return False, f"Min F1 ({min_f1:.3f}) < threshold ({self.min_f1_threshold}), worst class: {worst_class}"
-
-        # Constraint 2 & 3: Check class counts
+        # Only reject if completely catastrophic (empty dataset)
         class_counts = self.get_class_counts(thresholds)
         counts = np.array(list(class_counts.values()))
 
-        # Empty class check
-        if np.any(counts == 0):
-            empty_classes = [cls for cls, cnt in class_counts.items() if cnt == 0]
-            return False, f"Classes {empty_classes} have 0 samples after filtering"
-
-        # Minimum samples per class
-        min_samples = min(counts)
-        if min_samples < self.min_samples_per_class:
-            smallest_class = min(class_counts, key=class_counts.get)
-            return False, f"Class {smallest_class} has only {min_samples} samples (min: {self.min_samples_per_class})"
-
-        # Maximum class imbalance ratio
-        ratio = max(counts) / min(counts)
-        if ratio > self.max_class_imbalance_ratio:
-            largest_class = max(class_counts, key=class_counts.get)
-            smallest_class = min(class_counts, key=class_counts.get)
-            return False, f"Imbalance {largest_class}:{smallest_class} = {ratio:.2f}x (max: {self.max_class_imbalance_ratio}x)"
+        if np.sum(counts) == 0:
+            return False, "No samples remaining after filtering"
 
         return True, None
 
@@ -242,30 +277,41 @@ class BayesianDatasetPolisher:
 
     def calculate_combined_score(self, metrics, thresholds):
         """
-        Calculate enhanced combined optimization score with class balance.
+        Calculate enhanced combined optimization score with soft constraint penalties.
 
-        Formula: 0.3×macro_f1 + 0.5×min_per_class_f1 + 0.1×kappa + 0.1×balance_score
+        Formula: base_score - total_penalty
 
-        This balances:
-        - Overall performance (macro F1) - 30%
-        - Worst-class performance (min per-class F1) - 50% (INCREASED to prevent class failure)
-        - Clinical agreement (Cohen's Kappa) - 10%
-        - Class balance in filtered dataset - 10% (NEW - penalizes imbalance)
+        Base Score: 0.3×macro_f1 + 0.5×min_per_class_f1 + 0.1×kappa + 0.1×balance_score
+
+        Penalties (smooth, integrated for Bayesian optimization):
+        - min_f1_penalty: Exponential penalty when any class F1 < 0.25
+        - min_samples_penalty: Linear penalty when any class < 30 samples
+        - imbalance_penalty: Linear penalty when class ratio > 5.0
+        - empty_class_penalty: Large penalty when any class has 0 samples
 
         Args:
             metrics: Dict with 'macro_f1', 'f1_per_class', 'kappa'
-            thresholds: Dict with threshold values for class balance calculation
+            thresholds: Dict with threshold values
 
         Returns:
-            float: Combined score (0-1)
+            float: Combined score (higher is better, can be negative if heavily penalized)
         """
+        # Base performance score
         macro_f1 = metrics['macro_f1']
         min_f1 = min(metrics['f1_per_class'].values())
         kappa = metrics['kappa']
         balance_score = self.get_class_balance_score(thresholds)
 
-        score = 0.3 * macro_f1 + 0.5 * min_f1 + 0.1 * kappa + 0.1 * balance_score
-        return score
+        base_score = 0.3 * macro_f1 + 0.5 * min_f1 + 0.1 * kappa + 0.1 * balance_score
+
+        # Calculate constraint penalties (smooth, differentiable)
+        penalties = self.calculate_constraint_penalties(thresholds, metrics)
+        total_penalty = sum(penalties.values())
+
+        # Final score = base performance - penalties
+        final_score = base_score - total_penalty
+
+        return final_score, penalties
 
     def get_original_dataset_size(self):
         """Get original dataset size before any filtering."""
@@ -572,12 +618,12 @@ class BayesianDatasetPolisher:
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
         print(f"  CV folds per evaluation: {self.phase2_cv_folds}")
-        print(f"  Score: 0.3×macro_f1 + 0.5×min_f1 + 0.1×kappa + 0.1×balance")
-        print(f"\nHard Constraints:")
-        print(f"  Dataset size: ≥{self.min_dataset_fraction*100:.0f}% of original")
-        print(f"  Min F1 per class: ≥{self.min_f1_threshold}")
-        print(f"  Min samples per class: ≥{self.min_samples_per_class}")
-        print(f"  Max class imbalance ratio: ≤{self.max_class_imbalance_ratio}\n")
+        print(f"  Score: 0.3×macro_f1 + 0.5×min_f1 + 0.1×kappa + 0.1×balance - penalties")
+        print(f"\nSoft Constraints (integrated penalties guide optimizer):")
+        print(f"  Dataset size: ≥{self.min_dataset_fraction*100:.0f}% of original (hard limit)")
+        print(f"  Min F1 per class: Target ≥{self.min_f1_threshold} (exponential penalty)")
+        print(f"  Min samples per class: Target ≥{self.min_samples_per_class} (linear penalty)")
+        print(f"  Max class imbalance: Target ≤{self.max_class_imbalance_ratio}x (linear penalty)\n")
 
         # Objective function
         @use_named_args(search_space)
@@ -647,15 +693,18 @@ class BayesianDatasetPolisher:
                 })
                 return -penalty_score
 
-            # Calculate score
+            # Calculate score with penalties
             balance_score = self.get_class_balance_score(threshold_dict)
-            score = self.calculate_combined_score(metrics, threshold_dict)
+            score, penalties = self.calculate_combined_score(metrics, threshold_dict)
 
             print(f"Results:")
             print(f"  Macro F1: {metrics['macro_f1']:.4f}")
             print(f"  Min F1: {min(metrics['f1_per_class'].values()):.4f}")
             print(f"  Kappa: {metrics['kappa']:.4f}")
             print(f"  Balance: {balance_score:.4f}")
+            if sum(penalties.values()) > 0:
+                print(f"  Penalties: {sum(penalties.values()):.3f} " +
+                      f"({', '.join(f'{k}:{v:.2f}' for k, v in penalties.items() if v > 0)})")
             print(f"  Combined Score: {score:.4f}")
 
             # Track best
@@ -735,15 +784,16 @@ class BayesianDatasetPolisher:
             if metrics is None:
                 continue
 
-            # Check hard constraints
+            # Check hard constraints (only catastrophic failures)
             is_valid, rejection_reason = self.check_hard_constraints(threshold_dict, metrics)
             if not is_valid:
                 print(f"❌ Rejected: {rejection_reason}")
                 continue
 
-            score = self.calculate_combined_score(metrics, threshold_dict)
+            score, penalties = self.calculate_combined_score(metrics, threshold_dict)
             balance_score = self.get_class_balance_score(threshold_dict)
-            print(f"Score: {score:.4f} (Balance: {balance_score:.3f}, Min F1: {min(metrics['f1_per_class'].values()):.3f})")
+            penalty_str = f", Penalties: {sum(penalties.values()):.2f}" if sum(penalties.values()) > 0 else ""
+            print(f"Score: {score:.4f} (Balance: {balance_score:.3f}, Min F1: {min(metrics['f1_per_class'].values()):.3f}{penalty_str})")
 
             if score > self.best_score:
                 self.best_score = score
