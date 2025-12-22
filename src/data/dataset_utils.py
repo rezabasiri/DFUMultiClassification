@@ -615,47 +615,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             for class_idx in [0, 1, 2]:  # Explicit ordering
                 print(f"Class {class_idx}: {counts[class_idx]}")
         # Calculate alpha values from original distribution
+        # Use inverse of frequency (uncapped) normalized to sum to 3
         total_samples = sum(counts.values())
         class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
-        median_freq = np.median(list(class_frequencies.values()))
-        alpha_values = [median_freq/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
 
-        # Normalize to sum=1.0 first (standard for focal loss)
+        # Inverse frequency for each class (no capping)
+        alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+        # Normalize to sum=3.0 (as recommended)
         alpha_sum = sum(alpha_values)
-        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
-
-        # Cap and redistribute: prevent extreme weights while maintaining sum=1.0
-        # Iteratively cap at MAX_ALPHA and redistribute excess to other classes
-        MAX_ALPHA = 0.5  # No class can dominate (>50% of total weight)
-        for _ in range(len(alpha_values)):  # Max iterations = number of classes
-            # Find class with maximum alpha
-            max_idx = alpha_values.index(max(alpha_values))
-
-            if alpha_values[max_idx] <= MAX_ALPHA:
-                break  # No more capping needed
-
-            # Calculate excess over the cap
-            excess = alpha_values[max_idx] - MAX_ALPHA
-            alpha_values[max_idx] = MAX_ALPHA
-
-            # Find classes that can receive redistribution (< MAX_ALPHA)
-            can_receive = [i for i in range(len(alpha_values)) if alpha_values[i] < MAX_ALPHA]
-
-            if not can_receive:
-                break  # All at max, will normalize below
-
-            # Redistribute proportionally to remaining capacity (room to grow)
-            capacities = [MAX_ALPHA - alpha_values[i] for i in can_receive]
-            total_capacity = sum(capacities)
-
-            if total_capacity > 0:
-                for i in can_receive:
-                    capacity_fraction = (MAX_ALPHA - alpha_values[i]) / total_capacity
-                    alpha_values[i] += excess * capacity_fraction
-
-        # Final normalization to ensure sum=1.0 (handles floating point precision)
-        alpha_sum = sum(alpha_values)
-        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
+        alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
         vprint("\nCalculated alpha values from original distribution:", level=2)
         vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
@@ -679,10 +648,14 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:  # Explicit ordering
                     print(f"Class {class_idx}: {counts[class_idx]}")
             # Calculate alpha values from original distribution
+            # Use inverse of frequency (uncapped) normalized to sum to 3
             total_samples = sum(counts.values())
             class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
-            median_freq = np.median(list(class_frequencies.values()))
-            alpha_values = [median_freq/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+            # Inverse frequency for each class (no capping)
+            alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+            # Normalize to sum=3.0 (as recommended)
             alpha_sum = sum(alpha_values)
             alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
             

@@ -33,7 +33,7 @@ from src.utils.production_config import (
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
 from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
-from src.models.losses import get_focal_ordinal_loss, weighted_f1_score
+from src.models.losses import get_focal_ordinal_loss, weighted_f1_score, WeightedF1Score
 from src.evaluation.metrics import track_misclassifications
 
 # Get paths
@@ -1049,17 +1049,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     # Create and train model
                     with strategy.scope():
                         weighted_acc = WeightedAccuracy(alpha_values=class_weights)
+                        weighted_f1 = WeightedF1Score(alpha_values=alpha_value)  # Use alpha_value for weighted F1
                         input_shapes = data_manager.get_shapes_for_modalities(selected_modalities)
                         model = create_multimodal_model(input_shapes, selected_modalities, None)
 
                         # Use loss parameters from config if available, otherwise use defaults
                         ordinal_weight = config.get('ordinal_weight', 0.05)
                         gamma = config.get('gamma', 2.0)
-                        alpha = config.get('alpha', class_weights)
+                        alpha = config.get('alpha', alpha_value)  # Use alpha_value for consistency
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
                         macro_f1 = MacroF1Score(num_classes=3)
                         model.compile(optimizer=Adam(learning_rate=1e-4, clipnorm=1.0), loss=loss,  # Reduced LR from 1e-3 to 1e-4
-                            metrics=['accuracy', weighted_f1_score, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
+                            metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
@@ -1068,22 +1069,22 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             EarlyStopping(
                                 patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
-                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                monitor='val_weighted_f1_score',  # Use weighted F1 for early stopping
                                 min_delta=0.001,  # Require 0.1% improvement (was 0.01, too strict)
-                                mode='max',  # Maximize F1, not minimize loss
+                                mode='max',  # Maximize weighted F1
                                 verbose=1
                             ),
                             ReduceLROnPlateau(
                                 factor=0.50,
                                 patience=REDUCE_LR_PATIENCE,
-                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                monitor='val_weighted_f1_score',  # Use weighted F1 for LR reduction
                                 min_delta=0.0005,  # Reduced from 0.005 to allow smaller improvements
                                 min_lr=1e-10,
-                                mode='max',  # Maximize F1, not minimize loss
+                                mode='max',  # Maximize weighted F1
                             ),
                             tf.keras.callbacks.ModelCheckpoint(
                                 create_checkpoint_filename(selected_modalities, run+1, config_name),
-                                monitor='val_macro_f1',
+                                monitor='val_weighted_f1_score',  # Use weighted F1 for best model
                                 save_best_only=True,
                                 mode='max',
                                 save_weights_only=True

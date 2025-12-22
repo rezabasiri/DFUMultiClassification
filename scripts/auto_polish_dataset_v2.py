@@ -5,10 +5,11 @@ This script uses a smart two-phase approach to find optimal misclassification
 filtering thresholds:
 
 PHASE 1: Misclassification Detection (Run Once)
-- Runs training N times (e.g., 10) with different random seeds
-- Accumulates misclassification counts across runs (max count = N)
+- Tests each modality individually (default: metadata, depth_rgb, depth_map, thermal_map)
+- Runs training N times per modality (e.g., 10) with different random seeds
+- Accumulates misclassification counts across all modality runs (max count = N * num_modalities)
 - Creates comprehensive misclassification profile
-- Time: ~30-60 minutes for N=10 runs
+- Time: ~30-60 minutes for N=10 runs per modality (e.g., 40 runs total for 4 modalities)
 
 PHASE 2: Bayesian Threshold Optimization
 - Uses Bayesian optimization to find optimal thresholds
@@ -27,11 +28,14 @@ Key Advantages:
 - Safety constraint: rejects thresholds that filter >50% of data
 
 Usage:
-    # Run both phases automatically
+    # Run both phases automatically (test all 4 modalities in Phase 1)
     python scripts/auto_polish_dataset_v2.py --modalities metadata depth_rgb depth_map
 
-    # Just Phase 1 (detection only)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only
+    # Run Phase 1 with 100 runs per modality (400 total for 4 modalities)
+    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-n-runs 100
+
+    # Run Phase 1 with custom modalities (e.g., only metadata and depth_rgb)
+    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
 
     # Just Phase 2 (if Phase 1 already completed)
     python scripts/auto_polish_dataset_v2.py --modalities metadata --phase2-only
@@ -68,6 +72,7 @@ class BayesianDatasetPolisher:
                  min_kappa=0.35,
                  phase1_n_runs=10,
                  phase1_cv_folds=1,
+                 phase1_modalities=None,
                  phase2_cv_folds=3,
                  phase2_n_evaluations=20,
                  base_random_seed=42,
@@ -83,8 +88,9 @@ class BayesianDatasetPolisher:
             min_f1_per_class: Minimum F1 score for each class
             min_macro_f1: Minimum macro F1 score
             min_kappa: Minimum Cohen's Kappa
-            phase1_n_runs: Number of runs in Phase 1 for misclass detection (default: 10)
+            phase1_n_runs: Number of runs per modality in Phase 1 for misclass detection (default: 10)
             phase1_cv_folds: CV folds in Phase 1 (default: 1 for speed)
+            phase1_modalities: List of modalities to test individually in Phase 1 (default: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'])
             phase2_cv_folds: CV folds in Phase 2 for evaluation (default: 3)
             phase2_n_evaluations: Number of Bayesian optimization iterations (default: 20)
             base_random_seed: Base random seed
@@ -102,6 +108,7 @@ class BayesianDatasetPolisher:
         self.min_kappa = min_kappa
         self.phase1_n_runs = phase1_n_runs
         self.phase1_cv_folds = phase1_cv_folds
+        self.phase1_modalities = phase1_modalities if phase1_modalities is not None else ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
         self.phase2_cv_folds = phase2_cv_folds
         self.phase2_n_evaluations = phase2_n_evaluations
         self.base_random_seed = base_random_seed
@@ -413,7 +420,11 @@ class BayesianDatasetPolisher:
             min_samples = int(self.original_dataset_size * self.min_dataset_fraction)
             print(f"Dataset: {self.original_dataset_size} samples (min after filtering: {min_samples})")
 
-        print(f"Running {self.phase1_n_runs} detection runs (CV folds={self.phase1_cv_folds}, verbosity=silent)\n")
+        total_runs = self.phase1_n_runs * len(self.phase1_modalities)
+        print(f"Testing {len(self.phase1_modalities)} modalities individually: {self.phase1_modalities}")
+        print(f"Running {self.phase1_n_runs} runs per modality (total {total_runs} runs)")
+        print(f"Misclassification counts will be out of {total_runs}")
+        print(f"CV folds={self.phase1_cv_folds}, verbosity=silent\n")
 
         # Clean up everything for fresh start
         cleanup_for_resume_mode('fresh')
@@ -438,62 +449,78 @@ class BayesianDatasetPolisher:
 
         try:
             import re
-            modified_config = re.sub(
-                r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
-                "INCLUDED_COMBINATIONS = [\n    ('metadata',),  # Temporary: Phase 1 detection\n]",
-                original_config
-            )
-            with open(config_path, 'w') as f:
-                f.write(modified_config)
+            # Loop through each modality individually
+            total_runs = self.phase1_n_runs * len(self.phase1_modalities)
+            run_counter = 0
 
-            # Run multiple times with different seeds
-            for run_idx in tqdm(range(1, self.phase1_n_runs + 1), desc="Phase 1 Progress", unit="run"):
-                # Clean up predictions/models/patient splits from previous run
-                # We MUST delete patient splits to force regeneration with new random seed
-                if run_idx > 1:
-                    import glob
-                    from src.utils.config import get_output_paths
-                    output_paths = get_output_paths(self.result_dir)
+            for modality_name in self.phase1_modalities:
+                print(f"\n{'='*70}")
+                print(f"Testing modality: {modality_name} ({self.phase1_n_runs} runs)")
+                print(f"{'='*70}")
 
-                    # Delete everything except misclassification CSV (which accumulates)
-                    patterns = [
-                        os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
-                        os.path.join(output_paths['checkpoints'], '*pred*.npy'),
-                        os.path.join(output_paths['checkpoints'], '*label*.npy'),
-                        os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),  # DELETE to force new splits!
-                        os.path.join(output_paths['models'], '*.h5'),
-                    ]
-                    for pattern in patterns:
-                        for file_path in glob.glob(pattern):
-                            try:
-                                os.remove(file_path)
-                            except Exception:
-                                pass
-
-                # Set random seed via environment variable
-                os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_idx)
-
-                # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
-                cmd = [
-                    'python', 'src/main.py',
-                    '--mode', 'search',
-                    '--cv_folds', str(self.phase1_cv_folds),
-                    '--verbosity', '0',
-                    '--resume_mode', 'fresh'  # Force fresh training for each run
-                ]
-
-                # Suppress all subprocess output - only show progress bar
-                result = subprocess.run(
-                    cmd,
-                    cwd=project_root,
-                    env=os.environ.copy(),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
+                # Update config for this specific modality
+                modified_config = re.sub(
+                    r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
+                    f"INCLUDED_COMBINATIONS = [\n    (('{modality_name}',)),  # Temporary: Phase 1 detection\n]",
+                    original_config
                 )
+                with open(config_path, 'w') as f:
+                    f.write(modified_config)
 
-                if result.returncode != 0:
-                    print(f"\n❌ Training failed on run {run_idx}")
-                    return False
+                # Run multiple times with different seeds for this modality
+                for run_idx in tqdm(range(1, self.phase1_n_runs + 1),
+                                   desc=f"Phase 1 Progress ({modality_name})",
+                                   unit="run",
+                                   total=self.phase1_n_runs,
+                                   position=0,
+                                   leave=True):
+                    run_counter += 1
+                    # Clean up predictions/models/patient splits from previous run
+                    # We MUST delete patient splits to force regeneration with new random seed
+                    if run_idx > 1:
+                        import glob
+                        from src.utils.config import get_output_paths
+                        output_paths = get_output_paths(self.result_dir)
+
+                        # Delete everything except misclassification CSV (which accumulates)
+                        patterns = [
+                            os.path.join(output_paths['checkpoints'], '*predictions*.npy'),
+                            os.path.join(output_paths['checkpoints'], '*pred*.npy'),
+                            os.path.join(output_paths['checkpoints'], '*label*.npy'),
+                            os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),  # DELETE to force new splits!
+                            os.path.join(output_paths['models'], '*.h5'),
+                        ]
+                        for pattern in patterns:
+                            for file_path in glob.glob(pattern):
+                                try:
+                                    os.remove(file_path)
+                                except Exception:
+                                    pass
+
+                    # Set random seed via environment variable (use run_counter for unique seeds)
+                    os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_counter)
+
+                    # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
+                    cmd = [
+                        'python', 'src/main.py',
+                        '--mode', 'search',
+                        '--cv_folds', str(self.phase1_cv_folds),
+                        '--verbosity', '0',
+                        '--resume_mode', 'fresh'  # Force fresh training for each run
+                    ]
+
+                    # Suppress all subprocess output - only show progress bar
+                    result = subprocess.run(
+                        cmd,
+                        cwd=project_root,
+                        env=os.environ.copy(),
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+
+                    if result.returncode != 0:
+                        print(f"\n❌ Training failed on {modality_name} run {run_idx}")
+                        return False
 
             # Clear environment variable
             if 'CROSS_VAL_RANDOM_SEED' in os.environ:
@@ -946,11 +973,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run both phases
+  # Run both phases (test all 4 modalities in Phase 1)
   python scripts/auto_polish_dataset_v2.py --modalities metadata depth_rgb depth_map
 
-  # Just Phase 1 (detection)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only
+  # Just Phase 1 with 100 runs per modality (400 total)
+  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-n-runs 100
+
+  # Phase 1 with custom modalities (only metadata and depth_rgb)
+  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
 
   # Just Phase 2 (if Phase 1 already done)
   python scripts/auto_polish_dataset_v2.py --modalities metadata --phase2-only
@@ -970,7 +1000,10 @@ Examples:
                         help='Run only Phase 2 (threshold optimization)')
 
     parser.add_argument('--phase1-n-runs', type=int, default=10,
-                        help='Number of runs in Phase 1 (default: 10)')
+                        help='Number of runs per modality in Phase 1 (default: 10)')
+
+    parser.add_argument('--phase1-modalities', nargs='+', default=['metadata', 'depth_rgb', 'depth_map', 'thermal_map'],
+                        help='Modalities to test individually in Phase 1 (default: metadata depth_rgb depth_map thermal_map)')
 
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')
@@ -987,6 +1020,7 @@ Examples:
     polisher = BayesianDatasetPolisher(
         modalities=args.modalities,
         phase1_n_runs=args.phase1_n_runs,
+        phase1_modalities=args.phase1_modalities,
         phase2_n_evaluations=args.n_evaluations,
         min_dataset_fraction=args.min_dataset_fraction
     )
