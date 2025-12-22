@@ -17,6 +17,61 @@ This project implements a multimodal classification system for DFU healing phase
 - **Multimodal Integration**: Combines multiple imaging modalities with clinical data
 - **Ensemble Framework**: Adaptive phase weighting for improved performance
 
+## System Components
+
+### Multimodal Fusion (GAMAN)
+The core model that combines different input modalities (metadata, depth images, thermal images) within a single neural network. Each modality is processed through its own branch, then fused using attention mechanisms to produce a single prediction. This is **early/intermediate fusion** where features are combined during model training.
+
+### Gating Network (Late Fusion Ensemble)
+A meta-learning component that combines predictions from multiple models trained on **different modality combinations**. For example:
+- Model A: trained on `[metadata, depth_rgb]`
+- Model B: trained on `[metadata, depth_rgb, thermal_map]`
+- Model C: trained on `[depth_rgb, depth_map]`
+
+The gating network learns which "expert" model to trust for each sample, creating an ensemble that outperforms individual models. This is **late fusion** where complete models are ensembled after training.
+
+### Search Mode
+An exploration tool that systematically tests all possible modality combinations (31 combinations from 5 modalities) to identify which combinations perform best. Each combination is trained and evaluated independently, with results saved to CSV for comparison.
+
+**Usage:**
+```bash
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+```
+
+### Cross-Validation
+Patient-level splitting ensures no data leakage between training and validation sets. Multiple runs with different random splits provide robust performance estimates with confidence intervals.
+
+### Two-Block Training Workflow
+
+The system uses a two-stage training architecture:
+
+**Block A - Individual Model Training:**
+- Each modality combination trains its own independent model
+- All combinations within the same run use **identical train/valid patient splits**
+- Example with 3 combinations:
+  - Model A trains on `['metadata', 'depth_rgb']` → produces predictions
+  - Model B trains on `['metadata', 'depth_rgb', 'thermal_map']` → produces predictions
+  - Model C trains on `['depth_rgb', 'depth_map']` → produces predictions
+- All three models see the same training patients and validation patients
+- Each model's predictions are saved for Block B
+
+**Block B - Gating Network Ensemble (Late Fusion):**
+- **Only activates if you have 2+ modality combinations**
+- Loads all predictions from Block A
+- Trains a second model (gating network) to optimally combine the predictions
+- Uses the **same validation data** that Block A used
+- Learns which "expert" model to trust for each sample
+- Final ensemble typically outperforms any individual model
+
+**Example:**
+```bash
+# Train 3 combinations → Block A trains 3 models, Block B trains ensemble
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+
+# Train 1 combination → Only Block A runs, no ensemble
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+```
+
 ## Project Structure
 
 ```
@@ -98,10 +153,123 @@ The `Healing Phase Abs` column contains three classes:
 
 ## Quick Start
 
-1. Configure paths in `src/utils/config.py` for your environment
-2. Prepare data in the `data/raw/` directory
-3. Run training: `python src/main.py`
-4. For testing with demo data: `python test_workflow.py`
+### 1. Setup
+```bash
+# Configure paths in src/utils/config.py for your environment
+# Place your data in data/raw/ directory with proper structure
+```
+
+### 2. Explore Modality Combinations (Search Mode)
+Test all modality combinations to find the best performers:
+```bash
+# Full exploration with 3 cross-validation runs
+python src/main.py --mode search --data_percentage 100 --n_runs 3
+
+# Quick test with 5% of data
+python src/main.py --mode search --data_percentage 5 --n_runs 1
+```
+
+Results saved to: `results/csv/modality_combination_results.csv`
+
+### 3. Train Gating Network Ensemble
+After identifying top-performing combinations from search mode:
+
+1. Edit `src/utils/production_config.py` to set your chosen combinations:
+   ```python
+   INCLUDED_COMBINATIONS = [
+       ('metadata', 'depth_rgb'),
+       ('metadata', 'depth_rgb', 'thermal_map'),
+       ('depth_rgb', 'depth_map'),
+   ]
+   ```
+
+2. Run search mode - this will train all combinations and automatically run the gating network:
+   ```bash
+   python src/main.py --mode search --data_percentage 100 --n_runs 3
+   ```
+
+The gating network will ensemble predictions from all trained models.
+
+## Resume and Checkpoint Management
+
+The system supports intelligent checkpoint management with the `--resume_mode` flag to control what gets deleted/kept between runs:
+
+### Resume Modes
+
+**`--resume_mode fresh`** - Complete fresh start
+```bash
+# Delete everything: models, predictions, cache, CSV results
+# Use for: Starting a new experiment from scratch
+python src/main.py --mode search --resume_mode fresh --cv_folds 3
+```
+Deletes: Model weights (.h5), predictions (.npy), CSV results, patient splits, TF cache
+
+**`--resume_mode auto`** (default) - Smart resumption
+```bash
+# Keep all checkpoints, auto-resume from latest state
+# Use for: Continuing interrupted training
+python src/main.py --mode search --resume_mode auto --cv_folds 3
+```
+Keeps: Everything. The system automatically detects completed work and resumes.
+
+**`--resume_mode from_data`** - Retrain models
+```bash
+# Keep processed data, delete models and predictions
+# Use for: Retraining with different hyperparameters
+python src/main.py --mode search --resume_mode from_data --cv_folds 3
+```
+Keeps: Processed data (best_matching.csv, bounding boxes)
+Deletes: Model weights, predictions, patient splits, TF cache
+
+**`--resume_mode from_models`** - Regenerate predictions
+```bash
+# Keep model weights, delete predictions
+# Use for: Regenerating predictions after model architecture changes
+python src/main.py --mode search --resume_mode from_models --cv_folds 3
+```
+Keeps: Model weights (.h5 files)
+Deletes: Predictions, progress files
+
+**`--resume_mode from_predictions`** - Retrain ensemble only
+```bash
+# Keep Block A predictions, delete Block B gating models
+# Use for: Fine-tuning gating network hyperparameters
+python src/main.py --mode search --resume_mode from_predictions --cv_folds 3
+```
+Keeps: Block A individual model predictions
+Deletes: Gating network models, progress files
+
+### Typical Workflows
+
+**Interrupted training:**
+```bash
+# Just rerun with auto mode (default)
+python src/main.py --mode search --cv_folds 3
+```
+
+**Hyperparameter tuning:**
+```bash
+# Keep data, retrain models with new parameters
+python src/main.py --mode search --resume_mode from_data --cv_folds 3
+```
+
+**Gating network experiments:**
+```bash
+# Train Block A once, experiment with Block B
+python src/main.py --mode search --resume_mode from_predictions --cv_folds 3
+```
+
+## Demo & Testing
+
+The `demo/` directory contains test scripts to validate the pipeline:
+
+- **`demo/test_workflow.py`**: Basic end-to-end test with minimal data
+- **`demo/test_modality_combinations.py`**: Comprehensive test of all 31 modality combinations (1-5 modalities)
+  - Tests the dynamic modality system
+  - Generates performance analysis comparing all combinations
+  - Saves detailed results to `modality_test_results_*.txt`
+
+Run tests: `python demo/test_modality_combinations.py`
 
 ## Paper
 

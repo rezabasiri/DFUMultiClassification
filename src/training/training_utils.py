@@ -8,18 +8,43 @@ import pandas as pd
 import numpy as np
 import pickle
 import csv
+import random
+import gc
+import glob
 import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from sklearn.metrics import accuracy_score, f1_score, classification_report, cohen_kappa_score, confusion_matrix
+from sklearn.utils.class_weight import compute_class_weight
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from src.utils.config import get_project_paths, CLASS_LABELS
+from src.utils.config import get_project_paths, get_output_paths, CLASS_LABELS
+from src.utils.debug import clear_gpu_memory
+from src.utils.verbosity import vprint, get_verbosity
+from src.utils.production_config import (
+    GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
+    EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE, EPOCH_PRINT_INTERVAL,
+    SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
+    GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT
+)
+from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
+from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
+from src.models.losses import get_focal_ordinal_loss, weighted_f1_score
+from src.evaluation.metrics import track_misclassifications
 
 # Get paths
 directory, result_dir, root = get_project_paths()
-ck_path = os.path.join(result_dir, "checkpoints")
+output_paths = get_output_paths(result_dir)
+ck_path = output_paths['checkpoints']
+models_path = output_paths['models']
+csv_path = output_paths['csv']
+misclass_path = output_paths['misclassifications']
+vis_path = output_paths['visualizations']
+logs_path = output_paths['logs']
 
 class EpochMemoryCallback(tf.keras.callbacks.Callback):
     """Memory management callback that's compatible with distribution strategy"""
@@ -33,6 +58,46 @@ class EpochMemoryCallback(tf.keras.callbacks.Callback):
         if gpus:
             for i, _ in enumerate(gpus):
                 tf.config.experimental.reset_memory_stats(f'GPU:{i}')
+
+class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
+    """Print epoch metrics only every N epochs to reduce output clutter"""
+    def __init__(self, print_interval=50, total_epochs=20):
+        super().__init__()
+        self.print_interval = print_interval if print_interval > 0 else 1
+        self.total_epochs = total_epochs
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        epoch_num = epoch + 1  # Convert 0-indexed to 1-indexed
+
+        # Print if: first epoch, last epoch, or at interval
+        should_print = (
+            epoch_num == 1 or
+            epoch_num == self.total_epochs or
+            epoch_num % self.print_interval == 0
+        )
+
+        if should_print:
+            metrics_str = f"Epoch {epoch_num}/{self.total_epochs}"
+            if 'loss' in logs:
+                metrics_str += f" - loss: {logs['loss']:.4f}"
+            if 'val_loss' in logs:
+                metrics_str += f" - val_loss: {logs['val_loss']:.4f}"
+            if 'accuracy' in logs:
+                metrics_str += f" - acc: {logs['accuracy']:.4f}"
+            if 'val_accuracy' in logs:
+                metrics_str += f" - val_acc: {logs['val_accuracy']:.4f}"
+            if 'macro_f1' in logs:
+                metrics_str += f" - macro_f1: {logs['macro_f1']:.4f}"
+            if 'val_macro_f1' in logs:
+                metrics_str += f" - val_macro_f1: {logs['val_macro_f1']:.4f}"
+            if 'cohen_kappa' in logs:
+                metrics_str += f" - kappa: {logs['cohen_kappa']:.4f}"
+            if 'val_cohen_kappa' in logs:
+                metrics_str += f" - val_kappa: {logs['val_cohen_kappa']:.4f}"
+
+            print(metrics_str)
+
 class NaNMonitorCallback(tf.keras.callbacks.Callback):
     """
     Custom callback to monitor for NaN values in validation metrics
@@ -46,7 +111,7 @@ class NaNMonitorCallback(tf.keras.callbacks.Callback):
         logs = logs or {}
         if 'val_weighted_f1_score' in logs:
             if np.isnan(logs['val_weighted_f1_score']):
-                print("\nNaN detected in validation weighted F1 score. Triggering training restart...")
+                vprint("\nNaN detected in validation weighted F1 score. Triggering training restart...", level=1)
                 self.nan_detected = True
                 self.model.stop_training = True
 def clean_up_training_resources():
@@ -62,7 +127,7 @@ def clean_up_training_resources():
             for i, gpu in enumerate(gpus):
                 tf.config.experimental.reset_memory_stats(f'GPU:{i}')
     except Exception as e:
-        print(f"Error clearing memory stats: {str(e)}")
+        vprint(f"Error clearing memory stats: {str(e)}", level=2)
     
     # Remove cache files
     cache_patterns = [
@@ -79,14 +144,14 @@ def clean_up_training_resources():
                 try:
                     os.remove(cache_file)
                 except Exception as e:
-                    print(f"Warning: Could not remove cache file {cache_file}: {str(e)}")
+                    vprint(f"Warning: Could not remove cache file {cache_file}: {str(e)}", level=2)
         except Exception as e:
-            print(f"Warning: Error while processing pattern {pattern}: {str(e)}")
+            vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
 def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     modality_str = '_'.join(sorted(selected_modalities))
     checkpoint_name = f'{modality_str}_{run}_{config_name}.h5'
-    return os.path.join(result_dir, checkpoint_name)
+    return os.path.join(models_path, checkpoint_name)
 class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
     def __init__(self, monitor='val_loss', factor=0.5, patience=5, 
                  escape_factor=5.0, min_lr=1e-6, escape_patience=2):
@@ -135,7 +200,7 @@ class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
         if self.is_escaping:
             if current < self.best:
                 # Escape was successful, reset state
-                print(f'\nEscape successful! New best {self.monitor}: {current:.6f}')
+                vprint(f'\nEscape successful! New best {self.monitor}: {current:.6f}', level=2)
                 self.best = current
                 self.wait = 0
                 self.plateau_count = 0
@@ -163,7 +228,7 @@ class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
             # If we've hit enough plateaus, try escaping
             if self.plateau_count >= self.escape_patience:
                 new_lr = current_lr * self.escape_factor
-                print(f'\nAttempting to escape plateau by increasing LR from {current_lr:.2e} to {new_lr:.2e}')
+                vprint(f'\nAttempting to escape plateau by increasing LR from {current_lr:.2e} to {new_lr:.2e}', level=2)
                 tf.keras.backend.set_value(self.model.optimizer.lr, new_lr)
                 self.is_escaping = True
                 self.escape_epoch = epoch
@@ -192,23 +257,24 @@ class ProcessedDataManager:
     def process_all_modalities(self):
         """Process all modalities and store their shapes."""
         # Get metadata shape after preprocessing
-        print("Processing metadata shape...")
+        vprint("Processing metadata shape...", level=2)
         temp_data = self.data.copy()
         temp_train, _, _, _, _, _ = prepare_cached_datasets(
-            temp_data, 
-            ['metadata'], 
+            temp_data,
+            ['metadata'],
             train_patient_percentage=0.8,
             batch_size=1,
             run=0,
+            for_shape_inference=True
         )
         for batch in temp_train.take(1):
             self.all_modality_shapes['metadata'] = batch[0]['metadata_input'].shape[1:]
             break
-        
+
         # Set image shapes
-        print("Setting image shapes...")
+        vprint("Setting image shapes...", level=2)
         for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
-            self.all_modality_shapes[modality] = (image_size, image_size, 3)
+            self.all_modality_shapes[modality] = (IMAGE_SIZE, IMAGE_SIZE, 3)
         
         del temp_train, temp_data
         gc.collect()
@@ -297,6 +363,55 @@ class WeightedAccuracy(tf.keras.metrics.Metric):
         self.weighted_true_positives.assign(0.0)
         self.total_samples.assign(0.0)
 
+class MacroF1Score(tf.keras.metrics.Metric):
+    """Macro-averaged F1 score metric - robust to class imbalance."""
+    def __init__(self, num_classes=3, name='macro_f1', **kwargs):
+        super(MacroF1Score, self).__init__(name=name, **kwargs)
+        self.num_classes = num_classes
+        # Per-class true positives, false positives, false negatives
+        self.tp = self.add_weight(name='tp', shape=(num_classes,), initializer='zeros')
+        self.fp = self.add_weight(name='fp', shape=(num_classes,), initializer='zeros')
+        self.fn = self.add_weight(name='fn', shape=(num_classes,), initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        # Convert to class indices
+        y_pred = tf.argmax(y_pred, axis=-1)
+        y_true = tf.argmax(y_true, axis=-1)
+
+        # Calculate per-class metrics using vectorized operations
+        # Create one-hot encodings for efficient computation
+        y_true_one_hot = tf.one_hot(y_true, self.num_classes)
+        y_pred_one_hot = tf.one_hot(y_pred, self.num_classes)
+
+        # True positives: both predicted and true
+        tp_per_class = tf.reduce_sum(y_true_one_hot * y_pred_one_hot, axis=0)
+
+        # False positives: predicted but not true
+        fp_per_class = tf.reduce_sum((1 - y_true_one_hot) * y_pred_one_hot, axis=0)
+
+        # False negatives: true but not predicted
+        fn_per_class = tf.reduce_sum(y_true_one_hot * (1 - y_pred_one_hot), axis=0)
+
+        # Update weights - use assign_add on the entire tensor, not individual elements
+        self.tp.assign_add(tp_per_class)
+        self.fp.assign_add(fp_per_class)
+        self.fn.assign_add(fn_per_class)
+
+    def result(self):
+        # Calculate F1 per class
+        precision = self.tp / (self.tp + self.fp + 1e-7)
+        recall = self.tp / (self.tp + self.fn + 1e-7)
+        f1_per_class = 2 * precision * recall / (precision + recall + 1e-7)
+
+        # Macro average (equal weight to each class)
+        macro_f1 = tf.reduce_mean(f1_per_class)
+        return macro_f1
+
+    def reset_state(self):
+        self.tp.assign(tf.zeros((self.num_classes,)))
+        self.fp.assign(tf.zeros((self.num_classes,)))
+        self.fn.assign(tf.zeros((self.num_classes,)))
+
 def analyze_modality_contributions(attention_outputs, modality_names):
     """Normalize attention values from each modality to [0, 1] range"""
     normalized_outputs = []
@@ -342,7 +457,7 @@ class ModalityContributionCallback(tf.keras.callbacks.Callback):
             
         if improved:
             self.best = current
-            print(f"\nGenerating modality contribution analysis for epoch {epoch + 1}")
+            vprint(f"\nGenerating modality contribution analysis for epoch {epoch + 1}", level=2)
             
             # # Find layers with attention outputs
             # modality_outputs = {}
@@ -466,7 +581,7 @@ def average_attention_values(result_dir, num_runs):
                 modality_names = data['modality_names']
     
     if not all_attention_outputs:
-        print("No attention values found!")
+        vprint("No attention values found!", level=1)
         return
 
     # Prepare data for violin plots
@@ -569,58 +684,176 @@ def average_attention_values(result_dir, num_runs):
             for run_idx, run_mean in enumerate(run_means_per_modality[i]):
                 f.write(f"Run {run_idx + 1}: {run_mean:.4f}\n")
             f.write("\n")
-def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=3):
+def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
     """
     Perform cross-validation using cached dataset pipeline.
-    
+
     Args:
         data: Input DataFrame
-        configs: Dictionary of configurations for different modality combinations
-        train_patient_percentage: Percentage of data to use for training
-        n_runs: Number of cross-validation runs
-    
+        configs: Dictionary of configurations for different modality combinations, or a list of modalities
+        train_patient_percentage: Percentage of data to use for training (ignored if cv_folds > 1)
+        n_runs: DEPRECATED - Number of random holdout runs (backwards compatibility)
+        cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single train/val split.
+
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
     """
+    # Handle backwards compatibility: if n_runs is specified, use it
+    if n_runs is not None:
+        vprint(f"Warning: n_runs parameter is deprecated. Please use cv_folds instead.", level=1)
+        cv_folds = 0  # Force single split mode when using legacy n_runs
+        use_legacy_mode = True
+        num_iterations = n_runs
+    else:
+        use_legacy_mode = False
+        if cv_folds <= 1:
+            num_iterations = 1  # Single split
+        else:
+            num_iterations = cv_folds  # k-fold CV
+    # Handle configs being passed as a list instead of dict
+    if isinstance(configs, list):
+        modality_list = configs  # Save original list
+        modality_name = '+'.join(modality_list)
+
+        if SEARCH_MULTIPLE_CONFIGS and SEARCH_CONFIG_VARIANTS > 1:
+            # Create multiple configs with different loss parameters for gating network
+            configs = {}
+            num_variants = min(SEARCH_CONFIG_VARIANTS, len(GRID_SEARCH_GAMMAS) * len(GRID_SEARCH_ALPHAS))
+
+            variant_idx = 0
+            for gamma in GRID_SEARCH_GAMMAS[:SEARCH_CONFIG_VARIANTS]:
+                for alpha_set in GRID_SEARCH_ALPHAS[:max(1, SEARCH_CONFIG_VARIANTS // len(GRID_SEARCH_GAMMAS))]:
+                    if variant_idx >= num_variants:
+                        break
+
+                    config_name = f"{modality_name}_v{variant_idx + 1}"
+                    configs[config_name] = {
+                        'modalities': modality_list,
+                        'batch_size': GLOBAL_BATCH_SIZE,
+                        'max_epochs': N_EPOCHS,
+                        'image_size': IMAGE_SIZE,
+                        'gamma': gamma,
+                        'alpha': alpha_set,
+                        'ordinal_weight': FOCAL_ORDINAL_WEIGHT
+                    }
+                    variant_idx += 1
+
+                if variant_idx >= num_variants:
+                    break
+
+            vprint(f"Created {len(configs)} config variants for {modality_name} with different loss parameters", level=2)
+        else:
+            # Original behavior: single config
+            configs = {
+                modality_name: {
+                    'modalities': modality_list,
+                    'batch_size': GLOBAL_BATCH_SIZE,
+                    'max_epochs': N_EPOCHS,
+                    'image_size': IMAGE_SIZE
+                }
+            }
+    else:
+        # configs is already a dict - ensure all configs have required keys
+        # This handles backward compatibility and external callers
+        for config_name, config_dict in configs.items():
+            if 'batch_size' not in config_dict:
+                config_dict['batch_size'] = GLOBAL_BATCH_SIZE
+            if 'max_epochs' not in config_dict:
+                config_dict['max_epochs'] = N_EPOCHS
+            if 'image_size' not in config_dict:
+                config_dict['image_size'] = IMAGE_SIZE
+
+    # Extract common parameters from configs (all configs should have same values)
+    first_config = next(iter(configs.values()))
+    batch_size = first_config['batch_size']
+    max_epochs = first_config['max_epochs']
+    image_size = first_config['image_size']
+
+    # Get GPU info
+    gpus = tf.config.list_physical_devices('GPU')
+
+    # Setup distribution strategy
+    strategy = tf.distribute.MirroredStrategy()
+
     all_metrics = []
     all_confusion_matrices = []
     all_histories = []
     all_gating_results = []
     all_runs_metrics = []
-    
-    for run in range(n_runs):
+
+    # Generate patient folds for k-fold CV (if cv_folds > 1)
+    if not use_legacy_mode and cv_folds > 1:
+        vprint(f"\n{'='*80}", level=1)
+        vprint(f"GENERATING {cv_folds}-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)", level=1)
+        vprint(f"{'='*80}", level=1)
+        from src.data.dataset_utils import create_patient_folds
+        patient_fold_splits = create_patient_folds(data, n_folds=cv_folds, random_state=42, max_imbalance=0.3)
+        vprint(f"Generated {len(patient_fold_splits)} folds", level=1)
+        vprint(f"All data will be validated exactly once across all folds", level=1)
+        vprint(f"{'='*80}\n", level=1)
+    else:
+        patient_fold_splits = None
+
+    for iteration_idx in range(num_iterations):
+        # Use appropriate naming: "Fold" for k-fold CV, "Run" for legacy mode
+        if not use_legacy_mode and cv_folds > 1:
+            iteration_name = f"Fold {iteration_idx + 1}/{cv_folds}"
+        else:
+            iteration_name = f"Run {iteration_idx + 1}/{num_iterations}"
+
+        # For backwards compatibility, maintain "run" variable for file naming
+        run = iteration_idx
         # Clean up after each modality combination
         try:
             clear_gpu_memory()
             clear_cache_files()
         except Exception as e:
-            print(f"Error clearing memory stats: {str(e)}")
-        # Reset random seeds for next run
+            vprint(f"Error clearing memory stats: {str(e)}", level=2)
+        # Reset random seeds for next iteration
         random.seed(42 + run * (run + 3))
         tf.random.set_seed(42 + run * (run + 3))
         np.random.seed(42 + run * (run + 3))
         os.environ['PYTHONHASHSEED'] = str(42 + run * (run + 3))
-        
-        print(f"\nRun {run + 1}/{n_runs}")
-        
-        # Check if this run is already complete
+
+        vprint(f"\n{iteration_name}", level=1)
+
+        # Get patient splits for this iteration (k-fold CV or random split)
+        if patient_fold_splits is not None:
+            # K-fold CV: use pre-computed fold splits
+            fold_train_patients, fold_valid_patients = patient_fold_splits[iteration_idx]
+            vprint(f"Using pre-computed fold {iteration_idx + 1} patient split", level=1)
+        else:
+            # Legacy mode or single split: let prepare_cached_datasets handle it
+            fold_train_patients, fold_valid_patients = None, None
+
+        # Check if this iteration is already complete
         if is_run_complete(run + 1, ck_path):
-            print(f"\nRun {run + 1} is already complete. Moving to next run...")
+            vprint(f"\n{iteration_name} is already complete. Moving to next...", level=1)
             continue
 
-        # Try to load aggregated predictions first
-        run_predictions_list_t, run_true_labels_t = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
-        run_predictions_list_v, run_true_labels_v = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
+        # Try to load aggregated predictions first (only useful when training multiple configs for same modalities)
+        # In search mode (single config per combination), skip this to force fresh training
+        run_predictions_list_t, run_true_labels_t = None, None
+        run_predictions_list_v, run_true_labels_v = None, None
+
+        if len(configs) > 1:
+            # Only check for existing predictions if we have multiple configs (specialized mode)
+            run_predictions_list_t, run_true_labels_t = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
+            run_predictions_list_v, run_true_labels_v = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
+
         if run_predictions_list_t is not None and run_predictions_list_v is not None and run_true_labels_t is not None and run_true_labels_v is not None:
-            print(f"\nLoaded aggregated predictions for run {run + 1}")
-            print(f"Number of models: {len(run_predictions_list_t)}")
-            print(f"Shape of predictions from first model: {run_predictions_list_t[0].shape}")
-            print(f"Labels shape: {run_true_labels_t.shape}")
-            
+            vprint(f"\nLoaded aggregated predictions for run {run + 1}", level=1)
+            vprint(f"Number of models: {len(run_predictions_list_t)}", level=2)
+            vprint(f"Shape of predictions from first model: {run_predictions_list_t[0].shape}", level=2)
+            vprint(f"Labels shape: {run_true_labels_t.shape}", level=2)
+
             # Proceed directly to gating network training with loaded predictions
             if len(run_predictions_list_t) == len(configs) and len(run_predictions_list_v) == len(configs):
-                print(f"\nTraining gating network for run {run + 1}...")
+                vprint(f"\nTraining gating network for run {run + 1}...", level=1)
                 try:
+                    # Import here to avoid circular dependency
+                    from src.main import train_gating_network
+
                     # Convert labels back to class indices for gating network
                     gating_labels_t = np.argmax(run_true_labels_t, axis=1) if len(run_true_labels_t.shape) > 1 else run_true_labels_t
                     gating_labels_v = np.argmax(run_true_labels_v, axis=1) if len(run_true_labels_v.shape) > 1 else run_true_labels_v
@@ -646,24 +879,24 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         'confusion_matrix': confusion_matrix(gating_labels, final_predictions)
                     }
                     
-                    print(f"\nGating Network Results for Run {run + 1}:")
-                    print(f"Accuracy: {gating_metrics['accuracy']:.4f}")
-                    print(f"F1 Macro: {gating_metrics['f1_macro']:.4f}")
-                    print(f"Kappa: {gating_metrics['kappa']:.4f}")
-                    
+                    vprint(f"\nGating Network Results for Run {run + 1}:", level=1)
+                    vprint(f"Accuracy: {gating_metrics['accuracy']:.4f}", level=1)
+                    vprint(f"F1 Macro: {gating_metrics['f1_macro']:.4f}", level=1)
+                    vprint(f"Kappa: {gating_metrics['kappa']:.4f}", level=1)
+
                     all_gating_results.append(gating_metrics)
                     save_run_results(gating_metrics, run + 1, result_dir)
                     continue  # Move to next run
-                    
+
                 except Exception as e:
-                    print(f"Error in gating network training: {str(e)}")
+                    vprint(f"Error in gating network training: {str(e)}", level=1)
                     # Fall through to regenerate predictions
                     run_predictions_list_t = []
                     run_predictions_list_v = []
                     run_true_labels_t = None
                     run_true_labels_v = None
             else:
-                print(f"Found incomplete set of predictions ({len(run_predictions_list_t)} of {len(configs)})")
+                vprint(f"Found incomplete set of predictions ({len(run_predictions_list_t)} of {len(configs)})", level=1)
                 run_predictions_list_t = []
                 run_predictions_list_v = []
                 run_true_labels_t = None
@@ -677,7 +910,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         # Get list of completed configs for this run
         completed_configs = get_completed_configs_for_run(run + 1, configs.keys(), ck_path, dataset_type='valid')
         if completed_configs:
-            print(f"\nFound completed configs for run {run + 1}: {completed_configs}")
+            vprint(f"\nFound completed configs for run {run + 1}: {completed_configs}", level=1)
         
         # Initialize data manager for this run
         data_manager = ProcessedDataManager(data.copy(), directory)
@@ -685,8 +918,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         
         # Setup augmentation once per run
         aug_config = AugmentationConfig()
-        aug_config.generative_settings['output_size']['width'] = image_size
-        aug_config.generative_settings['output_size']['height'] = image_size
+        aug_config.generative_settings['output_size']['width'] = IMAGE_SIZE
+        aug_config.generative_settings['output_size']['height'] = IMAGE_SIZE
         
         gen_manager = GenerativeAugmentationManager(
             base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
@@ -699,7 +932,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             all_modalities.update(config['modalities'])
         all_modalities = list(all_modalities)
         
-        print(f"\nPreparing datasets for run {run + 1} with all modalities: {all_modalities}")
+        vprint(f"\nPreparing datasets for {iteration_name} with all modalities: {all_modalities}", level=1)
         # Create cached datasets once for all modalities
         master_train_dataset, pre_aug_dataset, master_valid_dataset, master_steps_per_epoch, master_validation_steps, master_alpha_value = prepare_cached_datasets(
             data_manager.data,
@@ -708,7 +941,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             batch_size=batch_size,
             gen_manager=gen_manager,
             aug_config=aug_config,
-            run=run
+            run=run,
+            image_size=image_size,
+            train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
+            valid_patients=fold_valid_patients
         )
         
         run_metrics = []
@@ -725,12 +961,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         except:
                             pass
             except Exception as e:
-                print(f"Error in cleanup between configs: {str(e)}")
+                vprint(f"Error in cleanup between configs: {str(e)}", level=2)
             # First check if this config is in completed_configs
             if config_name in completed_configs:
                 predictions_t, labels_t = load_run_predictions(run + 1, config_name, ck_path, dataset_type='train')
                 predictions_v, labels_v = load_run_predictions(run + 1, config_name, ck_path, dataset_type='valid')
-                print(f"\nLoading existing predictions for {config_name}")
+                vprint(f"\nLoading existing predictions for {config_name}", level=1)
                 run_predictions_list_t.append(predictions_t)
                 if run_true_labels_t is None:
                     run_true_labels_t = labels_t
@@ -740,12 +976,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 continue
             elif os.path.exists(create_checkpoint_filename(config['modalities'], run+1, config_name)):
                 # If not in completed_configs but weights exist, we need to regenerate predictions
-                print(f"\nFound weights but no predictions for {config_name}, regenerating predictions")
+                vprint(f"\nFound weights but no predictions for {config_name}, regenerating predictions", level=1)
             else:
-                print(f"\nNo existing data found for {config_name}, starting fresh")
-            
+                vprint(f"\nNo existing data found for {config_name}, starting fresh", level=1)
+
             selected_modalities = config['modalities']
-            print(f"\nTraining {config_name} with modalities: {selected_modalities}, run {run + 1} of {n_runs}")
+            # Display proper iteration context
+            if not use_legacy_mode and cv_folds > 1:
+                vprint(f"\nTraining {config_name} with modalities: {selected_modalities}, fold {run + 1}/{cv_folds}", level=1)
+            else:
+                vprint(f"\nTraining {config_name} with modalities: {selected_modalities}, run {run + 1}/{num_iterations}", level=1)
             
             training_successful = False
             max_retries = 3
@@ -786,54 +1026,64 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         
                     steps_per_epoch = master_steps_per_epoch
                     validation_steps = master_validation_steps
-                    if config_name.endswith('1'):    
+                    # Default values (used when config_name doesn't end with 1, 2, or 3)
+                    alpha_value = master_alpha_value  # Proportional class weights
+                    class_weights_dict = {i: 1 for i in range(3)}
+                    class_weights = [1, 1, 1]
+                    if config_name.endswith('1'):
                         alpha_value = master_alpha_value # Proportional class weights (When no mixed_sampling is used)
                         class_weights_dict = {i: 1 for i in range(3)}
                         class_weights = [1, 1, 1]
-                    if config_name.endswith('2'):
+                    elif config_name.endswith('2'):
                         alpha_value = [1, 1, 1]
                         class_weights_dict = master_class_weights_dict
                         class_weights = master_class_weights
-                    if config_name.endswith('3'):
+                    elif config_name.endswith('3'):
                         alpha_value = [4, 1, 4]
                         class_weights_dict = {0: 4, 1: 1, 2: 4}
                         class_weights = [4, 1, 4]
                     # alpha_value = [4, 1, 4]  # Equal class weights
-                    print(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_value]}")
-                    print(f"Class weights: {class_weights_dict} or {class_weights}")
+                    vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_value]}", level=2)
+                    vprint(f"Class weights: {class_weights_dict} or {class_weights}", level=2)
                     
                     # Create and train model
                     with strategy.scope():
                         weighted_acc = WeightedAccuracy(alpha_values=class_weights)
                         input_shapes = data_manager.get_shapes_for_modalities(selected_modalities)
                         model = create_multimodal_model(input_shapes, selected_modalities, None)
-                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.05, gamma=2.0, alpha=class_weights)
-                        model.compile(optimizer=Adam(learning_rate=1e-3, clipnorm=1.0), loss=loss,
-                            metrics=['accuracy', weighted_f1_score, weighted_acc, CohenKappa(num_classes=3)]
+
+                        # Use loss parameters from config if available, otherwise use defaults
+                        ordinal_weight = config.get('ordinal_weight', 0.05)
+                        gamma = config.get('gamma', 2.0)
+                        alpha = config.get('alpha', class_weights)
+                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                        macro_f1 = MacroF1Score(num_classes=3)
+                        model.compile(optimizer=Adam(learning_rate=1e-4, clipnorm=1.0), loss=loss,  # Reduced LR from 1e-3 to 1e-4
+                            metrics=['accuracy', weighted_f1_score, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
                         valid_dataset_dis = strategy.experimental_distribute_dataset(valid_dataset)
                         callbacks = [
                             EarlyStopping(
-                                patience=20,
+                                patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
-                                monitor='val_loss', #'loss',
-                                min_delta=0.01,
-                                mode='min',
+                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                min_delta=0.001,  # Require 0.1% improvement (was 0.01, too strict)
+                                mode='max',  # Maximize F1, not minimize loss
                                 verbose=1
                             ),
                             ReduceLROnPlateau(
                                 factor=0.50,
-                                patience=5,
-                                monitor='val_loss', #'loss',
-                                min_delta=0.01,
+                                patience=REDUCE_LR_PATIENCE,
+                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                min_delta=0.0005,  # Reduced from 0.005 to allow smaller improvements
                                 min_lr=1e-10,
-                                mode='min',
+                                mode='max',  # Maximize F1, not minimize loss
                             ),
                             tf.keras.callbacks.ModelCheckpoint(
                                 create_checkpoint_filename(selected_modalities, run+1, config_name),
-                                monitor='val_weighted_accuracy',
+                                monitor='val_macro_f1',
                                 save_best_only=True,
                                 mode='max',
                                 save_weights_only=True
@@ -842,6 +1092,13 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             GenerativeAugmentationCallback(gen_manager),
                             NaNMonitorCallback()
                         ]
+
+                        # Add periodic epoch print callback if using interval
+                        if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                            callbacks.append(PeriodicEpochPrintCallback(
+                                print_interval=EPOCH_PRINT_INTERVAL,
+                                total_epochs=max_epochs
+                            ))
 
                         # visualize_dataset(
                         #     train_dataset=train_dataset,
@@ -893,18 +1150,30 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         # Train model
                         if os.path.exists(create_checkpoint_filename(selected_modalities, run+1, config_name)):
                             model.load_weights(create_checkpoint_filename(selected_modalities, run+1, config_name))
-                            print("Loaded existing weights")
+                            vprint("Loaded existing weights", level=1)
                         else:
-                            print("No existing pretrained weights found")
-                            print(f"Total model trainable weights: {len(model.trainable_weights)}")
+                            vprint("No existing pretrained weights found", level=1)
+                            vprint(f"Total model trainable weights: {len(model.trainable_weights)}", level=2)
+                            if selected_modalities == ['metadata']:
+                                vprint("Metadata-only: Minimal training on final layer", level=2)
+
+                            # Determine verbosity for model.fit()
+                            # If using periodic callback, use verbose=0 and let callback handle printing
+                            # Otherwise use verbose=2 for one line per epoch
+                            if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                fit_verbose = 0  # Callback will handle printing
+                            elif get_verbosity() >= 2:
+                                fit_verbose = 2  # Print every epoch
+                            else:
+                                fit_verbose = 0  # Silent
                             history = model.fit(
                                 train_dataset_dis,
-                                epochs=n_epochs,
+                                epochs=max_epochs,
                                 steps_per_epoch=steps_per_epoch,
                                 validation_data=valid_dataset_dis,
                                 validation_steps=validation_steps,
                                 callbacks=callbacks,
-                                verbose=0
+                                verbose=fit_verbose
                             )
                         
                         model.load_weights(create_checkpoint_filename(selected_modalities, run+1, config_name)) # Load best Validation weights
@@ -935,7 +1204,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
 
                         # Track misclassifications
                         sample_ids_t = np.array(all_sample_ids_t)
-                        track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, result_dir)
+                        track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
                         
                         # Evaluate model
                         y_true_v = []
@@ -964,7 +1233,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         
                         # Track misclassifications
                         sample_ids_v = np.array(all_sample_ids_v)
-                        track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, result_dir)
+                        track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
 
                         # Calculate metrics
                         accuracy = accuracy_score(y_true_v, y_pred_v)
@@ -993,18 +1262,29 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         save_run_metrics(metrics_dict, run + 1, result_dir)
                         run_metrics.append(metrics_dict)
                         
-                        # Print results
-                        print(f"\nRun {run + 1} Results for {config_name}:")
-                        print(classification_report(y_true_v, y_pred_v,
-                                                target_names=CLASS_LABELS,
-                                                labels=[0, 1, 2],
-                                                zero_division=0))
-                        print(f"Cohen's Kappa: {kappa:.4f}")
-                        
+                        # Print results (level=0 for final metrics to show at all verbosity levels)
+                        vprint(f"\nRun {run + 1} Results for {config_name}:", level=0)
+                        if get_verbosity() <= 1 or get_verbosity() == 3:
+                            print(classification_report(y_true_v, y_pred_v,
+                                                    target_names=CLASS_LABELS,
+                                                    labels=[0, 1, 2],
+                                                    zero_division=0))
+                        vprint(f"Cohen's Kappa: {kappa:.4f}", level=0)
+
+                        # Show confusion matrix at verbosity 2 to diagnose collapse
+                        if get_verbosity() == 2:
+                            cm_display = confusion_matrix(y_true_v, y_pred_v, labels=[0, 1, 2])
+                            vprint("\nConfusion Matrix (validation):", level=2)
+                            vprint(f"        Predicted: I    P    R", level=2)
+                            for i, label in enumerate(['Inflam', 'Prolif', 'Remodl']):
+                                vprint(f"Actual {label}: {cm_display[i][0]:4d} {cm_display[i][1]:4d} {cm_display[i][2]:4d}", level=2)
+
                         training_successful = True
 
                 except Exception as e:
-                    print(f"Error during training: {str(e)}")
+                    vprint(f"Error during training (attempt {retry_count + 1}/{max_retries}): {str(e)}", level=0)
+                    import traceback
+                    vprint(f"Traceback: {traceback.format_exc()}", level=2)
                     clean_up_training_resources()
                     retry_count += 1
                     continue
@@ -1013,7 +1293,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     # Clean up
                     gen_manager.cleanup()
                     gc.collect()
-                    
+
+            # Check if training succeeded
+            if not training_successful:
+                vprint(f"ERROR: Training failed for {config_name} after {max_retries} attempts. Skipping this configuration.", level=0)
+                continue
+
         
         save_run_metrics(run_metrics, run + 1, result_dir)
         save_aggregated_predictions(run + 1, run_predictions_list_t, run_true_labels_t, ck_path, dataset_type='train')
@@ -1021,20 +1306,23 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         
         # Train gating network if we have all predictions
         if len(run_predictions_list_v) == len(configs) and len(run_predictions_list_t) == len(configs):
-            print(f"\nTraining gating network for run {run + 1}...")
+            vprint(f"\nTraining gating network for run {run + 1}...", level=1)
             try:
                 # # First validate and correct predictions
                 # truncated_predictions_t, run_true_labels_t = correct_and_validate_predictions(
                 #     run_predictions_list_t, run_true_labels_t, "train")
-                
+
                 # # Process validation data
                 # truncated_predictions_v, run_true_labels_v = correct_and_validate_predictions(
                 #     run_predictions_list_v, run_true_labels_v, "valid")
-                
-                print(f"\nNumber of models: {len(run_predictions_list_t)}")
+
+                vprint(f"\nNumber of models: {len(run_predictions_list_t)}", level=2)
             except Exception as e:
-                print(f"Error in prediction validation: {str(e)}")
+                vprint(f"Error in prediction validation: {str(e)}", level=1)
             try:
+                # Import here to avoid circular dependency
+                from src.main import train_gating_network
+
                 # Convert labels back to class indices for gating network
                 gating_labels_t = np.argmax(run_true_labels_t, axis=1) if len(run_true_labels_t.shape) > 1 else run_true_labels_t
                 gating_labels_v = np.argmax(run_true_labels_v, axis=1) if len(run_true_labels_v.shape) > 1 else run_true_labels_v
@@ -1060,17 +1348,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     'confusion_matrix': confusion_matrix(gating_labels, final_predictions)
                 }
                 
-                print(f"\nGating Network Results for Run {run + 1}:")
-                print(f"Accuracy: {gating_metrics['accuracy']:.4f}")
-                print(f"F1 Macro: {gating_metrics['f1_macro']:.4f}")
-                print(f"Kappa: {gating_metrics['kappa']:.4f}")
-                
+                vprint(f"\nGating Network Results for Run {run + 1}:", level=1)
+                vprint(f"Accuracy: {gating_metrics['accuracy']:.4f}", level=1)
+                vprint(f"F1 Macro: {gating_metrics['f1_macro']:.4f}", level=1)
+                vprint(f"Kappa: {gating_metrics['kappa']:.4f}", level=1)
+
                 all_gating_results.append(gating_metrics)
                 # Save individual run results
                 save_run_results(gating_metrics, run + 1, result_dir)
-                
+
             except Exception as e:
-                print(f"Error in gating network training for run {run + 1}: {str(e)}")
+                vprint(f"Error in gating network training for run {run + 1}: {str(e)}", level=1)
                 gating_metrics = None
             
             all_runs_metrics.extend(run_metrics)
@@ -1080,13 +1368,13 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 gc.collect()
                 clear_gpu_memory()
             except Exception as e:
-                print(f"Error clearing memory stats: {str(e)}")
-        
+                vprint(f"Error clearing memory stats: {str(e)}", level=2)
+
     # Save aggregated results
     save_aggregated_results(all_runs_metrics, configs, result_dir)
     save_gating_results(all_gating_results, result_dir)
     
-    return all_metrics, all_confusion_matrices, all_histories
+    return all_runs_metrics, all_confusion_matrices, all_histories
 def correct_and_validate_predictions(predictions_list, true_labels, dataset_type="train"):
     """
     Correct and validate model predictions.
@@ -1104,17 +1392,17 @@ def correct_and_validate_predictions(predictions_list, true_labels, dataset_type
     # Validate and correct predictions
     for i, preds in enumerate(predictions_list):
         if not isinstance(preds, np.ndarray) or preds is None:
-            print(f"Warning: Invalid {dataset_type} predictions from model {i}. Skipping...")
+            vprint(f"Warning: Invalid {dataset_type} predictions from model {i}. Skipping...", level=1)
             continue
-            
+
         preds = np.array(preds, dtype=np.float32)
         if len(preds.shape) != 2:
-            print(f"Warning: Invalid {dataset_type} shape {preds.shape} from model {i}. Skipping...")
+            vprint(f"Warning: Invalid {dataset_type} shape {preds.shape} from model {i}. Skipping...", level=1)
             continue
-        
+
         # Check and correct predictions
         if preds.shape[1] != 3:
-            print(f"Warning: Model {i} {dataset_type} predictions have {preds.shape[1]} classes instead of 3")
+            vprint(f"Warning: Model {i} {dataset_type} predictions have {preds.shape[1]} classes instead of 3", level=1)
             corrected = np.zeros((preds.shape[0], 3), dtype=np.float32)
             for c in range(min(preds.shape[1], 3)):
                 corrected[:, c] = preds[:, c]
@@ -1152,7 +1440,7 @@ def correct_and_validate_predictions(predictions_list, true_labels, dataset_type
     return truncated_predictions, truncated_labels
 def save_run_results(metrics, run_number, result_dir):
     """Save gating network results for an individual run."""
-    csv_filename = os.path.join(result_dir, f'gating_network_run_{run_number}_results.csv')
+    csv_filename = os.path.join(csv_path, f'gating_network_run_{run_number}_results.csv')
     
     # Format metrics for CSV
     results = [{
@@ -1164,7 +1452,7 @@ def save_run_results(metrics, run_number, result_dir):
     }]
     
     # Save confusion matrix separately
-    cm_filename = os.path.join(result_dir, f'gating_network_run_{run_number}_confusion_matrix.csv')
+    cm_filename = os.path.join(csv_path, f'gating_network_run_{run_number}_confusion_matrix.csv')
     np.savetxt(cm_filename, metrics['confusion_matrix'], delimiter=',', fmt='%d')
     
     # Save metrics to CSV
@@ -1179,7 +1467,7 @@ def save_run_metrics(run_metrics, run_number, result_dir):
     
     # Format the metrics
     if is_single_metric:
-        csv_filename = os.path.join(result_dir, f'modality_results_run_{run_number}.csv')
+        csv_filename = os.path.join(csv_path, f'modality_results_run_{run_number}.csv')
         formatted_result = {
             'config': run_metrics['config'],
             'modalities': '+'.join(run_metrics['modalities']),
@@ -1202,7 +1490,7 @@ def save_run_metrics(run_metrics, run_number, result_dir):
             writer.writerow(formatted_result)
             
     else:
-        csv_filename = os.path.join(result_dir, f'modality_results_run_{run_number}_list.csv')
+        csv_filename = os.path.join(csv_path, f'modality_results_run_{run_number}_list.csv')
         # Format list of metrics
         formatted_results = []
         for m in run_metrics:
@@ -1243,7 +1531,7 @@ def save_gating_results(all_gating_results, result_dir):
     }]
     
     # Save to file
-    csv_filename = os.path.join(result_dir, 'gating_network_averaged_results.csv')
+    csv_filename = os.path.join(csv_path, 'gating_network_averaged_results.csv')
     fieldnames = list(results[0].keys())
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -1290,14 +1578,14 @@ def save_aggregated_results(all_metrics, configs, result_dir):
         })
     
     # Save to CSV
-    csv_filename = os.path.join(result_dir, 'modality_results_averaged.csv')
+    csv_filename = os.path.join(csv_path, 'modality_results_averaged.csv')
     fieldnames = list(results[0].keys()) if results else []
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)
     
-    print(f"Results saved to {csv_filename}")
+    vprint(f"Results saved to {csv_filename}", level=1)
 def save_run_predictions(run_number, config_name, predictions, true_labels, ck_path, dataset_type='valid'):
     """Save predictions and true labels for a specific run and config."""
     pred_file = os.path.join(ck_path, f'pred_run{run_number}_{config_name}_{dataset_type}.npy')
@@ -1328,9 +1616,33 @@ def load_aggregated_predictions(run_number, ck_path, dataset_type='valid'):
     """Load all predictions for a run if they exist."""
     aggregated_preds_file = os.path.join(ck_path, f'sum_pred_run{run_number}_{dataset_type}.npy')
     aggregated_labels_file = os.path.join(ck_path, f'sum_label_run{run_number}_{dataset_type}.npy')
-    
+
     if os.path.exists(aggregated_preds_file) and os.path.exists(aggregated_labels_file):
         return np.load(aggregated_preds_file), np.load(aggregated_labels_file)
+    return None, None
+
+
+def save_combination_predictions(run_number, combination_name, predictions, labels, ck_path, dataset_type='valid'):
+    """Save predictions for a specific modality combination."""
+    # Sanitize combination name for filename
+    safe_name = combination_name.replace('+', '_').replace(' ', '_')
+    preds_file = os.path.join(ck_path, f'combo_pred_{safe_name}_run{run_number}_{dataset_type}.npy')
+    labels_file = os.path.join(ck_path, f'combo_label_{safe_name}_run{run_number}_{dataset_type}.npy')
+
+    np.save(preds_file, predictions)
+    np.save(labels_file, labels)
+    vprint(f"Saved {combination_name} predictions to {preds_file}", level=1)
+
+
+def load_combination_predictions(run_number, combination_name, ck_path, dataset_type='valid'):
+    """Load predictions for a specific modality combination."""
+    # Sanitize combination name for filename
+    safe_name = combination_name.replace('+', '_').replace(' ', '_')
+    preds_file = os.path.join(ck_path, f'combo_pred_{safe_name}_run{run_number}_{dataset_type}.npy')
+    labels_file = os.path.join(ck_path, f'combo_label_{safe_name}_run{run_number}_{dataset_type}.npy')
+
+    if os.path.exists(preds_file) and os.path.exists(labels_file):
+        return np.load(preds_file), np.load(labels_file)
     return None, None
 
 def save_aggregated_predictions(run_number, predictions_list, true_labels, ck_path, dataset_type='valid'):
@@ -1342,45 +1654,46 @@ def save_aggregated_predictions(run_number, predictions_list, true_labels, ck_pa
     corrected_predictions = []
     for i, preds in enumerate(predictions_list):
         if preds is None:
-            print(f"Warning: Predictions from model {i} are None. Skipping...")
+            vprint(f"Warning: Predictions from model {i} are None. Skipping...", level=1)
             continue
-            
+
         preds = np.array(preds)
         if len(preds.shape) != 2:
-            print(f"Warning: Invalid shape {preds.shape} from model {i}. Skipping...")
+            vprint(f"Warning: Invalid shape {preds.shape} from model {i}. Skipping...", level=1)
             continue
-            
+
         # Check if we have predictions for all three classes
         if preds.shape[1] != 3:
-            print(f"Warning: Model {i} predictions have {preds.shape[1]} classes instead of 3")
+            vprint(f"Warning: Model {i} predictions have {preds.shape[1]} classes instead of 3", level=1)
             # Create corrected array with proper shape
             corrected_preds = np.zeros((preds.shape[0], 3))
-            
+
             # Copy existing predictions
             for c in range(min(preds.shape[1], 3)):
                 corrected_preds[:, c] = preds[:, c]
-                
+
             # For missing classes, set very low confidence
             for c in range(preds.shape[1], 3):
                 # Use small non-zero value to avoid numerical issues
                 corrected_preds[:, c] = 1e-7
-                
+
             # Renormalize probabilities to sum to 1
             row_sums = corrected_preds.sum(axis=1, keepdims=True)
             corrected_preds = corrected_preds / row_sums
-            
-            print(f"Corrected predictions shape: {corrected_preds.shape}")
+
+            vprint(f"Corrected predictions shape: {corrected_preds.shape}", level=2)
             corrected_predictions.append(corrected_preds)
         else:
             corrected_predictions.append(preds)
-    
+
     # Final validation
     if not corrected_predictions:
-        raise ValueError("No valid predictions to save")
-    
+        vprint(f"Warning: No predictions to save for run {run_number} ({dataset_type}). Skipping...", level=0)
+        return  # Skip saving instead of raising error
+
     shapes = [p.shape for p in corrected_predictions]
     if len(set(shapes)) > 1:
-        print(f"Warning: Inconsistent shapes after correction: {shapes}")
+        vprint(f"Warning: Inconsistent shapes after correction: {shapes}", level=1)
         # Find minimum number of samples across all predictions
         min_samples = min(s[0] for s in shapes)
         # Truncate all predictions to minimum length
@@ -1393,7 +1706,7 @@ def save_aggregated_predictions(run_number, predictions_list, true_labels, ck_pa
         if true_labels is not None:
             np.save(aggregated_labels_file, true_labels)
     except Exception as e:
-        print(f"Error saving predictions: {str(e)}")
+        vprint(f"Error saving predictions: {str(e)}", level=1)
         raise
 
 def is_run_complete(run_number, ck_path):
@@ -1460,23 +1773,23 @@ def main_with_specialized_evaluation(data_percentage=100, train_patient_percenta
     clear_cache_files()
     
     # Prepare initial dataset
-    print("Preparing initial dataset...")
-    data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, 
-                         list(set([mod for config in configs.values() 
+    vprint("Preparing initial dataset...", level=1)
+    data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file,
+                         list(set([mod for config in configs.values()
                                  for mod in config['modalities']])))
-    
+
     # Filter frequent misclassifications
-    print("Filtering frequent misclassifications...")
+    vprint("Filtering frequent misclassifications...", level=1)
     data = filter_frequent_misclassifications(
-        data, result_dir, 
+        data, result_dir,
         thresholds={'I': 3, 'P': 2, 'R': 3}
     )
-    
+
     if data_percentage < 100:
         data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
-    
+
     # Run cross-validation
-    print("\nStarting cross-validation...")
+    vprint("\nStarting cross-validation...", level=1)
     metrics, confusion_matrices, histories = cross_validation_manual_split(
         data, configs, train_patient_percentage, n_runs
     )
@@ -1546,8 +1859,8 @@ def clear_cache_files():
             for cache_file in cache_files:
                 try:
                     os.remove(cache_file)
-                    print(f"Removed cache file: {cache_file}")
+                    vprint(f"Removed cache file: {cache_file}", level=2)
                 except Exception as e:
-                    print(f"Warning: Could not remove cache file {cache_file}: {str(e)}")
+                    vprint(f"Warning: Could not remove cache file {cache_file}: {str(e)}", level=2)
         except Exception as e:
-            print(f"Warning: Error while processing pattern {pattern}: {str(e)}")
+            vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)

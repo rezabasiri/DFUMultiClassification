@@ -30,4 +30,27 @@ ENV/
 # Results and logs
 results/runs/
 results/checkpoints/
+results/demo_tf_records/
+results/tf_records/
+# results/demo/
+results/models/
+results/csv/
+results/misclassifications/
+results/visualizations/
+results/logs/
+results/attention_analysis/
+results/batch_visualizations_generative/
+results/training_plots_generative/
+results/metadata_confidence_logs/
+results/comparison/
+results/*.csv
+results/frequent_*.csv
+results/modality_*.csv
 *.log
+device*
+
+# raw data
+data/raw/Depth_Map_IMG/
+data/raw/Depth_RGB/
+data/raw/Thermal_Map_IMG/
+data/raw/Thermal_RGB/

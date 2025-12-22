@@ -16,10 +16,15 @@ from datetime import datetime
 # Reduce TensorFlow verbosity
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# Import project modules
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add project root to path so we can import from src
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 from src.utils.config import get_project_paths, get_data_paths, CLASS_LABELS
 from src.utils.debug import clear_gpu_memory
+from src.utils.demo_config import (
+    IMAGE_SIZE, BATCH_SIZE, N_EPOCHS, TRAIN_PATIENT_PERCENTAGE,
+    MAX_SPLIT_DIFF, LEARNING_RATE, FOCAL_LOSS_GAMMA
+)
 from src.data.image_processing import (
     create_best_matching_dataset,
     prepare_dataset
@@ -121,8 +126,11 @@ print("\n" + "=" * 80)
 print("STEP 3: DATASET PREPARATION")
 print("=" * 80)
 
-print("\n📊 Creating best matching dataset...")
-best_matching_csv = os.path.join(result_dir, 'best_matching.csv')
+print("\n📊 Creating demo best matching dataset...")
+# Use results/demo directory for demo-specific files
+demo_dir = os.path.join(result_dir, 'demo')
+os.makedirs(demo_dir, exist_ok=True)
+best_matching_csv = os.path.join(demo_dir, 'demo_best_matching.csv')
 
 try:
     if os.path.exists(best_matching_csv):
@@ -174,14 +182,15 @@ print("STEP 4: TEST CONFIGURATION")
 print("=" * 80)
 
 # Test with minimal computational requirements
+# Configuration values now imported from demo_config.py
 TEST_CONFIG = {
     'selected_modalities': ['metadata', 'depth_rgb'],  # Start with just 2 modalities
-    'batch_size': 4,  # Small batch size for limited memory
-    'n_epochs': 5,  # Few epochs for quick testing
-    'image_size': 64,  # Small image size
-    'train_patient_percentage': 0.67,  # 67% train (5 patients), 33% val (3 patients) for better phase distribution
+    'batch_size': BATCH_SIZE,  # From demo_config
+    'n_epochs': N_EPOCHS,  # From demo_config
+    'image_size': IMAGE_SIZE,  # From demo_config
+    'train_patient_percentage': TRAIN_PATIENT_PERCENTAGE,  # From demo_config
     'use_augmentation': False,  # Disable augmentation for faster testing
-    'max_split_diff': 0.3,  # Allow 30% class distribution difference for small test dataset (9 patients)
+    'max_split_diff': MAX_SPLIT_DIFF,  # From demo_config
 }
 
 print(f"\n⚙️ Test Configuration:")
@@ -245,6 +254,11 @@ print("=" * 80)
 
 print("\n🔨 Creating TensorFlow datasets...")
 try:
+    # Create demo-specific cache directory under results
+    demo_cache_dir = os.path.join(result_dir, 'demo_tf_records')
+    os.makedirs(demo_cache_dir, exist_ok=True)
+    print(f"  Cache directory: {demo_cache_dir}")
+
     # Note: We're passing the FULL dataset, the function will split it internally by patient
     # This ensures proper patient-level splitting
     datasets_output = prepare_cached_datasets(
@@ -252,7 +266,7 @@ try:
         TEST_CONFIG['selected_modalities'],
         train_patient_percentage=TEST_CONFIG['train_patient_percentage'],
         batch_size=TEST_CONFIG['batch_size'],
-        cache_dir=None,  # Don't cache for test
+        cache_dir=demo_cache_dir,  # Use demo-specific cache directory
         gen_manager=None,  # No generative augmentation for test
         aug_config=None,   # No augmentation config
         run=0,
@@ -366,18 +380,18 @@ print("=" * 80)
 
 print("\n⚙️ Compiling model...")
 try:
-    # Use simple loss for testing
-    loss_fn = get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.5, gamma=2.0, alpha=0.25)
+    # Use simple loss for testing - parameters from demo_config
+    loss_fn = get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.5, gamma=FOCAL_LOSS_GAMMA, alpha=0.25)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
         loss=loss_fn,
         metrics=['accuracy']
     )
 
     print(f"✓ Model compiled")
-    print(f"  Optimizer: Adam (lr=0.001)")
-    print(f"  Loss: Focal Ordinal Loss")
+    print(f"  Optimizer: Adam (lr={LEARNING_RATE})")
+    print(f"  Loss: Focal Ordinal Loss (gamma={FOCAL_LOSS_GAMMA})")
     print(f"  Metrics: accuracy")
 
 except Exception as e:
@@ -500,7 +514,7 @@ print("STEP 11: SAVING TEST RESULTS")
 print("=" * 80)
 
 try:
-    test_results_path = os.path.join(result_dir, 'test_workflow_results.txt')
+    test_results_path = os.path.join(demo_dir, 'test_workflow_results.txt')
 
     with open(test_results_path, 'w') as f:
         f.write("DFU Multi-Classification Workflow Test Results\n")
