@@ -197,12 +197,13 @@ class DatasetPolisher:
                 # Set environment variable to control random seed for fold generation
                 os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_idx)
 
-                # Prepare command - always use 'auto' mode to preserve patient splits
+                # ALWAYS use fresh mode - forces clean training with new random seed
                 cmd = [
                     'python', 'src/main.py',
                     '--mode', 'search',
                     '--cv_folds', str(self.cv_folds),
                     '--verbosity', '1',  # Reduce noise
+                    '--resume_mode', 'fresh',  # Force clean training each run
                 ]
 
                 # Add threshold arguments if not first iteration
@@ -212,9 +213,9 @@ class DatasetPolisher:
                     cmd.extend(['--threshold_R', str(self.thresholds['R'])])
 
                 if run_idx == 1:
-                    print(f"⏳ First run may take 15-30 minutes...")
+                    print(f"⏳ First run may take 15-30 minutes (fresh mode)...")
                 else:
-                    print(f"⏳ Run {run_idx} - Training with different random seed...")
+                    print(f"⏳ Run {run_idx} - Training with seed {self.base_random_seed + run_idx} (fresh mode)...")
 
                 # Run training with live output
                 result = subprocess.run(cmd, cwd=project_root, env=os.environ.copy())
