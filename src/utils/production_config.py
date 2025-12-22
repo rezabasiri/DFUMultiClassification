@@ -25,11 +25,11 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-# IMAGE_SIZE = 12  # Image dimensions (12x12 pixels)
+IMAGE_SIZE = 12  # Image dimensions (128x128 pixels for better detail)
+# IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
 # GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
-GLOBAL_BATCH_SIZE = 32  # Total batch size across all GPU replicas (local GPU)
-N_EPOCHS = 100  # Maximum number of training epochs (increased for thorough training)
+GLOBAL_BATCH_SIZE = 32  # Total batch size (reduced for 128x128 images on TITAN Xp 12GB VRAM)
+N_EPOCHS = 2  # Maximum number of training epochs (increased for thorough training)
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
@@ -210,11 +210,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata',),
-    ('depth_map',),
-    ('depth_rgb',),
-    # ('metadata', 'depth_rgb', 'thermal_map'),
-    # ('metadata','depth_rgb',),
+    ('depth_rgb',),  # Temporary: Phase 1 detection
 ]
 
 # Results file naming
