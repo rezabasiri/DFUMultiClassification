@@ -450,6 +450,7 @@ class BayesianDatasetPolisher:
 
             # Save Phase 1 misclassification data (preserve it before Phase 2 starts)
             import shutil
+            import glob
             output_paths = get_output_paths(self.result_dir)
             misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
             misclass_saved = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
@@ -457,6 +458,17 @@ class BayesianDatasetPolisher:
             if os.path.exists(misclass_file):
                 shutil.copy2(misclass_file, misclass_saved)
                 print(f"\n💾 Saved Phase 1 misclassification data to: frequent_misclassifications_saved.csv")
+
+                # Delete all misclassification tracking files to prevent Phase 2 from updating them
+                # Phase 2 will create new files, but we'll ignore them and use only the saved file
+                misclass_files = glob.glob(os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_*.csv'))
+                for f in misclass_files:
+                    if not f.endswith('_saved.csv'):  # Keep only the saved file
+                        try:
+                            os.remove(f)
+                        except:
+                            pass
+                print(f"🔒 Locked Phase 1 data - Phase 2 training won't contaminate counts")
 
             # Analyze misclassifications
             self.show_misclass_summary()
@@ -475,9 +487,16 @@ class BayesianDatasetPolisher:
         """Show summary of accumulated misclassifications."""
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
-        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
 
-        if not os.path.exists(misclass_file):
+        # Try saved file first (Phase 1 locked data), fallback to total file
+        misclass_saved = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
+        misclass_total = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
+
+        if os.path.exists(misclass_saved):
+            misclass_file = misclass_saved
+        elif os.path.exists(misclass_total):
+            misclass_file = misclass_total
+        else:
             print("\n⚠️  No misclassification file found")
             return
 
