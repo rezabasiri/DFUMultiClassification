@@ -70,7 +70,10 @@ class BayesianDatasetPolisher:
                  phase2_cv_folds=3,
                  phase2_n_evaluations=20,
                  base_random_seed=42,
-                 min_dataset_fraction=0.5):
+                 min_dataset_fraction=0.5,
+                 min_f1_threshold=0.25,
+                 min_samples_per_class=30,
+                 max_class_imbalance_ratio=5.0):
         """
         Initialize the Bayesian dataset polisher.
 
@@ -85,6 +88,9 @@ class BayesianDatasetPolisher:
             phase2_n_evaluations: Number of Bayesian optimization iterations (default: 20)
             base_random_seed: Base random seed
             min_dataset_fraction: Minimum fraction of dataset to keep (default: 0.5)
+            min_f1_threshold: Hard constraint - reject if any class F1 < this (default: 0.25)
+            min_samples_per_class: Hard constraint - reject if any class < this many samples (default: 30)
+            max_class_imbalance_ratio: Hard constraint - reject if largest/smallest class ratio > this (default: 5.0)
         """
         if 'metadata' not in modalities:
             raise ValueError("Modalities must include 'metadata' for polishing")
@@ -99,6 +105,9 @@ class BayesianDatasetPolisher:
         self.phase2_n_evaluations = phase2_n_evaluations
         self.base_random_seed = base_random_seed
         self.min_dataset_fraction = min_dataset_fraction
+        self.min_f1_threshold = min_f1_threshold
+        self.min_samples_per_class = min_samples_per_class
+        self.max_class_imbalance_ratio = max_class_imbalance_ratio
 
         # Get project paths
         self.directory, self.result_dir, self.root = get_project_paths()
@@ -109,22 +118,153 @@ class BayesianDatasetPolisher:
         self.best_thresholds = None
         self.best_score = -np.inf
 
-    def calculate_combined_score(self, metrics):
+    def get_class_counts(self, thresholds):
         """
-        Calculate combined optimization score.
+        Get class counts after applying filtering thresholds.
 
-        Formula: 0.4×macro_f1 + 0.4×min_per_class_f1 + 0.2×kappa
+        Args:
+            thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
+
+        Returns:
+            dict: Class counts like {'I': 120, 'P': 180, 'R': 50}
+        """
+        from src.utils.config import get_output_paths
+        from collections import Counter
+        output_paths = get_output_paths(self.result_dir)
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
+
+        if not os.path.exists(misclass_file):
+            return {'I': 0, 'P': 0, 'R': 0}
+
+        df = pd.read_csv(misclass_file)
+
+        # Get samples that would remain after filtering
+        remaining_samples = []
+        for _, row in df.iterrows():
+            phase = row['True_Label']
+            if phase in thresholds and row['Misclass_Count'] < thresholds[phase]:
+                remaining_samples.append(phase)
+
+        class_counts = Counter(remaining_samples)
+        return {'I': class_counts.get('I', 0), 'P': class_counts.get('P', 0), 'R': class_counts.get('R', 0)}
+
+    def check_hard_constraints(self, thresholds, metrics):
+        """
+        Check hard constraints that must be satisfied.
+
+        Args:
+            thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
+            metrics: Dict with performance metrics
+
+        Returns:
+            tuple: (is_valid, rejection_reason)
+        """
+        # Constraint 1: Minimum F1 threshold for each class
+        min_f1 = min(metrics['f1_per_class'].values())
+        if min_f1 < self.min_f1_threshold:
+            worst_class = min(metrics['f1_per_class'], key=metrics['f1_per_class'].get)
+            return False, f"Min F1 ({min_f1:.3f}) < threshold ({self.min_f1_threshold}), worst class: {worst_class}"
+
+        # Constraint 2 & 3: Check class counts
+        class_counts = self.get_class_counts(thresholds)
+        counts = np.array(list(class_counts.values()))
+
+        # Empty class check
+        if np.any(counts == 0):
+            empty_classes = [cls for cls, cnt in class_counts.items() if cnt == 0]
+            return False, f"Classes {empty_classes} have 0 samples after filtering"
+
+        # Minimum samples per class
+        min_samples = min(counts)
+        if min_samples < self.min_samples_per_class:
+            smallest_class = min(class_counts, key=class_counts.get)
+            return False, f"Class {smallest_class} has only {min_samples} samples (min: {self.min_samples_per_class})"
+
+        # Maximum class imbalance ratio
+        ratio = max(counts) / min(counts)
+        if ratio > self.max_class_imbalance_ratio:
+            largest_class = max(class_counts, key=class_counts.get)
+            smallest_class = min(class_counts, key=class_counts.get)
+            return False, f"Imbalance {largest_class}:{smallest_class} = {ratio:.2f}x (max: {self.max_class_imbalance_ratio}x)"
+
+        return True, None
+
+    def get_class_balance_score(self, thresholds):
+        """
+        Calculate class balance score (0-1) for filtered dataset.
+
+        Higher score = better balance between classes.
+        Uses coefficient of variation (CV) of class sizes.
+
+        Returns:
+            float: Balance score (1.0 = perfect balance, 0.0 = extreme imbalance)
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
+
+        if not os.path.exists(misclass_file):
+            return 0.0
+
+        df = pd.read_csv(misclass_file)
+
+        # Get samples that would remain after filtering
+        remaining_samples = []
+        for _, row in df.iterrows():
+            phase = row['True_Label']
+            if phase in thresholds and row['Misclass_Count'] < thresholds[phase]:
+                remaining_samples.append(phase)
+
+        if len(remaining_samples) == 0:
+            return 0.0
+
+        # Count samples per class
+        from collections import Counter
+        class_counts = Counter(remaining_samples)
+        counts = np.array([class_counts.get(c, 0) for c in ['I', 'P', 'R']])
+
+        # If any class is empty, return 0
+        if np.any(counts == 0):
+            return 0.0
+
+        # Calculate coefficient of variation (lower = better balance)
+        mean_count = np.mean(counts)
+        std_count = np.std(counts)
+        cv = std_count / mean_count if mean_count > 0 else 0
+
+        # Convert to score (0-1), where 1 = perfect balance
+        # CV of 0 = perfect balance (score 1.0)
+        # CV of 1 = high imbalance (score ~0.4)
+        # CV > 2 = extreme imbalance (score ~0)
+        balance_score = 1.0 / (1.0 + cv)
+
+        return balance_score
+
+    def calculate_combined_score(self, metrics, thresholds):
+        """
+        Calculate enhanced combined optimization score with class balance.
+
+        Formula: 0.3×macro_f1 + 0.5×min_per_class_f1 + 0.1×kappa + 0.1×balance_score
 
         This balances:
-        - Overall performance (macro F1)
-        - Worst-class performance (min per-class F1)
-        - Clinical agreement (Cohen's Kappa)
+        - Overall performance (macro F1) - 30%
+        - Worst-class performance (min per-class F1) - 50% (INCREASED to prevent class failure)
+        - Clinical agreement (Cohen's Kappa) - 10%
+        - Class balance in filtered dataset - 10% (NEW - penalizes imbalance)
+
+        Args:
+            metrics: Dict with 'macro_f1', 'f1_per_class', 'kappa'
+            thresholds: Dict with threshold values for class balance calculation
+
+        Returns:
+            float: Combined score (0-1)
         """
         macro_f1 = metrics['macro_f1']
         min_f1 = min(metrics['f1_per_class'].values())
         kappa = metrics['kappa']
+        balance_score = self.get_class_balance_score(thresholds)
 
-        score = 0.4 * macro_f1 + 0.4 * min_f1 + 0.2 * kappa
+        score = 0.3 * macro_f1 + 0.5 * min_f1 + 0.1 * kappa + 0.1 * balance_score
         return score
 
     def get_original_dataset_size(self):
@@ -413,8 +553,12 @@ class BayesianDatasetPolisher:
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
         print(f"  CV folds per evaluation: {self.phase2_cv_folds}")
-        print(f"  Score: 0.4×macro_f1 + 0.4×min_f1 + 0.2×kappa")
-        print(f"  Constraint: Keep ≥{self.min_dataset_fraction*100:.0f}% of original dataset\n")
+        print(f"  Score: 0.3×macro_f1 + 0.5×min_f1 + 0.1×kappa + 0.1×balance")
+        print(f"\nHard Constraints:")
+        print(f"  Dataset size: ≥{self.min_dataset_fraction*100:.0f}% of original")
+        print(f"  Min F1 per class: ≥{self.min_f1_threshold}")
+        print(f"  Min samples per class: ≥{self.min_samples_per_class}")
+        print(f"  Max class imbalance ratio: ≤{self.max_class_imbalance_ratio}\n")
 
         # Objective function
         @use_named_args(search_space)
@@ -469,13 +613,30 @@ class BayesianDatasetPolisher:
                 })
                 return -penalty_score
 
+            # Check hard constraints
+            is_valid, rejection_reason = self.check_hard_constraints(threshold_dict, metrics)
+            if not is_valid:
+                print(f"❌ Rejected: {rejection_reason}")
+                penalty_score = -10.0
+                self.optimization_history.append({
+                    'evaluation': eval_num,
+                    'thresholds': threshold_dict,
+                    'score': penalty_score,
+                    'filtered_size': filtered_size,
+                    'rejected': True,
+                    'rejection_reason': rejection_reason
+                })
+                return -penalty_score
+
             # Calculate score
-            score = self.calculate_combined_score(metrics)
+            balance_score = self.get_class_balance_score(threshold_dict)
+            score = self.calculate_combined_score(metrics, threshold_dict)
 
             print(f"Results:")
             print(f"  Macro F1: {metrics['macro_f1']:.4f}")
             print(f"  Min F1: {min(metrics['f1_per_class'].values()):.4f}")
             print(f"  Kappa: {metrics['kappa']:.4f}")
+            print(f"  Balance: {balance_score:.4f}")
             print(f"  Combined Score: {score:.4f}")
 
             # Track best
@@ -555,8 +716,15 @@ class BayesianDatasetPolisher:
             if metrics is None:
                 continue
 
-            score = self.calculate_combined_score(metrics)
-            print(f"Score: {score:.4f}")
+            # Check hard constraints
+            is_valid, rejection_reason = self.check_hard_constraints(threshold_dict, metrics)
+            if not is_valid:
+                print(f"❌ Rejected: {rejection_reason}")
+                continue
+
+            score = self.calculate_combined_score(metrics, threshold_dict)
+            balance_score = self.get_class_balance_score(threshold_dict)
+            print(f"Score: {score:.4f} (Balance: {balance_score:.3f}, Min F1: {min(metrics['f1_per_class'].values()):.3f})")
 
             if score > self.best_score:
                 self.best_score = score
