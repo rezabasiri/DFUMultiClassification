@@ -1832,9 +1832,9 @@ def filter_dataset_modalities(dataset, selected_modalities):
     """
     def filter_features(features, labels):
         filtered_features = {}
-        # Always include sample_id
-        filtered_features['sample_id'] = features['sample_id']
-        
+        # Note: sample_id is NOT included - it's for tracking only, not model input
+        # Keras 3 is strict about input dict keys matching model.inputs exactly
+
         # Include only selected modalities
         for modality in selected_modalities:
             modality_key = f'{modality}_input'
@@ -1842,7 +1842,7 @@ def filter_dataset_modalities(dataset, selected_modalities):
                 filtered_features[modality_key] = features[modality_key]
             else:
                 raise KeyError(f"Modality {modality} not found in dataset")
-        
+
         return filtered_features, labels
     
     # return dataset.map(filter_features, num_parallel_calls=tf.data.AUTOTUNE)
