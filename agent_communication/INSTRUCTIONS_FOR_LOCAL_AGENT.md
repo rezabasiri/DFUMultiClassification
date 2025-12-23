@@ -48,7 +48,7 @@ chmod +x agent_communication/debug_*.py
 **Platform**: Linux (Ubuntu/WSL)
 **Environment**: `/home/rezab/projects/enviroments/multimodal/bin`
 **Project Dir**: `/home/rezab/projects/DFUMultiClassification`
-**Goal**: Fix catastrophic training failure (Min F1=0.0, model only predicts majority class)
+**Goal**: Fix catastrophic training failure (Min F1=0.0, model only predicts one class)
 
 **Dataset**:
 - 3107 samples, 3 classes: I=Inflammation (28.7%), P=Proliferation (60.5%), R=Remodeling (10.8%)
@@ -60,43 +60,51 @@ chmod +x agent_communication/debug_*.py
 ## PROGRESS UPDATE
 
 ✅ **Phase 1**: Data loads correctly
-✅ **Phase 2**: Training works, but predicts only P → Min F1=0.0
+✅ **Phase 2**: Training works, but predicts only P (majority) → Min F1=0.0
 ✅ **Phase 5**: Focal loss math correct, alpha weights work
-✅ **Phase 6**: Focal loss + alpha ALONE insufficient → Min F1=0.0 (model still predicts only P)
+✅ **Phase 6**: Focal loss + alpha ALONE insufficient → Min F1=0.0
+✅ **Phase 7**: Oversampling enabled, but DOUBLE-CORRECTION bug → predicts only R (minority) → Min F1=0.0
 
-## 🎯 ROOT CAUSE FOUND
+## 🎯 ROOT CAUSE #2: DOUBLE-CORRECTION BUG
 
-**File**: `src/data/dataset_utils.py:714`
-**Bug**: `apply_sampling=False` - **OVERSAMPLING DISABLED**
+**Phase 7 revealed**: Oversampling worked, but created **over-correction**!
+- Before: Predicts 100% class P (majority)
+- After: Predicts 100% class R (minority) ← Over-corrected!
 
-The code HAS working RandomOverSampler but it's turned OFF. Focal loss alone cannot handle 5.6:1 imbalance.
+**File**: `src/data/dataset_utils.py:676`
+**Bug**: Alpha values calculated from ORIGINAL distribution, but applied to BALANCED data after oversampling
 
-**Fix Applied**: Changed to `apply_sampling=True`
+**The Problem**:
+1. Data-level: Oversampling balances classes (all → 1504 samples)
+2. Loss-level: Alpha still uses original imbalance weights [I=0.725, P=0.344, R=1.931]
+3. Result: Class R has same samples AS P, but 5.6x higher loss weight → over-prioritized
 
-**Next Action**: Test if fix works
+**Fix Applied**: Recalculate alpha from BALANCED distribution after oversampling (gives ~[1, 1, 1])
+
+**Next Action**: Test if double-correction fix works
 
 ---
 
-## PHASE 7: Test Oversampling Fix (5 minutes)
+## PHASE 8: Test Balanced Alpha Fix (5 minutes)
 
-**VERIFICATION TEST**: Confirm oversampling + focal loss solves Min F1=0 issue.
+**VERIFICATION TEST**: Confirm oversampling + balanced alpha solves Min F1=0.
 
 ```bash
-python agent_communication/debug_07_test_oversampling_fix.py
+python agent_communication/debug_08_test_balanced_alpha.py
 
 # Commit results
-git add agent_communication/results_07_oversampling_fix.txt
-git commit -m "Debug Phase 7: Test oversampling fix"
+git add agent_communication/results_08_balanced_alpha.txt
+git commit -m "Debug Phase 8: Test balanced alpha fix (no double-correction)"
 ```
 
 **What to expect**:
-- Training data balanced via oversampling (~1880 samples per class)
-- Model should predict ALL 3 classes
-- Min F1 should be > 0.0 (success!)
-- Prediction distribution NOT 100% class P
+- Training data balanced: ~1504 samples per class
+- Alpha values balanced: ~[1.000, 1.000, 1.000]
+- Model predicts ALL 3 classes (not just one)
+- Min F1 > 0.0 (SUCCESS!)
 
-**If PASS**: Fix confirmed, ready to test full main.py pipeline
-**If FAIL**: Need to investigate further (unlikely)
+**If PASS**: Double-correction fixed, ready to test main.py
+**If FAIL**: Need to investigate normalization/architecture
 
 ---
 
