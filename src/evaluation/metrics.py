@@ -154,6 +154,9 @@ def filter_frequent_misclassifications(data, result_dir, thresholds={'I': 12, 'P
     """
     Filter out samples that are frequently misclassified based on healing phase-specific thresholds.
 
+    FIXED: Now properly handles duplicate Sample_ID entries by using max Misclass_Count per sample.
+    Also adds fail-fast assertions and detailed logging.
+
     Args:
         data: Original DataFrame
         result_dir: Directory containing the misclassifications CSV (caller passes misclassifications subdirectory)
@@ -162,45 +165,100 @@ def filter_frequent_misclassifications(data, result_dir, thresholds={'I': 12, 'P
     Returns:
         Filtered DataFrame
     """
+    # ASSERTION 1: Input data must be valid
+    assert data is not None and len(data) > 0, "❌ Input data is empty or None!"
+    original_size = len(data)
+
     misclass_file = os.path.join(result_dir, 'frequent_misclassifications_saved.csv')
     if not os.path.exists(misclass_file):
-        vprint("No misclassification, level=1 file found. Using original dataset.")
+        vprint("No misclassification file found. Using original dataset.", level=1)
         return data
-    
+
     # Load misclassification data
     misclass_df = pd.read_csv(misclass_file)
-    
+
+    # ASSERTION 2: Misclass file must have required columns
+    assert 'Sample_ID' in misclass_df.columns, "❌ Missing Sample_ID column in misclass file!"
+    assert 'True_Label' in misclass_df.columns, "❌ Missing True_Label column in misclass file!"
+    assert 'Misclass_Count' in misclass_df.columns, "❌ Missing Misclass_Count column in misclass file!"
+
+    # Handle duplicate Sample_IDs: same sample can be misclassified as different labels
+    # Use max Misclass_Count per Sample_ID for exclusion decision
+    max_misclass = misclass_df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
+
     # Create set of samples to exclude for each class
     samples_to_exclude = set()
+    exclusion_details = {}
     for phase, threshold in thresholds.items():
-        high_misclass = misclass_df[
-            (misclass_df['True_Label'] == phase) & 
-            (misclass_df['Misclass_Count'] >= threshold)
-        ]['Sample_ID'].tolist()
+        high_misclass = max_misclass[
+            (max_misclass['True_Label'] == phase) &
+            (max_misclass['Misclass_Count'] >= threshold)
+        ]['Sample_ID'].unique().tolist()
         samples_to_exclude.update(high_misclass)
-    
-    # Convert samples to exclude to a list and print info
-    samples_to_exclude = list(samples_to_exclude)
-    print(f"\nExcluding {len(samples_to_exclude)} frequently misclassified samples:")
-    for phase in ['I', 'P', 'R']:
-        count = len([s for s in samples_to_exclude if 
-                    s in misclass_df[misclass_df['True_Label'] == phase]['Sample_ID'].values])
-        print(f"Class {phase}: {count} samples")
-    
+        exclusion_details[phase] = len(high_misclass)
+
     # Create sample ID column in original data
+    data = data.copy()  # Avoid modifying original
     data['Sample_ID'] = (
-        'P' + data['Patient#'].astype(str).str.zfill(3) + 
-        'A' + data['Appt#'].astype(str).str.zfill(2) + 
+        'P' + data['Patient#'].astype(str).str.zfill(3) +
+        'A' + data['Appt#'].astype(str).str.zfill(2) +
         'D' + data['DFU#'].astype(str)
     )
-    
+
+    # ASSERTION 3: Sample IDs must be generated
+    assert 'Sample_ID' in data.columns, "❌ Failed to create Sample_ID column!"
+    assert data['Sample_ID'].notna().all(), "❌ Some Sample_IDs are NaN!"
+
+    # Check overlap between data and misclass file
+    data_ids = set(data['Sample_ID'].unique())
+    misclass_ids = set(misclass_df['Sample_ID'].unique())
+    overlap = data_ids.intersection(misclass_ids)
+
+    if len(overlap) == 0:
+        print(f"⚠️  WARNING: No overlap between data and misclass IDs!")
+        print(f"   Data sample IDs: {list(data_ids)[:3]}...")
+        print(f"   Misclass sample IDs: {list(misclass_ids)[:3]}...")
+
     # Filter out samples
     filtered_data = data[~data['Sample_ID'].isin(samples_to_exclude)].copy()
-    
+
+    # Get unique sample counts
+    original_unique = data['Sample_ID'].nunique()
+    filtered_unique = filtered_data['Sample_ID'].nunique()
+    removed_unique = original_unique - filtered_unique
+
     # Remove temporary Sample_ID column
     filtered_data = filtered_data.drop('Sample_ID', axis=1)
-    
-    print(f"\nOriginal dataset size: {len(data)}")
-    print(f"Filtered dataset size: {len(filtered_data)}")
-    
+
+    # Detailed logging
+    print(f"\n{'='*60}")
+    print(f"FILTERING SUMMARY")
+    print(f"{'='*60}")
+    print(f"Thresholds: I={thresholds.get('I', 'N/A')}, P={thresholds.get('P', 'N/A')}, R={thresholds.get('R', 'N/A')}")
+    print(f"\nExcluded samples per class:")
+    for phase in ['I', 'P', 'R']:
+        print(f"  Class {phase}: {exclusion_details.get(phase, 0)} samples")
+    print(f"\nTotal unique samples to exclude: {len(samples_to_exclude)}")
+    print(f"\nDataset size (rows): {original_size} -> {len(filtered_data)} ({len(filtered_data)/original_size*100:.1f}%)")
+    print(f"Unique samples: {original_unique} -> {filtered_unique} (removed {removed_unique})")
+
+    # Check class distribution after filtering
+    if 'Healing Phase Abs' in filtered_data.columns:
+        print(f"\nClass distribution after filtering:")
+        for phase in ['I', 'P', 'R']:
+            count = len(filtered_data[filtered_data['Healing Phase Abs'] == phase])
+            print(f"  Class {phase}: {count} rows")
+    print(f"{'='*60}\n")
+
+    # ASSERTION 4: Filtered size must be valid
+    assert len(filtered_data) >= 0, f"❌ Negative filtered size!"
+
+    # ASSERTION 5: Warn if too much was filtered
+    if len(filtered_data) == 0:
+        print(f"⚠️  WARNING: ALL SAMPLES FILTERED OUT!")
+        print(f"   Check if thresholds are too aggressive: {thresholds}")
+    elif len(filtered_data) < original_size * 0.2:
+        print(f"⚠️  WARNING: Over 80% of data filtered out!")
+        print(f"   Consider adjusting thresholds: {thresholds}")
+
     return filtered_data

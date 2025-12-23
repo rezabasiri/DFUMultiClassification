@@ -83,7 +83,8 @@ class BayesianDatasetPolisher:
                  min_dataset_fraction=0.5,
                  min_f1_threshold=0.25,
                  min_samples_per_class=30,
-                 max_class_imbalance_ratio=5.0):
+                 max_class_imbalance_ratio=5.0,
+                 min_retention_per_class=0.90):
         """
         Initialize the Bayesian dataset polisher.
 
@@ -102,6 +103,8 @@ class BayesianDatasetPolisher:
             min_f1_threshold: Hard constraint - reject if any class F1 < this (default: 0.25)
             min_samples_per_class: Hard constraint - reject if any class < this many samples (default: 30)
             max_class_imbalance_ratio: Hard constraint - reject if largest/smallest class ratio > this (default: 5.0)
+            min_retention_per_class: Minimum fraction of samples to retain per class (default: 0.90)
+                                     Optimization skipped if this cannot be achieved.
         """
         if 'metadata' not in modalities:
             raise ValueError("Modalities must include 'metadata' for polishing")
@@ -120,6 +123,7 @@ class BayesianDatasetPolisher:
         self.min_f1_threshold = min_f1_threshold
         self.min_samples_per_class = min_samples_per_class
         self.max_class_imbalance_ratio = max_class_imbalance_ratio
+        self.min_retention_per_class = min_retention_per_class
 
         # Get project paths
         self.directory, self.result_dir, self.root = get_project_paths()
@@ -130,9 +134,131 @@ class BayesianDatasetPolisher:
         self.best_thresholds = None
         self.best_score = -np.inf
 
+    def _find_misclass_file(self):
+        """
+        Find the misclassification file, checking multiple locations.
+        Returns the path if found, None otherwise.
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+
+        # Possible locations for the misclass file
+        possible_paths = [
+            os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv'),
+            os.path.join(self.result_dir, 'misclassifications_saved', 'frequent_misclassifications_saved.csv'),
+            os.path.join(self.result_dir, 'misclassifications', 'frequent_misclassifications_saved.csv'),
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+
+        return None
+
+    def calculate_min_thresholds_for_retention(self, target_retention=0.90):
+        """
+        Calculate the minimum threshold for each class to retain at least target_retention
+        fraction of samples.
+
+        For example, with target_retention=0.90, finds the threshold that keeps 90% of
+        each class's samples.
+
+        Args:
+            target_retention: Fraction of samples to retain per class (0.0-1.0)
+
+        Returns:
+            dict: Minimum thresholds like {'I': 52, 'P': 55, 'R': 48} or None if impossible
+            dict: Retention info with stats for each class
+        """
+        misclass_file = self._find_misclass_file()
+        if misclass_file is None:
+            print("⚠️  No misclassification file found, cannot calculate auto thresholds")
+            return None, None
+
+        # Load misclassification data
+        df = pd.read_csv(misclass_file)
+
+        # Get original counts from best_matching.csv
+        best_matching_file = os.path.join(self.result_dir, 'best_matching.csv')
+        if not os.path.exists(best_matching_file):
+            print("⚠️  best_matching.csv not found, cannot calculate auto thresholds")
+            return None, None
+
+        best_matching = pd.read_csv(best_matching_file)
+        best_matching['Sample_ID'] = (
+            'P' + best_matching['Patient#'].astype(str).str.zfill(3) +
+            'A' + best_matching['Appt#'].astype(str).str.zfill(2) +
+            'D' + best_matching['DFU#'].astype(str)
+        )
+        original_counts = best_matching.groupby('Healing Phase Abs')['Sample_ID'].nunique().to_dict()
+
+        # Get max misclass count per sample (handling duplicates)
+        max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
+
+        min_thresholds = {}
+        retention_info = {}
+
+        for phase in ['I', 'P', 'R']:
+            phase_data = max_misclass[max_misclass['True_Label'] == phase]
+            original_count = original_counts.get(phase, 0)
+
+            if original_count == 0 or len(phase_data) == 0:
+                min_thresholds[phase] = 1  # Default to 1 if no data
+                retention_info[phase] = {
+                    'original': 0,
+                    'min_threshold': 1,
+                    'retained': 0,
+                    'retention_pct': 0.0
+                }
+                continue
+
+            counts = phase_data['Misclass_Count'].values
+            min_to_keep = int(np.ceil(original_count * target_retention))
+
+            # Find the minimum threshold that keeps at least min_to_keep samples
+            # Threshold T keeps samples where count < T, so we need: original - (count >= T) >= min_to_keep
+            # Equivalently: (count >= T) <= original - min_to_keep = max_to_exclude
+            max_to_exclude = original_count - min_to_keep
+
+            # Sort counts descending - the first max_to_exclude samples can be excluded
+            sorted_counts = np.sort(counts)[::-1]
+
+            if max_to_exclude <= 0:
+                # Cannot exclude any samples - need threshold higher than max count
+                min_threshold = int(counts.max()) + 1
+            elif max_to_exclude >= len(sorted_counts):
+                # Can exclude all samples - threshold of 1 would work but let's be reasonable
+                min_threshold = int(counts.min())
+            else:
+                # The threshold should be: sorted_counts[max_to_exclude - 1] + 1
+                # This excludes exactly max_to_exclude samples (those with highest counts)
+                # But we want AT LEAST target_retention, so threshold >= that value
+                min_threshold = int(sorted_counts[max_to_exclude - 1]) + 1
+
+            # Calculate actual retention at this threshold
+            retained = np.sum(counts < min_threshold)
+            retention_pct = retained / original_count * 100 if original_count > 0 else 0
+
+            min_thresholds[phase] = min_threshold
+            retention_info[phase] = {
+                'original': original_count,
+                'min_threshold': min_threshold,
+                'retained': retained,
+                'retention_pct': retention_pct,
+                'count_range': (int(counts.min()), int(counts.max())),
+                'count_median': float(np.median(counts))
+            }
+
+        return min_thresholds, retention_info
+
     def get_class_counts(self, thresholds):
         """
         Get class counts after applying filtering thresholds.
+
+        FIXED: Now correctly calculates by:
+        1. Getting original class distribution from best_matching.csv
+        2. Subtracting samples that would be excluded (Misclass_Count >= threshold)
+        3. Properly handling duplicate Sample_ID entries by using max count per sample
 
         Args:
             thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
@@ -140,25 +266,58 @@ class BayesianDatasetPolisher:
         Returns:
             dict: Class counts like {'I': 120, 'P': 180, 'R': 50}
         """
-        from src.utils.config import get_output_paths
-        from collections import Counter
-        output_paths = get_output_paths(self.result_dir)
-        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
+        # Find misclass file (checks multiple locations)
+        misclass_file = self._find_misclass_file()
 
-        if not os.path.exists(misclass_file):
+        # Step 1: Get original class distribution from best_matching.csv
+        best_matching_file = os.path.join(self.result_dir, 'best_matching.csv')
+        if not os.path.exists(best_matching_file):
+            print(f"⚠️  best_matching.csv not found, returning zeros")
             return {'I': 0, 'P': 0, 'R': 0}
 
+        best_matching = pd.read_csv(best_matching_file)
+        best_matching['Sample_ID'] = (
+            'P' + best_matching['Patient#'].astype(str).str.zfill(3) +
+            'A' + best_matching['Appt#'].astype(str).str.zfill(2) +
+            'D' + best_matching['DFU#'].astype(str)
+        )
+
+        # Original unique samples per class
+        original_counts = best_matching.groupby('Healing Phase Abs')['Sample_ID'].nunique().to_dict()
+
+        if misclass_file is None:
+            # No filtering - return original counts
+            return {
+                'I': original_counts.get('I', 0),
+                'P': original_counts.get('P', 0),
+                'R': original_counts.get('R', 0)
+            }
+
+        # Step 2: Load misclassification data and get max count per Sample_ID
         df = pd.read_csv(misclass_file)
 
-        # Get samples that would remain after filtering
-        remaining_samples = []
-        for _, row in df.iterrows():
-            phase = row['True_Label']
-            if phase in thresholds and row['Misclass_Count'] < thresholds[phase]:
-                remaining_samples.append(phase)
+        # Group by Sample_ID and True_Label to get max misclass count
+        # (same sample can have multiple entries for different predicted labels)
+        max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
 
-        class_counts = Counter(remaining_samples)
-        return {'I': class_counts.get('I', 0), 'P': class_counts.get('P', 0), 'R': class_counts.get('R', 0)}
+        # Step 3: Count excluded samples per class
+        excluded_per_class = {}
+        for phase in ['I', 'P', 'R']:
+            threshold = thresholds.get(phase, float('inf'))
+            excluded = max_misclass[
+                (max_misclass['True_Label'] == phase) &
+                (max_misclass['Misclass_Count'] >= threshold)
+            ]['Sample_ID'].nunique()
+            excluded_per_class[phase] = excluded
+
+        # Step 4: Calculate remaining = original - excluded
+        remaining_counts = {
+            'I': max(0, original_counts.get('I', 0) - excluded_per_class.get('I', 0)),
+            'P': max(0, original_counts.get('P', 0) - excluded_per_class.get('P', 0)),
+            'R': max(0, original_counts.get('R', 0) - excluded_per_class.get('R', 0))
+        }
+
+        return remaining_counts
 
     def calculate_constraint_penalties(self, thresholds, metrics, filtered_size=None):
         """
@@ -267,38 +426,24 @@ class BayesianDatasetPolisher:
         """
         Calculate class balance score (0-1) for filtered dataset.
 
+        FIXED: Now uses the corrected get_class_counts() method.
+
         Higher score = better balance between classes.
         Uses coefficient of variation (CV) of class sizes.
 
         Returns:
             float: Balance score (1.0 = perfect balance, 0.0 = extreme imbalance)
         """
-        from src.utils.config import get_output_paths
-        output_paths = get_output_paths(self.result_dir)
-        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
-
-        if not os.path.exists(misclass_file):
-            return 0.0
-
-        df = pd.read_csv(misclass_file)
-
-        # Get samples that would remain after filtering
-        remaining_samples = []
-        for _, row in df.iterrows():
-            phase = row['True_Label']
-            if phase in thresholds and row['Misclass_Count'] < thresholds[phase]:
-                remaining_samples.append(phase)
-
-        if len(remaining_samples) == 0:
-            return 0.0
-
-        # Count samples per class
-        from collections import Counter
-        class_counts = Counter(remaining_samples)
+        # Use the corrected get_class_counts method
+        class_counts = self.get_class_counts(thresholds)
         counts = np.array([class_counts.get(c, 0) for c in ['I', 'P', 'R']])
 
         # If any class is empty, return 0
         if np.any(counts == 0):
+            return 0.0
+
+        # If total is 0, return 0
+        if np.sum(counts) == 0:
             return 0.0
 
         # Calculate coefficient of variation (lower = better balance)
@@ -385,35 +530,49 @@ class BayesianDatasetPolisher:
         """
         Estimate how many samples would remain after filtering.
 
+        FIXED: Uses _find_misclass_file() helper and handles duplicate Sample_IDs correctly.
+
         Args:
             thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
 
         Returns:
             Number of samples that would remain
         """
-        from src.utils.config import get_output_paths
-        output_paths = get_output_paths(self.result_dir)
-        # Use saved Phase 1 data to avoid contamination from Phase 2 training
-        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
+        # Find misclass file (checks multiple locations)
+        misclass_file = self._find_misclass_file()
 
-        if not os.path.exists(misclass_file):
-            print(f"⚠️  Misclassification file not found: {misclass_file}")
+        if misclass_file is None:
+            print(f"⚠️  Misclassification file not found in any location")
             return self.original_dataset_size
 
         df = pd.read_csv(misclass_file)
 
-        # If original_dataset_size not set, get it from misclassification CSV
+        # If original_dataset_size not set, get it from best_matching.csv
         if self.original_dataset_size is None:
-            self.original_dataset_size = df['Sample_ID'].nunique()
-            print(f"ℹ️  Inferred dataset size from misclassification CSV: {self.original_dataset_size} samples")
+            best_matching_file = os.path.join(self.result_dir, 'best_matching.csv')
+            if os.path.exists(best_matching_file):
+                best_matching = pd.read_csv(best_matching_file)
+                best_matching['Sample_ID'] = (
+                    'P' + best_matching['Patient#'].astype(str).str.zfill(3) +
+                    'A' + best_matching['Appt#'].astype(str).str.zfill(2) +
+                    'D' + best_matching['DFU#'].astype(str)
+                )
+                self.original_dataset_size = best_matching['Sample_ID'].nunique()
+            else:
+                self.original_dataset_size = df['Sample_ID'].nunique()
+            print(f"ℹ️  Inferred dataset size: {self.original_dataset_size} samples")
+
+        # Group by Sample_ID and True_Label to get max misclass count
+        # (same sample can have multiple entries for different predicted labels)
+        max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
 
         # Count samples that would be excluded
         excluded_samples = set()
         for phase, threshold in thresholds.items():
-            high_misclass = df[
-                (df['True_Label'] == phase) &
-                (df['Misclass_Count'] >= threshold)
-            ]['Sample_ID'].tolist()
+            high_misclass = max_misclass[
+                (max_misclass['True_Label'] == phase) &
+                (max_misclass['Misclass_Count'] >= threshold)
+            ]['Sample_ID'].unique().tolist()
             excluded_samples.update(high_misclass)
 
         excluded_count = len(excluded_samples)
@@ -653,21 +812,68 @@ class BayesianDatasetPolisher:
             print("   Falling back to grid search...")
             return self.phase2_grid_search()
 
-        # Define search space (percentage-based, symmetric ranges)
-        # All classes: 10-100% - let balanced F1 metric handle class distribution
+        # Calculate automatic threshold bounds based on data retention target
+        target_retention = self.min_retention_per_class
+        min_thresholds, retention_info = self.calculate_min_thresholds_for_retention(target_retention)
+
+        if min_thresholds is None:
+            print(f"\n❌ ERROR: Cannot calculate automatic threshold bounds")
+            print("   Misclassification data not available.")
+            return False, None
+
+        # Display retention analysis
+        print(f"\n{'='*70}")
+        print(f"AUTOMATIC THRESHOLD CALCULATION (Target: {target_retention*100:.0f}% retention per class)")
+        print(f"{'='*70}")
+
+        can_optimize = True
+        for phase in ['I', 'P', 'R']:
+            info = retention_info[phase]
+            print(f"\n  Class {phase}:")
+            print(f"    Original samples: {info['original']}")
+            print(f"    Misclass count range: {info['count_range'][0]}-{info['count_range'][1]}, median={info['count_median']:.1f}")
+            print(f"    Min threshold for {target_retention*100:.0f}% retention: {info['min_threshold']}")
+            print(f"    Actual retention at this threshold: {info['retained']}/{info['original']} ({info['retention_pct']:.1f}%)")
+
+            # Check if threshold exceeds max observed count (meaning we can't retain enough)
+            if info['min_threshold'] > info['count_range'][1]:
+                print(f"    ⚠️  WARNING: Threshold {info['min_threshold']} exceeds max count {info['count_range'][1]}")
+                print(f"       Cannot achieve {target_retention*100:.0f}% retention - all samples have high misclass counts")
+                can_optimize = False
+
+        # Check if optimization should be skipped
+        if not can_optimize:
+            print(f"\n{'='*70}")
+            print(f"⚠️  SKIPPING PHASE 2 OPTIMIZATION")
+            print(f"{'='*70}")
+            print(f"\nReason: Cannot achieve {target_retention*100:.0f}% data retention.")
+            print("All samples have been frequently misclassified, suggesting:")
+            print("  1. The classification task may be inherently difficult")
+            print("  2. The misclassification tracking has accumulated too many counts")
+            print("  3. Consider running Phase 1 with fewer runs to reduce count accumulation")
+            print("\nRecommendation: Use NO filtering (keep all samples) or manually set thresholds.")
+
+            # Return "success" but with no thresholds (no filtering)
+            return True, None
+
+        # Define search space with automatic minimum bounds
+        # Minimum = threshold to keep 90% retention
+        # Maximum = max observed misclass count + 1 (no filtering at upper bound)
+        max_count_overall = max(info['count_range'][1] for info in retention_info.values())
+        upper_bound = max_count_overall + 1
+
         search_space = [
-            Integer(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs), name='threshold_P'),
-            Integer(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs), name='threshold_I'),
-            Integer(max(1, int(0.10 * self.phase1_n_runs)), int(1.00 * self.phase1_n_runs), name='threshold_R')
+            Integer(min_thresholds['P'], upper_bound, name='threshold_P'),
+            Integer(min_thresholds['I'], upper_bound, name='threshold_I'),
+            Integer(min_thresholds['R'], upper_bound, name='threshold_R')
         ]
 
-        print(f"\nSearch Space (symmetric for all classes):")
-        print(f"  P: {search_space[0].low}-{search_space[0].high} " +
-              f"({search_space[0].low/self.phase1_n_runs*100:.0f}%-{search_space[0].high/self.phase1_n_runs*100:.0f}%)")
-        print(f"  I: {search_space[1].low}-{search_space[1].high} " +
-              f"({search_space[1].low/self.phase1_n_runs*100:.0f}%-{search_space[1].high/self.phase1_n_runs*100:.0f}%)")
-        print(f"  R: {search_space[2].low}-{search_space[2].high} " +
-              f"({search_space[2].low/self.phase1_n_runs*100:.0f}%-{search_space[2].high/self.phase1_n_runs*100:.0f}%)")
+        print(f"\n{'='*70}")
+        print(f"SEARCH SPACE (auto-calculated to preserve ≥{target_retention*100:.0f}% per class)")
+        print(f"{'='*70}")
+        print(f"  P: {search_space[0].low}-{search_space[0].high} (min threshold to keep {target_retention*100:.0f}%)")
+        print(f"  I: {search_space[1].low}-{search_space[1].high} (min threshold to keep {target_retention*100:.0f}%)")
+        print(f"  R: {search_space[2].low}-{search_space[2].high} (min threshold to keep {target_retention*100:.0f}%)")
 
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
@@ -1029,6 +1235,10 @@ Examples:
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
 
+    parser.add_argument('--min-retention-per-class', type=float, default=0.90,
+                        help='Minimum retention per class (default: 0.90). '
+                             'Optimization is skipped if this cannot be achieved.')
+
     args = parser.parse_args()
 
     if 'metadata' not in args.modalities:
@@ -1040,7 +1250,8 @@ Examples:
         phase1_n_runs=args.phase1_n_runs,
         phase1_modalities=args.phase1_modalities,
         phase2_n_evaluations=args.n_evaluations,
-        min_dataset_fraction=args.min_dataset_fraction
+        min_dataset_fraction=args.min_dataset_fraction,
+        min_retention_per_class=args.min_retention_per_class
     )
 
     # Run phases
@@ -1058,18 +1269,28 @@ Examples:
             print("\n❌ Phase 2 failed")
             sys.exit(1)
 
-        polisher.save_results()
+        # Handle case where optimization was skipped (thresholds=None)
+        if best_thresholds is None:
+            print("\n" + "="*70)
+            print("⚠️  OPTIMIZATION SKIPPED")
+            print("="*70)
+            print(f"\nCannot achieve {args.min_retention_per_class*100:.0f}% retention per class.")
+            print("Recommendation: Use NO filtering for training:")
+            print(f"   python src/main.py --mode search --cv_folds 5")
+            print("\nOr reduce --min-retention-per-class to allow more aggressive filtering.")
+        else:
+            polisher.save_results()
 
-        print("\n" + "="*70)
-        print("🎉 OPTIMIZATION COMPLETE")
-        print("="*70)
-        print(f"\nOptimal thresholds: {best_thresholds}")
-        print(f"Optimization score: {polisher.best_score:.4f}")
-        print(f"\n💡 Use these thresholds for final training:")
-        print(f"   python src/main.py --mode search --cv_folds 5 \\")
-        print(f"       --threshold_I {best_thresholds['I']} \\")
-        print(f"       --threshold_P {best_thresholds['P']} \\")
-        print(f"       --threshold_R {best_thresholds['R']}")
+            print("\n" + "="*70)
+            print("🎉 OPTIMIZATION COMPLETE")
+            print("="*70)
+            print(f"\nOptimal thresholds: {best_thresholds}")
+            print(f"Optimization score: {polisher.best_score:.4f}")
+            print(f"\n💡 Use these thresholds for final training:")
+            print(f"   python src/main.py --mode search --cv_folds 5 \\")
+            print(f"       --threshold_I {best_thresholds['I']} \\")
+            print(f"       --threshold_P {best_thresholds['P']} \\")
+            print(f"       --threshold_R {best_thresholds['R']}")
 
     sys.exit(0)
 
