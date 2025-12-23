@@ -1,6 +1,11 @@
 ================================================================================
-DEBUG 1: DATA SANITY CHECK
+DEBUG 1: DATA LOADING TEST (Using main.py's actual pipeline)
 ================================================================================
 
-1. Loading balanced data...
-❌ FAIL: File not found: balanced_combined_healing_phases.csv
+1. Project paths:
+  Directory: /home/rezab/projects/DFUMultiClassification
+  Root: /home/rezab/projects/DFUMultiClassification/data
+
+2. Checking raw data files:
+  Depth BB: ✗ MISSING
+    Path: /home/rezab/projects/DFUMultiClassification/data/raw/bb_depth_annotation.csv
