@@ -246,19 +246,21 @@ class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
                     tf.keras.backend.set_value(self.model.optimizer.lr, new_lr)
             self.wait = 0
 class ProcessedDataManager:
-    def __init__(self, data, directory):
+    def __init__(self, data, directory, image_size=None):
         """
         Initialize the ProcessedDataManager.
-        
+
         Args:
             data: The input data DataFrame
             directory: Base directory for the project
+            image_size: Target image size (uses IMAGE_SIZE from production_config if not specified)
         """
         self.directory = directory
         self.data = data.copy(deep=True)
         self.all_modality_shapes = {}
         self.cached_datasets = {}
-        
+        self.image_size = image_size if image_size is not None else IMAGE_SIZE
+
     def process_all_modalities(self):
         """Process all modalities and store their shapes."""
         # Get metadata shape after preprocessing
@@ -276,10 +278,10 @@ class ProcessedDataManager:
             self.all_modality_shapes['metadata'] = batch[0]['metadata_input'].shape[1:]
             break
 
-        # Set image shapes
-        vprint("Setting image shapes...", level=2)
+        # Set image shapes using instance's image_size
+        vprint(f"Setting image shapes to {self.image_size}x{self.image_size}...", level=2)
         for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
-            self.all_modality_shapes[modality] = (IMAGE_SIZE, IMAGE_SIZE, 3)
+            self.all_modality_shapes[modality] = (self.image_size, self.image_size, 3)
         
         del temp_train, temp_data
         gc.collect()
@@ -917,14 +919,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         if completed_configs:
             vprint(f"\nFound completed configs for run {run + 1}: {completed_configs}", level=1)
         
-        # Initialize data manager for this run
-        data_manager = ProcessedDataManager(data.copy(), directory)
+        # Initialize data manager for this run with the correct image_size
+        data_manager = ProcessedDataManager(data.copy(), directory, image_size=image_size)
         data_manager.process_all_modalities()
-        
-        # Setup augmentation once per run
+
+        # Setup augmentation once per run (use the passed image_size, not global IMAGE_SIZE)
         aug_config = AugmentationConfig()
-        aug_config.generative_settings['output_size']['width'] = IMAGE_SIZE
-        aug_config.generative_settings['output_size']['height'] = IMAGE_SIZE
+        aug_config.generative_settings['output_size']['width'] = image_size
+        aug_config.generative_settings['output_size']['height'] = image_size
         
         gen_manager = GenerativeAugmentationManager(
             base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
