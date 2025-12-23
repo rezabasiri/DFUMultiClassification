@@ -63,7 +63,7 @@ tf.random.set_seed(42)
 QUICK_TEST_CONFIG = {
     'image_size': 32,  # Reduced from 64 for speed
     'batch_size': 16,   # Reduced from 128 for speed
-    'max_epochs': 10,   # Reduced from 100 for speed
+    'max_epochs': 20,   # Match Phase 9 testing (was 10, now 20)
     'cv_folds': 3,      # Standard 3-fold CV
     'data_percentage': 100,  # Use full dataset for reliable results
     'train_patient_percentage': 100,
