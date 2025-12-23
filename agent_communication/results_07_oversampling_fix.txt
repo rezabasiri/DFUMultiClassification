@@ -1,0 +1,66 @@
+================================================================================
+DEBUG 7: TEST OVERSAMPLING FIX
+================================================================================
+
+1. Loading data...
+  Original data: (3107, 61)
+
+2. Calculating alpha values from ORIGINAL distribution...
+  Original class distribution:
+    Class 0: 892 (28.7%)
+    Class 1: 1880 (60.5%)
+    Class 2: 335 (10.8%)
+  Alpha values: [0.725, 0.344, 1.931]
+
+3. Class distribution BEFORE oversampling:
+  Class 0: 713 samples
+  Class 1: 1504 samples
+  Class 2: 268 samples
+
+4. Applying RandomOverSampler to training data...
+
+5. Class distribution AFTER oversampling:
+  Class 0: 1504 samples (2.1x increase)
+  Class 1: 1504 samples (1.0x increase)
+  Class 2: 1504 samples (5.6x increase)
+
+6. Building model with focal loss + alpha...
+  Model parameters: 16387
+  Training samples: 4512 (after oversampling)
+
+7. Training (10 epochs - quick test)...
+--------------------------------------------------------------------------------
+  Epoch  1: loss=7.2438, acc=0.3256 | val_loss=6.7584, val_acc=0.1141
+  Epoch  2: loss=5.9039, acc=0.3400 | val_loss=6.8036, val_acc=0.1077
+  Epoch  3: loss=5.9542, acc=0.3327 | val_loss=6.8036, val_acc=0.1077
+  Epoch  4: loss=5.8610, acc=0.3333 | val_loss=6.8036, val_acc=0.1077
+  Epoch  5: loss=5.8309, acc=0.3331 | val_loss=6.8036, val_acc=0.1077
+  Epoch  6: loss=5.8312, acc=0.3333 | val_loss=6.8036, val_acc=0.1077
+  Epoch  7: loss=5.8272, acc=0.3333 | val_loss=6.8036, val_acc=0.1077
+  Epoch  8: loss=5.8278, acc=0.3333 | val_loss=6.8036, val_acc=0.1077
+  Epoch  9: loss=5.8278, acc=0.3333 | val_loss=6.8036, val_acc=0.1077
+  Epoch 10: loss=5.8273, acc=0.3338 | val_loss=6.8036, val_acc=0.1077
+
+8. Evaluation:
+--------------------------------------------------------------------------------
+  Test Loss: 6.8036
+  Test Accuracy: 0.1077
+  F1 Macro: 0.0648
+  F1 per class: [0.000, 0.000, 0.194]
+  Min F1: 0.0000
+
+9. Prediction distribution:
+  Class 0: 0 predictions (0.0%)
+  Class 1: 0 predictions (0.0%)
+  Class 2: 622 predictions (100.0%)
+
+10. COMPARISON:
+  Phase 2 (plain cross-entropy, no oversampling): Min F1=0.000
+  Phase 6 (focal loss, no oversampling):          Min F1=0.000
+  Phase 7 (focal loss + oversampling):            Min F1=0.000
+
+================================================================================
+❌ FAIL: Still having issues even with oversampling
+================================================================================
+  Classes not predicted: [0, 1]
+  May need to adjust hyperparameters or use stronger augmentation
