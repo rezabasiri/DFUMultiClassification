@@ -961,7 +961,38 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
     valid_data, _, _ = preprocess_split(valid_data, is_training=False, rf_model1=rf_model1, rf_model2=rf_model2, imputation_data=source_data)
     del rf_model1, rf_model2
-    
+
+    # FEATURE NORMALIZATION - Apply StandardScaler to numeric metadata features
+    # This is CRITICAL for training convergence (proven by Phase 9 debugging)
+    if 'metadata' in selected_modalities:
+        from sklearn.preprocessing import StandardScaler
+
+        # Identify numeric columns to normalize (exclude images, labels, identifiers)
+        exclude_cols = [
+            'Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
+            'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+            'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+            'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax'
+        ]
+
+        # Get numeric columns from train_data
+        numeric_cols = train_data.select_dtypes(include=[np.number]).columns
+        cols_to_normalize = [col for col in numeric_cols if col not in exclude_cols]
+
+        if len(cols_to_normalize) > 0:
+            vprint(f"\nNormalizing {len(cols_to_normalize)} numeric features with StandardScaler...", level=2)
+
+            # Fit scaler on training data only (prevent data leakage)
+            scaler = StandardScaler()
+            train_data[cols_to_normalize] = scaler.fit_transform(train_data[cols_to_normalize])
+
+            # Transform validation data using the same scaler
+            valid_data[cols_to_normalize] = scaler.transform(valid_data[cols_to_normalize])
+
+            if get_verbosity() == 2:
+                print(f"  Normalized feature range: [{train_data[cols_to_normalize].min().min():.2f}, {train_data[cols_to_normalize].max().max():.2f}]")
+                print(f"  Mean: {train_data[cols_to_normalize].mean().mean():.4f}, Std: {train_data[cols_to_normalize].std().mean():.4f}")
+
     # Create cached datasets
     train_dataset, pre_aug_dataset, steps_per_epoch = create_cached_dataset(
         train_data,
