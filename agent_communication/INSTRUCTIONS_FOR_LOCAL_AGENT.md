@@ -60,51 +60,54 @@ chmod +x agent_communication/debug_*.py
 ## PROGRESS UPDATE
 
 ✅ **Phase 1**: Data loads correctly
-✅ **Phase 2**: Training works, but predicts only P (majority) → Min F1=0.0
-✅ **Phase 5**: Focal loss math correct, alpha weights work
-✅ **Phase 6**: Focal loss + alpha ALONE insufficient → Min F1=0.0
-✅ **Phase 7**: Oversampling enabled, but DOUBLE-CORRECTION bug → predicts only R (minority) → Min F1=0.0
+✅ **Phase 2**: Predicts only P → Min F1=0.0
+✅ **Phase 5**: Focal loss math works
+✅ **Phase 6**: Focal loss alone insufficient → Min F1=0.0
+✅ **Phase 7**: Oversampling → predicts only R (double-correction bug)
+✅ **Phase 8**: Fixed double-correction → predicts only I, **BUT model NOT learning** (train acc=33.3%)
 
-## 🎯 ROOT CAUSE #2: DOUBLE-CORRECTION BUG
+## 🎯 ROOT CAUSE #3: FEATURES NOT NORMALIZED
 
-**Phase 7 revealed**: Oversampling worked, but created **over-correction**!
-- Before: Predicts 100% class P (majority)
-- After: Predicts 100% class R (minority) ← Over-corrected!
+**Phase 8 critical finding**: Training accuracy stuck at 33.3% = random guessing on 3-class balanced data
 
-**File**: `src/data/dataset_utils.py:676`
-**Bug**: Alpha values calculated from ORIGINAL distribution, but applied to BALANCED data after oversampling
+Model is **stuck at initialization - NO learning at all!** (Different from Phases 2-7 where it "learned" to predict one class)
 
-**The Problem**:
-1. Data-level: Oversampling balances classes (all → 1504 samples)
-2. Loss-level: Alpha still uses original imbalance weights [I=0.725, P=0.344, R=1.931]
-3. Result: Class R has same samples AS P, but 5.6x higher loss weight → over-prioritized
+**Why**:
+- Feature range: -0.24 to 7071.0 (huge differences)
+- Without normalization: Large features dominate gradients, small features ignored
+- Focal loss + unnormalized → very high loss (10.8) → tiny gradients → no learning
 
-**Fix Applied**: Recalculate alpha from BALANCED distribution after oversampling (gives ~[1, 1, 1])
+**Fix**: Normalize features (StandardScaler) + use plain cross-entropy (balanced data doesn't need focal loss)
 
-**Next Action**: Test if double-correction fix works
+**Next Action**: Test with feature normalization
 
 ---
 
-## PHASE 8: Test Balanced Alpha Fix (5 minutes)
+## PHASE 9: Feature Normalization + Oversampling (5 minutes)
 
-**VERIFICATION TEST**: Confirm oversampling + balanced alpha solves Min F1=0.
+**CRITICAL TEST**: Test if feature normalization enables learning.
 
 ```bash
-python agent_communication/debug_08_test_balanced_alpha.py
+python agent_communication/debug_09_normalized_features.py
 
 # Commit results
-git add agent_communication/results_08_balanced_alpha.txt
-git commit -m "Debug Phase 8: Test balanced alpha fix (no double-correction)"
+git add agent_communication/results_09_normalized_features.txt agent_communication/FINAL_ROOT_CAUSE.md
+git commit -m "Debug Phase 9: Test feature normalization"
 ```
 
-**What to expect**:
-- Training data balanced: ~1504 samples per class
-- Alpha values balanced: ~[1.000, 1.000, 1.000]
-- Model predicts ALL 3 classes (not just one)
-- Min F1 > 0.0 (SUCCESS!)
+**What this tests**:
+- StandardScaler (mean=0, std=1 for all features)
+- Plain cross-entropy (no focal loss - unnecessary with balanced data)
+- Oversampling (balanced training data)
 
-**If PASS**: Double-correction fixed, ready to test main.py
-**If FAIL**: Need to investigate normalization/architecture
+**Expected**:
+- Training loss DECREASES (not plateau at 10.8)
+- Training accuracy INCREASES above 33.3%
+- Model predicts all 3 classes
+- Min F1 > 0.3 (actual learning!)
+
+**If PASS**: Complete solution found! Apply to main.py
+**If FAIL**: May need architecture changes
 
 ---
 
