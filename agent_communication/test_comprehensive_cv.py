@@ -187,7 +187,7 @@ def run_modality_test(modalities, config):
         print(f"Running {config['cv_folds']}-fold CV...")
         results = cross_validation_manual_split(
             data,  # DataFrame
-            modalities,  # List of modalities (converted to config dict internally)
+            config_dict,  # Pass config dict with max_epochs, not just modalities list
             train_patient_percentage=config['train_patient_percentage'],
             cv_folds=config['cv_folds']
         )
@@ -264,6 +264,60 @@ def run_modality_test(modalities, config):
             'traceback': traceback.format_exc()
         }
 
+def save_progress_results(all_results, config, completed_count, total_count):
+    """Save results continuously after each modality completes"""
+    output_file = 'agent_communication/results_comprehensive_cv_test.txt'
+    json_file = 'agent_communication/results_comprehensive_cv_test.json'
+
+    # Save JSON
+    with open(json_file, 'w') as f:
+        json.dump(all_results, f, indent=2)
+
+    # Save text report
+    with open(output_file, 'w') as f:
+        f.write("="*80 + "\n")
+        f.write("COMPREHENSIVE CV TEST RESULTS (IN PROGRESS)\n")
+        f.write("="*80 + "\n")
+        f.write(f"\nLast updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Progress: {completed_count}/{total_count} modalities tested\n")
+        f.write(f"\nConfiguration:\n")
+        f.write(f"  Image size: {config['image_size']}x{config['image_size']}\n")
+        f.write(f"  Batch size: {config['batch_size']}\n")
+        f.write(f"  Max epochs: {config['max_epochs']}\n")
+        f.write(f"  CV folds: {config['cv_folds']}\n")
+
+        # Detect GPU availability
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            f.write(f"  Running on: GPU ({len(gpus)} device(s))\n")
+        else:
+            f.write(f"  Running on: CPU\n")
+
+        # Summary table
+        f.write("\n" + "="*80 + "\n")
+        f.write("SUMMARY TABLE\n")
+        f.write("="*80 + "\n")
+        f.write(f"{'Modality':<30} {'Avg Acc':<10} {'Avg F1':<10} {'Min F1':<10} {'Status':<15}\n")
+        f.write("-"*80 + "\n")
+
+        for result in all_results:
+            if result['success']:
+                status = "✅ PASS" if result['avg_f1_min'] > 0.1 else "⚠️  LOW MIN F1"
+                if result['data_leak'] or result['model_leak']:
+                    status = "❌ LEAK DETECTED"
+
+                f.write(f"{result['modalities']:<30} "
+                       f"{result['avg_accuracy']:<10.4f} "
+                       f"{result['avg_f1_macro']:<10.4f} "
+                       f"{result['avg_f1_min']:<10.4f} "
+                       f"{status:<15}\n")
+            else:
+                f.write(f"{result['modalities']:<30} {'N/A':<10} {'N/A':<10} {'N/A':<10} {'❌ FAILED':<15}\n")
+
+        # Add remaining modalities as pending
+        for i in range(completed_count, total_count):
+            f.write(f"{'[Pending...]':<30} {'---':<10} {'---':<10} {'---':<10} {'⏳ PENDING':<15}\n")
+
 def main():
     print("="*80)
     print("COMPREHENSIVE CV TEST: All Modalities with Leak Detection")
@@ -292,11 +346,15 @@ def main():
         result = run_modality_test(modalities, QUICK_TEST_CONFIG)
         all_results.append(result)
 
-    # Generate report
+        # Save progress after each modality completes
+        save_progress_results(all_results, QUICK_TEST_CONFIG, i, len(TEST_MODALITIES))
+        print(f"✅ Progress saved: {i}/{len(TEST_MODALITIES)} complete")
+
+    # Generate final report (overwrites the in-progress version)
     output_file = 'agent_communication/results_comprehensive_cv_test.txt'
     with open(output_file, 'w') as f:
         f.write("="*80 + "\n")
-        f.write("COMPREHENSIVE CV TEST RESULTS\n")
+        f.write("COMPREHENSIVE CV TEST RESULTS - COMPLETE\n")
         f.write("="*80 + "\n")
         f.write(f"\nTest completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"\nConfiguration:\n")

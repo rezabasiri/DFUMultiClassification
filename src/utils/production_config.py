@@ -29,7 +29,7 @@ IMAGE_SIZE = 12  # Image dimensions (128x128 pixels for better detail)
 # IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
 # GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
 GLOBAL_BATCH_SIZE = 32  # Total batch size (reduced for 128x128 images on TITAN Xp 12GB VRAM)
-N_EPOCHS = 2  # Maximum number of training epochs (increased for thorough training)
+N_EPOCHS = 20  # Maximum number of training epochs (matches Phase 9 testing)
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
