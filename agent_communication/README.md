@@ -18,10 +18,11 @@
 - 2 = R (Remodeling)
 
 **Dataset**:
-- File: `balanced_combined_healing_phases.csv` (in project root)
+- Raw file: `data/raw/DataMaster_Processed_V12_WithMissing.csv`
+- Loaded via `prepare_dataset()` function (creates `best_matching.csv`)
 - ~600 samples across 3 classes
 - Multiple modalities: metadata, depth_rgb, depth_map, thermal_map
-- Dataset is VERIFIED as correct - the issue is in the code
+- Dataset is VERIFIED as correct - the issue is in the training code
 
 ### Git Operations
 - **Pull**: `git pull origin claude/restore-weighted-f1-metrics-5PNy8`
