@@ -634,3 +634,43 @@ Training produced catastrophic results: Min F1=0.0, Macro F1=0.21, model predict
 - Test with image modalities (depth_rgb, depth_map, thermal_map) to verify fix works across all modalities
 - Run comprehensive CV test with all modality combinations
 - Verify no data/model leaks in full pipeline
+
+---
+
+## 2025-12-23 — StandardScaler scope bug fix (comprehensive CV test unblocked)
+
+### Issue
+
+Comprehensive CV test failed for ALL modalities with:
+```
+NameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
+File: src/data/dataset_utils.py, line 823
+Function: preprocess_split()
+```
+
+### Root Cause
+
+- StandardScaler already imported at module level (line 14)
+- Redundant local import added at line 968 during Phase 9 implementation
+- Created scope conflict: nested function `preprocess_split()` (defined at line 727) couldn't access StandardScaler because:
+  - It's referenced at line 823 inside the nested function
+  - The local import at line 968 happens AFTER the function definition
+  - Python sees the variable will be defined in enclosing scope but not yet available
+
+### Fix
+
+**File**: `src/data/dataset_utils.py`
+**Change**: Removed redundant import at line 968 (commit e37bdf7)
+```python
+# BEFORE (line 968)
+from sklearn.preprocessing import StandardScaler
+
+# AFTER
+# Note: StandardScaler is already imported at module level (line 14)
+```
+
+### Impact
+
+- Unblocks comprehensive CV test for all modalities
+- No functional change - same StandardScaler is used, just from module-level import
+- Local agent can now re-run `test_comprehensive_cv.py` to verify Phase 9 fix works across all modalities
