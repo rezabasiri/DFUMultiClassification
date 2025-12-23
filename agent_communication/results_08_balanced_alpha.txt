@@ -1,0 +1,76 @@
+================================================================================
+DEBUG 8: TEST OVERSAMPLING WITH BALANCED ALPHA (FIX DOUBLE-CORRECTION)
+================================================================================
+
+1. Loading data...
+  Original data: (3107, 61)
+
+2. Class distribution BEFORE oversampling:
+  Class 0: 713 samples
+  Class 1: 1504 samples
+  Class 2: 268 samples
+
+3. Applying RandomOverSampler...
+
+4. Class distribution AFTER oversampling:
+  Class 0: 1504 samples
+  Class 1: 1504 samples
+  Class 2: 1504 samples
+
+5. Calculating alpha from BALANCED distribution...
+  Alpha values: [1.000, 1.000, 1.000]
+  (Should be close to [1.000, 1.000, 1.000] since data is balanced)
+
+6. Building model with focal loss + balanced alpha...
+  Model parameters: 16387
+  Training samples: 4512
+
+7. Training (15 epochs)...
+--------------------------------------------------------------------------------
+  Epoch  1: loss=10.8885, acc=0.3271 | val_loss=11.5314, val_acc=0.2878
+  Epoch  2: loss=10.8259, acc=0.3333 | val_loss=11.5314, val_acc=0.2878
+  Epoch  3: loss=10.8395, acc=0.3327 | val_loss=11.5314, val_acc=0.2878
+  Epoch  4: loss=10.8287, acc=0.3333 | val_loss=11.5314, val_acc=0.2878
+  Epoch  5: loss=10.8287, acc=0.3333 | val_loss=11.5314, val_acc=0.2878
+  Epoch  6: loss=10.8251, acc=0.3336 | val_loss=11.5314, val_acc=0.2878
+  Epoch  7: loss=10.8215, acc=0.3338 | val_loss=11.5314, val_acc=0.2878
+  Epoch  8: loss=10.8251, acc=0.3336 | val_loss=11.5314, val_acc=0.2878
+  Epoch  9: loss=10.8287, acc=0.3333 | val_loss=11.5314, val_acc=0.2878
+  Epoch 10: loss=10.8251, acc=0.3336 | val_loss=11.5314, val_acc=0.2878
+  Epoch 11: loss=10.8251, acc=0.3336 | val_loss=11.5314, val_acc=0.2878
+  Epoch 12: loss=10.8232, acc=0.3336 | val_loss=11.5314, val_acc=0.2878
+  Epoch 13: loss=10.8287, acc=0.3333 | val_loss=11.5314, val_acc=0.2878
+  Epoch 14: loss=10.8287, acc=0.3333 | val_loss=11.5314, val_acc=0.2878
+  Epoch 15: loss=10.8287, acc=0.3333 | val_loss=11.5314, val_acc=0.2878
+
+8. Evaluation:
+--------------------------------------------------------------------------------
+  Test Loss: 11.5314
+  Test Accuracy: 0.2878
+  F1 Macro: 0.1490
+  F1 per class: [0.447, 0.000, 0.000]
+  Min F1: 0.0000
+
+9. Prediction distribution:
+  Class 0: 622 predictions (100.0%) vs 179 actual (28.8%)
+  Class 1: 0 predictions (0.0%) vs 376 actual (60.5%)
+  Class 2: 0 predictions (0.0%) vs 67 actual (10.8%)
+
+10. PHASE COMPARISON:
+  Phase 2: Plain cross-entropy, no oversampling
+           Alpha: N/A, Predicts: 100% class P, Min F1=0.000
+
+  Phase 6: Focal loss, no oversampling
+           Alpha: [0.725, 0.344, 1.931], Predicts: 100% class P, Min F1=0.000
+
+  Phase 7: Focal loss + oversampling (DOUBLE-CORRECTION BUG)
+           Alpha: [0.725, 0.344, 1.931], Predicts: 100% class R, Min F1=0.000
+
+  Phase 8: Focal loss + oversampling (FIXED)
+           Alpha: [1.000, 1.000, 1.000], Predicts: I=622, P=0, R=0, Min F1=0.000
+
+================================================================================
+❌ STILL FAILING
+================================================================================
+  Classes not predicted: [1, 2]
+  Need to investigate further (possible issues: features, normalization, architecture)
