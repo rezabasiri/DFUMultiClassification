@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 import numpy as np
 from src.data.image_processing import prepare_dataset
-from src.utils.config import get_project_paths
+from src.utils.config import get_project_paths, get_data_paths
 
 def main():
     output = []
@@ -22,15 +22,16 @@ def main():
     try:
         # Use same paths as main.py
         directory, result_dir, root = get_project_paths()
+        data_paths = get_data_paths(root)
 
         log("\n1. Project paths:")
         log(f"  Directory: {directory}")
         log(f"  Root: {root}")
 
-        # File paths (same as main.py)
-        depth_bb_file = os.path.join(root, 'raw', 'bb_depth_annotation.csv')
-        thermal_bb_file = os.path.join(root, 'raw', 'bb_thermal_annotation.csv')
-        csv_file = os.path.join(root, 'raw', 'DataMaster_Processed_V12_WithMissing.csv')
+        # File paths from config (same as main.py uses)
+        depth_bb_file = data_paths['bb_depth_csv']
+        thermal_bb_file = data_paths['bb_thermal_csv']
+        csv_file = data_paths['csv_file']
 
         log("\n2. Checking raw data files:")
         for name, path in [("Depth BB", depth_bb_file),
@@ -70,13 +71,24 @@ def main():
         log(f"  Count: {len(labels)}")
         log(f"  Unique values: {unique_labels}")
 
-        if not set(unique_labels).issubset({0, 1, 2}):
+        # Labels can be strings ('I', 'P', 'R') or integers (0, 1, 2)
+        valid_string_labels = {'I', 'P', 'R'}
+        valid_int_labels = {0, 1, 2}
+
+        if set(unique_labels).issubset(valid_string_labels):
+            log(f"  ✓ Valid string labels (I, P, R)")
+            label_type = 'string'
+        elif set(unique_labels).issubset(valid_int_labels):
+            log(f"  ✓ Valid integer labels (0, 1, 2)")
+            label_type = 'int'
+        else:
             log(f"  ❌ FAIL: Unexpected label values: {unique_labels}")
             return False, output
 
         # Class distribution
         log(f"\n6. Class distribution:")
-        for cls in [0, 1, 2]:
+        class_values = ['I', 'P', 'R'] if label_type == 'string' else [0, 1, 2]
+        for cls in class_values:
             count = np.sum(labels == cls)
             pct = count / len(labels) * 100 if len(labels) > 0 else 0
             log(f"  Class {cls}: {count} samples ({pct:.1f}%)")
@@ -88,7 +100,7 @@ def main():
 
         log(f"\n7. Features:")
         log(f"  Found {len(feature_cols)} numeric features")
-        log(f"  First 10: {feature_cols[:10].tolist()}")
+        log(f"  First 10: {feature_cols[:10]}")
 
         if len(feature_cols) == 0:
             log("  ❌ FAIL: No features found!")
