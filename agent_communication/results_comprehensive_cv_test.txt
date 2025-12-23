@@ -2,7 +2,7 @@
 COMPREHENSIVE CV TEST RESULTS
 ================================================================================
 
-Test completed: 2025-12-23 09:46:29
+Test completed: 2025-12-23 09:53:47
 
 Configuration:
   Image size: 32x32
@@ -31,14 +31,25 @@ Modality: metadata
 ================================================================================
 
 ❌ TEST FAILED
-Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+Error: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 Traceback:
 Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 163, in run_modality_test
     results = cross_validation_manual_split(
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 918, in cross_validation_manual_split
+    data_manager.process_all_modalities()
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 263, in process_all_modalities
+    temp_train, _, _, _, _, _ = prepare_cached_datasets(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 961, in prepare_cached_datasets
+    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 823, in preprocess_split
+    scaler = StandardScaler()
+             ^^^^^^^^^^^^^^
+NameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 
 ================================================================================
@@ -46,14 +57,25 @@ Modality: depth_rgb
 ================================================================================
 
 ❌ TEST FAILED
-Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+Error: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 Traceback:
 Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 163, in run_modality_test
     results = cross_validation_manual_split(
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 918, in cross_validation_manual_split
+    data_manager.process_all_modalities()
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 263, in process_all_modalities
+    temp_train, _, _, _, _, _ = prepare_cached_datasets(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 961, in prepare_cached_datasets
+    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 823, in preprocess_split
+    scaler = StandardScaler()
+             ^^^^^^^^^^^^^^
+NameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 
 ================================================================================
@@ -61,14 +83,25 @@ Modality: depth_map
 ================================================================================
 
 ❌ TEST FAILED
-Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+Error: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 Traceback:
 Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 163, in run_modality_test
     results = cross_validation_manual_split(
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 918, in cross_validation_manual_split
+    data_manager.process_all_modalities()
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 263, in process_all_modalities
+    temp_train, _, _, _, _, _ = prepare_cached_datasets(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 961, in prepare_cached_datasets
+    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 823, in preprocess_split
+    scaler = StandardScaler()
+             ^^^^^^^^^^^^^^
+NameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 
 ================================================================================
@@ -76,14 +109,25 @@ Modality: thermal_map
 ================================================================================
 
 ❌ TEST FAILED
-Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+Error: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 Traceback:
 Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 163, in run_modality_test
     results = cross_validation_manual_split(
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 918, in cross_validation_manual_split
+    data_manager.process_all_modalities()
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 263, in process_all_modalities
+    temp_train, _, _, _, _, _ = prepare_cached_datasets(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 961, in prepare_cached_datasets
+    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 823, in preprocess_split
+    scaler = StandardScaler()
+             ^^^^^^^^^^^^^^
+NameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 
 ================================================================================
@@ -91,14 +135,25 @@ Modality: metadata+depth_rgb
 ================================================================================
 
 ❌ TEST FAILED
-Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+Error: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 Traceback:
 Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 163, in run_modality_test
     results = cross_validation_manual_split(
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 918, in cross_validation_manual_split
+    data_manager.process_all_modalities()
+  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 263, in process_all_modalities
+    temp_train, _, _, _, _, _ = prepare_cached_datasets(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 961, in prepare_cached_datasets
+    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py", line 823, in preprocess_split
+    scaler = StandardScaler()
+             ^^^^^^^^^^^^^^
+NameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope
 
 
 ================================================================================
