@@ -92,7 +92,12 @@ The 97.6% accuracy is suspiciously good. Need to verify:
 
 ## COMPREHENSIVE CV TEST - RE-RUN (30 minutes)
 
-**Previous test FAILED due to function signature bug - NOW FIXED**
+**Previous test FAILED - TWO bugs now FIXED:**
+
+1. ✅ **Function signature bug** - Fixed test to properly load data and call cross_validation_manual_split()
+2. ✅ **StandardScaler scope bug** - Fixed `NameError: cannot access free variable 'StandardScaler'` in dataset_utils.py:823
+
+**The StandardScaler bug**: Line 968 had redundant `from sklearn.preprocessing import StandardScaler` inside function, creating scope conflict. StandardScaler already imported at module level (line 14). Removed redundant import.
 
 ```bash
 cd /home/rezab/projects/DFUMultiClassification
@@ -104,10 +109,12 @@ python agent_communication/test_comprehensive_cv.py
 
 # Commit results (overwrite previous failed results)
 git add agent_communication/results_comprehensive_cv_test.txt agent_communication/results_comprehensive_cv_test.json
-git commit -m "Comprehensive CV test results (FIXED): All modalities with leak detection"
+git commit -m "Comprehensive CV test results (StandardScaler bug FIXED): All modalities with leak detection"
 ```
 
-**Bug Fixed**: Test was calling `cross_validation_manual_split()` with incorrect signature. Now properly loads data and passes correct arguments.
+**Bugs Fixed**:
+- Test calling `cross_validation_manual_split()` with incorrect signature → Now properly loads data
+- Nested function scope issue with StandardScaler → Removed redundant local import
 
 **What this tests**:
 - All modalities: metadata, depth_rgb, depth_map, thermal_map
