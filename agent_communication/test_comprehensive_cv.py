@@ -25,7 +25,7 @@ from datetime import datetime
 from collections import Counter
 
 # Import project modules
-from src.utils.config import get_project_paths, cleanup_for_resume_mode
+from src.utils.config import get_project_paths, get_data_paths, cleanup_for_resume_mode
 from src.training.training_utils import cross_validation_manual_split
 from src.utils.verbosity import set_verbosity
 
@@ -123,55 +123,104 @@ def run_modality_test(modalities, config):
     print(f"{'='*80}")
 
     try:
-        # Run cross-validation
-        results = cross_validation_manual_split(
-            modality_dict={},  # Not needed, passed as list
-            selected_modalities=modalities,
-            data_percentage=config['data_percentage'],
-            train_patient_percentage=config['train_patient_percentage'],
-            configs=[{
+        # Load and prepare data (same as main.py does)
+        from src.data.image_processing import prepare_dataset
+        from src.evaluation.metrics import filter_frequent_misclassifications
+
+        directory, result_dir, root = get_project_paths()
+        data_paths = get_data_paths(root)
+
+        # Load data
+        print(f"Loading data for {modality_str}...")
+        data = prepare_dataset(
+            depth_bb_file=data_paths['bb_depth_csv'],
+            thermal_bb_file=data_paths['bb_thermal_csv'],
+            csv_file=data_paths['csv_file'],
+            selected_modalities=modalities
+        )
+
+        # Filter frequent misclassifications (same as main.py)
+        data = filter_frequent_misclassifications(data, result_dir)
+
+        # Sample data if needed
+        if config['data_percentage'] < 100:
+            data = data.sample(frac=config['data_percentage'] / 100, random_state=42).reset_index(drop=True)
+
+        print(f"Data loaded: {len(data)} samples")
+
+        # Prepare configs dict matching what cross_validation expects
+        config_dict = {
+            modality_str: {
+                'modalities': modalities,
                 'batch_size': config['batch_size'],
                 'max_epochs': config['max_epochs'],
                 'image_size': config['image_size'],
-            }],
-            cv_folds=config['cv_folds'],
-            iteration_name=f"quick_test_{modality_str.replace('+', '_')}"
+            }
+        }
+
+        # Run cross-validation
+        print(f"Running {config['cv_folds']}-fold CV...")
+        results = cross_validation_manual_split(
+            data,  # DataFrame
+            modalities,  # List of modalities (converted to config dict internally)
+            train_patient_percentage=config['train_patient_percentage'],
+            cv_folds=config['cv_folds']
         )
 
         # Extract metrics from results
-        if results and len(results) > 0 and 'fold_results' in results[0]:
-            fold_results = results[0]['fold_results']
+        # Results is a tuple: (all_runs_metrics, all_confusion_matrices, all_histories)
+        if results and len(results) > 0:
+            all_runs_metrics = results[0]
 
-            # Calculate averages
-            accuracies = [r['accuracy'] for r in fold_results]
-            f1_macros = [r['f1_macro'] for r in fold_results]
-            f1_mins = [min(r['f1_per_class']) for r in fold_results]
+            if len(all_runs_metrics) > 0:
+                # Each run has metrics
+                fold_results = all_runs_metrics
 
-            avg_acc = np.mean(accuracies)
-            avg_f1_macro = np.mean(f1_macros)
-            avg_f1_min = np.mean(f1_mins)
-            std_acc = np.std(accuracies)
+                # Calculate averages
+                accuracies = [r['accuracy'] for r in fold_results if 'accuracy' in r]
+                f1_macros = [r['f1_macro'] for r in fold_results if 'f1_macro' in r]
+                f1_per_class_list = [r['f1_per_class'] for r in fold_results if 'f1_per_class' in r]
 
-            # Detect leaks
-            data_leak, data_details = detect_data_leak(fold_results)
-            model_leak, model_details = detect_model_leak(fold_results)
+                if len(accuracies) > 0 and len(f1_macros) > 0 and len(f1_per_class_list) > 0:
+                    f1_mins = [min(f1_classes) for f1_classes in f1_per_class_list]
 
-            return {
-                'modalities': modality_str,
-                'success': True,
-                'avg_accuracy': avg_acc,
-                'avg_f1_macro': avg_f1_macro,
-                'avg_f1_min': avg_f1_min,
-                'std_accuracy': std_acc,
-                'fold_accuracies': accuracies,
-                'fold_f1_macros': f1_macros,
-                'fold_f1_mins': f1_mins,
-                'data_leak': data_leak,
-                'data_leak_details': data_details,
-                'model_leak': model_leak,
-                'model_leak_details': model_details,
-                'fold_results': fold_results
-            }
+                    avg_acc = np.mean(accuracies)
+                    avg_f1_macro = np.mean(f1_macros)
+                    avg_f1_min = np.mean(f1_mins)
+                    std_acc = np.std(accuracies)
+
+                    # Detect leaks
+                    data_leak, data_details = detect_data_leak(fold_results)
+                    model_leak, model_details = detect_model_leak(fold_results)
+
+                    return {
+                        'modalities': modality_str,
+                        'success': True,
+                        'avg_accuracy': avg_acc,
+                        'avg_f1_macro': avg_f1_macro,
+                        'avg_f1_min': avg_f1_min,
+                        'std_accuracy': std_acc,
+                        'fold_accuracies': accuracies,
+                        'fold_f1_macros': f1_macros,
+                        'fold_f1_mins': f1_mins,
+                        'data_leak': data_leak,
+                        'data_leak_details': data_details,
+                        'model_leak': model_leak,
+                        'model_leak_details': model_details,
+                        'fold_results': fold_results
+                    }
+                else:
+                    return {
+                        'modalities': modality_str,
+                        'success': False,
+                        'error': 'Missing metrics in results'
+                    }
+            else:
+                return {
+                    'modalities': modality_str,
+                    'success': False,
+                    'error': 'No fold results returned'
+                }
         else:
             return {
                 'modalities': modality_str,
