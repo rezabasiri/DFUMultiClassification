@@ -42,39 +42,61 @@ git pull origin claude/restore-weighted-f1-metrics-5PNy8
 chmod +x agent_communication/debug_*.py
 ```
 
-## PROGRESS UPDATE
+## CONTEXT REFRESH (for your memory)
 
-✅ **Phase 1: COMPLETE** - Data loads correctly (3107 samples, 61 features, 3 classes)
-✅ **Phase 2: COMPLETE** - Training works, but model only predicts majority class (P)
-✅ **Phase 5: COMPLETE** - Focal loss applies alpha weights correctly
+**Project**: DFU (Diabetic Foot Ulcer) multimodal classification
+**Platform**: Linux (Ubuntu/WSL)
+**Environment**: `/home/rezab/projects/enviroments/multimodal/bin`
+**Project Dir**: `/home/rezab/projects/DFUMultiClassification`
+**Goal**: Fix catastrophic training failure (Min F1=0.0, model only predicts majority class)
 
-**FINDINGS SO FAR**:
-- Phase 2 (plain cross-entropy): Min F1=0.0, only predicts P
-- Phase 5: Focal loss math is correct, alpha weights work
-
-**KEY QUESTION**: Does focal loss + alpha ACTUALLY solve the problem in real training?
-
-**Next Action**: Run Phase 6 to test real training with focal loss + alpha
+**Dataset**:
+- 3107 samples, 3 classes: I=Inflammation (28.7%), P=Proliferation (60.5%), R=Remodeling (10.8%)
+- SEVERE imbalance: P:R = 5.6:1 ratio
+- Target metric: Weighted F1 score with inverse frequency alpha
 
 ---
 
-## PHASE 6: Training with Focal Loss + Alpha (5 minutes)
+## PROGRESS UPDATE
 
-**CRITICAL TEST**: Train with focal loss + inverse frequency alpha (exactly like main.py should).
+✅ **Phase 1**: Data loads correctly
+✅ **Phase 2**: Training works, but predicts only P → Min F1=0.0
+✅ **Phase 5**: Focal loss math correct, alpha weights work
+✅ **Phase 6**: Focal loss + alpha ALONE insufficient → Min F1=0.0 (model still predicts only P)
+
+## 🎯 ROOT CAUSE FOUND
+
+**File**: `src/data/dataset_utils.py:714`
+**Bug**: `apply_sampling=False` - **OVERSAMPLING DISABLED**
+
+The code HAS working RandomOverSampler but it's turned OFF. Focal loss alone cannot handle 5.6:1 imbalance.
+
+**Fix Applied**: Changed to `apply_sampling=True`
+
+**Next Action**: Test if fix works
+
+---
+
+## PHASE 7: Test Oversampling Fix (5 minutes)
+
+**VERIFICATION TEST**: Confirm oversampling + focal loss solves Min F1=0 issue.
 
 ```bash
-python agent_communication/debug_06_focal_loss_training.py
+python agent_communication/debug_07_test_oversampling_fix.py
 
 # Commit results
-git add agent_communication/results_06_focal_loss_training.txt
-git commit -m "Debug Phase 6: Training with focal loss + alpha weights"
+git add agent_communication/results_07_oversampling_fix.txt
+git commit -m "Debug Phase 7: Test oversampling fix"
 ```
 
-**What this tests**: If focal loss + alpha can actually make the model predict all 3 classes, or if we need additional techniques (oversampling, etc).
+**What to expect**:
+- Training data balanced via oversampling (~1880 samples per class)
+- Model should predict ALL 3 classes
+- Min F1 should be > 0.0 (success!)
+- Prediction distribution NOT 100% class P
 
-**Expected outcomes**:
-- **PASS (Min F1 > 0)**: Focal loss works → bug is in main.py's config or pipeline
-- **FAIL (Min F1 = 0)**: Focal loss alone insufficient → need oversampling + focal loss
+**If PASS**: Fix confirmed, ready to test full main.py pipeline
+**If FAIL**: Need to investigate further (unlikely)
 
 ---
 
