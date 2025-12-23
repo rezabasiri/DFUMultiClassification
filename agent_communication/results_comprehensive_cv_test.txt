@@ -1,0 +1,116 @@
+================================================================================
+COMPREHENSIVE CV TEST RESULTS
+================================================================================
+
+Test completed: 2025-12-23 09:46:29
+
+Configuration:
+  Image size: 32x32
+  Batch size: 16
+  Max epochs: 10
+  CV folds: 3
+  Running on: CPU (forced for consistency)
+
+================================================================================
+SUMMARY TABLE
+================================================================================
+Modality                       Avg Acc    Avg F1     Min F1     Status         
+--------------------------------------------------------------------------------
+metadata                       N/A        N/A        N/A        ❌ FAILED       
+depth_rgb                      N/A        N/A        N/A        ❌ FAILED       
+depth_map                      N/A        N/A        N/A        ❌ FAILED       
+thermal_map                    N/A        N/A        N/A        ❌ FAILED       
+metadata+depth_rgb             N/A        N/A        N/A        ❌ FAILED       
+
+================================================================================
+DETAILED RESULTS
+================================================================================
+
+================================================================================
+Modality: metadata
+================================================================================
+
+❌ TEST FAILED
+Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+Traceback:
+Traceback (most recent call last):
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+    results = cross_validation_manual_split(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+
+================================================================================
+Modality: depth_rgb
+================================================================================
+
+❌ TEST FAILED
+Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+Traceback:
+Traceback (most recent call last):
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+    results = cross_validation_manual_split(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+
+================================================================================
+Modality: depth_map
+================================================================================
+
+❌ TEST FAILED
+Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+Traceback:
+Traceback (most recent call last):
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+    results = cross_validation_manual_split(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+
+================================================================================
+Modality: thermal_map
+================================================================================
+
+❌ TEST FAILED
+Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+Traceback:
+Traceback (most recent call last):
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+    results = cross_validation_manual_split(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+
+================================================================================
+Modality: metadata+depth_rgb
+================================================================================
+
+❌ TEST FAILED
+Error: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+Traceback:
+Traceback (most recent call last):
+  File "/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py", line 127, in run_modality_test
+    results = cross_validation_manual_split(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'
+
+
+================================================================================
+FINAL VERDICT
+================================================================================
+
+Total tests: 5
+  ✅ Successful: 0
+  ❌ Failed: 5
+  ⚠️  With leaks: 0
+  ✅ Good results (no leaks, Min F1>0.1): 0
+
+❌ FAILURE - No modalities achieved good results
+   This suggests Phase 9 fix may not generalize to all modalities
+   Recommendation: Investigate image-based modalities separately
