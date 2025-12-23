@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 from src.data.image_processing import prepare_dataset
-from src.utils.config import get_project_paths
+from src.utils.config import get_project_paths, get_data_paths
 
 # Force CPU for debugging
 tf.config.set_visible_devices([], 'GPU')
@@ -30,10 +30,11 @@ def main():
         # Load data using main.py's method
         log("\n1. Loading data via prepare_dataset()...")
         directory, result_dir, root = get_project_paths()
+        data_paths = get_data_paths(root)
 
-        depth_bb_file = os.path.join(root, 'raw', 'bb_depth_annotation.csv')
-        thermal_bb_file = os.path.join(root, 'raw', 'bb_thermal_annotation.csv')
-        csv_file = os.path.join(root, 'raw', 'DataMaster_Processed_V12_WithMissing.csv')
+        depth_bb_file = data_paths['bb_depth_csv']
+        thermal_bb_file = data_paths['bb_thermal_csv']
+        csv_file = data_paths['csv_file']
 
         data = prepare_dataset(
             depth_bb_file=depth_bb_file,
@@ -47,7 +48,15 @@ def main():
         feature_cols = [c for c in numeric_cols if c not in exclude_cols]
 
         X = data[feature_cols].fillna(0).values
-        y = data['Healing Phase Abs'].values
+        y_raw = data['Healing Phase Abs'].values
+
+        # Convert string labels to integers if needed
+        label_map = {'I': 0, 'P': 1, 'R': 2}
+        if y_raw.dtype == object:  # String labels
+            y = np.array([label_map[label] for label in y_raw])
+            log(f"  Labels converted: {set(y_raw)} -> {set(y)}")
+        else:
+            y = y_raw
 
         log(f"  Features: {X.shape}")
         log(f"  Labels: {y.shape}")
