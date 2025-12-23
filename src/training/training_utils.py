@@ -1002,6 +1002,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     train_dataset = filter_dataset_modalities(master_train_dataset, selected_modalities)
                     pre_aug_train_dataset = filter_dataset_modalities(pre_aug_dataset, selected_modalities)
                     valid_dataset = filter_dataset_modalities(master_valid_dataset, selected_modalities)
+
+                    # Remove sample_id from training/validation datasets before model.fit()
+                    # (Keras 3 strict about input dict keys matching model.inputs)
+                    # Keep sample_id in pre_aug_train_dataset for prediction tracking
+                    def remove_sample_id_for_training(features, labels):
+                        model_features = {k: v for k, v in features.items() if k != 'sample_id'}
+                        return model_features, labels
+
+                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                     # Get a single epoch's worth of data by taking the specified number of steps
                     all_labels = []
                     for batch in pre_aug_train_dataset.take(master_steps_per_epoch):
@@ -1192,14 +1202,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         with strategy.scope():
                             for batch in pre_aug_train_dataset.take(steps_per_epoch):
                                 batch_inputs, batch_labels = batch
+                                # Extract sample_id before filtering for model.predict()
+                                sample_ids_batch = batch_inputs['sample_id'].numpy()
+                                # Filter out sample_id for model.predict() (Keras 3 compatibility)
+                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
                                 with strategy.scope():
-                                    batch_pred = model.predict(batch_inputs, verbose=0)
+                                    batch_pred = model.predict(model_inputs, verbose=0)
                                 y_true_t.extend(np.argmax(batch_labels, axis=1))
                                 y_pred_t.extend(np.argmax(batch_pred, axis=1))
                                 probabilities_t.extend(batch_pred)
-                                all_sample_ids_t.extend(batch_inputs['sample_id'].numpy())
-                                
-                                del batch_inputs, batch_labels, batch_pred
+                                all_sample_ids_t.extend(sample_ids_batch)
+
+                                del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
                                 gc.collect()
 
                         save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train')
@@ -1218,17 +1232,25 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         probabilities_v = []
                         all_sample_ids_v = []
 
+                        # Note: valid_dataset used here is from the FILTERED version (line 1004)
+                        # We need to re-filter to get sample_id back for tracking
+                        valid_dataset_with_ids = filter_dataset_modalities(master_valid_dataset, selected_modalities)
+
                         with strategy.scope():
-                            for batch in valid_dataset.take(validation_steps):
+                            for batch in valid_dataset_with_ids.take(validation_steps):
                                 batch_inputs, batch_labels = batch
+                                # Extract sample_id before filtering for model.predict()
+                                sample_ids_batch = batch_inputs['sample_id'].numpy()
+                                # Filter out sample_id for model.predict() (Keras 3 compatibility)
+                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
                                 with strategy.scope():
-                                    batch_pred = model.predict(batch_inputs, verbose=0)
+                                    batch_pred = model.predict(model_inputs, verbose=0)
                                 y_true_v.extend(np.argmax(batch_labels, axis=1))
                                 y_pred_v.extend(np.argmax(batch_pred, axis=1))
                                 probabilities_v.extend(batch_pred)
-                                all_sample_ids_v.extend(batch_inputs['sample_id'].numpy())
-                                
-                                del batch_inputs, batch_labels, batch_pred
+                                all_sample_ids_v.extend(sample_ids_batch)
+
+                                del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
                                 gc.collect()
 
                         save_run_predictions(run + 1, config_name, np.array(probabilities_v), np.array(y_true_v), ck_path, dataset_type='valid')
@@ -1832,8 +1854,9 @@ def filter_dataset_modalities(dataset, selected_modalities):
     """
     def filter_features(features, labels):
         filtered_features = {}
-        # Note: sample_id is NOT included - it's for tracking only, not model input
-        # Keras 3 is strict about input dict keys matching model.inputs exactly
+        # Include sample_id for tracking/debugging (but NOT passed to model.fit/predict)
+        if 'sample_id' in features:
+            filtered_features['sample_id'] = features['sample_id']
 
         # Include only selected modalities
         for modality in selected_modalities:
