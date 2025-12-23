@@ -1,0 +1,6 @@
+================================================================================
+DEBUG 1: DATA SANITY CHECK
+================================================================================
+
+1. Loading balanced data...
+❌ FAIL: File not found: balanced_combined_healing_phases.csv
