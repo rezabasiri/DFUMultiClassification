@@ -24,13 +24,38 @@ import numpy as np
 from datetime import datetime
 from collections import Counter
 
+# Terminal output logging for remote agent
+class TeeLogger:
+    """Captures stdout/stderr to both terminal and log file"""
+    def __init__(self, log_file):
+        self.terminal = sys.stdout
+        self.log_file = open(log_file, 'w', buffering=1)  # Line buffering
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log_file.write(message)
+        self.log_file.flush()
+
+    def flush(self):
+        self.terminal.flush()
+        self.log_file.flush()
+
+    def close(self):
+        self.log_file.close()
+
+# Set up terminal logging immediately
+TERMINAL_LOG_FILE = 'agent_communication/terminal_output_comprehensive_cv.txt'
+tee_logger = TeeLogger(TERMINAL_LOG_FILE)
+sys.stdout = tee_logger
+sys.stderr = tee_logger
+
 # Import project modules
 from src.utils.config import get_project_paths, get_data_paths, cleanup_for_resume_mode
 from src.training.training_utils import cross_validation_manual_split
 from src.utils.verbosity import set_verbosity
 
-# Force CPU to avoid GPU memory issues during quick test
-tf.config.set_visible_devices([], 'GPU')
+# Allow GPU for image modalities (metadata can run on CPU or GPU)
+# GPU memory management is handled by EpochMemoryCallback
 np.random.seed(42)
 tf.random.set_seed(42)
 
@@ -177,9 +202,11 @@ def run_modality_test(modalities, config):
                 fold_results = all_runs_metrics
 
                 # Calculate averages
+                # Note: CV function returns 'f1_classes' not 'f1_per_class'
                 accuracies = [r['accuracy'] for r in fold_results if 'accuracy' in r]
                 f1_macros = [r['f1_macro'] for r in fold_results if 'f1_macro' in r]
-                f1_per_class_list = [r['f1_per_class'] for r in fold_results if 'f1_per_class' in r]
+                f1_per_class_list = [r.get('f1_per_class', r.get('f1_classes')) for r in fold_results
+                                     if 'f1_per_class' in r or 'f1_classes' in r]
 
                 if len(accuracies) > 0 and len(f1_macros) > 0 and len(f1_per_class_list) > 0:
                     f1_mins = [min(f1_classes) for f1_classes in f1_per_class_list]
@@ -277,7 +304,12 @@ def main():
         f.write(f"  Batch size: {QUICK_TEST_CONFIG['batch_size']}\n")
         f.write(f"  Max epochs: {QUICK_TEST_CONFIG['max_epochs']}\n")
         f.write(f"  CV folds: {QUICK_TEST_CONFIG['cv_folds']}\n")
-        f.write(f"  Running on: CPU (forced for consistency)\n")
+        # Detect GPU availability
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            f.write(f"  Running on: GPU ({len(gpus)} device(s))\n")
+        else:
+            f.write(f"  Running on: CPU\n")
 
         # Summary table
         f.write("\n" + "="*80 + "\n")
@@ -415,6 +447,15 @@ def main():
         json.dump(json_results, f, indent=2)
 
     print(f"JSON results saved to: {json_file}")
+    print(f"Terminal log saved to: {TERMINAL_LOG_FILE}")
 
 if __name__ == '__main__':
     main()
+    # Restore original stdout/stderr before exiting to avoid cleanup errors
+    if hasattr(sys.stdout, 'terminal'):
+        original_stdout = sys.stdout.terminal
+        sys.stdout.log_file.close()
+        sys.stdout = original_stdout
+    if hasattr(sys.stderr, 'terminal'):
+        original_stderr = sys.stderr.terminal
+        sys.stderr = original_stderr
