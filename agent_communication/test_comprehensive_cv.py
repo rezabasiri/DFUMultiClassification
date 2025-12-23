@@ -61,13 +61,33 @@ tf.random.set_seed(42)
 
 # Quick test configuration
 QUICK_TEST_CONFIG = {
-    'image_size': 32,  # Reduced from 64 for speed
-    'batch_size': 16,   # Reduced from 128 for speed
-    'max_epochs': 20,   # Match Phase 9 testing (was 10, now 20)
+    'image_size': 128,   # Match production_config.py
+    'batch_size': 8,   # Reduced from 128 for speed
+    'max_epochs': 150,   # Match Phase 9 testing (was 10, now 20)
     'cv_folds': 3,      # Standard 3-fold CV
     'data_percentage': 100,  # Use full dataset for reliable results
     'train_patient_percentage': 100,
 }
+
+# Ultra-quick end-to-end test configuration (for pipeline verification)
+QUICK_E2E_TEST_CONFIG = {
+    'image_size': 12,   # Match production_config.py
+    'batch_size': 8,    # Small batch for quick testing
+    'max_epochs': 2,    # Just 2 epochs to verify pipeline works
+    'cv_folds': 2,      # 2-fold CV for speed
+    'data_percentage': 10,  # Only 10% of data for quick verification
+    'train_patient_percentage': 100,
+}
+
+# Modalities for quick E2E test (comprehensive pipeline verification)
+QUICK_E2E_MODALITIES = [
+    ['metadata'],                   # Non-image baseline
+    ['depth_rgb'],                  # Single image modality
+    ['depth_map'],                  # Single image modality
+    ['thermal_map'],                # Single image modality
+    ['metadata', 'thermal_map'],    # Multimodal combination
+    ['depth_rgb', 'thermal_map'],   # Image-only combination
+]
 
 # Test modalities (focused set for quick test)
 TEST_MODALITIES = [
@@ -336,18 +356,34 @@ def save_progress_results(all_results, config, completed_count, total_count):
             f.write(f"{'[Pending...]':<30} {'---':<10} {'---':<10} {'---':<10} {'⏳ PENDING':<15}\n")
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='Comprehensive CV Test for DFU Classification')
+    parser.add_argument('--quick-e2e', action='store_true',
+                       help='Run quick end-to-end test with small data sample (10%%, 2 epochs, 2 folds)')
+    args = parser.parse_args()
+
+    # Select configuration and modalities based on mode
+    if args.quick_e2e:
+        config = QUICK_E2E_TEST_CONFIG
+        modalities_to_test = QUICK_E2E_MODALITIES
+        mode_name = "QUICK E2E TEST (Pipeline Verification)"
+    else:
+        config = QUICK_TEST_CONFIG
+        modalities_to_test = TEST_MODALITIES
+        mode_name = "COMPREHENSIVE CV TEST"
+
     print("="*80)
-    print("COMPREHENSIVE CV TEST: All Modalities with Leak Detection")
+    print(f"{mode_name}: All Modalities with Leak Detection")
     print("="*80)
     print(f"\nStart time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"\nConfiguration:")
-    print(f"  Image size: {QUICK_TEST_CONFIG['image_size']}x{QUICK_TEST_CONFIG['image_size']}")
-    print(f"  Batch size: {QUICK_TEST_CONFIG['batch_size']}")
-    print(f"  Max epochs: {QUICK_TEST_CONFIG['max_epochs']}")
-    print(f"  CV folds: {QUICK_TEST_CONFIG['cv_folds']}")
-    print(f"  Data: {QUICK_TEST_CONFIG['data_percentage']}%")
-    print(f"\nModalities to test: {len(TEST_MODALITIES)}")
-    for mods in TEST_MODALITIES:
+    print(f"  Image size: {config['image_size']}x{config['image_size']}")
+    print(f"  Batch size: {config['batch_size']}")
+    print(f"  Max epochs: {config['max_epochs']}")
+    print(f"  CV folds: {config['cv_folds']}")
+    print(f"  Data: {config['data_percentage']}%")
+    print(f"\nModalities to test: {len(modalities_to_test)}")
+    for mods in modalities_to_test:
         print(f"  - {'+'.join(mods)}")
 
     # Set verbosity to progress bar mode
@@ -358,27 +394,27 @@ def main():
 
     # Run tests
     all_results = []
-    for i, modalities in enumerate(TEST_MODALITIES, 1):
-        print(f"\n[{i}/{len(TEST_MODALITIES)}] Testing: {'+'.join(modalities)}")
-        result = run_modality_test(modalities, QUICK_TEST_CONFIG)
+    for i, modalities in enumerate(modalities_to_test, 1):
+        print(f"\n[{i}/{len(modalities_to_test)}] Testing: {'+'.join(modalities)}")
+        result = run_modality_test(modalities, config)
         all_results.append(result)
 
         # Save progress after each modality completes
-        save_progress_results(all_results, QUICK_TEST_CONFIG, i, len(TEST_MODALITIES))
-        print(f"✅ Progress saved: {i}/{len(TEST_MODALITIES)} complete")
+        save_progress_results(all_results, config, i, len(modalities_to_test))
+        print(f"✅ Progress saved: {i}/{len(modalities_to_test)} complete")
 
     # Generate final report (overwrites the in-progress version)
     output_file = 'agent_communication/results_comprehensive_cv_test.txt'
     with open(output_file, 'w') as f:
         f.write("="*80 + "\n")
-        f.write("COMPREHENSIVE CV TEST RESULTS - COMPLETE\n")
+        f.write(f"{mode_name} RESULTS - COMPLETE\n")
         f.write("="*80 + "\n")
         f.write(f"\nTest completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"\nConfiguration:\n")
-        f.write(f"  Image size: {QUICK_TEST_CONFIG['image_size']}x{QUICK_TEST_CONFIG['image_size']}\n")
-        f.write(f"  Batch size: {QUICK_TEST_CONFIG['batch_size']}\n")
-        f.write(f"  Max epochs: {QUICK_TEST_CONFIG['max_epochs']}\n")
-        f.write(f"  CV folds: {QUICK_TEST_CONFIG['cv_folds']}\n")
+        f.write(f"  Image size: {config['image_size']}x{config['image_size']}\n")
+        f.write(f"  Batch size: {config['batch_size']}\n")
+        f.write(f"  Max epochs: {config['max_epochs']}\n")
+        f.write(f"  CV folds: {config['cv_folds']}\n")
         # Detect GPU availability
         gpus = tf.config.list_physical_devices('GPU')
         if gpus:
