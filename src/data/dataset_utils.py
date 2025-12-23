@@ -376,14 +376,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         #         num_parallel_calls=tf.data.AUTOTUNE
         #     )
 
-    # Filter out sample_id from features before model training (Keras 3 compatibility)
-    # sample_id is useful for visualization/debugging but not needed for model inputs
-    def remove_sample_id(features, labels):
-        filtered_features = {k: v for k, v in features.items() if k != 'sample_id'}
-        return filtered_features, labels
-
-    dataset = dataset.map(remove_sample_id, num_parallel_calls=tf.data.AUTOTUNE)
-
     # Prefetch for better performance
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     # dataset = dataset.prefetch(2)
