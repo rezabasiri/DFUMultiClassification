@@ -269,9 +269,26 @@ def save_progress_results(all_results, config, completed_count, total_count):
     output_file = 'agent_communication/results_comprehensive_cv_test.txt'
     json_file = 'agent_communication/results_comprehensive_cv_test.json'
 
-    # Save JSON
+    # Convert numpy types to native Python types for JSON serialization
+    def convert_to_serializable(obj):
+        """Recursively convert numpy types to native Python types"""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, dict):
+            return {key: convert_to_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_serializable(item) for item in obj]
+        else:
+            return obj
+
+    # Save JSON (with numpy conversion)
+    serializable_results = convert_to_serializable(all_results)
     with open(json_file, 'w') as f:
-        json.dump(all_results, f, indent=2)
+        json.dump(serializable_results, f, indent=2)
 
     # Save text report
     with open(output_file, 'w') as f:
@@ -494,15 +511,35 @@ def main():
 
     # Save JSON for programmatic access
     json_file = 'agent_communication/results_comprehensive_cv_test.json'
+
+    # Convert numpy types to native Python types for JSON serialization
+    def convert_to_serializable(obj):
+        """Recursively convert numpy types to native Python types"""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, dict):
+            return {key: convert_to_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_serializable(item) for item in obj]
+        else:
+            return obj
+
     with open(json_file, 'w') as f:
-        # Remove non-serializable fold_results
+        # Remove non-serializable fold_results and convert numpy types
         json_results = []
         for r in all_results:
             r_copy = r.copy()
             if 'fold_results' in r_copy:
                 del r_copy['fold_results']
             json_results.append(r_copy)
-        json.dump(json_results, f, indent=2)
+
+        # Convert all numpy types to native Python types
+        serializable_results = convert_to_serializable(json_results)
+        json.dump(serializable_results, f, indent=2)
 
     print(f"JSON results saved to: {json_file}")
     print(f"Terminal log saved to: {TERMINAL_LOG_FILE}")
