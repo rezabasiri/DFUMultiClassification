@@ -557,3 +557,80 @@ Alpha values verified to be calculated from training class frequencies (not hard
 **docs/KNOWN_ISSUES_ORIGINAL.md**: Created documentation of bugs found in main_original.py during comparison testing. Updated to reflect that alpha_value bug is now fixed in both versions.
 **scripts/simple_comparison_test.py**: Updated to force fresh runs (cleanup_for_resume_mode) and read results from CSV files for proper comparison.
 **docs/COMPARISON_RESULTS.md**: Documented successful validation test results - refactored code produces functionally equivalent results to original (<1% metric difference) with expected improvements (smart alpha capping). Metadata modality test: Original Acc 0.61/Kappa 0.1691, Refactored Acc 0.6053/Kappa 0.1691.
+
+---
+
+## 2025-12-23 — Systematic debugging resolves Min F1=0.0 issue (9 debugging phases)
+
+### Context
+Training produced catastrophic results: Min F1=0.0, Macro F1=0.21, model predicting only one class (usually majority class P). Conducted systematic 9-phase investigation to isolate root causes.
+
+### Debugging Process
+
+**Phase 1-2**: Verified data loading works; TensorFlow training works but model collapses to majority class.
+**Phase 5**: Verified focal loss alpha weighting math is correct (9.27x weight for rare class R).
+**Phase 6**: Found focal loss + alpha ALONE insufficient for 5.6:1 class imbalance (P:R ratio).
+**Phase 7**: Enabled oversampling but discovered DOUBLE-CORRECTION BUG - model switched to predicting only minority class R.
+**Phase 8**: Fixed double-correction but model stuck at 33.3% accuracy (random guessing) - NO LEARNING occurring.
+**Phase 9**: **SUCCESS** - Feature normalization solves problem! Achieved 97.6% accuracy, Min F1=0.964 (metadata only).
+
+### Root Causes Identified and Fixed
+
+**Root Cause #1 - Oversampling Disabled**:
+- **File**: `src/data/dataset_utils.py:714`
+- **Bug**: `apply_sampling=False` disabled RandomOverSampler
+- **Fix**: Changed to `apply_sampling=True` to balance training data (all classes → 1504 samples)
+
+**Root Cause #2 - Double-Correction Bug**:
+- **File**: `src/data/dataset_utils.py:676-687`
+- **Bug**: Alpha values calculated from ORIGINAL imbalanced distribution [0.725, 0.344, 1.931], but applied to BALANCED data after oversampling
+- **Problem**: Class R had same training samples as P, but 5.6x higher loss weight → over-prioritized
+- **Fix**: Recalculate alpha from BALANCED distribution after oversampling → returns [1.0, 1.0, 1.0]
+- **Code**: Lines 676-687 now recalculate frequencies from resampled data and compute balanced alpha values
+
+**Root Cause #3 - Features Not Normalized (CRITICAL)**:
+- **File**: `src/data/dataset_utils.py:965-995` (NEW CODE ADDED)
+- **Bug**: Features ranged from -0.24 to 7071.0 without normalization; large-scale features (bounding boxes) dominated gradients
+- **Symptom**: Phase 8 showed model stuck at initialization (train acc=33.3%, loss=10.8, no learning)
+- **Fix**: Added StandardScaler normalization for all numeric metadata features
+- **Code**: Fit scaler on train_data only (prevent leakage), transform both train and valid data
+- **Result**: Phase 9 achieved 97.6% accuracy with normalized features (was 28.8% without)
+
+### Changes Made
+
+**src/data/dataset_utils.py**:
+- Line 714: `apply_sampling=True` (enable oversampling)
+- Lines 676-687: Recalculate alpha from balanced distribution after oversampling
+- Lines 965-995: Added StandardScaler normalization for numeric metadata features (CRITICAL FIX)
+
+**agent_communication/** (debugging artifacts):
+- Created 9 debug scripts (debug_01 through debug_09) for systematic investigation
+- `FINAL_ROOT_CAUSE.md`: Complete analysis showing all 3 root causes
+- `results_09_normalized_features.txt`: Phase 9 success (97.6% acc, Min F1=0.964)
+
+### Results
+
+**Before fixes**:
+- Min F1: 0.000 (at least one class never predicted)
+- Macro F1: 0.21
+- Model: Predicts only one class (P, R, or I depending on configuration)
+
+**After fixes (Phase 9 - metadata only)**:
+- Test Accuracy: **97.59%**
+- F1 Macro: **0.9720**
+- F1 per class: **[I=0.972, P=0.980, R=0.964]** - ALL CLASSES EXCELLENT
+- Min F1: **0.964** (complete fix!)
+- Prediction distribution matches actual distribution (I=28.5% vs 28.8%, P=60% vs 60.5%, R=11.6% vs 10.8%)
+
+### Important Notes
+
+1. **Phase 9 tested metadata only** (61 tabular features) - easiest modality. Image modalities need separate verification.
+2. **Feature normalization is CRITICAL** - without it, model cannot learn (proven by Phase 8 vs Phase 9 comparison).
+3. **Solution requires ALL THREE fixes**: oversampling + balanced alpha + feature normalization.
+4. **No data leaks detected**: StandardScaler fitted only on train data, train/val splits properly separated.
+
+### Next Steps
+
+- Test with image modalities (depth_rgb, depth_map, thermal_map) to verify fix works across all modalities
+- Run comprehensive CV test with all modality combinations
+- Verify no data/model leaks in full pipeline
