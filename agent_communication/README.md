@@ -3,10 +3,11 @@
 ## ESSENTIAL CONTEXT (READ FIRST - EVERY TIME)
 
 ### Environment
-- **Virtual Environment**: `/Users/rezabasiri/env/multimodal/bin`
-- **Project Directory**: `/Users/rezabasiri/DFUMultiClassification`
-- **Activate Command**: `source /Users/rezabasiri/env/multimodal/bin/activate`
+- **Virtual Environment**: `/home/rezab/projects/enviroments/multimodal/bin`
+- **Project Directory**: `/home/rezab/projects/DFUMultiClassification`
+- **Activate Command**: `source /home/rezab/projects/enviroments/multimodal/bin/activate`
 - **Git Branch**: `claude/restore-weighted-f1-metrics-5PNy8`
+- **Platform**: Linux (Ubuntu/WSL)
 
 ### Project Overview
 **DFU Multi-Classification**: Diabetic Foot Ulcer healing phase classification using multimodal data (metadata, depth images, thermal images).
@@ -83,10 +84,10 @@ Systematically test each component of the training pipeline to identify WHERE it
 ### Setup (First Time)
 ```bash
 # Activate environment
-source /Users/rezabasiri/env/multimodal/bin/activate
+source /home/rezab/projects/enviroments/multimodal/bin/activate
 
 # Navigate to project
-cd /Users/rezabasiri/DFUMultiClassification
+cd /home/rezab/projects/DFUMultiClassification
 
 # Pull latest scripts
 git pull origin claude/restore-weighted-f1-metrics-5PNy8
@@ -140,8 +141,8 @@ python agent_communication/debug_04_instrumented_training.py
 
 ```bash
 # Activate environment (do this ONCE per session)
-source /Users/rezabasiri/env/multimodal/bin/activate
-cd /Users/rezabasiri/DFUMultiClassification
+source /home/rezab/projects/enviroments/multimodal/bin/activate
+cd /home/rezab/projects/DFUMultiClassification
 
 # Phase 1
 python agent_communication/debug_01_data_sanity.py
@@ -243,9 +244,10 @@ After analysis:
 ## Quick Reference
 
 **Always remember**:
-1. Environment: `/Users/rezabasiri/env/multimodal/bin`
-2. Project: `/Users/rezabasiri/DFUMultiClassification`
+1. Environment: `/home/rezab/projects/enviroments/multimodal/bin`
+2. Project: `/home/rezab/projects/DFUMultiClassification`
 3. Branch: `claude/restore-weighted-f1-metrics-5PNy8`
-4. Run phases in order: 1 → 2 → 3 → 4
-5. Push results after EACH phase
-6. Dataset is correct - bug is in training code
+4. Platform: Linux (Ubuntu/WSL)
+5. Run phases in order: 1 → 2 → 3 → 4
+6. Push results after EACH phase
+7. Dataset is correct - bug is in training code

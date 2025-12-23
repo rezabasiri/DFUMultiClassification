@@ -2,8 +2,9 @@
 
 ## IMPORTANT CONTEXT
 
-**Environment**: `/Users/rezabasiri/env/multimodal/bin`
-**Project**: `/Users/rezabasiri/DFUMultiClassification`
+**Environment**: `/home/rezab/projects/enviroments/multimodal/bin`
+**Project**: `/home/rezab/projects/DFUMultiClassification`
+**Platform**: Linux (Ubuntu/WSL)
 
 ## THE REAL PROBLEM
 

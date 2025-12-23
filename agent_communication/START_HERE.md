@@ -33,8 +33,8 @@ If you've already read the README and just need a reminder:
 
 ```bash
 # Setup (once)
-source /Users/rezabasiri/env/multimodal/bin/activate
-cd /Users/rezabasiri/DFUMultiClassification
+source /home/rezab/projects/enviroments/multimodal/bin/activate
+cd /home/rezab/projects/DFUMultiClassification
 
 # Run Phase 1
 python agent_communication/debug_01_data_sanity.py
