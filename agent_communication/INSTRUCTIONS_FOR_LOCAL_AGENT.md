@@ -90,22 +90,24 @@ The 97.6% accuracy is suspiciously good. Need to verify:
 
 ---
 
-## COMPREHENSIVE CV TEST (30 minutes)
+## COMPREHENSIVE CV TEST - RE-RUN (30 minutes)
 
-**Verify Phase 9 fix works across all modalities with proper leak detection**
+**Previous test FAILED due to function signature bug - NOW FIXED**
 
 ```bash
 cd /home/rezab/projects/DFUMultiClassification
 source /home/rezab/projects/enviroments/multimodal/bin/activate
 git pull origin claude/restore-weighted-f1-metrics-5PNy8
 
-# Run comprehensive CV test (all modalities + combinations, 3-fold CV)
+# Re-run comprehensive CV test (all modalities + combinations, 3-fold CV)
 python agent_communication/test_comprehensive_cv.py
 
-# Commit results
+# Commit results (overwrite previous failed results)
 git add agent_communication/results_comprehensive_cv_test.txt agent_communication/results_comprehensive_cv_test.json
-git commit -m "Comprehensive CV test results: All modalities with leak detection"
+git commit -m "Comprehensive CV test results (FIXED): All modalities with leak detection"
 ```
+
+**Bug Fixed**: Test was calling `cross_validation_manual_split()` with incorrect signature. Now properly loads data and passes correct arguments.
 
 **What this tests**:
 - All modalities: metadata, depth_rgb, depth_map, thermal_map
@@ -120,23 +122,7 @@ git commit -m "Comprehensive CV test results: All modalities with leak detection
 - **If metadata passes, images fail**: Fix works for tabular, need image-specific solution
 - **If leaks detected**: Need to fix data/model handling
 
-Then notify: "Comprehensive CV test complete - awaiting manual push"
-
----
-
-**What this tests**:
-- StandardScaler (mean=0, std=1 for all features)
-- Plain cross-entropy (no focal loss - unnecessary with balanced data)
-- Oversampling (balanced training data)
-
-**Expected**:
-- Training loss DECREASES (not plateau at 10.8)
-- Training accuracy INCREASES above 33.3%
-- Model predicts all 3 classes
-- Min F1 > 0.3 (actual learning!)
-
-**If PASS**: Complete solution found! Apply to main.py
-**If FAIL**: May need architecture changes
+Then notify: "Comprehensive CV test complete (fixed) - awaiting manual push"
 
 ---
 
