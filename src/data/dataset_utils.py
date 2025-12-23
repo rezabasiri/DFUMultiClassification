@@ -661,11 +661,11 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             
             oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
             X_resampled, y_resampled = oversampler.fit_resample(X, y)
-            
+
             resampled_df = pd.DataFrame(X_resampled, columns=X.columns)
             resampled_df['Healing Phase Abs'] = y_resampled
             resampled_df = resampled_df.reset_index(drop=True)
-            
+
             # Print final results with ordered classes
             final_counts = Counter(y_resampled)
             vprint("\nAfter oversampling (ordered):", level=2)
@@ -673,7 +673,18 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
-            return resampled_df, alpha_values
+            # Recalculate alpha values from BALANCED distribution
+            # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
+            total_resampled = len(y_resampled)
+            balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
+            alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
+            alpha_sum_balanced = sum(alpha_values_balanced)
+            alpha_values_balanced = [alpha/alpha_sum_balanced * 3.0 for alpha in alpha_values_balanced]
+
+            vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
+            vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
+
+            return resampled_df, alpha_values_balanced
     if 'metadata' in selected_modalities:
         # Calculate class weights for Random Forest models
         unique_cases = train_data[['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']].drop_duplicates().copy()
