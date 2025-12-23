@@ -33,10 +33,14 @@
    - Test was creating config_dict but passing only modalities list
    - Now passes full config_dict with max_epochs=20
 
-3. ✅ **thermal_map input routing bug** (src/data/dataset_utils.py:381-385)
+3. ✅ **thermal_map input routing bug** (src/training/training_utils.py:1835)
    - Keras 3 strict about input dict keys
-   - Added filter to remove sample_id before model training
-   - All modalities should work now
+   - sample_id was being included in features dict passed to model
+   - Keras sometimes mis-routed sample_id tensor to modality input slots
+   - **Why only thermal_map failed**: Likely Python dict key ordering edge case
+     - depth_rgb and depth_map worked despite sample_id presence
+     - thermal_map hit specific Keras 3 routing bug
+   - Fixed by NOT including sample_id in filtered_features (all modalities safe now)
 
 ### ADDITIONAL IMPROVEMENTS
 
@@ -169,6 +173,11 @@ All 5 modalities complete with:
 
 ## Troubleshooting
 
+### If you see "KeyError: 'sample_id'" error
+- **This was fixed** in commit 2284874
+- Make sure you pulled latest: `git pull origin claude/restore-weighted-f1-metrics-5PNy8`
+- If still occurring, check training_utils.py:1835 for the fix
+
 ### If thermal_map still fails
 - Check terminal_output_comprehensive_cv.txt for error details
 - Look for "Invalid input shape" messages
@@ -177,7 +186,7 @@ All 5 modalities complete with:
 ### If metadata performs poorly
 - Check if feature normalization is actually running
 - Verify StandardScaler import fix is present
-- Compare with Phase 9 debug script
+- Compare with Phase 9 debug script (should get ~97% acc)
 
 ### If test crashes mid-way
 - Partial results are saved (check results files)
