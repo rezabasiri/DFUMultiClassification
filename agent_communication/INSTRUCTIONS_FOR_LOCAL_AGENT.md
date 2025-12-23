@@ -46,32 +46,35 @@ chmod +x agent_communication/debug_*.py
 
 ✅ **Phase 1: COMPLETE** - Data loads correctly (3107 samples, 61 features, 3 classes)
 ✅ **Phase 2: COMPLETE** - Training works, but model only predicts majority class (P)
+✅ **Phase 5: COMPLETE** - Focal loss applies alpha weights correctly
 
-**ROOT CAUSE IDENTIFIED**: Model collapses to always predicting class P (60% of data)
-- Phase 2 used plain cross-entropy (no class weights) - model learns to predict P 100%
-- Main.py uses focal loss with alpha weights - BUT may have a bug in alpha application
+**FINDINGS SO FAR**:
+- Phase 2 (plain cross-entropy): Min F1=0.0, only predicts P
+- Phase 5: Focal loss math is correct, alpha weights work
 
-**Next Action**: Run Phase 5 to test if focal loss applies alpha correctly
+**KEY QUESTION**: Does focal loss + alpha ACTUALLY solve the problem in real training?
+
+**Next Action**: Run Phase 6 to test real training with focal loss + alpha
 
 ---
 
-## PHASE 5: Focal Loss Alpha Test (30 seconds)
+## PHASE 6: Training with Focal Loss + Alpha (5 minutes)
 
-**CRITICAL TEST**: Verify focal loss properly weights minority classes.
+**CRITICAL TEST**: Train with focal loss + inverse frequency alpha (exactly like main.py should).
 
 ```bash
-python agent_communication/debug_05_focal_loss_test.py
+python agent_communication/debug_06_focal_loss_training.py
 
 # Commit results
-git add agent_communication/results_05_focal_loss_test.txt
-git commit -m "Debug Phase 5: Focal loss alpha weighting test"
+git add agent_communication/results_06_focal_loss_training.txt
+git commit -m "Debug Phase 6: Training with focal loss + alpha weights"
 ```
 
-**What this tests**: If focal loss correctly applies per-class alpha weights, loss for class R (rare) should be ~9x higher than loss for class P (common). If not, focal loss is broken and model will ignore minority classes.
+**What this tests**: If focal loss + alpha can actually make the model predict all 3 classes, or if we need additional techniques (oversampling, etc).
 
-**Expected outcome**:
-- PASS: Focal loss working correctly - proceed to investigate why main.py still fails
-- FAIL: Focal loss broken - need to fix alpha application in src/models/losses.py
+**Expected outcomes**:
+- **PASS (Min F1 > 0)**: Focal loss works → bug is in main.py's config or pipeline
+- **FAIL (Min F1 = 0)**: Focal loss alone insufficient → need oversampling + focal loss
 
 ---
 
