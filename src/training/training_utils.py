@@ -57,7 +57,11 @@ class EpochMemoryCallback(tf.keras.callbacks.Callback):
         gpus = tf.config.list_physical_devices('GPU')
         if gpus:
             for i, _ in enumerate(gpus):
-                tf.config.experimental.reset_memory_stats(f'GPU:{i}')
+                try:
+                    tf.config.experimental.reset_memory_stats(f'GPU:{i}')
+                except (ValueError, RuntimeError):
+                    # GPU may not be available (e.g., CPU-only mode)
+                    pass
 
 class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
     """Print epoch metrics only every N epochs to reduce output clutter"""

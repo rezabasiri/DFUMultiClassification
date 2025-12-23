@@ -1,32 +1,115 @@
 [
   {
     "modalities": "metadata",
-    "success": false,
-    "error": "cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope",
-    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 163, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 918, in cross_validation_manual_split\n    data_manager.process_all_modalities()\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 263, in process_all_modalities\n    temp_train, _, _, _, _, _ = prepare_cached_datasets(\n                                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 961, in prepare_cached_datasets\n    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)\n                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 823, in preprocess_split\n    scaler = StandardScaler()\n             ^^^^^^^^^^^^^^\nNameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope\n"
+    "success": true,
+    "avg_accuracy": 0.26453679274933967,
+    "avg_f1_macro": 0.20870617089555554,
+    "avg_f1_min": 0.03682180970316564,
+    "std_accuracy": 0.009551367976152995,
+    "fold_accuracies": [
+      0.2622259696458685,
+      0.2772177419354839,
+      0.25416666666666665
+    ],
+    "fold_f1_macros": [
+      0.21759290521529698,
+      0.22892530311034012,
+      0.1796003043610295
+    ],
+    "fold_f1_mins": [
+      0.05649717514124294,
+      0.05396825396825397,
+      0.0
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
   },
   {
     "modalities": "depth_rgb",
-    "success": false,
-    "error": "cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope",
-    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 163, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 918, in cross_validation_manual_split\n    data_manager.process_all_modalities()\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 263, in process_all_modalities\n    temp_train, _, _, _, _, _ = prepare_cached_datasets(\n                                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 961, in prepare_cached_datasets\n    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)\n                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 823, in preprocess_split\n    scaler = StandardScaler()\n             ^^^^^^^^^^^^^^\nNameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope\n"
+    "success": true,
+    "avg_accuracy": 0.42580063403990404,
+    "avg_f1_macro": 0.31369095054074875,
+    "avg_f1_min": 0.18430034809345153,
+    "std_accuracy": 0.12000479267712985,
+    "fold_accuracies": [
+      0.5952782462057336,
+      0.3487903225806452,
+      0.3333333333333333
+    ],
+    "fold_f1_macros": [
+      0.28679445023658673,
+      0.33841026062631685,
+      0.31586814075934266
+    ],
+    "fold_f1_mins": [
+      0.032432432432432434,
+      0.27564102564102566,
+      0.24482758620689654
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
   },
   {
     "modalities": "depth_map",
-    "success": false,
-    "error": "cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope",
-    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 163, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 918, in cross_validation_manual_split\n    data_manager.process_all_modalities()\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 263, in process_all_modalities\n    temp_train, _, _, _, _, _ = prepare_cached_datasets(\n                                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 961, in prepare_cached_datasets\n    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)\n                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 823, in preprocess_split\n    scaler = StandardScaler()\n             ^^^^^^^^^^^^^^\nNameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope\n"
+    "success": true,
+    "avg_accuracy": 0.34036196259225004,
+    "avg_f1_macro": 0.2850776246427326,
+    "avg_f1_min": 0.17101632541875986,
+    "std_accuracy": 0.10354354344679467,
+    "fold_accuracies": [
+      0.48650927487352447,
+      0.2752016129032258,
+      0.259375
+    ],
+    "fold_f1_macros": [
+      0.34270188113677175,
+      0.254719252067982,
+      0.2578117407234441
+    ],
+    "fold_f1_mins": [
+      0.10676156583629894,
+      0.1848341232227488,
+      0.22145328719723184
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
   },
   {
     "modalities": "thermal_map",
     "success": false,
-    "error": "cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope",
-    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 163, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 918, in cross_validation_manual_split\n    data_manager.process_all_modalities()\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 263, in process_all_modalities\n    temp_train, _, _, _, _, _ = prepare_cached_datasets(\n                                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 961, in prepare_cached_datasets\n    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)\n                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 823, in preprocess_split\n    scaler = StandardScaler()\n             ^^^^^^^^^^^^^^\nNameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope\n"
+    "error": "No fold results returned"
   },
   {
     "modalities": "metadata+depth_rgb",
-    "success": false,
-    "error": "cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope",
-    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 163, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 918, in cross_validation_manual_split\n    data_manager.process_all_modalities()\n  File \"/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py\", line 263, in process_all_modalities\n    temp_train, _, _, _, _, _ = prepare_cached_datasets(\n                                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 961, in prepare_cached_datasets\n    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)\n                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/rezab/projects/DFUMultiClassification/src/data/dataset_utils.py\", line 823, in preprocess_split\n    scaler = StandardScaler()\n             ^^^^^^^^^^^^^^\nNameError: cannot access free variable 'StandardScaler' where it is not associated with a value in enclosing scope\n"
+    "success": true,
+    "avg_accuracy": 0.3714072897967325,
+    "avg_f1_macro": 0.23306552334188615,
+    "avg_f1_min": 0.019729164373004513,
+    "std_accuracy": 0.1721338757723075,
+    "fold_accuracies": [
+      0.6112984822934233,
+      0.2872983870967742,
+      0.215625
+    ],
+    "fold_f1_macros": [
+      0.2933257117970494,
+      0.1923567726295878,
+      0.21351408559902132
+    ],
+    "fold_f1_mins": [
+      0.0,
+      0.03870967741935484,
+      0.020477815699658702
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
   }
 ]
