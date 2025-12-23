@@ -965,7 +965,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     # FEATURE NORMALIZATION - Apply StandardScaler to numeric metadata features
     # This is CRITICAL for training convergence (proven by Phase 9 debugging)
     if 'metadata' in selected_modalities:
-        from sklearn.preprocessing import StandardScaler
+        # Note: StandardScaler is already imported at module level (line 14)
 
         # Identify numeric columns to normalize (exclude images, labels, identifiers)
         exclude_cols = [
