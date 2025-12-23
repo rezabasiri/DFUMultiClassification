@@ -1,0 +1,32 @@
+[
+  {
+    "modalities": "metadata",
+    "success": false,
+    "error": "cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 127, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'\n"
+  },
+  {
+    "modalities": "depth_rgb",
+    "success": false,
+    "error": "cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 127, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'\n"
+  },
+  {
+    "modalities": "depth_map",
+    "success": false,
+    "error": "cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 127, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'\n"
+  },
+  {
+    "modalities": "thermal_map",
+    "success": false,
+    "error": "cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 127, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'\n"
+  },
+  {
+    "modalities": "metadata+depth_rgb",
+    "success": false,
+    "error": "cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/rezab/projects/DFUMultiClassification/agent_communication/test_comprehensive_cv.py\", line 127, in run_modality_test\n    results = cross_validation_manual_split(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: cross_validation_manual_split() got an unexpected keyword argument 'modality_dict'\n"
+  }
+]
