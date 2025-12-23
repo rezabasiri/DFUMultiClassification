@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""DEBUG 2: Test if basic training works in isolation (no main.py code)"""
+"""DEBUG 2: Test if basic training works using main.py's data pipeline"""
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import tensorflow as tf
 import numpy as np
-import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, classification_report
+from src.data.image_processing import prepare_dataset
+from src.utils.config import get_project_paths
 
 # Force CPU for debugging
 tf.config.set_visible_devices([], 'GPU')
@@ -22,13 +23,24 @@ def main():
         output.append(msg)
 
     log("="*80)
-    log("DEBUG 2: MINIMAL TRAINING TEST (CPU only)")
+    log("DEBUG 2: MINIMAL TRAINING TEST (CPU only, using main.py data)")
     log("="*80)
 
     try:
-        # Load data
-        log("\n1. Loading data...")
-        data = pd.read_csv('balanced_combined_healing_phases.csv')
+        # Load data using main.py's method
+        log("\n1. Loading data via prepare_dataset()...")
+        directory, result_dir, root = get_project_paths()
+
+        depth_bb_file = os.path.join(root, 'raw', 'bb_depth_annotation.csv')
+        thermal_bb_file = os.path.join(root, 'raw', 'bb_thermal_annotation.csv')
+        csv_file = os.path.join(root, 'raw', 'DataMaster_Processed_V12_WithMissing.csv')
+
+        data = prepare_dataset(
+            depth_bb_file=depth_bb_file,
+            thermal_bb_file=thermal_bb_file,
+            csv_file=csv_file,
+            selected_modalities=['metadata']
+        )
 
         exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
         numeric_cols = data.select_dtypes(include=[np.number]).columns
@@ -145,9 +157,9 @@ def main():
 
         log("\n" + "="*80)
         if success:
-            log("✅ PASS: Minimal training works")
+            log("✅ PASS: Minimal training works correctly")
         else:
-            log("❌ FAIL: Minimal training has issues")
+            log("❌ FAIL: Training has issues (but TensorFlow works)")
         log("="*80)
 
         return success, output
