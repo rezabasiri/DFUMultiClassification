@@ -30,21 +30,31 @@ Run 4 debug scripts in order. Each takes 2-15 minutes. After EACH script:
 
 ```bash
 # Activate environment
-source /Users/rezabasiri/env/multimodal/bin/activate
+source /home/rezab/projects/enviroments/multimodal/bin/activate
 
 # Go to project
-cd /Users/rezabasiri/DFUMultiClassification
+cd /home/rezab/projects/DFUMultiClassification
 
-# Pull latest scripts
+# Pull latest scripts (IMPORTANT: Data loading was fixed!)
 git pull origin claude/restore-weighted-f1-metrics-5PNy8
 
 # Make scripts executable
 chmod +x agent_communication/debug_*.py
 ```
 
+## IMPORTANT UPDATE
+
+**Phase 1 previously failed** because scripts looked for `balanced_combined_healing_phases.csv` which doesn't exist.
+
+**FIX APPLIED**: Scripts now use `prepare_dataset()` from `src/data/image_processing.py` to load from raw data files. This is the ACTUAL method main.py uses.
+
+**Action required**: Re-run Phase 1 after pulling latest changes.
+
+---
+
 ## PHASE 1: Data Sanity Check (2 minutes)
 
-Tests if raw data loads correctly.
+Tests if raw data loads correctly via `prepare_dataset()` function.
 
 ```bash
 python agent_communication/debug_01_data_sanity.py
