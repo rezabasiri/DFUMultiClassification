@@ -335,8 +335,8 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
-    steps = np.ceil(n_samples / batch_size)
-    k = int(steps * batch_size)  # Total number of samples needed
+    steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
+    k = steps * batch_size  # Total number of samples needed
     
     # Cache the dataset with unique filename per modality combination
     modality_suffix = '_'.join(sorted(selected_modalities))  # e.g., "depth_rgb_metadata"
@@ -615,47 +615,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             for class_idx in [0, 1, 2]:  # Explicit ordering
                 print(f"Class {class_idx}: {counts[class_idx]}")
         # Calculate alpha values from original distribution
+        # Use inverse of frequency (uncapped) normalized to sum to 3
         total_samples = sum(counts.values())
         class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
-        median_freq = np.median(list(class_frequencies.values()))
-        alpha_values = [median_freq/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
 
-        # Normalize to sum=1.0 first (standard for focal loss)
+        # Inverse frequency for each class (no capping)
+        alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+        # Normalize to sum=3.0 (as recommended)
         alpha_sum = sum(alpha_values)
-        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
-
-        # Cap and redistribute: prevent extreme weights while maintaining sum=1.0
-        # Iteratively cap at MAX_ALPHA and redistribute excess to other classes
-        MAX_ALPHA = 0.5  # No class can dominate (>50% of total weight)
-        for _ in range(len(alpha_values)):  # Max iterations = number of classes
-            # Find class with maximum alpha
-            max_idx = alpha_values.index(max(alpha_values))
-
-            if alpha_values[max_idx] <= MAX_ALPHA:
-                break  # No more capping needed
-
-            # Calculate excess over the cap
-            excess = alpha_values[max_idx] - MAX_ALPHA
-            alpha_values[max_idx] = MAX_ALPHA
-
-            # Find classes that can receive redistribution (< MAX_ALPHA)
-            can_receive = [i for i in range(len(alpha_values)) if alpha_values[i] < MAX_ALPHA]
-
-            if not can_receive:
-                break  # All at max, will normalize below
-
-            # Redistribute proportionally to remaining capacity (room to grow)
-            capacities = [MAX_ALPHA - alpha_values[i] for i in can_receive]
-            total_capacity = sum(capacities)
-
-            if total_capacity > 0:
-                for i in can_receive:
-                    capacity_fraction = (MAX_ALPHA - alpha_values[i]) / total_capacity
-                    alpha_values[i] += excess * capacity_fraction
-
-        # Final normalization to ensure sum=1.0 (handles floating point precision)
-        alpha_sum = sum(alpha_values)
-        alpha_values = [alpha/alpha_sum for alpha in alpha_values]
+        alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
         vprint("\nCalculated alpha values from original distribution:", level=2)
         vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
@@ -679,20 +648,24 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:  # Explicit ordering
                     print(f"Class {class_idx}: {counts[class_idx]}")
             # Calculate alpha values from original distribution
+            # Use inverse of frequency (uncapped) normalized to sum to 3
             total_samples = sum(counts.values())
             class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
-            median_freq = np.median(list(class_frequencies.values()))
-            alpha_values = [median_freq/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+            # Inverse frequency for each class (no capping)
+            alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+            # Normalize to sum=3.0 (as recommended)
             alpha_sum = sum(alpha_values)
             alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
             
             oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
             X_resampled, y_resampled = oversampler.fit_resample(X, y)
-            
+
             resampled_df = pd.DataFrame(X_resampled, columns=X.columns)
             resampled_df['Healing Phase Abs'] = y_resampled
             resampled_df = resampled_df.reset_index(drop=True)
-            
+
             # Print final results with ordered classes
             final_counts = Counter(y_resampled)
             vprint("\nAfter oversampling (ordered):", level=2)
@@ -700,7 +673,18 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
-            return resampled_df, alpha_values
+            # Recalculate alpha values from BALANCED distribution
+            # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
+            total_resampled = len(y_resampled)
+            balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
+            alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
+            alpha_sum_balanced = sum(alpha_values_balanced)
+            alpha_values_balanced = [alpha/alpha_sum_balanced * 3.0 for alpha in alpha_values_balanced]
+
+            vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
+            vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
+
+            return resampled_df, alpha_values_balanced
     if 'metadata' in selected_modalities:
         # Calculate class weights for Random Forest models
         unique_cases = train_data[['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']].drop_duplicates().copy()
@@ -738,7 +722,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         class_weight_dict_binary1=None
         class_weight_dict_binary2=None
     
-    train_data, alpha_values = apply_mixed_sampling_to_df(train_data, apply_sampling=False, mix=False)
+    train_data, alpha_values = apply_mixed_sampling_to_df(train_data, apply_sampling=True, mix=False)
     
     def preprocess_split(split_data, is_training=True, class_weight_dict_binary1=None, 
                             class_weight_dict_binary2=None, rf_model1=None, rf_model2=None, imputation_data=None):
@@ -977,7 +961,38 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
     valid_data, _, _ = preprocess_split(valid_data, is_training=False, rf_model1=rf_model1, rf_model2=rf_model2, imputation_data=source_data)
     del rf_model1, rf_model2
-    
+
+    # FEATURE NORMALIZATION - Apply StandardScaler to numeric metadata features
+    # This is CRITICAL for training convergence (proven by Phase 9 debugging)
+    if 'metadata' in selected_modalities:
+        # Note: StandardScaler is already imported at module level (line 14)
+
+        # Identify numeric columns to normalize (exclude images, labels, identifiers)
+        exclude_cols = [
+            'Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
+            'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+            'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+            'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax'
+        ]
+
+        # Get numeric columns from train_data
+        numeric_cols = train_data.select_dtypes(include=[np.number]).columns
+        cols_to_normalize = [col for col in numeric_cols if col not in exclude_cols]
+
+        if len(cols_to_normalize) > 0:
+            vprint(f"\nNormalizing {len(cols_to_normalize)} numeric features with StandardScaler...", level=2)
+
+            # Fit scaler on training data only (prevent data leakage)
+            scaler = StandardScaler()
+            train_data[cols_to_normalize] = scaler.fit_transform(train_data[cols_to_normalize])
+
+            # Transform validation data using the same scaler
+            valid_data[cols_to_normalize] = scaler.transform(valid_data[cols_to_normalize])
+
+            if get_verbosity() == 2:
+                print(f"  Normalized feature range: [{train_data[cols_to_normalize].min().min():.2f}, {train_data[cols_to_normalize].max().max():.2f}]")
+                print(f"  Mean: {train_data[cols_to_normalize].mean().mean():.4f}, Std: {train_data[cols_to_normalize].std().mean():.4f}")
+
     # Create cached datasets
     train_dataset, pre_aug_dataset, steps_per_epoch = create_cached_dataset(
         train_data,

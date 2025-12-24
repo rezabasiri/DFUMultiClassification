@@ -1,0 +1,155 @@
+2025-12-24 04:28:39.178171: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1766568519.202870 2719015 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1766568519.210294 2719015 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-12-24 04:28:39.235473: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, "object"):
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/utils/deprecation.py:151: FutureWarning: 'force_all_finite' was renamed to 'ensure_all_finite' in 1.6 and will be removed in 1.8.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/layers/core/dense.py:106: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+I0000 00:00:1766568529.593436 2719015 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1766568532.390570 2719107 service.cc:148] XLA service 0x7fbad000a880 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+I0000 00:00:1766568532.390618 2719107 service.cc:156]   StreamExecutor device (0): NVIDIA TITAN Xp, Compute Capability 6.1
+2025-12-24 04:28:52.420101: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:268] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+I0000 00:00:1766568532.543623 2719107 cuda_dnn.cc:529] Loaded cuDNN version 91002
+I0000 00:00:1766568533.788594 2719107 device_compiler.h:188] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/utils/deprecation.py:151: FutureWarning: 'force_all_finite' was renamed to 'ensure_all_finite' in 1.6 and will be removed in 1.8.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/layers/core/dense.py:106: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/utils/deprecation.py:151: FutureWarning: 'force_all_finite' was renamed to 'ensure_all_finite' in 1.6 and will be removed in 1.8.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/layers/core/dense.py:106: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+================================================================================
+GENERALIZABILITY TEST: Phase 9-style Model with Patient-Level CV
+================================================================================
+
+This test uses PATIENT-LEVEL cross-validation to ensure:
+  1. No patient appears in both train and test sets
+  2. Model must generalize to unseen patients
+  3. Results are not due to memorization
+
+Data after filtering: 3107 samples
+Unique patients: 233
+Number of features: 61
+
+================================================================================
+CROSS-VALIDATION RESULTS
+================================================================================
+
+--- Fold 1 ---
+  Train patients: 154, Val patients: 79
+  Patient overlap: 0 (should be 0)
+  Train samples: 1921, Val samples: 1186
+  Train class distribution: [ 599 1164  158]
+  Val class distribution: [293 716 177]
+  After oversampling: [1164 1164 1164]
+
+  Results:
+    Accuracy: 0.4494
+    F1 Macro: 0.3777
+    F1 per class [I, P, R]: [0.3251, 0.5767, 0.2312]
+    Min F1: 0.2312
+    Epochs trained: 11
+
+--- Fold 2 ---
+  Train patients: 156, Val patients: 77
+  Patient overlap: 0 (should be 0)
+  Train samples: 2121, Val samples: 986
+  Train class distribution: [ 547 1301  273]
+  Val class distribution: [345 579  62]
+  After oversampling: [1301 1301 1301]
+
+  Results:
+    Accuracy: 0.5203
+    F1 Macro: 0.4401
+    F1 per class [I, P, R]: [0.4829, 0.5888, 0.2485]
+    Min F1: 0.2485
+    Epochs trained: 12
+
+--- Fold 3 ---
+  Train patients: 156, Val patients: 77
+  Patient overlap: 0 (should be 0)
+  Train samples: 2172, Val samples: 935
+  Train class distribution: [ 638 1295  239]
+  Val class distribution: [254 585  96]
+  After oversampling: [1295 1295 1295]
+
+  Results:
+    Accuracy: 0.4481
+    F1 Macro: 0.4035
+    F1 per class [I, P, R]: [0.4459, 0.5088, 0.2559]
+    Min F1: 0.2559
+    Epochs trained: 11
+
+================================================================================
+CROSS-VALIDATION SUMMARY
+================================================================================
+
+Average Accuracy: 0.4726 ± 0.0337
+Average F1 Macro: 0.4071
+Average Min F1:   0.2452
+
+Per-Fold Results:
+  Fold 1: Acc=0.4494, F1_macro=0.3777, Min_F1=0.2312
+  Fold 2: Acc=0.5203, F1_macro=0.4401, Min_F1=0.2485
+  Fold 3: Acc=0.4481, F1_macro=0.4035, Min_F1=0.2559
+
+Overall Confusion Matrix (all folds combined):
+           Predicted
+           I    P    R
+Actual I  425  385   82
+       P  623  938  319
+       R   92  141  102
+
+Overall Classification Report:
+              precision    recall  f1-score   support
+
+           I       0.37      0.48      0.42       892
+           P       0.64      0.50      0.56      1880
+           R       0.20      0.30      0.24       335
+
+    accuracy                           0.47      3107
+   macro avg       0.41      0.43      0.41      3107
+weighted avg       0.52      0.47      0.49      3107
+
+
+================================================================================
+GENERALIZABILITY ASSESSMENT
+================================================================================
+
+Key Metrics:
+  1. Patient-level CV ensures no data leakage
+  2. Average accuracy across folds: 47.3%
+  3. Standard deviation: 0.0337 (consistency check)
+  4. Min F1 across folds: 0.2452 (minority class learning)
+
+❌ CONCLUSION: Model does NOT generalize
+   - Performance at or below random chance
+   - Previous results likely due to memorization or data leak
+
+================================================================================
+COMPARISON
+================================================================================
+Phase 9 (train/test split):    97.59% accuracy
+This test (patient-level CV):  47.26% accuracy
+CV test (minimal architecture): 50.14% accuracy
+
+→ Phase 9 results NOT validated - train/test split may have allowed memorization

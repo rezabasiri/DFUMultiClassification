@@ -33,7 +33,7 @@ from src.utils.production_config import (
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
 from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
-from src.models.losses import get_focal_ordinal_loss, weighted_f1_score
+from src.models.losses import get_focal_ordinal_loss, weighted_f1_score, WeightedF1Score
 from src.evaluation.metrics import track_misclassifications
 
 # Get paths
@@ -57,7 +57,11 @@ class EpochMemoryCallback(tf.keras.callbacks.Callback):
         gpus = tf.config.list_physical_devices('GPU')
         if gpus:
             for i, _ in enumerate(gpus):
-                tf.config.experimental.reset_memory_stats(f'GPU:{i}')
+                try:
+                    tf.config.experimental.reset_memory_stats(f'GPU:{i}')
+                except (ValueError, RuntimeError):
+                    # GPU may not be available (e.g., CPU-only mode)
+                    pass
 
 class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
     """Print epoch metrics only every N epochs to reduce output clutter"""
@@ -150,7 +154,8 @@ def clean_up_training_resources():
 
 def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     modality_str = '_'.join(sorted(selected_modalities))
-    checkpoint_name = f'{modality_str}_{run}_{config_name}.h5'
+    # Keras 3 (TF 2.16+) requires .weights.h5 extension when using save_weights_only=True
+    checkpoint_name = f'{modality_str}_{run}_{config_name}.weights.h5'
     return os.path.join(models_path, checkpoint_name)
 class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
     def __init__(self, monitor='val_loss', factor=0.5, patience=5, 
@@ -241,19 +246,21 @@ class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
                     tf.keras.backend.set_value(self.model.optimizer.lr, new_lr)
             self.wait = 0
 class ProcessedDataManager:
-    def __init__(self, data, directory):
+    def __init__(self, data, directory, image_size=None):
         """
         Initialize the ProcessedDataManager.
-        
+
         Args:
             data: The input data DataFrame
             directory: Base directory for the project
+            image_size: Target image size (uses IMAGE_SIZE from production_config if not specified)
         """
         self.directory = directory
         self.data = data.copy(deep=True)
         self.all_modality_shapes = {}
         self.cached_datasets = {}
-        
+        self.image_size = image_size if image_size is not None else IMAGE_SIZE
+
     def process_all_modalities(self):
         """Process all modalities and store their shapes."""
         # Get metadata shape after preprocessing
@@ -271,10 +278,10 @@ class ProcessedDataManager:
             self.all_modality_shapes['metadata'] = batch[0]['metadata_input'].shape[1:]
             break
 
-        # Set image shapes
-        vprint("Setting image shapes...", level=2)
+        # Set image shapes using instance's image_size
+        vprint(f"Setting image shapes to {self.image_size}x{self.image_size}...", level=2)
         for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
-            self.all_modality_shapes[modality] = (IMAGE_SIZE, IMAGE_SIZE, 3)
+            self.all_modality_shapes[modality] = (self.image_size, self.image_size, 3)
         
         del temp_train, temp_data
         gc.collect()
@@ -912,14 +919,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         if completed_configs:
             vprint(f"\nFound completed configs for run {run + 1}: {completed_configs}", level=1)
         
-        # Initialize data manager for this run
-        data_manager = ProcessedDataManager(data.copy(), directory)
+        # Initialize data manager for this run with the correct image_size
+        data_manager = ProcessedDataManager(data.copy(), directory, image_size=image_size)
         data_manager.process_all_modalities()
-        
-        # Setup augmentation once per run
+
+        # Setup augmentation once per run (use the passed image_size, not global IMAGE_SIZE)
         aug_config = AugmentationConfig()
-        aug_config.generative_settings['output_size']['width'] = IMAGE_SIZE
-        aug_config.generative_settings['output_size']['height'] = IMAGE_SIZE
+        aug_config.generative_settings['output_size']['width'] = image_size
+        aug_config.generative_settings['output_size']['height'] = image_size
         
         gen_manager = GenerativeAugmentationManager(
             base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
@@ -997,6 +1004,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     train_dataset = filter_dataset_modalities(master_train_dataset, selected_modalities)
                     pre_aug_train_dataset = filter_dataset_modalities(pre_aug_dataset, selected_modalities)
                     valid_dataset = filter_dataset_modalities(master_valid_dataset, selected_modalities)
+
+                    # Remove sample_id from training/validation datasets before model.fit()
+                    # (Keras 3 strict about input dict keys matching model.inputs)
+                    # Keep sample_id in pre_aug_train_dataset for prediction tracking
+                    def remove_sample_id_for_training(features, labels):
+                        model_features = {k: v for k, v in features.items() if k != 'sample_id'}
+                        return model_features, labels
+
+                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                     # Get a single epoch's worth of data by taking the specified number of steps
                     all_labels = []
                     for batch in pre_aug_train_dataset.take(master_steps_per_epoch):
@@ -1049,17 +1066,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                     # Create and train model
                     with strategy.scope():
                         weighted_acc = WeightedAccuracy(alpha_values=class_weights)
+                        weighted_f1 = WeightedF1Score(alpha_values=alpha_value)  # Use alpha_value for weighted F1
                         input_shapes = data_manager.get_shapes_for_modalities(selected_modalities)
                         model = create_multimodal_model(input_shapes, selected_modalities, None)
 
                         # Use loss parameters from config if available, otherwise use defaults
                         ordinal_weight = config.get('ordinal_weight', 0.05)
                         gamma = config.get('gamma', 2.0)
-                        alpha = config.get('alpha', class_weights)
+                        alpha = config.get('alpha', alpha_value)  # Use alpha_value for consistency
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
                         macro_f1 = MacroF1Score(num_classes=3)
                         model.compile(optimizer=Adam(learning_rate=1e-4, clipnorm=1.0), loss=loss,  # Reduced LR from 1e-3 to 1e-4
-                            metrics=['accuracy', weighted_f1_score, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
+                            metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
@@ -1068,22 +1086,22 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                             EarlyStopping(
                                 patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
-                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                monitor='val_weighted_f1_score',  # Use weighted F1 for early stopping
                                 min_delta=0.001,  # Require 0.1% improvement (was 0.01, too strict)
-                                mode='max',  # Maximize F1, not minimize loss
+                                mode='max',  # Maximize weighted F1
                                 verbose=1
                             ),
                             ReduceLROnPlateau(
                                 factor=0.50,
                                 patience=REDUCE_LR_PATIENCE,
-                                monitor='val_macro_f1',  # Changed from val_loss to macro F1
+                                monitor='val_weighted_f1_score',  # Use weighted F1 for LR reduction
                                 min_delta=0.0005,  # Reduced from 0.005 to allow smaller improvements
                                 min_lr=1e-10,
-                                mode='max',  # Maximize F1, not minimize loss
+                                mode='max',  # Maximize weighted F1
                             ),
                             tf.keras.callbacks.ModelCheckpoint(
                                 create_checkpoint_filename(selected_modalities, run+1, config_name),
-                                monitor='val_macro_f1',
+                                monitor='val_weighted_f1_score',  # Use weighted F1 for best model
                                 save_best_only=True,
                                 mode='max',
                                 save_weights_only=True
@@ -1186,14 +1204,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         with strategy.scope():
                             for batch in pre_aug_train_dataset.take(steps_per_epoch):
                                 batch_inputs, batch_labels = batch
+                                # Extract sample_id before filtering for model.predict()
+                                sample_ids_batch = batch_inputs['sample_id'].numpy()
+                                # Filter out sample_id for model.predict() (Keras 3 compatibility)
+                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
                                 with strategy.scope():
-                                    batch_pred = model.predict(batch_inputs, verbose=0)
+                                    batch_pred = model.predict(model_inputs, verbose=0)
                                 y_true_t.extend(np.argmax(batch_labels, axis=1))
                                 y_pred_t.extend(np.argmax(batch_pred, axis=1))
                                 probabilities_t.extend(batch_pred)
-                                all_sample_ids_t.extend(batch_inputs['sample_id'].numpy())
-                                
-                                del batch_inputs, batch_labels, batch_pred
+                                all_sample_ids_t.extend(sample_ids_batch)
+
+                                del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
                                 gc.collect()
 
                         save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train')
@@ -1212,17 +1234,25 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         probabilities_v = []
                         all_sample_ids_v = []
 
+                        # Note: valid_dataset used here is from the FILTERED version (line 1004)
+                        # We need to re-filter to get sample_id back for tracking
+                        valid_dataset_with_ids = filter_dataset_modalities(master_valid_dataset, selected_modalities)
+
                         with strategy.scope():
-                            for batch in valid_dataset.take(validation_steps):
+                            for batch in valid_dataset_with_ids.take(validation_steps):
                                 batch_inputs, batch_labels = batch
+                                # Extract sample_id before filtering for model.predict()
+                                sample_ids_batch = batch_inputs['sample_id'].numpy()
+                                # Filter out sample_id for model.predict() (Keras 3 compatibility)
+                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
                                 with strategy.scope():
-                                    batch_pred = model.predict(batch_inputs, verbose=0)
+                                    batch_pred = model.predict(model_inputs, verbose=0)
                                 y_true_v.extend(np.argmax(batch_labels, axis=1))
                                 y_pred_v.extend(np.argmax(batch_pred, axis=1))
                                 probabilities_v.extend(batch_pred)
-                                all_sample_ids_v.extend(batch_inputs['sample_id'].numpy())
-                                
-                                del batch_inputs, batch_labels, batch_pred
+                                all_sample_ids_v.extend(sample_ids_batch)
+
+                                del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
                                 gc.collect()
 
                         save_run_predictions(run + 1, config_name, np.array(probabilities_v), np.array(y_true_v), ck_path, dataset_type='valid')
@@ -1284,7 +1314,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                 except Exception as e:
                     vprint(f"Error during training (attempt {retry_count + 1}/{max_retries}): {str(e)}", level=0)
                     import traceback
-                    vprint(f"Traceback: {traceback.format_exc()}", level=2)
+                    vprint(f"Traceback: {traceback.format_exc()}", level=0)  # Always show traceback
                     clean_up_training_resources()
                     retry_count += 1
                     continue
@@ -1826,9 +1856,10 @@ def filter_dataset_modalities(dataset, selected_modalities):
     """
     def filter_features(features, labels):
         filtered_features = {}
-        # Always include sample_id
-        filtered_features['sample_id'] = features['sample_id']
-        
+        # Include sample_id for tracking/debugging (but NOT passed to model.fit/predict)
+        if 'sample_id' in features:
+            filtered_features['sample_id'] = features['sample_id']
+
         # Include only selected modalities
         for modality in selected_modalities:
             modality_key = f'{modality}_input'
@@ -1836,7 +1867,7 @@ def filter_dataset_modalities(dataset, selected_modalities):
                 filtered_features[modality_key] = features[modality_key]
             else:
                 raise KeyError(f"Modality {modality} not found in dataset")
-        
+
         return filtered_features, labels
     
     # return dataset.map(filter_features, num_parallel_calls=tf.data.AUTOTUNE)

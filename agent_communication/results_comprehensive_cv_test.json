@@ -1,0 +1,139 @@
+[
+  {
+    "modalities": "metadata",
+    "success": true,
+    "avg_accuracy": 0.5013759199436864,
+    "avg_f1_macro": 0.36743168521428976,
+    "avg_f1_min": 0.1261423416373201,
+    "std_accuracy": 0.02746291716992035,
+    "fold_accuracies": [
+      0.4629005059021922,
+      0.5252016129032258,
+      0.5160256410256411
+    ],
+    "fold_f1_macros": [
+      0.34409892611551274,
+      0.3817379029265213,
+      0.3764582266008351
+    ],
+    "fold_f1_mins": [
+      0.09090909090909091,
+      0.1411764705882353,
+      0.14634146341463414
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
+  },
+  {
+    "modalities": "depth_rgb",
+    "success": true,
+    "avg_accuracy": 0.31443671131494116,
+    "avg_f1_macro": 0.3154250688848393,
+    "avg_f1_min": 0.18897293949290442,
+    "std_accuracy": 0.008995284482590174,
+    "fold_accuracies": [
+      0.327150084317032,
+      0.3084677419354839,
+      0.3076923076923077
+    ],
+    "fold_f1_macros": [
+      0.32977625829066115,
+      0.3113962771480952,
+      0.30510267121576157
+    ],
+    "fold_f1_mins": [
+      0.20591715976331362,
+      0.21974965229485396,
+      0.14125200642054575
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
+  },
+  {
+    "modalities": "depth_map",
+    "success": true,
+    "avg_accuracy": 0.3737163708247726,
+    "avg_f1_macro": 0.347839416628579,
+    "avg_f1_min": 0.24944847088600944,
+    "std_accuracy": 0.005892580641222832,
+    "fold_accuracies": [
+      0.3777403035413153,
+      0.3780241935483871,
+      0.36538461538461536
+    ],
+    "fold_f1_macros": [
+      0.34993464755550036,
+      0.3470613962368645,
+      0.3465222060933722
+    ],
+    "fold_f1_mins": [
+      0.2520193861066236,
+      0.23291139240506328,
+      0.2634146341463415
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
+  },
+  {
+    "modalities": "thermal_map",
+    "success": true,
+    "avg_accuracy": 0.4471261024717343,
+    "avg_f1_macro": 0.3836335444747358,
+    "avg_f1_min": 0.27333111190391807,
+    "std_accuracy": 0.061013808816039385,
+    "fold_accuracies": [
+      0.3979763912310287,
+      0.4102822580645161,
+      0.5331196581196581
+    ],
+    "fold_f1_macros": [
+      0.3915422864544411,
+      0.3806745462412608,
+      0.3786838007285054
+    ],
+    "fold_f1_mins": [
+      0.3533697632058288,
+      0.3025210084033613,
+      0.1641025641025641
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": [
+      "\u26a0\ufe0f  Performance strictly increases across folds: [0.3979763912310287, 0.4102822580645161, 0.5331196581196581] (potential model leak)"
+    ]
+  },
+  {
+    "modalities": "metadata+depth_rgb",
+    "success": true,
+    "avg_accuracy": 0.5212494409085688,
+    "avg_f1_macro": 0.35484566934007455,
+    "avg_f1_min": 0.15273826458036985,
+    "std_accuracy": 0.0648261153371197,
+    "fold_accuracies": [
+      0.6104553119730185,
+      0.4949596774193548,
+      0.4583333333333333
+    ],
+    "fold_f1_macros": [
+      0.28085276406290133,
+      0.38061142144398136,
+      0.4030728225133409
+    ],
+    "fold_f1_mins": [
+      0.0,
+      0.16216216216216217,
+      0.29605263157894735
+    ],
+    "data_leak": false,
+    "data_leak_details": [],
+    "model_leak": false,
+    "model_leak_details": []
+  }
+]

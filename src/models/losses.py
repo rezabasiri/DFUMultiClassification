@@ -6,10 +6,77 @@ Includes weighted, ordinal, and focal losses for handling class imbalance and or
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
+class WeightedF1Score(tf.keras.metrics.Metric):
+    """
+    Weighted F1 Score metric using alpha values (inverse frequency weights).
+
+    This metric calculates F1 score for each class and weights them using
+    the provided alpha values (inverse frequency normalized to sum=3).
+    """
+    def __init__(self, alpha_values=None, name='weighted_f1_score', **kwargs):
+        super(WeightedF1Score, self).__init__(name=name, **kwargs)
+        if alpha_values is None:
+            alpha_values = [1.0, 1.0, 1.0]  # Default to equal weights
+        self.alpha_values = tf.constant(alpha_values, dtype=tf.float32)
+        # Normalize alpha values to sum=3 if not already
+        alpha_sum = tf.reduce_sum(self.alpha_values)
+        self.alpha_values = self.alpha_values / alpha_sum * 3.0
+
+        self.true_positives = self.add_weight(name='tp', shape=(3,), initializer='zeros')
+        self.false_positives = self.add_weight(name='fp', shape=(3,), initializer='zeros')
+        self.false_negatives = self.add_weight(name='fn', shape=(3,), initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        y_true_cls = tf.argmax(y_true, axis=1)
+        y_pred_cls = tf.argmax(y_pred, axis=1)
+
+        # Calculate confusion matrix elements for each class using vectorized operations
+        # This approach works correctly with distributed strategies
+        tp_batch = []
+        fp_batch = []
+        fn_batch = []
+
+        for class_id in range(3):
+            y_true_class = tf.cast(tf.equal(y_true_cls, class_id), tf.float32)
+            y_pred_class = tf.cast(tf.equal(y_pred_cls, class_id), tf.float32)
+
+            tp = tf.reduce_sum(y_true_class * y_pred_class)
+            fp = tf.reduce_sum((1 - y_true_class) * y_pred_class)
+            fn = tf.reduce_sum(y_true_class * (1 - y_pred_class))
+
+            tp_batch.append(tp)
+            fp_batch.append(fp)
+            fn_batch.append(fn)
+
+        # Stack and add to weights (works with distributed strategy)
+        self.true_positives.assign_add(tf.stack(tp_batch))
+        self.false_positives.assign_add(tf.stack(fp_batch))
+        self.false_negatives.assign_add(tf.stack(fn_batch))
+
+    def result(self):
+        # Calculate F1 for each class
+        precision = self.true_positives / (self.true_positives + self.false_positives + 1e-7)
+        recall = self.true_positives / (self.true_positives + self.false_negatives + 1e-7)
+        f1_per_class = 2 * (precision * recall) / (precision + recall + 1e-7)
+
+        # Weight by alpha values and normalize by sum of alpha values
+        weighted_f1 = tf.reduce_sum(f1_per_class * self.alpha_values) / tf.reduce_sum(self.alpha_values)
+
+        return weighted_f1
+
+    def reset_state(self):
+        self.true_positives.assign(tf.zeros((3,)))
+        self.false_positives.assign(tf.zeros((3,)))
+        self.false_negatives.assign(tf.zeros((3,)))
+
 def weighted_f1_score(y_true, y_pred):
+    """
+    Legacy weighted F1 score function (uses support-based weighting).
+    Kept for backward compatibility.
+    """
     y_true_cls = tf.argmax(y_true, axis=1)
     y_pred_cls = tf.argmax(y_pred, axis=1)
-    
+
     conf_matrix = tf.math.confusion_matrix(y_true_cls, y_pred_cls, num_classes=3)
     conf_matrix = tf.cast(conf_matrix, tf.float32)
     true_positives = tf.linalg.diag_part(conf_matrix)
@@ -20,7 +87,7 @@ def weighted_f1_score(y_true, y_pred):
     f1 = 2 * (precision * recall) / (precision + recall + 1e-7)
     weights = actual_positives / tf.reduce_sum(actual_positives)
     weighted_f1 = tf.reduce_sum(f1 * weights)
-    
+
     return weighted_f1
 def weighted_ordinal_crossentropy(y_true, y_pred, num_classes=3, ordinal_weight=0.5):
     # Standard categorical crossentropy
