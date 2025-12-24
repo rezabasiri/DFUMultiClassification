@@ -1,0 +1,115 @@
+2025-12-24 04:17:55.934189: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1766567875.965807 2708561 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1766567875.975430 2708561 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-12-24 04:17:56.012420: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, "object"):
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/utils/deprecation.py:151: FutureWarning: 'force_all_finite' was renamed to 'ensure_all_finite' in 1.6 and will be removed in 1.8.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/layers/core/dense.py:106: UserWarning: Do not pass an `input_shape`/`input_dim` argument to a layer. When using Sequential models, prefer using an `Input(shape)` object as the first layer in the model instead.
+  super().__init__(activity_regularizer=activity_regularizer, **kwargs)
+I0000 00:00:1766567880.166525 2708561 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1766567880.337176 2708561 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+================================================================================
+TEST: Metadata with Phase 9-style Simple Model
+================================================================================
+Data after filtering: 3107 samples
+
+Train: 2485, Test: 622
+Classes (train): (array([0, 1, 2]), array([ 713, 1504,  268]))
+After oversampling: (array([0, 1, 2]), array([1504, 1504, 1504]))
+
+================================================================================
+Building Phase 9-style Simple Sequential Model:
+  Dense(128) -> Dropout(0.3) -> Dense(64) -> Dropout(0.3) -> Dense(3)
+  Loss: categorical_crossentropy
+  LR: 0.001
+================================================================================
+Model parameters: 16387
+
+Training simple Sequential model (20 epochs)...
+Epoch 1/20
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1766567882.339290 2708637 service.cc:148] XLA service 0x7a94d8004d00 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+I0000 00:00:1766567882.339337 2708637 service.cc:156]   StreamExecutor device (0): NVIDIA TITAN Xp, Compute Capability 6.1
+2025-12-24 04:18:02.372092: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:268] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+I0000 00:00:1766567882.505962 2708637 cuda_dnn.cc:529] Loaded cuDNN version 91002
+I0000 00:00:1766567883.766477 2708637 device_compiler.h:188] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+141/141 - 3s - 24ms/step - accuracy: 0.5676 - loss: 0.9109 - val_accuracy: 0.6495 - val_loss: 0.7737
+Epoch 2/20
+141/141 - 1s - 4ms/step - accuracy: 0.7043 - loss: 0.6523 - val_accuracy: 0.7508 - val_loss: 0.6028
+Epoch 3/20
+141/141 - 1s - 4ms/step - accuracy: 0.7748 - loss: 0.5242 - val_accuracy: 0.7814 - val_loss: 0.5075
+Epoch 4/20
+141/141 - 1s - 4ms/step - accuracy: 0.8189 - loss: 0.4406 - val_accuracy: 0.8232 - val_loss: 0.4513
+Epoch 5/20
+141/141 - 1s - 4ms/step - accuracy: 0.8493 - loss: 0.3700 - val_accuracy: 0.8441 - val_loss: 0.3586
+Epoch 6/20
+141/141 - 1s - 4ms/step - accuracy: 0.8772 - loss: 0.3105 - val_accuracy: 0.8553 - val_loss: 0.3205
+Epoch 7/20
+141/141 - 1s - 4ms/step - accuracy: 0.8898 - loss: 0.2883 - val_accuracy: 0.8875 - val_loss: 0.2774
+Epoch 8/20
+141/141 - 1s - 4ms/step - accuracy: 0.9054 - loss: 0.2486 - val_accuracy: 0.9084 - val_loss: 0.2325
+Epoch 9/20
+141/141 - 1s - 4ms/step - accuracy: 0.9051 - loss: 0.2355 - val_accuracy: 0.9277 - val_loss: 0.2046
+Epoch 10/20
+141/141 - 1s - 4ms/step - accuracy: 0.9204 - loss: 0.2041 - val_accuracy: 0.9244 - val_loss: 0.1956
+Epoch 11/20
+141/141 - 1s - 4ms/step - accuracy: 0.9324 - loss: 0.1814 - val_accuracy: 0.9405 - val_loss: 0.1623
+Epoch 12/20
+141/141 - 1s - 4ms/step - accuracy: 0.9422 - loss: 0.1652 - val_accuracy: 0.9437 - val_loss: 0.1534
+Epoch 13/20
+141/141 - 1s - 4ms/step - accuracy: 0.9477 - loss: 0.1413 - val_accuracy: 0.9598 - val_loss: 0.1335
+Epoch 14/20
+141/141 - 1s - 4ms/step - accuracy: 0.9501 - loss: 0.1394 - val_accuracy: 0.9598 - val_loss: 0.1167
+Epoch 15/20
+141/141 - 1s - 4ms/step - accuracy: 0.9528 - loss: 0.1321 - val_accuracy: 0.9646 - val_loss: 0.1116
+Epoch 16/20
+141/141 - 1s - 4ms/step - accuracy: 0.9528 - loss: 0.1249 - val_accuracy: 0.9695 - val_loss: 0.0992
+Epoch 17/20
+141/141 - 1s - 4ms/step - accuracy: 0.9614 - loss: 0.1118 - val_accuracy: 0.9839 - val_loss: 0.0770
+Epoch 18/20
+141/141 - 1s - 4ms/step - accuracy: 0.9632 - loss: 0.1052 - val_accuracy: 0.9695 - val_loss: 0.0831
+Epoch 19/20
+141/141 - 1s - 4ms/step - accuracy: 0.9665 - loss: 0.1015 - val_accuracy: 0.9807 - val_loss: 0.0673
+Epoch 20/20
+141/141 - 1s - 5ms/step - accuracy: 0.9645 - loss: 0.0988 - val_accuracy: 0.9887 - val_loss: 0.0593
+
+================================================================================
+RESULTS:
+================================================================================
+Test Accuracy: 0.9887
+F1 per class [I, P, R]: [0.98876404 0.99067909 0.97810219]
+Min F1: 0.9781
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           I       0.99      0.98      0.99       179
+           P       0.99      0.99      0.99       376
+           R       0.96      1.00      0.98        67
+
+    accuracy                           0.99       622
+   macro avg       0.98      0.99      0.99       622
+weighted avg       0.99      0.99      0.99       622
+
+
+================================================================================
+COMPARISON:
+================================================================================
+Phase 9 (debug script):  97.59% accuracy, Min F1=0.964
+CV test (multimodal):    50.14% accuracy, Min F1=0.126
+This test (Phase 9 style): 98.87% accuracy, Min F1=0.9781
+
+================================================================================
+CONCLUSION: SIMPLE MODEL WORKS WELL!
+================================================================================
+The CV test underperforms because it uses a complex multimodal
+architecture (minimal metadata branch) instead of a dedicated
+metadata-optimized model like Phase 9's simple Sequential model.
