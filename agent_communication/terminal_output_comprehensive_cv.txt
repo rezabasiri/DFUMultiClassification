@@ -2,12 +2,12 @@
 COMPREHENSIVE CV TEST: All Modalities with Leak Detection
 ================================================================================
 
-Start time: 2025-12-23 11:19:43
+Start time: 2025-12-23 18:07:54
 
 Configuration:
-  Image size: 32x32
-  Batch size: 16
-  Max epochs: 10
+  Image size: 128x128
+  Batch size: 8
+  Max epochs: 150
   CV folds: 3
   Data: 100%
 
@@ -22,10 +22,10 @@ Modalities to test: 5
 ================================================================================
 
 Cleanup Statistics:
-  Models: 12 files deleted
-  Predictions: 60 files deleted
+  Models: 9 files deleted
+  Predictions: 48 files deleted
   Csv Results: 14 files deleted
-  Tf Cache: 18 files deleted
+  Tf Cache: 12 files deleted
 ================================================================================
 
 
@@ -47,30 +47,22 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'metadata_input': 'Tensor(shape=(32, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'metadata_input': 'Tensor(shape=(None, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 1.2613 - val_loss: 0.6458 - acc: 0.2773 - val_acc: 0.2530 - macro_f1: 0.1981 - val_macro_f1: 0.2052 - kappa: -0.0833 - val_kappa: -0.0114
-Epoch 2/2 - loss: 1.2049 - val_loss: 0.6415 - acc: 0.2759 - val_acc: 0.2622 - macro_f1: 0.1971 - val_macro_f1: 0.2176 - kappa: -0.0855 - val_kappa: -0.0085
-Restoring model weights from the end of the best epoch: 2.
+Epoch 1/150 - loss: 1.1028 - val_loss: 0.7132 - acc: 0.2354 - val_acc: 0.2563 - macro_f1: 0.1784 - val_macro_f1: 0.2237 - kappa: -0.1468 - val_kappa: -0.0197
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
 
 Run 1 Results for metadata:
               precision    recall  f1-score   support
 
-           I       0.16      0.03      0.06       293
-           P       0.57      0.24      0.33       716
-           R       0.16      0.75      0.26       177
+           I       0.26      0.51      0.34       293
+           P       0.67      0.55      0.60       716
+           R       0.43      0.05      0.09       177
 
-    accuracy                           0.26      1186
-   macro avg       0.30      0.34      0.22      1186
-weighted avg       0.41      0.26      0.25      1186
+    accuracy                           0.46      1186
+   macro avg       0.45      0.37      0.34      1186
+weighted avg       0.53      0.46      0.46      1186
 
-Cohen's Kappa: 0.0238
+Cohen's Kappa: -0.0277
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -82,30 +74,23 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'metadata_input': 'Tensor(shape=(32, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'metadata_input': 'Tensor(shape=(None, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 1.3804 - val_loss: 0.7905 - acc: 0.3038 - val_acc: 0.2651 - macro_f1: 0.2199 - val_macro_f1: 0.2217 - kappa: -0.0311 - val_kappa: 0.0190
-Epoch 2/2 - loss: 1.3160 - val_loss: 0.7497 - acc: 0.3046 - val_acc: 0.2772 - macro_f1: 0.2185 - val_macro_f1: 0.2289 - kappa: -0.0360 - val_kappa: 0.0257
-Restoring model weights from the end of the best epoch: 2.
+Epoch 1/150 - loss: 1.2513 - val_loss: 0.7494 - acc: 0.2718 - val_acc: 0.2651 - macro_f1: 0.2110 - val_macro_f1: 0.1919 - kappa: -0.0822 - val_kappa: 0.0072
+Epoch 50/150 - loss: 0.1018 - val_loss: 0.6791 - acc: 0.9746 - val_acc: 0.5474 - macro_f1: 0.9745 - val_macro_f1: 0.2696 - kappa: 0.9618 - val_kappa: -0.0238
+Epoch 56: early stopping
+Restoring model weights from the end of the best epoch: 36.
 
 Run 2 Results for metadata:
               precision    recall  f1-score   support
 
-           I       0.26      0.94      0.41       249
-           P       0.44      0.03      0.05       591
-           R       0.37      0.16      0.22       152
+           I       0.32      0.39      0.35       249
+           P       0.62      0.70      0.65       591
+           R       0.67      0.08      0.14       152
 
-    accuracy                           0.28       992
-   macro avg       0.36      0.38      0.23       992
-weighted avg       0.38      0.28      0.17       992
+    accuracy                           0.53       992
+   macro avg       0.53      0.39      0.38       992
+weighted avg       0.55      0.53      0.50       992
 
-Cohen's Kappa: 0.0948
+Cohen's Kappa: 0.1341
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -117,31 +102,24 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'metadata_input': 'Tensor(shape=(32, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'metadata_input': 'Tensor(shape=(None, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 0.6647 - val_loss: 0.6380 - acc: 0.3635 - val_acc: 0.2542 - macro_f1: 0.3591 - val_macro_f1: 0.1796 - kappa: 0.0484 - val_kappa: 0.0146
-Epoch 2/2 - loss: 0.6216 - val_loss: 0.6127 - acc: 0.3788 - val_acc: 0.2542 - macro_f1: 0.3695 - val_macro_f1: 0.1796 - kappa: 0.0726 - val_kappa: 0.0146
-Restoring model weights from the end of the best epoch: 1.
+Epoch 1/150 - loss: 0.6104 - val_loss: 0.6167 - acc: 0.3627 - val_acc: 0.2575 - macro_f1: 0.3365 - val_macro_f1: 0.1815 - kappa: 0.0499 - val_kappa: 0.0151
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 6.
 
 Run 3 Results for metadata:
               precision    recall  f1-score   support
 
-           I       0.25      0.99      0.39       235
-           P       0.00      0.00      0.00       577
-           R       0.67      0.08      0.14       148
+           I       0.30      0.38      0.34       232
+           P       0.61      0.69      0.65       558
+           R       0.67      0.08      0.15       146
 
-    accuracy                           0.25       960
-   macro avg       0.30      0.36      0.18       960
-weighted avg       0.16      0.25      0.12       960
+    accuracy                           0.52       936
+   macro avg       0.53      0.38      0.38       936
+weighted avg       0.54      0.52      0.49       936
 
-Cohen's Kappa: 0.0362
+Cohen's Kappa: 0.1321
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 1/5 complete
 
 [2/5] Testing: depth_rgb
 
@@ -161,30 +139,23 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'depth_rgb_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'depth_rgb_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 2.0119 - val_loss: 1.9001 - acc: 0.3616 - val_acc: 0.5953 - macro_f1: 0.3557 - val_macro_f1: 0.2868 - kappa: 0.0419 - val_kappa: 0.0191
-Epoch 2/2 - loss: 1.8744 - val_loss: 1.8088 - acc: 0.3835 - val_acc: 0.2858 - macro_f1: 0.3797 - val_macro_f1: 0.2806 - kappa: 0.0750 - val_kappa: -0.0279
-Restoring model weights from the end of the best epoch: 1.
+Epoch 1/150 - loss: 1.8907 - val_loss: 1.7434 - acc: 0.3498 - val_acc: 0.2479 - macro_f1: 0.3244 - val_macro_f1: 0.1331 - kappa: 0.0245 - val_kappa: 0.0007
+Epoch 50/150 - loss: 0.5682 - val_loss: 0.5767 - acc: 0.4325 - val_acc: 0.2917 - macro_f1: 0.4099 - val_macro_f1: 0.2971 - kappa: 0.1475 - val_kappa: 0.0824
+Epoch 61: early stopping
+Restoring model weights from the end of the best epoch: 41.
 
 Run 1 Results for depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.32      0.05      0.08       293
-           P       0.61      0.96      0.74       716
-           R       0.38      0.02      0.03       177
+           I       0.34      0.60      0.43       293
+           P       0.67      0.12      0.21       716
+           R       0.24      0.71      0.35       177
 
-    accuracy                           0.60      1186
-   macro avg       0.43      0.34      0.29      1186
-weighted avg       0.50      0.60      0.48      1186
+    accuracy                           0.33      1186
+   macro avg       0.42      0.48      0.33      1186
+weighted avg       0.53      0.33      0.28      1186
 
-Cohen's Kappa: 0.0213
+Cohen's Kappa: 0.2294
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -196,30 +167,23 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'depth_rgb_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'depth_rgb_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 1.9922 - val_loss: 1.9409 - acc: 0.3630 - val_acc: 0.1633 - macro_f1: 0.3583 - val_macro_f1: 0.1226 - kappa: 0.0404 - val_kappa: 0.0002
-Epoch 2/2 - loss: 1.8527 - val_loss: 1.7808 - acc: 0.3730 - val_acc: 0.3488 - macro_f1: 0.3683 - val_macro_f1: 0.3384 - kappa: 0.0621 - val_kappa: 0.0302
-Restoring model weights from the end of the best epoch: 2.
+Epoch 1/150 - loss: 1.8640 - val_loss: 1.6871 - acc: 0.3466 - val_acc: 0.2843 - macro_f1: 0.3237 - val_macro_f1: 0.1917 - kappa: 0.0075 - val_kappa: -0.0179
+Epoch 50/150 - loss: 0.5787 - val_loss: 0.5904 - acc: 0.4321 - val_acc: 0.2843 - macro_f1: 0.4086 - val_macro_f1: 0.2846 - kappa: 0.1403 - val_kappa: 0.0518
+Epoch 84: early stopping
+Restoring model weights from the end of the best epoch: 64.
 
 Run 2 Results for depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.23      0.35      0.28       249
-           P       0.59      0.31      0.41       591
-           R       0.25      0.50      0.33       152
+           I       0.30      0.52      0.38       249
+           P       0.62      0.13      0.22       591
+           R       0.22      0.64      0.33       152
 
-    accuracy                           0.35       992
-   macro avg       0.36      0.39      0.34       992
-weighted avg       0.45      0.35      0.36       992
+    accuracy                           0.31       992
+   macro avg       0.38      0.43      0.31       992
+weighted avg       0.48      0.31      0.28       992
 
-Cohen's Kappa: 0.0792
+Cohen's Kappa: 0.1633
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -231,31 +195,25 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'depth_rgb_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'depth_rgb_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 2.0217 - val_loss: 1.8999 - acc: 0.3573 - val_acc: 0.5719 - macro_f1: 0.3514 - val_macro_f1: 0.2672 - kappa: 0.0309 - val_kappa: -0.0218
-Epoch 2/2 - loss: 1.8647 - val_loss: 1.7892 - acc: 0.3950 - val_acc: 0.3333 - macro_f1: 0.3923 - val_macro_f1: 0.3159 - kappa: 0.0931 - val_kappa: -0.0157
-Restoring model weights from the end of the best epoch: 2.
+Epoch 1/150 - loss: 1.8868 - val_loss: 1.7284 - acc: 0.3485 - val_acc: 0.2105 - macro_f1: 0.3333 - val_macro_f1: 0.1897 - kappa: 0.0118 - val_kappa: -0.0078
+Epoch 50/150 - loss: 0.5698 - val_loss: 0.5828 - acc: 0.4439 - val_acc: 0.2874 - macro_f1: 0.4045 - val_macro_f1: 0.2876 - kappa: 0.1583 - val_kappa: 0.0876
+Epoch 88: early stopping
+Restoring model weights from the end of the best epoch: 68.
 
 Run 3 Results for depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.21      0.30      0.24       235
-           P       0.55      0.32      0.41       577
-           R       0.23      0.43      0.30       148
+           I       0.33      0.63      0.43       232
+           P       0.68      0.08      0.14       558
+           R       0.23      0.67      0.34       146
 
-    accuracy                           0.33       960
-   macro avg       0.33      0.35      0.32       960
-weighted avg       0.42      0.33      0.35       960
+    accuracy                           0.31       936
+   macro avg       0.41      0.46      0.31       936
+weighted avg       0.52      0.31      0.24       936
 
-Cohen's Kappa: 0.0602
+Cohen's Kappa: 0.2080
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 2/5 complete
 
 [3/5] Testing: depth_map
 
@@ -275,30 +233,22 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_map_input': 'depth_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'depth_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_map_input': 'depth_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'depth_map_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 2.0081 - val_loss: 1.9284 - acc: 0.3548 - val_acc: 0.3094 - macro_f1: 0.3494 - val_macro_f1: 0.2231 - kappa: 0.0317 - val_kappa: 0.0155
-Epoch 2/2 - loss: 1.8680 - val_loss: 1.7810 - acc: 0.3653 - val_acc: 0.4865 - macro_f1: 0.3555 - val_macro_f1: 0.3427 - kappa: 0.0474 - val_kappa: 0.0261
-Restoring model weights from the end of the best epoch: 2.
+Epoch 1/150 - loss: 1.8789 - val_loss: 1.7313 - acc: 0.3550 - val_acc: 0.1931 - macro_f1: 0.3411 - val_macro_f1: 0.1913 - kappa: 0.0323 - val_kappa: -0.0131
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
 
 Run 1 Results for depth_map:
               precision    recall  f1-score   support
 
-           I       0.28      0.29      0.28       293
-           P       0.61      0.67      0.64       716
-           R       0.14      0.08      0.11       177
+           I       0.29      0.34      0.31       293
+           P       0.68      0.38      0.48       716
+           R       0.18      0.44      0.25       177
 
-    accuracy                           0.49      1186
-   macro avg       0.35      0.35      0.34      1186
-weighted avg       0.46      0.49      0.47      1186
+    accuracy                           0.38      1186
+   macro avg       0.38      0.39      0.35      1186
+weighted avg       0.51      0.38      0.41      1186
 
-Cohen's Kappa: 0.0228
+Cohen's Kappa: 0.0384
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -310,30 +260,22 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_map_input': 'depth_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'depth_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_map_input': 'depth_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'depth_map_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 2.0047 - val_loss: 1.9252 - acc: 0.3617 - val_acc: 0.2752 - macro_f1: 0.3581 - val_macro_f1: 0.2547 - kappa: 0.0392 - val_kappa: 0.0212
-Epoch 2/2 - loss: 1.8497 - val_loss: 1.7819 - acc: 0.3719 - val_acc: 0.2661 - macro_f1: 0.3710 - val_macro_f1: 0.1732 - kappa: 0.0576 - val_kappa: 0.0136
-Restoring model weights from the end of the best epoch: 1.
+Epoch 1/150 - loss: 1.8528 - val_loss: 1.6248 - acc: 0.3381 - val_acc: 0.5202 - macro_f1: 0.3220 - val_macro_f1: 0.3063 - kappa: -0.0045 - val_kappa: -0.0095
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
 
 Run 2 Results for depth_map:
               precision    recall  f1-score   support
 
-           I       0.26      0.66      0.38       249
-           P       0.69      0.12      0.20       591
-           R       0.14      0.26      0.18       152
+           I       0.28      0.46      0.34       249
+           P       0.64      0.36      0.46       591
+           R       0.19      0.30      0.23       152
 
-    accuracy                           0.28       992
-   macro avg       0.37      0.34      0.25       992
-weighted avg       0.50      0.28      0.24       992
+    accuracy                           0.38       992
+   macro avg       0.37      0.37      0.35       992
+weighted avg       0.48      0.38      0.40       992
 
-Cohen's Kappa: 0.0027
+Cohen's Kappa: 0.0457
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -345,31 +287,25 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_map_input': 'depth_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'depth_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'depth_map_input': 'depth_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'depth_map_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 2.0209 - val_loss: 1.9446 - acc: 0.3450 - val_acc: 0.2594 - macro_f1: 0.3251 - val_macro_f1: 0.2578 - kappa: 0.0083 - val_kappa: -0.0103
-Epoch 2/2 - loss: 1.8672 - val_loss: 1.8037 - acc: 0.3860 - val_acc: 0.2771 - macro_f1: 0.3618 - val_macro_f1: 0.2415 - kappa: 0.0714 - val_kappa: 0.0022
-Restoring model weights from the end of the best epoch: 1.
+Epoch 1/150 - loss: 1.8795 - val_loss: 1.7104 - acc: 0.3614 - val_acc: 0.2115 - macro_f1: 0.3303 - val_macro_f1: 0.2119 - kappa: 0.0295 - val_kappa: -0.0095
+Epoch 50/150 - loss: 0.5389 - val_loss: 0.5705 - acc: 0.4439 - val_acc: 0.3280 - macro_f1: 0.4424 - val_macro_f1: 0.3188 - kappa: 0.1658 - val_kappa: 0.0441
+Epoch 62: early stopping
+Restoring model weights from the end of the best epoch: 42.
 
 Run 3 Results for depth_map:
               precision    recall  f1-score   support
 
-           I       0.23      0.35      0.28       235
-           P       0.60      0.18      0.27       577
-           R       0.15      0.43      0.22       148
+           I       0.27      0.47      0.34       232
+           P       0.68      0.32      0.43       558
+           R       0.20      0.37      0.26       146
 
-    accuracy                           0.26       960
-   macro avg       0.33      0.32      0.26       960
-weighted avg       0.44      0.26      0.27       960
+    accuracy                           0.37       936
+   macro avg       0.38      0.39      0.35       936
+weighted avg       0.50      0.37      0.38       936
 
-Cohen's Kappa: -0.0265
+Cohen's Kappa: 0.0408
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 3/5 complete
 
 [4/5] Testing: thermal_map
 
@@ -389,114 +325,23 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 1/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
+Epoch 1/150 - loss: 1.8679 - val_loss: 1.6862 - acc: 0.3773 - val_acc: 0.2766 - macro_f1: 0.3732 - val_macro_f1: 0.2559 - kappa: 0.0659 - val_kappa: 0.0459
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
 
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
+Run 1 Results for thermal_map:
+              precision    recall  f1-score   support
 
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
+           I       0.31      0.56      0.40       293
+           P       0.73      0.29      0.42       716
+           R       0.26      0.55      0.35       177
 
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
+    accuracy                           0.40      1186
+   macro avg       0.43      0.47      0.39      1186
+weighted avg       0.56      0.40      0.40      1186
 
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 2/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 3/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-ERROR: Training failed for thermal_map after 3 attempts. Skipping this configuration.
-Warning: No predictions to save for run 1 (train). Skipping...
-Warning: No predictions to save for run 1 (valid). Skipping...
+Cohen's Kappa: 0.1748
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
   warnings.warn(
@@ -507,114 +352,23 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 1/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
+Epoch 1/150 - loss: 1.8586 - val_loss: 1.6609 - acc: 0.3788 - val_acc: 0.3659 - macro_f1: 0.3734 - val_macro_f1: 0.3650 - kappa: 0.0631 - val_kappa: 0.0919
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
 
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
+Run 2 Results for thermal_map:
+              precision    recall  f1-score   support
 
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
+           I       0.26      0.36      0.30       249
+           P       0.59      0.43      0.50       591
+           R       0.29      0.41      0.34       152
 
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
+    accuracy                           0.41       992
+   macro avg       0.38      0.40      0.38       992
+weighted avg       0.46      0.41      0.42       992
 
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 2/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 3/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-ERROR: Training failed for thermal_map after 3 attempts. Skipping this configuration.
-Warning: No predictions to save for run 2 (train). Skipping...
-Warning: No predictions to save for run 2 (valid). Skipping...
+Cohen's Kappa: 0.1436
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
   warnings.warn(
@@ -625,114 +379,24 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 1/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
+Epoch 1/150 - loss: 1.8784 - val_loss: 1.6688 - acc: 0.3601 - val_acc: 0.5331 - macro_f1: 0.3358 - val_macro_f1: 0.3787 - kappa: 0.0306 - val_kappa: 0.0916
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
 
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
+Run 3 Results for thermal_map:
+              precision    recall  f1-score   support
 
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
+           I       0.28      0.28      0.28       232
+           P       0.64      0.75      0.69       558
+           R       0.33      0.11      0.16       146
 
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
+    accuracy                           0.53       936
+   macro avg       0.42      0.38      0.38       936
+weighted avg       0.50      0.53      0.51       936
 
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 2/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'thermal_map_input': 'thermal_map_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'thermal_map_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-Error during training (attempt 3/3): Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1175, in cross_validation_manual_split
-    history = model.fit(
-              ^^^^^^^^^^
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
-    raise e.with_traceback(filtered_tb) from None
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/trainers/trainer.py", line 1100, in _symbolic_build
-    raise RuntimeError(
-RuntimeError: Unable to automatically build the model. Please build it yourself before calling fit/evaluate/predict. A model is 'built' when its variables have been created and its `self.built` attribute is True. Usually, calling the model on a batch of data is the right way to build it.
-Exception encountered:
-'Exception encountered when calling Functional.call().
-
-[1mInvalid input shape for input Tensor("Placeholder:0", shape=(32, 3), dtype=float32) with name 'thermal_map_input' and path 'thermal_map_input'. Expected shape (None, 12, 12, 3), but input has incompatible shape (32, 3)[0m
-
-Arguments received by Functional.call():
-  • inputs={'sample_id': 'tf.Tensor(shape=(32, 3), dtype=float32)', 'thermal_map_input': 'tf.Tensor(shape=(32, 12, 12, 3), dtype=float32)'}
-  • training=False
-  • mask={'sample_id': 'None', 'thermal_map_input': 'None'}
-  • kwargs=<class 'inspect._empty'>'
-
-ERROR: Training failed for thermal_map after 3 attempts. Skipping this configuration.
-Warning: No predictions to save for run 3 (train). Skipping...
-Warning: No predictions to save for run 3 (valid). Skipping...
+Cohen's Kappa: 0.0160
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 4/5 complete
 
 [5/5] Testing: metadata+depth_rgb
 
@@ -752,16 +416,8 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input', 'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'metadata_input': 'Tensor(shape=(32, 3))', 'depth_rgb_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input', 'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'metadata_input': 'Tensor(shape=(None, 3))', 'depth_rgb_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 1.8784 - val_loss: 1.8310 - acc: 0.6631 - val_acc: 0.6113 - macro_f1: 0.6023 - val_macro_f1: 0.2933 - kappa: 0.4942 - val_kappa: 0.0359
-Epoch 2/2 - loss: 1.7194 - val_loss: 1.6977 - acc: 0.7423 - val_acc: 0.6113 - macro_f1: 0.7163 - val_macro_f1: 0.2933 - kappa: 0.6133 - val_kappa: 0.0359
+Epoch 1/150 - loss: 1.7411 - val_loss: 1.5849 - acc: 0.6693 - val_acc: 0.6105 - macro_f1: 0.6501 - val_macro_f1: 0.2809 - kappa: 0.5040 - val_kappa: 0.0246
+Epoch 21: early stopping
 Restoring model weights from the end of the best epoch: 1.
 
 Run 1 Results for metadata+depth_rgb:
@@ -769,13 +425,13 @@ Run 1 Results for metadata+depth_rgb:
 
            I       0.00      0.00      0.00       293
            P       0.61      1.00      0.76       716
-           R       0.67      0.07      0.12       177
+           R       1.00      0.05      0.09       177
 
     accuracy                           0.61      1186
-   macro avg       0.43      0.35      0.29      1186
-weighted avg       0.47      0.61      0.48      1186
+   macro avg       0.54      0.35      0.28      1186
+weighted avg       0.52      0.61      0.47      1186
 
-Cohen's Kappa: 0.0438
+Cohen's Kappa: 0.0366
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -787,30 +443,22 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input', 'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'metadata_input': 'Tensor(shape=(32, 3))', 'depth_rgb_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input', 'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'metadata_input': 'Tensor(shape=(None, 3))', 'depth_rgb_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 2.2845 - val_loss: 1.9735 - acc: 0.1993 - val_acc: 0.2681 - macro_f1: 0.2638 - val_macro_f1: 0.1696 - kappa: -0.2126 - val_kappa: 0.0039
-Epoch 2/2 - loss: 2.1054 - val_loss: 1.8293 - acc: 0.2490 - val_acc: 0.2873 - macro_f1: 0.2959 - val_macro_f1: 0.1924 - kappa: -0.1306 - val_kappa: 0.0160
-Restoring model weights from the end of the best epoch: 2.
+Epoch 1/150 - loss: 2.0888 - val_loss: 1.7414 - acc: 0.2149 - val_acc: 0.2782 - macro_f1: 0.2755 - val_macro_f1: 0.1935 - kappa: -0.1861 - val_kappa: 0.0206
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 11.
 
 Run 2 Results for metadata+depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.26      0.96      0.41       249
-           P       0.58      0.07      0.13       591
-           R       1.00      0.02      0.04       152
+           I       0.31      0.45      0.37       249
+           P       0.61      0.62      0.61       591
+           R       0.45      0.10      0.16       152
 
-    accuracy                           0.29       992
-   macro avg       0.62      0.35      0.19       992
-weighted avg       0.57      0.29      0.18       992
+    accuracy                           0.49       992
+   macro avg       0.46      0.39      0.38       992
+weighted avg       0.51      0.49      0.48       992
 
-Cohen's Kappa: 0.0449
+Cohen's Kappa: 0.1567
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
@@ -822,31 +470,24 @@ clear_gpu_memory Warning: Physical devices cannot be modified after being initia
   warnings.warn(
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
   warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input', 'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(32, 3))', 'metadata_input': 'Tensor(shape=(32, 3))', 'depth_rgb_input': 'Tensor(shape=(32, 12, 12, 3))'}
-  warnings.warn(msg)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
-Expected: {'metadata_input': 'metadata_input', 'depth_rgb_input': 'depth_rgb_input'}
-Received: inputs={'sample_id': 'Tensor(shape=(None, 3))', 'metadata_input': 'Tensor(shape=(None, 3))', 'depth_rgb_input': 'Tensor(shape=(None, 12, 12, 3))'}
-  warnings.warn(msg)
-Epoch 1/2 - loss: 2.0149 - val_loss: 2.0013 - acc: 0.4165 - val_acc: 0.1896 - macro_f1: 0.4183 - val_macro_f1: 0.1867 - kappa: 0.1347 - val_kappa: 0.0167
-Epoch 2/2 - loss: 1.8307 - val_loss: 1.8439 - acc: 0.5008 - val_acc: 0.2156 - macro_f1: 0.4707 - val_macro_f1: 0.2135 - kappa: 0.2631 - val_kappa: 0.0386
-Restoring model weights from the end of the best epoch: 2.
+Epoch 1/150 - loss: 1.8465 - val_loss: 1.7292 - acc: 0.4527 - val_acc: 0.2767 - macro_f1: 0.4391 - val_macro_f1: 0.2704 - kappa: 0.1893 - val_kappa: 0.0705
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
 
 Run 3 Results for metadata+depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.32      0.37      0.35       235
-           P       0.67      0.01      0.02       577
-           R       0.17      0.76      0.27       148
+           I       0.30      0.41      0.34       232
+           P       0.63      0.52      0.57       558
+           R       0.28      0.31      0.30       146
 
-    accuracy                           0.22       960
-   macro avg       0.39      0.38      0.21       960
-weighted avg       0.51      0.22      0.14       960
+    accuracy                           0.46       936
+   macro avg       0.40      0.41      0.40       936
+weighted avg       0.49      0.46      0.47       936
 
-Cohen's Kappa: 0.0834
+Cohen's Kappa: 0.1386
 clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 5/5 complete
 
 ================================================================================
 Test complete! Results saved to: agent_communication/results_comprehensive_cv_test.txt
