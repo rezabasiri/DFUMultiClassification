@@ -28,20 +28,23 @@ Key Advantages:
 - Safety constraint: rejects thresholds that filter >50% of data
 
 Usage:
-    # Run both phases automatically (test all 4 modalities in Phase 1)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata depth_rgb depth_map
+    # Run both phases with metadata-only evaluation in Phase 2
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata
+
+    # Run both phases with all modalities combined in Phase 2
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb+depth_map+thermal_map
 
     # Run Phase 1 with 100 runs per modality (400 total for 4 modalities)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-n-runs 100
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-n-runs 100
 
     # Run Phase 1 with custom modalities (e.g., only metadata and depth_rgb)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
 
-    # Just Phase 2 (if Phase 1 already completed)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase2-only
+    # Just Phase 2 (if Phase 1 already completed) with combined modalities
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb --phase2-only
 
     # Custom optimization budget
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --n_evaluations 30
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --n-evaluations 30
 """
 
 import argparse
@@ -77,8 +80,10 @@ class BayesianDatasetPolisher:
                  phase1_n_runs=10,
                  phase1_cv_folds=1,
                  phase1_modalities=None,
+                 phase1_data_percentage=100,
                  phase2_cv_folds=3,
                  phase2_n_evaluations=20,
+                 phase2_data_percentage=100,
                  base_random_seed=42,
                  min_dataset_fraction=0.5,
                  min_f1_threshold=0.25,
@@ -89,15 +94,17 @@ class BayesianDatasetPolisher:
         Initialize the Bayesian dataset polisher.
 
         Args:
-            modalities: List of modalities to train (must include 'metadata')
+            modalities: List of modalities to train in Phase 2 (e.g., ['metadata'], ['depth_rgb', 'depth_map'])
             min_f1_per_class: Minimum F1 score for each class
             min_macro_f1: Minimum macro F1 score
             min_kappa: Minimum Cohen's Kappa
             phase1_n_runs: Number of runs per modality in Phase 1 for misclass detection (default: 10)
             phase1_cv_folds: CV folds in Phase 1 (default: 1 for speed)
             phase1_modalities: List of modalities to test individually in Phase 1 (default: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'])
+            phase1_data_percentage: Percentage of data to use in Phase 1 (default: 100)
             phase2_cv_folds: CV folds in Phase 2 for evaluation (default: 3)
             phase2_n_evaluations: Number of Bayesian optimization iterations (default: 20)
+            phase2_data_percentage: Percentage of data to use in Phase 2 (default: 100)
             base_random_seed: Base random seed
             min_dataset_fraction: Minimum fraction of dataset to keep (default: 0.5)
             min_f1_threshold: Hard constraint - reject if any class F1 < this (default: 0.25)
@@ -116,8 +123,10 @@ class BayesianDatasetPolisher:
         self.phase1_n_runs = phase1_n_runs
         self.phase1_cv_folds = phase1_cv_folds
         self.phase1_modalities = phase1_modalities if phase1_modalities is not None else ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+        self.phase1_data_percentage = phase1_data_percentage
         self.phase2_cv_folds = phase2_cv_folds
         self.phase2_n_evaluations = phase2_n_evaluations
+        self.phase2_data_percentage = phase2_data_percentage
         self.base_random_seed = base_random_seed
         self.min_dataset_fraction = min_dataset_fraction
         self.min_f1_threshold = min_f1_threshold
@@ -601,7 +610,7 @@ class BayesianDatasetPolisher:
         print(f"Testing {len(self.phase1_modalities)} modalities individually: {self.phase1_modalities}")
         print(f"Running {self.phase1_n_runs} runs per modality (total {total_runs} runs)")
         print(f"Misclassification counts will be out of {total_runs}")
-        print(f"CV folds={self.phase1_cv_folds}, verbosity=silent\n")
+        print(f"CV folds={self.phase1_cv_folds}, data={self.phase1_data_percentage}%, verbosity=silent\n")
 
         # Clean up everything for fresh start
         cleanup_for_resume_mode('fresh')
@@ -682,6 +691,7 @@ class BayesianDatasetPolisher:
                         sys.executable, 'src/main.py',
                         '--mode', 'search',
                         '--cv_folds', str(self.phase1_cv_folds),
+                        '--data_percentage', str(self.phase1_data_percentage),
                         '--verbosity', '0',
                         '--resume_mode', 'fresh'  # Force fresh training for each run
                     ]
@@ -716,13 +726,29 @@ class BayesianDatasetPolisher:
 
             if os.path.exists(misclass_file):
                 shutil.copy2(misclass_file, misclass_saved)
-                print(f"\n💾 Saved Phase 1 misclassification data to: frequent_misclassifications_saved.csv")
+                print(f"\n💾 Saved Phase 1 misclassification data:")
+                print(f"   - frequent_misclassifications_saved.csv (total)")
 
-                # Delete all misclassification tracking files to prevent Phase 2 from updating them
-                # Phase 2 will create new files, but we'll ignore them and use only the saved file
+                # Also save per-modality files for later analysis
                 misclass_files = glob.glob(os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_*.csv'))
+                saved_modality_files = []
                 for f in misclass_files:
-                    if not f.endswith('_saved.csv'):  # Keep only the saved file
+                    if f.endswith('_saved.csv') or f.endswith('_total.csv'):
+                        continue  # Skip the saved and total files
+                    # Rename modality file: frequent_misclassifications_metadata.csv -> frequent_misclassifications_metadata_saved.csv
+                    base_name = os.path.basename(f)
+                    saved_name = base_name.replace('.csv', '_saved.csv')
+                    saved_path = os.path.join(output_paths['misclassifications'], saved_name)
+                    shutil.copy2(f, saved_path)
+                    saved_modality_files.append(saved_name)
+
+                for name in saved_modality_files:
+                    print(f"   - {name}")
+
+                # Delete all non-saved misclassification tracking files to prevent Phase 2 from updating them
+                # Phase 2 will create new files, but we'll ignore them and use only the saved files
+                for f in misclass_files:
+                    if not f.endswith('_saved.csv'):  # Keep only the saved files
                         try:
                             os.remove(f)
                         except:
@@ -1083,9 +1109,11 @@ class BayesianDatasetPolisher:
 
         try:
             import re
+            # Build the modality tuple string, e.g., "('metadata', 'depth_rgb')"
+            modality_tuple = "(" + ", ".join(f"'{m}'" for m in self.modalities) + ",)"
             modified_config = re.sub(
                 r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
-                "INCLUDED_COMBINATIONS = [\n    ('metadata',),  # Temporary: Phase 2 evaluation\n]",
+                f"INCLUDED_COMBINATIONS = [\n    {modality_tuple},  # Temporary: Phase 2 evaluation\n]",
                 original_config
             )
             with open(config_path, 'w') as f:
@@ -1096,6 +1124,7 @@ class BayesianDatasetPolisher:
                 sys.executable, 'src/main.py',
                 '--mode', 'search',
                 '--cv_folds', str(self.phase2_cv_folds),
+                '--data_percentage', str(self.phase2_data_percentage),
                 '--verbosity', '0',  # Minimal output during optimization
                 '--resume_mode', 'fresh',  # Force fresh training for each evaluation
                 '--threshold_I', str(thresholds['I']),
@@ -1197,25 +1226,29 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run both phases (test all 4 modalities in Phase 1)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata depth_rgb depth_map
+  # Run both phases with metadata-only evaluation in Phase 2
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata
+
+  # Run both phases with all modalities combined in Phase 2
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb+depth_map+thermal_map
 
   # Just Phase 1 with 100 runs per modality (400 total)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-n-runs 100
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-n-runs 100
 
   # Phase 1 with custom modalities (only metadata and depth_rgb)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
 
-  # Just Phase 2 (if Phase 1 already done)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase2-only
+  # Just Phase 2 with combined modalities (if Phase 1 already done)
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb --phase2-only
 
   # More thorough optimization
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --n_evaluations 30
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --n-evaluations 30
         """
     )
 
-    parser.add_argument('--modalities', nargs='+', required=True,
-                        help='Modalities to train (must include metadata)')
+    parser.add_argument('--phase2-modalities', type=str, required=True,
+                        help='Modalities for Phase 2 evaluation. Use + to combine modalities. '
+                             'Examples: "metadata", "metadata+depth_rgb", "metadata+depth_rgb+depth_map+thermal_map"')
 
     parser.add_argument('--phase1-only', action='store_true',
                         help='Run only Phase 1 (misclassification detection)')
@@ -1229,8 +1262,14 @@ Examples:
     parser.add_argument('--phase1-modalities', nargs='+', default=['metadata', 'depth_rgb', 'depth_map', 'thermal_map'],
                         help='Modalities to test individually in Phase 1 (default: metadata depth_rgb depth_map thermal_map)')
 
+    parser.add_argument('--phase1-data-percentage', type=int, default=100,
+                        help='Percentage of data to use in Phase 1 (default: 100)')
+
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')
+
+    parser.add_argument('--phase2-data-percentage', type=int, default=100,
+                        help='Percentage of data to use in Phase 2 (default: 100)')
 
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
@@ -1241,15 +1280,27 @@ Examples:
 
     args = parser.parse_args()
 
-    if 'metadata' not in args.modalities:
-        print("❌ Error: --modalities must include 'metadata'")
+    # Parse phase2-modalities (e.g., "metadata+depth_rgb" -> ['metadata', 'depth_rgb'])
+    phase2_modalities = [m.strip() for m in args.phase2_modalities.split('+')]
+
+    valid_modalities = {'metadata', 'depth_rgb', 'depth_map', 'thermal_map'}
+    invalid = set(phase2_modalities) - valid_modalities
+    if invalid:
+        print(f"❌ Error: Invalid modalities: {invalid}")
+        print(f"   Valid options: {valid_modalities}")
+        sys.exit(1)
+
+    if not phase2_modalities:
+        print("❌ Error: --phase2-modalities cannot be empty")
         sys.exit(1)
 
     polisher = BayesianDatasetPolisher(
-        modalities=args.modalities,
+        modalities=phase2_modalities,
         phase1_n_runs=args.phase1_n_runs,
         phase1_modalities=args.phase1_modalities,
+        phase1_data_percentage=args.phase1_data_percentage,
         phase2_n_evaluations=args.n_evaluations,
+        phase2_data_percentage=args.phase2_data_percentage,
         min_dataset_fraction=args.min_dataset_fraction,
         min_retention_per_class=args.min_retention_per_class
     )

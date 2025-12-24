@@ -210,7 +210,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('depth_rgb',),  # Temporary: Phase 1 detection
+    ('depth_map',),  # Temporary: Phase 1 detection
 ]
 
 # Results file naming
