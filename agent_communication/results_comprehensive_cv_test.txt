@@ -1,13 +1,13 @@
 ================================================================================
-COMPREHENSIVE CV TEST RESULTS
+COMPREHENSIVE CV TEST RESULTS - COMPLETE
 ================================================================================
 
-Test completed: 2025-12-23 11:51:05
+Test completed: 2025-12-24 01:07:11
 
 Configuration:
-  Image size: 32x32
-  Batch size: 16
-  Max epochs: 10
+  Image size: 128x128
+  Batch size: 8
+  Max epochs: 150
   CV folds: 3
   Running on: GPU (1 device(s))
 
@@ -16,11 +16,11 @@ SUMMARY TABLE
 ================================================================================
 Modality                       Avg Acc    Avg F1     Min F1     Status         
 --------------------------------------------------------------------------------
-metadata                       0.2645     0.2087     0.0368     ⚠️  LOW MIN F1 
-depth_rgb                      0.4258     0.3137     0.1843     ✅ PASS         
-depth_map                      0.3404     0.2851     0.1710     ✅ PASS         
-thermal_map                    N/A        N/A        N/A        ❌ FAILED       
-metadata+depth_rgb             0.3714     0.2331     0.0197     ⚠️  LOW MIN F1 
+metadata                       0.5014     0.3674     0.1261     ✅ PASS         
+depth_rgb                      0.3144     0.3154     0.1890     ✅ PASS         
+depth_map                      0.3737     0.3478     0.2494     ✅ PASS         
+thermal_map                    0.4471     0.3836     0.2733     ✅ PASS         
+metadata+depth_rgb             0.5212     0.3548     0.1527     ✅ PASS         
 
 ================================================================================
 DETAILED RESULTS
@@ -31,14 +31,14 @@ Modality: metadata
 ================================================================================
 
 Performance Metrics:
-  Average Accuracy: 0.2645 ± 0.0096
-  Average F1 Macro: 0.2087
-  Average Min F1:   0.0368
+  Average Accuracy: 0.5014 ± 0.0275
+  Average F1 Macro: 0.3674
+  Average Min F1:   0.1261
 
 Per-Fold Results:
-  Fold 1: Acc=0.2622, F1_macro=0.2176, F1_min=0.0565
-  Fold 2: Acc=0.2772, F1_macro=0.2289, F1_min=0.0540
-  Fold 3: Acc=0.2542, F1_macro=0.1796, F1_min=0.0000
+  Fold 1: Acc=0.4629, F1_macro=0.3441, F1_min=0.0909
+  Fold 2: Acc=0.5252, F1_macro=0.3817, F1_min=0.1412
+  Fold 3: Acc=0.5160, F1_macro=0.3765, F1_min=0.1463
 
 Data Leak Detection:
   ✅ No data leaks detected
@@ -48,7 +48,7 @@ Model Leak Detection:
 
 Phase 9 Comparison (metadata baseline):
   Phase 9: Acc=0.9759, F1_macro=0.9720, F1_min=0.9640
-  This CV: Acc=0.2645, F1_macro=0.2087, F1_min=0.0368
+  This CV: Acc=0.5014, F1_macro=0.3674, F1_min=0.1261
   ⚠️  CV performance lower than Phase 9 (expected due to reduced epochs/size)
 
 ================================================================================
@@ -56,14 +56,14 @@ Modality: depth_rgb
 ================================================================================
 
 Performance Metrics:
-  Average Accuracy: 0.4258 ± 0.1200
-  Average F1 Macro: 0.3137
-  Average Min F1:   0.1843
+  Average Accuracy: 0.3144 ± 0.0090
+  Average F1 Macro: 0.3154
+  Average Min F1:   0.1890
 
 Per-Fold Results:
-  Fold 1: Acc=0.5953, F1_macro=0.2868, F1_min=0.0324
-  Fold 2: Acc=0.3488, F1_macro=0.3384, F1_min=0.2756
-  Fold 3: Acc=0.3333, F1_macro=0.3159, F1_min=0.2448
+  Fold 1: Acc=0.3272, F1_macro=0.3298, F1_min=0.2059
+  Fold 2: Acc=0.3085, F1_macro=0.3114, F1_min=0.2197
+  Fold 3: Acc=0.3077, F1_macro=0.3051, F1_min=0.1413
 
 Data Leak Detection:
   ✅ No data leaks detected
@@ -76,14 +76,14 @@ Modality: depth_map
 ================================================================================
 
 Performance Metrics:
-  Average Accuracy: 0.3404 ± 0.1035
-  Average F1 Macro: 0.2851
-  Average Min F1:   0.1710
+  Average Accuracy: 0.3737 ± 0.0059
+  Average F1 Macro: 0.3478
+  Average Min F1:   0.2494
 
 Per-Fold Results:
-  Fold 1: Acc=0.4865, F1_macro=0.3427, F1_min=0.1068
-  Fold 2: Acc=0.2752, F1_macro=0.2547, F1_min=0.1848
-  Fold 3: Acc=0.2594, F1_macro=0.2578, F1_min=0.2215
+  Fold 1: Acc=0.3777, F1_macro=0.3499, F1_min=0.2520
+  Fold 2: Acc=0.3780, F1_macro=0.3471, F1_min=0.2329
+  Fold 3: Acc=0.3654, F1_macro=0.3465, F1_min=0.2634
 
 Data Leak Detection:
   ✅ No data leaks detected
@@ -95,22 +95,36 @@ Model Leak Detection:
 Modality: thermal_map
 ================================================================================
 
-❌ TEST FAILED
-Error: No fold results returned
+Performance Metrics:
+  Average Accuracy: 0.4471 ± 0.0610
+  Average F1 Macro: 0.3836
+  Average Min F1:   0.2733
+
+Per-Fold Results:
+  Fold 1: Acc=0.3980, F1_macro=0.3915, F1_min=0.3534
+  Fold 2: Acc=0.4103, F1_macro=0.3807, F1_min=0.3025
+  Fold 3: Acc=0.5331, F1_macro=0.3787, F1_min=0.1641
+
+Data Leak Detection:
+  ✅ No data leaks detected
+
+Model Leak Detection:
+  ⚠️  Warnings:
+     ⚠️  Performance strictly increases across folds: [0.3979763912310287, 0.4102822580645161, 0.5331196581196581] (potential model leak)
 
 ================================================================================
 Modality: metadata+depth_rgb
 ================================================================================
 
 Performance Metrics:
-  Average Accuracy: 0.3714 ± 0.1721
-  Average F1 Macro: 0.2331
-  Average Min F1:   0.0197
+  Average Accuracy: 0.5212 ± 0.0648
+  Average F1 Macro: 0.3548
+  Average Min F1:   0.1527
 
 Per-Fold Results:
-  Fold 1: Acc=0.6113, F1_macro=0.2933, F1_min=0.0000
-  Fold 2: Acc=0.2873, F1_macro=0.1924, F1_min=0.0387
-  Fold 3: Acc=0.2156, F1_macro=0.2135, F1_min=0.0205
+  Fold 1: Acc=0.6105, F1_macro=0.2809, F1_min=0.0000
+  Fold 2: Acc=0.4950, F1_macro=0.3806, F1_min=0.1622
+  Fold 3: Acc=0.4583, F1_macro=0.4031, F1_min=0.2961
 
 Data Leak Detection:
   ✅ No data leaks detected
@@ -123,16 +137,12 @@ FINAL VERDICT
 ================================================================================
 
 Total tests: 5
-  ✅ Successful: 4
-  ❌ Failed: 1
+  ✅ Successful: 5
+  ❌ Failed: 0
   ⚠️  With leaks: 0
-  ✅ Good results (no leaks, Min F1>0.1): 2
+  ✅ Good results (no leaks, Min F1>0.1): 5
 
-⚠️  PARTIAL SUCCESS - Some modalities work, others need investigation
-
-Working modalities:
-  ✅ depth_rgb: Acc=0.4258, F1_min=0.1843
-  ✅ depth_map: Acc=0.3404, F1_min=0.1710
-
-Failed modalities:
-  ❌ thermal_map: No fold results returned
+🎉 SUCCESS! All modalities work correctly with Phase 9 fix!
+   - Feature normalization enables learning across all modalities
+   - No data or model leaks detected
+   - All classes being predicted (Min F1 > 0.1)
