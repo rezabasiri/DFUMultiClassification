@@ -11,6 +11,9 @@ import sys
 # Suppress TensorFlow C++ logging (must be set before importing TensorFlow)
 # This will be overridden later based on verbosity level, but default to minimal logging
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '1')  # Default: suppress INFO messages
+
+# Force TensorFlow to use only GPU 0 (TITAN Xp) - must be set before importing TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import glob
 import pandas as pd
 import numpy as np

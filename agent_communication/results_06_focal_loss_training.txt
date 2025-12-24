@@ -1,0 +1,82 @@
+================================================================================
+DEBUG 6: TRAINING WITH FOCAL LOSS + INVERSE FREQUENCY ALPHA
+================================================================================
+
+1. Loading data via prepare_dataset()...
+  Labels converted: {'I', 'P', 'R'} -> {0, 1, 2}
+  Features: (3107, 61)
+  Labels: (3107,)
+
+2. Calculating inverse frequency alpha values...
+  Class distribution:
+    Class 0: 892 (28.7%)
+    Class 1: 1880 (60.5%)
+    Class 2: 335 (10.8%)
+
+  Alpha values (inverse frequency, normalized to sum=3):
+    [I, P, R] = [0.725, 0.344, 1.931]
+
+3. Data split:
+  Train: 2485, Class dist: [ 713 1504  268]
+  Test: 622, Class dist: [179 376  67]
+
+4. Building model with focal loss...
+  Model has 16387 parameters
+  Loss: Focal + Ordinal (gamma=2.0, ordinal_weight=0.05)
+  Alpha: [0.725, 0.344, 1.931]
+
+5. Training (20 epochs with focal loss)...
+--------------------------------------------------------------------------------
+  Epoch  1: loss=6.7233, acc=0.5944 | val_loss=6.7356, val_acc=0.6045
+  Epoch  2: loss=6.7270, acc=0.6032 | val_loss=6.7356, val_acc=0.6045
+  Epoch  3: loss=6.7377, acc=0.6020 | val_loss=6.7356, val_acc=0.6045
+  Epoch  4: loss=6.7311, acc=0.6044 | val_loss=6.7356, val_acc=0.6045
+  Epoch  5: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch  6: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch  7: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch  8: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch  9: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 10: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 11: loss=6.7318, acc=0.6048 | val_loss=6.7356, val_acc=0.6045
+  Epoch 12: loss=6.7318, acc=0.6048 | val_loss=6.7356, val_acc=0.6045
+  Epoch 13: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 14: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 15: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 16: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 17: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 18: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 19: loss=6.7295, acc=0.6052 | val_loss=6.7356, val_acc=0.6045
+  Epoch 20: loss=6.7297, acc=0.6048 | val_loss=6.7356, val_acc=0.6045
+
+6. Evaluation:
+--------------------------------------------------------------------------------
+  Test Loss: 6.7356
+  Test Accuracy: 0.6045
+
+7. Detailed Metrics:
+  F1 Macro: 0.2512
+  F1 per class: [0.         0.75350701 0.        ]
+
+8. Prediction distribution:
+  Class 0: 0 predictions (0.0%)
+  Class 1: 622 predictions (100.0%)
+  Class 2: 0 predictions (0.0%)
+
+9. Issue Detection:
+❌ At least one class has F1=0: [0.         0.75350701 0.        ]
+⚠️  Classes never predicted: [0, 2]
+
+10. Comparison with Phase 2 (plain cross-entropy):
+  Phase 2 (no focal loss): F1=[0.0, 0.753, 0.0], Min F1=0.0
+  Phase 6 (focal loss):     F1=['0.000', '0.754', '0.000'], Min F1=0.000
+
+❌ FOCAL LOSS FAILED! Still predicting only majority class.
+
+================================================================================
+❌ FAIL: Even with focal loss + alpha, model only predicts majority class
+================================================================================
+
+This suggests:
+  1. Alpha values may not be sufficient for this level of imbalance
+  2. May need data oversampling in addition to loss weighting
+  3. Model architecture or learning rate issues

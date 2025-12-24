@@ -19,13 +19,14 @@ from src.utils.verbosity import vprint
 # Get paths
 directory, result_dir, root = get_project_paths()
 
-# Image size parameter (imported from main)
-image_size = 64
+# Import IMAGE_SIZE from production config
+from src.utils.production_config import IMAGE_SIZE
 
 def create_image_branch(input_shape, modality):
     vprint("\nDebug create_image_branch", level=2)
-    
-    image_input = Input(shape=(image_size, image_size, 3), name=f'{modality}_input')
+
+    # Use the input_shape parameter or fall back to production config IMAGE_SIZE
+    image_input = Input(shape=input_shape, name=f'{modality}_input')
     if modality in ['depth_rgb', 'thermal_rgb']:
     # # if True:
     #     if os.path.exists(os.path.join(directory, "local_weights/efficientnetb3_notop.h5")):
@@ -284,8 +285,8 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 # branch_output = tf.keras.layers.Dropout(0.10, name=f'{modality}_fdropout_{i}')(branch_output)
                 branches.append(branch_output)
     
-        # Add sample_id input but don't connect it to the model
-        inputs['sample_id'] = Input(shape=(3,), name='sample_id')
+        # Note: sample_id is not added to model inputs - it's tracked externally
+        # Keras 3 (TF 2.16+) requires all inputs to be connected to outputs
 
         if len(selected_modalities) == 1:
             output = Dense(3, activation='softmax', name='output')(branches[0])

@@ -1,0 +1,496 @@
+================================================================================
+COMPREHENSIVE CV TEST: All Modalities with Leak Detection
+================================================================================
+
+Start time: 2025-12-23 18:07:54
+
+Configuration:
+  Image size: 128x128
+  Batch size: 8
+  Max epochs: 150
+  CV folds: 3
+  Data: 100%
+
+Modalities to test: 5
+  - metadata
+  - depth_rgb
+  - depth_map
+  - thermal_map
+  - metadata+depth_rgb
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 9 files deleted
+  Predictions: 48 files deleted
+  Csv Results: 14 files deleted
+  Tf Cache: 12 files deleted
+================================================================================
+
+
+[1/5] Testing: metadata
+
+================================================================================
+Testing: metadata
+================================================================================
+Loading data for metadata...
+Data loaded: 3107 samples
+Running 3-fold CV...
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.1028 - val_loss: 0.7132 - acc: 0.2354 - val_acc: 0.2563 - macro_f1: 0.1784 - val_macro_f1: 0.2237 - kappa: -0.1468 - val_kappa: -0.0197
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
+
+Run 1 Results for metadata:
+              precision    recall  f1-score   support
+
+           I       0.26      0.51      0.34       293
+           P       0.67      0.55      0.60       716
+           R       0.43      0.05      0.09       177
+
+    accuracy                           0.46      1186
+   macro avg       0.45      0.37      0.34      1186
+weighted avg       0.53      0.46      0.46      1186
+
+Cohen's Kappa: -0.0277
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.2513 - val_loss: 0.7494 - acc: 0.2718 - val_acc: 0.2651 - macro_f1: 0.2110 - val_macro_f1: 0.1919 - kappa: -0.0822 - val_kappa: 0.0072
+Epoch 50/150 - loss: 0.1018 - val_loss: 0.6791 - acc: 0.9746 - val_acc: 0.5474 - macro_f1: 0.9745 - val_macro_f1: 0.2696 - kappa: 0.9618 - val_kappa: -0.0238
+Epoch 56: early stopping
+Restoring model weights from the end of the best epoch: 36.
+
+Run 2 Results for metadata:
+              precision    recall  f1-score   support
+
+           I       0.32      0.39      0.35       249
+           P       0.62      0.70      0.65       591
+           R       0.67      0.08      0.14       152
+
+    accuracy                           0.53       992
+   macro avg       0.53      0.39      0.38       992
+weighted avg       0.55      0.53      0.50       992
+
+Cohen's Kappa: 0.1341
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 0.6104 - val_loss: 0.6167 - acc: 0.3627 - val_acc: 0.2575 - macro_f1: 0.3365 - val_macro_f1: 0.1815 - kappa: 0.0499 - val_kappa: 0.0151
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 6.
+
+Run 3 Results for metadata:
+              precision    recall  f1-score   support
+
+           I       0.30      0.38      0.34       232
+           P       0.61      0.69      0.65       558
+           R       0.67      0.08      0.15       146
+
+    accuracy                           0.52       936
+   macro avg       0.53      0.38      0.38       936
+weighted avg       0.54      0.52      0.49       936
+
+Cohen's Kappa: 0.1321
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 1/5 complete
+
+[2/5] Testing: depth_rgb
+
+================================================================================
+Testing: depth_rgb
+================================================================================
+Loading data for depth_rgb...
+Data loaded: 3107 samples
+Running 3-fold CV...
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8907 - val_loss: 1.7434 - acc: 0.3498 - val_acc: 0.2479 - macro_f1: 0.3244 - val_macro_f1: 0.1331 - kappa: 0.0245 - val_kappa: 0.0007
+Epoch 50/150 - loss: 0.5682 - val_loss: 0.5767 - acc: 0.4325 - val_acc: 0.2917 - macro_f1: 0.4099 - val_macro_f1: 0.2971 - kappa: 0.1475 - val_kappa: 0.0824
+Epoch 61: early stopping
+Restoring model weights from the end of the best epoch: 41.
+
+Run 1 Results for depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.34      0.60      0.43       293
+           P       0.67      0.12      0.21       716
+           R       0.24      0.71      0.35       177
+
+    accuracy                           0.33      1186
+   macro avg       0.42      0.48      0.33      1186
+weighted avg       0.53      0.33      0.28      1186
+
+Cohen's Kappa: 0.2294
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8640 - val_loss: 1.6871 - acc: 0.3466 - val_acc: 0.2843 - macro_f1: 0.3237 - val_macro_f1: 0.1917 - kappa: 0.0075 - val_kappa: -0.0179
+Epoch 50/150 - loss: 0.5787 - val_loss: 0.5904 - acc: 0.4321 - val_acc: 0.2843 - macro_f1: 0.4086 - val_macro_f1: 0.2846 - kappa: 0.1403 - val_kappa: 0.0518
+Epoch 84: early stopping
+Restoring model weights from the end of the best epoch: 64.
+
+Run 2 Results for depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.30      0.52      0.38       249
+           P       0.62      0.13      0.22       591
+           R       0.22      0.64      0.33       152
+
+    accuracy                           0.31       992
+   macro avg       0.38      0.43      0.31       992
+weighted avg       0.48      0.31      0.28       992
+
+Cohen's Kappa: 0.1633
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8868 - val_loss: 1.7284 - acc: 0.3485 - val_acc: 0.2105 - macro_f1: 0.3333 - val_macro_f1: 0.1897 - kappa: 0.0118 - val_kappa: -0.0078
+Epoch 50/150 - loss: 0.5698 - val_loss: 0.5828 - acc: 0.4439 - val_acc: 0.2874 - macro_f1: 0.4045 - val_macro_f1: 0.2876 - kappa: 0.1583 - val_kappa: 0.0876
+Epoch 88: early stopping
+Restoring model weights from the end of the best epoch: 68.
+
+Run 3 Results for depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.33      0.63      0.43       232
+           P       0.68      0.08      0.14       558
+           R       0.23      0.67      0.34       146
+
+    accuracy                           0.31       936
+   macro avg       0.41      0.46      0.31       936
+weighted avg       0.52      0.31      0.24       936
+
+Cohen's Kappa: 0.2080
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 2/5 complete
+
+[3/5] Testing: depth_map
+
+================================================================================
+Testing: depth_map
+================================================================================
+Loading data for depth_map...
+Data loaded: 3107 samples
+Running 3-fold CV...
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8789 - val_loss: 1.7313 - acc: 0.3550 - val_acc: 0.1931 - macro_f1: 0.3411 - val_macro_f1: 0.1913 - kappa: 0.0323 - val_kappa: -0.0131
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
+
+Run 1 Results for depth_map:
+              precision    recall  f1-score   support
+
+           I       0.29      0.34      0.31       293
+           P       0.68      0.38      0.48       716
+           R       0.18      0.44      0.25       177
+
+    accuracy                           0.38      1186
+   macro avg       0.38      0.39      0.35      1186
+weighted avg       0.51      0.38      0.41      1186
+
+Cohen's Kappa: 0.0384
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8528 - val_loss: 1.6248 - acc: 0.3381 - val_acc: 0.5202 - macro_f1: 0.3220 - val_macro_f1: 0.3063 - kappa: -0.0045 - val_kappa: -0.0095
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+
+Run 2 Results for depth_map:
+              precision    recall  f1-score   support
+
+           I       0.28      0.46      0.34       249
+           P       0.64      0.36      0.46       591
+           R       0.19      0.30      0.23       152
+
+    accuracy                           0.38       992
+   macro avg       0.37      0.37      0.35       992
+weighted avg       0.48      0.38      0.40       992
+
+Cohen's Kappa: 0.0457
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8795 - val_loss: 1.7104 - acc: 0.3614 - val_acc: 0.2115 - macro_f1: 0.3303 - val_macro_f1: 0.2119 - kappa: 0.0295 - val_kappa: -0.0095
+Epoch 50/150 - loss: 0.5389 - val_loss: 0.5705 - acc: 0.4439 - val_acc: 0.3280 - macro_f1: 0.4424 - val_macro_f1: 0.3188 - kappa: 0.1658 - val_kappa: 0.0441
+Epoch 62: early stopping
+Restoring model weights from the end of the best epoch: 42.
+
+Run 3 Results for depth_map:
+              precision    recall  f1-score   support
+
+           I       0.27      0.47      0.34       232
+           P       0.68      0.32      0.43       558
+           R       0.20      0.37      0.26       146
+
+    accuracy                           0.37       936
+   macro avg       0.38      0.39      0.35       936
+weighted avg       0.50      0.37      0.38       936
+
+Cohen's Kappa: 0.0408
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 3/5 complete
+
+[4/5] Testing: thermal_map
+
+================================================================================
+Testing: thermal_map
+================================================================================
+Loading data for thermal_map...
+Data loaded: 3107 samples
+Running 3-fold CV...
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8679 - val_loss: 1.6862 - acc: 0.3773 - val_acc: 0.2766 - macro_f1: 0.3732 - val_macro_f1: 0.2559 - kappa: 0.0659 - val_kappa: 0.0459
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+
+Run 1 Results for thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.31      0.56      0.40       293
+           P       0.73      0.29      0.42       716
+           R       0.26      0.55      0.35       177
+
+    accuracy                           0.40      1186
+   macro avg       0.43      0.47      0.39      1186
+weighted avg       0.56      0.40      0.40      1186
+
+Cohen's Kappa: 0.1748
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8586 - val_loss: 1.6609 - acc: 0.3788 - val_acc: 0.3659 - macro_f1: 0.3734 - val_macro_f1: 0.3650 - kappa: 0.0631 - val_kappa: 0.0919
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
+
+Run 2 Results for thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.26      0.36      0.30       249
+           P       0.59      0.43      0.50       591
+           R       0.29      0.41      0.34       152
+
+    accuracy                           0.41       992
+   macro avg       0.38      0.40      0.38       992
+weighted avg       0.46      0.41      0.42       992
+
+Cohen's Kappa: 0.1436
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8784 - val_loss: 1.6688 - acc: 0.3601 - val_acc: 0.5331 - macro_f1: 0.3358 - val_macro_f1: 0.3787 - kappa: 0.0306 - val_kappa: 0.0916
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+
+Run 3 Results for thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.28      0.28      0.28       232
+           P       0.64      0.75      0.69       558
+           R       0.33      0.11      0.16       146
+
+    accuracy                           0.53       936
+   macro avg       0.42      0.38      0.38       936
+weighted avg       0.50      0.53      0.51       936
+
+Cohen's Kappa: 0.0160
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 4/5 complete
+
+[5/5] Testing: metadata+depth_rgb
+
+================================================================================
+Testing: metadata+depth_rgb
+================================================================================
+Loading data for metadata+depth_rgb...
+Data loaded: 3107 samples
+Running 3-fold CV...
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.7411 - val_loss: 1.5849 - acc: 0.6693 - val_acc: 0.6105 - macro_f1: 0.6501 - val_macro_f1: 0.2809 - kappa: 0.5040 - val_kappa: 0.0246
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+
+Run 1 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.00      0.00      0.00       293
+           P       0.61      1.00      0.76       716
+           R       1.00      0.05      0.09       177
+
+    accuracy                           0.61      1186
+   macro avg       0.54      0.35      0.28      1186
+weighted avg       0.52      0.61      0.47      1186
+
+Cohen's Kappa: 0.0366
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 2.0888 - val_loss: 1.7414 - acc: 0.2149 - val_acc: 0.2782 - macro_f1: 0.2755 - val_macro_f1: 0.1935 - kappa: -0.1861 - val_kappa: 0.0206
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 11.
+
+Run 2 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.31      0.45      0.37       249
+           P       0.61      0.62      0.61       591
+           R       0.45      0.10      0.16       152
+
+    accuracy                           0.49       992
+   macro avg       0.46      0.39      0.38       992
+weighted avg       0.51      0.49      0.48       992
+
+Cohen's Kappa: 0.1567
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Epoch 1/150 - loss: 1.8465 - val_loss: 1.7292 - acc: 0.4527 - val_acc: 0.2767 - macro_f1: 0.4391 - val_macro_f1: 0.2704 - kappa: 0.1893 - val_kappa: 0.0705
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
+
+Run 3 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.30      0.41      0.34       232
+           P       0.63      0.52      0.57       558
+           R       0.28      0.31      0.30       146
+
+    accuracy                           0.46       936
+   macro avg       0.40      0.41      0.40       936
+weighted avg       0.49      0.46      0.47       936
+
+Cohen's Kappa: 0.1386
+clear_gpu_memory Warning: Physical devices cannot be modified after being initialized
+✅ Progress saved: 5/5 complete
+
+================================================================================
+Test complete! Results saved to: agent_communication/results_comprehensive_cv_test.txt
+================================================================================
+JSON results saved to: agent_communication/results_comprehensive_cv_test.json
+Terminal log saved to: agent_communication/terminal_output_comprehensive_cv.txt

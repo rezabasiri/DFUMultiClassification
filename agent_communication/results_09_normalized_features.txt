@@ -1,0 +1,104 @@
+================================================================================
+DEBUG 9: FEATURE NORMALIZATION + OVERSAMPLING + PLAIN CROSS-ENTROPY
+================================================================================
+
+Hypothesis: Phase 8 failed because features need normalization.
+Test: Normalize features, use simple cross-entropy, keep oversampling.
+
+1. Loading data...
+  Original data: (3107, 61)
+  Feature range BEFORE normalization: [-0.24, 7071.00]
+
+2. Class distribution BEFORE oversampling:
+  Class 0: 713 samples
+  Class 1: 1504 samples
+  Class 2: 268 samples
+
+3. Applying RandomOverSampler...
+
+4. Class distribution AFTER oversampling:
+  Class 0: 1504 samples (perfectly balanced)
+  Class 1: 1504 samples (perfectly balanced)
+  Class 2: 1504 samples (perfectly balanced)
+
+5. Normalizing features with StandardScaler...
+  Train feature range AFTER normalization: [-6.05, 7.76]
+  Train feature mean: 0.0000 (should be ~0)
+  Train feature std: 1.0000 (should be ~1)
+
+6. Building model with PLAIN cross-entropy...
+  Model parameters: 16387
+  Loss: Plain categorical cross-entropy
+  Data: Balanced (oversampled) + Normalized
+
+7. Training (20 epochs)...
+--------------------------------------------------------------------------------
+  Epoch  1: loss=0.9536, acc=0.5368 | val_loss=0.8158, val_acc=0.6238
+  Epoch  2: loss=0.6786, acc=0.7041 | val_loss=0.6603, val_acc=0.6994
+  Epoch  3: loss=0.5255, acc=0.7768 | val_loss=0.5414, val_acc=0.7492
+  Epoch  4: loss=0.4411, acc=0.8207 | val_loss=0.4462, val_acc=0.8071
+  Epoch  5: loss=0.3629, acc=0.8557 | val_loss=0.3924, val_acc=0.8328
+  Epoch  6: loss=0.3110, acc=0.8792 | val_loss=0.3570, val_acc=0.8617
+  Epoch  7: loss=0.2802, acc=0.8898 | val_loss=0.2981, val_acc=0.8778
+  Epoch  8: loss=0.2450, acc=0.9065 | val_loss=0.2647, val_acc=0.8971
+  Epoch  9: loss=0.2125, acc=0.9195 | val_loss=0.2373, val_acc=0.9148
+  Epoch 10: loss=0.1922, acc=0.9295 | val_loss=0.2299, val_acc=0.9003
+  Epoch 11: loss=0.1784, acc=0.9391 | val_loss=0.1794, val_acc=0.9325
+  Epoch 12: loss=0.1706, acc=0.9386 | val_loss=0.1730, val_acc=0.9373
+  Epoch 13: loss=0.1593, acc=0.9428 | val_loss=0.1553, val_acc=0.9389
+  Epoch 14: loss=0.1419, acc=0.9492 | val_loss=0.1449, val_acc=0.9550
+  Epoch 15: loss=0.1287, acc=0.9539 | val_loss=0.1677, val_acc=0.9260
+  Epoch 16: loss=0.1198, acc=0.9581 | val_loss=0.1235, val_acc=0.9566
+  Epoch 17: loss=0.1158, acc=0.9590 | val_loss=0.1025, val_acc=0.9614
+  Epoch 18: loss=0.1071, acc=0.9634 | val_loss=0.1064, val_acc=0.9598
+  Epoch 19: loss=0.1086, acc=0.9608 | val_loss=0.1059, val_acc=0.9662
+  Epoch 20: loss=0.1017, acc=0.9652 | val_loss=0.0808, val_acc=0.9759
+
+8. Evaluation:
+--------------------------------------------------------------------------------
+  Test Loss: 0.0808
+  Test Accuracy: 0.9759
+  F1 Macro: 0.9720
+  F1 per class [I, P, R]: [0.972, 0.980, 0.964]
+  Min F1: 0.9640
+
+9. Prediction distribution:
+  Class 0: 177 predictions (28.5%) vs 179 actual (28.8%)
+  Class 1: 373 predictions (60.0%) vs 376 actual (60.5%)
+  Class 2: 72 predictions (11.6%) vs 67 actual (10.8%)
+
+10. Classification Report:
+--------------------------------------------------------------------------------
+                   precision    recall  f1-score   support
+
+ I (Inflammation)       0.98      0.97      0.97       179
+P (Proliferation)       0.98      0.98      0.98       376
+   R (Remodeling)       0.93      1.00      0.96        67
+
+         accuracy                           0.98       622
+        macro avg       0.96      0.98      0.97       622
+     weighted avg       0.98      0.98      0.98       622
+
+
+11. Loss Comparison Across Phases:
+  Phase 2 (cross-entropy, no oversampling):  Final loss=0.98
+  Phase 6 (focal, no oversampling):          Final loss=6.73
+  Phase 7 (focal, oversampling, imb alpha):  Final loss=5.83
+  Phase 8 (focal, oversampling, bal alpha):  Final loss=10.83
+  Phase 9 (cross-entropy, oversampling):     Final loss=0.10
+
+================================================================================
+✅ SUCCESS! Feature normalization solved the problem!
+================================================================================
+
+All 3 classes are being predicted with reasonable F1 scores.
+
+The complete solution:
+  1. Enable oversampling (balance training data)
+  2. Normalize features with StandardScaler
+  3. Use plain cross-entropy (balanced data doesn't need focal loss)
+
+This proves:
+  - Unnormalized features prevented learning in Phase 8
+  - Focal loss was unnecessary complexity with balanced data
+  - Simple approach works best: oversample + normalize + cross-entropy
