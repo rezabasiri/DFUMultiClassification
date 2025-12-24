@@ -627,13 +627,45 @@ Training produced catastrophic results: Min F1=0.0, Macro F1=0.21, model predict
 1. **Phase 9 tested metadata only** (61 tabular features) - easiest modality. Image modalities need separate verification.
 2. **Feature normalization is CRITICAL** - without it, model cannot learn (proven by Phase 8 vs Phase 9 comparison).
 3. **Solution requires ALL THREE fixes**: oversampling + balanced alpha + feature normalization.
-4. **No data leaks detected**: StandardScaler fitted only on train data, train/val splits properly separated.
+4. ~~**No data leaks detected**: StandardScaler fitted only on train data, train/val splits properly separated.~~ **INCORRECT - See Phase 9 Data Leakage Discovery below**
+
+### Phase 9 Data Leakage Discovery (2025-12-24)
+
+**CRITICAL FINDING**: Phase 9's 97.6% accuracy was **NOT due to real generalization** - it was due to **patient-level data leakage**.
+
+**Root Cause**:
+- **File**: `agent_communication/debug_09_normalized_features.py:61-63`
+- **Bug**: Used `train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)` which splits by **SAMPLES**, not **PATIENTS**
+- **Problem**: Same patient's visits appeared in both train and test sets → model learned patient-specific patterns (memorization), not generalizable wound healing features
+- **Evidence**:
+  - Phase 9 with sample-level split: 97.59% accuracy, Min F1=0.964
+  - Same architecture with patient-level CV: **47.26% accuracy**, Min F1=0.245 (created via `test_metadata_phase9_cv.py`)
+  - Performance drop: **50.33 percentage points**
+
+**Verification Test**:
+- Created `agent_communication/test_metadata_phase9_cv.py` implementing proper patient-level CV
+- Results across 3 folds with patient-level splitting:
+  - Fold 1: Acc=44.9%, F1_macro=0.378, Min_F1=0.231
+  - Fold 2: Acc=52.0%, F1_macro=0.440, Min_F1=0.249
+  - Fold 3: Acc=44.8%, F1_macro=0.404, Min_F1=0.256
+  - **Average: 47.3% accuracy** (not 97.6%)
+- Patient overlap verification: 0 patients shared between train/val in all folds ✓
+
+**Correct Interpretation**:
+1. **Feature normalization IS still critical** - enables learning (Phase 8: 33% → Phase 9 with normalization: 47%)
+2. **True metadata performance**: ~47-50% accuracy (not 97.6%)
+3. **All three fixes (oversampling + balanced alpha + normalization) are necessary** but not sufficient alone
+4. **Patient-level CV is essential** to prevent overfitting to patient-specific characteristics
+5. **CV test results (~50% accuracy) were CORRECT** - Phase 9 results were the outlier due to leakage
+
+**Investigation Details**: See `agent_communication/test_metadata_phase9_cv_output.txt` and `metadata_investigation_summary.txt`
 
 ### Next Steps
 
-- Test with image modalities (depth_rgb, depth_map, thermal_map) to verify fix works across all modalities
-- Run comprehensive CV test with all modality combinations
-- Verify no data/model leaks in full pipeline
+- ✅ Test with image modalities (depth_rgb, depth_map, thermal_map) - COMPLETED via comprehensive CV test
+- ✅ Run comprehensive CV test with all modality combinations - COMPLETED (results in `results_comprehensive_cv_test.txt`)
+- ✅ Verify no data/model leaks in full pipeline - COMPLETED (thermal_map warning was false positive)
+- **NEW**: Develop feature engineering strategies to improve true generalization performance beyond current ~47-50% baseline
 
 ---
 
