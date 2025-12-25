@@ -1,0 +1,64 @@
+CLASS IMBALANCE STRATEGY COMPARISON RESULTS
+================================================================================
+
+Dataset: 932 samples (30% of full dataset)
+Unique patients: 192
+Class distribution: {1: 550, 2: 105, 0: 277}
+Cross-validation: 3-fold patient-level CV
+
+RESULTS (sorted by F1 Macro):
+--------------------------------------------------------------------------------
+1. Oversample only
+   F1 Macro: 0.4235 ± 0.0269
+   Min F1: 0.2814
+   F1 per class: I=0.432, P=0.557, R=0.281
+
+2. Combo (SMOTETomek) only
+   F1 Macro: 0.4118 ± 0.0565
+   Min F1: 0.2692
+   F1 per class: I=0.405, P=0.556, R=0.274
+
+3. Alpha + SMOTE
+   F1 Macro: 0.3973 ± 0.0323
+   Min F1: 0.2981
+   F1 per class: I=0.473, P=0.416, R=0.302
+
+4. Alpha + Oversample
+   F1 Macro: 0.3946 ± 0.0380
+   Min F1: 0.2674
+   F1 per class: I=0.495, P=0.421, R=0.268
+
+5. SMOTE only
+   F1 Macro: 0.3926 ± 0.0300
+   Min F1: 0.2642
+   F1 per class: I=0.387, P=0.526, R=0.264
+
+6. Alpha only
+   F1 Macro: 0.3889 ± 0.0428
+   Min F1: 0.2225
+   F1 per class: I=0.421, P=0.523, R=0.222
+
+7. Alpha + Combo
+   F1 Macro: 0.3875 ± 0.0345
+   Min F1: 0.2666
+   F1 per class: I=0.482, P=0.378, R=0.303
+
+8. Undersample only
+   F1 Macro: 0.3729 ± 0.0229
+   Min F1: 0.2268
+   F1 per class: I=0.361, P=0.531, R=0.227
+
+9. Baseline (no balancing)
+   F1 Macro: 0.3198 ± 0.0433
+   Min F1: 0.0247
+   F1 per class: I=0.227, P=0.708, R=0.025
+
+10. Alpha + Undersample
+   F1 Macro: 0.2433 ± 0.0938
+   Min F1: 0.1245
+   F1 per class: I=0.350, P=0.125, R=0.256
+
+
+================================================================================
+BEST STRATEGY: Oversample only
+================================================================================

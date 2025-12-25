@@ -28,8 +28,8 @@ Categories:
 IMAGE_SIZE = 128  # Image dimensions (128x128 pixels for better detail)
 # IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
 # GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
-GLOBAL_BATCH_SIZE = 16  # Total batch size (reduced for 128x128 images on TITAN Xp 12GB VRAM - was 32 for 12x12)
-N_EPOCHS = 20  # Maximum number of training epochs (matches Phase 9 testing)
+GLOBAL_BATCH_SIZE = 4  # Total batch size (reduced for 128x128 images on TITAN Xp 12GB VRAM - was 32 for 12x12)
+N_EPOCHS = 120  # Maximum number of training epochs (matches Phase 9 testing)
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
@@ -47,7 +47,7 @@ REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR (increased for longe
 VERBOSITY = 3  # Default verbosity level
 
 # Epoch printing settings
-EPOCH_PRINT_INTERVAL = 50  # Print training progress every N epochs (0 = print all epochs)
+EPOCH_PRINT_INTERVAL = 20  # Print training progress every N epochs (0 = print all epochs)
 
 # Progress bar settings (used when VERBOSITY >= 3)
 SHOW_PROGRESS_BAR = True  # Enable/disable progress bar
@@ -210,7 +210,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('depth_map',),  # Temporary: Phase 1 detection
+    ('metadata',),  # Temporary: Phase 2 evaluation
 ]
 
 # Results file naming
