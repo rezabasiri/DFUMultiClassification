@@ -782,6 +782,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     # Get current distribution strategy (set by setup_gpu_strategy in main)
     strategy = tf.distribute.get_strategy()
 
+    # Log multi-GPU configuration
+    num_replicas = strategy.num_replicas_in_sync
+    if num_replicas > 1:
+        vprint(f"\n{'='*80}", level=1)
+        vprint(f"MULTI-GPU TRAINING: {num_replicas} GPUs", level=1)
+        vprint(f"Global batch size: {batch_size} (per-GPU: {batch_size // num_replicas})", level=1)
+        vprint(f"Strategy: {type(strategy).__name__}", level=1)
+        vprint(f"{'='*80}\n", level=1)
+    elif len(gpus) > 0:
+        vprint(f"Single GPU training mode", level=2)
+
     all_metrics = []
     all_confusion_matrices = []
     all_histories = []
@@ -921,38 +932,42 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         
         # Initialize data manager for this run with the correct image_size
         data_manager = ProcessedDataManager(data.copy(), directory, image_size=image_size)
-        data_manager.process_all_modalities()
+
+        # Wrap dataset creation in strategy scope for proper multi-GPU distribution
+        with strategy.scope():
+            data_manager.process_all_modalities()
 
         # Setup augmentation once per run (use the passed image_size, not global IMAGE_SIZE)
         aug_config = AugmentationConfig()
         aug_config.generative_settings['output_size']['width'] = image_size
         aug_config.generative_settings['output_size']['height'] = image_size
-        
+
         gen_manager = GenerativeAugmentationManager(
             base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
             config=aug_config
         )
-        
+
         # Get all unique modalities from all configs
         all_modalities = set()
         for config in configs.values():
             all_modalities.update(config['modalities'])
         all_modalities = list(all_modalities)
-        
+
         vprint(f"\nPreparing datasets for {iteration_name} with all modalities: {all_modalities}", level=1)
-        # Create cached datasets once for all modalities
-        master_train_dataset, pre_aug_dataset, master_valid_dataset, master_steps_per_epoch, master_validation_steps, master_alpha_value = prepare_cached_datasets(
-            data_manager.data,
-            all_modalities,  # Use all modalities
-            train_patient_percentage=train_patient_percentage,
-            batch_size=batch_size,
-            gen_manager=gen_manager,
-            aug_config=aug_config,
-            run=run,
-            image_size=image_size,
-            train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
-            valid_patients=fold_valid_patients
-        )
+        # Create cached datasets once for all modalities (in strategy scope for multi-GPU)
+        with strategy.scope():
+            master_train_dataset, pre_aug_dataset, master_valid_dataset, master_steps_per_epoch, master_validation_steps, master_alpha_value = prepare_cached_datasets(
+                data_manager.data,
+                all_modalities,  # Use all modalities
+                train_patient_percentage=train_patient_percentage,
+                batch_size=batch_size,
+                gen_manager=gen_manager,
+                aug_config=aug_config,
+                run=run,
+                image_size=image_size,
+                train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
+                valid_patients=fold_valid_patients
+            )
         
         run_metrics = []
         
@@ -1000,20 +1015,21 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
             
             while not training_successful and retry_count < max_retries:
                 try:
-                    # Filter the master datasets for the selected modalities
-                    train_dataset = filter_dataset_modalities(master_train_dataset, selected_modalities)
-                    pre_aug_train_dataset = filter_dataset_modalities(pre_aug_dataset, selected_modalities)
-                    valid_dataset = filter_dataset_modalities(master_valid_dataset, selected_modalities)
+                    # Filter the master datasets for the selected modalities (in strategy scope for multi-GPU)
+                    with strategy.scope():
+                        train_dataset = filter_dataset_modalities(master_train_dataset, selected_modalities)
+                        pre_aug_train_dataset = filter_dataset_modalities(pre_aug_dataset, selected_modalities)
+                        valid_dataset = filter_dataset_modalities(master_valid_dataset, selected_modalities)
 
-                    # Remove sample_id from training/validation datasets before model.fit()
-                    # (Keras 3 strict about input dict keys matching model.inputs)
-                    # Keep sample_id in pre_aug_train_dataset for prediction tracking
-                    def remove_sample_id_for_training(features, labels):
-                        model_features = {k: v for k, v in features.items() if k != 'sample_id'}
-                        return model_features, labels
+                        # Remove sample_id from training/validation datasets before model.fit()
+                        # (Keras 3 strict about input dict keys matching model.inputs)
+                        # Keep sample_id in pre_aug_train_dataset for prediction tracking
+                        def remove_sample_id_for_training(features, labels):
+                            model_features = {k: v for k, v in features.items() if k != 'sample_id'}
+                            return model_features, labels
 
-                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
-                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                        train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                        valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                     # Get a single epoch's worth of data by taking the specified number of steps
                     all_labels = []
                     for batch in pre_aug_train_dataset.take(master_steps_per_epoch):
