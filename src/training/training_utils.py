@@ -154,8 +154,10 @@ def clean_up_training_resources():
 
 def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     modality_str = '_'.join(sorted(selected_modalities))
-    # Keras 3 (TF 2.16+) requires .weights.h5 extension when using save_weights_only=True
-    checkpoint_name = f'{modality_str}_{run}_{config_name}.weights.h5'
+    # Use TF checkpoint format (not .weights.h5) for multi-GPU compatibility
+    # TF checkpoint format avoids the "unsupported operand type(s) for /: 'Dataset' and 'int'" bug
+    # that occurs with HDF5 format on TF 2.15.1 with RTX 5090 multi-GPU
+    checkpoint_name = f'{modality_str}_{run}_{config_name}.ckpt'
     return os.path.join(models_path, checkpoint_name)
 class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
     def __init__(self, monitor='val_loss', factor=0.5, patience=5, 
@@ -1229,22 +1231,21 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         probabilities_t = []
                         all_sample_ids_t = []
 
-                        with strategy.scope():
-                            for batch in pre_aug_train_dataset.take(steps_per_epoch):
-                                batch_inputs, batch_labels = batch
-                                # Extract sample_id before filtering for model.predict()
-                                sample_ids_batch = batch_inputs['sample_id'].numpy()
-                                # Filter out sample_id for model.predict() (Keras 3 compatibility)
-                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
-                                with strategy.scope():
-                                    batch_pred = model.predict(model_inputs, verbose=0)
-                                y_true_t.extend(np.argmax(batch_labels, axis=1))
-                                y_pred_t.extend(np.argmax(batch_pred, axis=1))
-                                probabilities_t.extend(batch_pred)
-                                all_sample_ids_t.extend(sample_ids_batch)
+                        # No strategy.scope() needed for prediction - model already knows its distribution
+                        for batch in pre_aug_train_dataset.take(steps_per_epoch):
+                            batch_inputs, batch_labels = batch
+                            # Extract sample_id before filtering for model.predict()
+                            sample_ids_batch = batch_inputs['sample_id'].numpy()
+                            # Filter out sample_id for model.predict() (Keras 3 compatibility)
+                            model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
+                            batch_pred = model.predict(model_inputs, verbose=0)
+                            y_true_t.extend(np.argmax(batch_labels, axis=1))
+                            y_pred_t.extend(np.argmax(batch_pred, axis=1))
+                            probabilities_t.extend(batch_pred)
+                            all_sample_ids_t.extend(sample_ids_batch)
 
-                                del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
-                                gc.collect()
+                            del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
+                            gc.collect()
 
                         save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train')
                         # Store probabilities for gating network
@@ -1266,22 +1267,21 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         # We need to re-filter to get sample_id back for tracking
                         valid_dataset_with_ids = filter_dataset_modalities(master_valid_dataset, selected_modalities)
 
-                        with strategy.scope():
-                            for batch in valid_dataset_with_ids.take(validation_steps):
-                                batch_inputs, batch_labels = batch
-                                # Extract sample_id before filtering for model.predict()
-                                sample_ids_batch = batch_inputs['sample_id'].numpy()
-                                # Filter out sample_id for model.predict() (Keras 3 compatibility)
-                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
-                                with strategy.scope():
-                                    batch_pred = model.predict(model_inputs, verbose=0)
-                                y_true_v.extend(np.argmax(batch_labels, axis=1))
-                                y_pred_v.extend(np.argmax(batch_pred, axis=1))
-                                probabilities_v.extend(batch_pred)
-                                all_sample_ids_v.extend(sample_ids_batch)
+                        # No strategy.scope() needed for prediction - model already knows its distribution
+                        for batch in valid_dataset_with_ids.take(validation_steps):
+                            batch_inputs, batch_labels = batch
+                            # Extract sample_id before filtering for model.predict()
+                            sample_ids_batch = batch_inputs['sample_id'].numpy()
+                            # Filter out sample_id for model.predict() (Keras 3 compatibility)
+                            model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
+                            batch_pred = model.predict(model_inputs, verbose=0)
+                            y_true_v.extend(np.argmax(batch_labels, axis=1))
+                            y_pred_v.extend(np.argmax(batch_pred, axis=1))
+                            probabilities_v.extend(batch_pred)
+                            all_sample_ids_v.extend(sample_ids_batch)
 
-                                del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
-                                gc.collect()
+                            del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
+                            gc.collect()
 
                         save_run_predictions(run + 1, config_name, np.array(probabilities_v), np.array(y_true_v), ck_path, dataset_type='valid')
                         # Store probabilities for gating network

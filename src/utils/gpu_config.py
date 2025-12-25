@@ -270,13 +270,16 @@ def setup_device_strategy(
         if verbose:
             print(f"\nUsing default strategy (single GPU)")
     else:
-        # Multi-GPU - use MirroredStrategy with hierarchical copy (avoids NCCL)
-        # Use HierarchicalCopyAllReduce instead of NCCL for RTX 5090 compatibility
-        cross_device_ops = tf.distribute.HierarchicalCopyAllReduce()
+        # Multi-GPU strategy for RTX 5090 (compute capability 12.0)
+        # NCCL doesn't work with TF 2.15.1 on RTX 5090 - tested and confirmed CUDA errors
+        # Options that work:
+        #   1. ReductionToOneDevice - aggregates gradients on one GPU (faster)
+        #   2. HierarchicalCopyAllReduce - aggregates via CPU (slower but more stable)
+        cross_device_ops = tf.distribute.ReductionToOneDevice()
         strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_device_ops)
         if verbose:
-            print(f"\nUsing MirroredStrategy ({len(selected_gpu_ids)} GPUs) with HierarchicalCopyAllReduce")
-            print(f"  (Using CPU-based gradient aggregation instead of NCCL for RTX 5090 compatibility)")
+            print(f"\nUsing MirroredStrategy ({len(selected_gpu_ids)} GPUs) with ReductionToOneDevice")
+            print(f"  (GPU-based gradient aggregation, NCCL-free for RTX 5090 compatibility)")
             print(f"Effective batch size: {strategy.num_replicas_in_sync}× global batch size")
 
     if verbose:

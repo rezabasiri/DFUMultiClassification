@@ -433,3 +433,117 @@ Training completed successfully with:
 - Model achieved reasonable accuracy (39% on 3-class problem)
 
 **Recommendation**: This solution works but may be slower than NCCL. When TensorFlow 2.16+ with RTX 5090 support is stable, consider upgrading for better performance.
+
+---
+
+## UPDATE 2: REVIEWER FEEDBACK FIXES (December 25, 2025)
+
+### Issues Identified by Reviewer
+
+1. **Nested strategy.scope() in prediction loops** - Performance killer
+2. **HierarchicalCopyAllReduce as first choice** - Should try faster alternatives first
+
+### Fixes Applied
+
+#### 1. Removed Nested strategy.scope() from Predictions
+
+**Problem**: Lines 1232-1240 and 1269-1277 had nested `strategy.scope()` calls around `model.predict()`:
+```python
+# BEFORE (SLOW - causes context switching overhead):
+with strategy.scope():  # OUTER scope
+    for batch in dataset:
+        with strategy.scope():  # INNER scope - WRONG!
+            batch_pred = model.predict(model_inputs, verbose=0)
+```
+
+**Solution**: Removed ALL strategy.scope() from prediction loops - model already knows its distribution:
+```python
+# AFTER (FAST - no scope needed for prediction):
+for batch in dataset:
+    batch_pred = model.predict(model_inputs, verbose=0)
+```
+
+**Files modified**:
+- `src/training/training_utils.py` lines 1232-1246 (training evaluation loop)
+- `src/training/training_utils.py` lines 1268-1282 (validation evaluation loop)
+
+#### 2. Changed Cross-Device Operations Strategy
+
+**Tested alternatives** (all with NCCL_P2P_DISABLE=1):
+
+| Strategy | Result |
+|----------|--------|
+| Default NCCL | ❌ CUDA error: "too many resources requested for launch" |
+| NCCL + P2P disabled | ❌ Same CUDA error |
+| ReductionToOneDevice | ✅ Works |
+| HierarchicalCopyAllReduce | ✅ Works |
+
+**New default**: Changed to `ReductionToOneDevice` (potentially faster than HierarchicalCopyAllReduce):
+```python
+# gpu_config.py multi-GPU setup
+cross_device_ops = tf.distribute.ReductionToOneDevice()
+strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_device_ops)
+```
+
+**Difference**:
+- `HierarchicalCopyAllReduce`: Copies gradients to CPU → aggregates → copies back
+- `ReductionToOneDevice`: GPU 0 aggregates all gradients → broadcasts back (no CPU hop)
+
+### Architecture Analysis Confirmed
+
+The reviewer's analysis is correct:
+- ✅ Dataset creation: NO strategy.scope() needed (auto-distributed)
+- ✅ Model creation: IN strategy.scope()
+- ✅ Model compilation: IN strategy.scope()
+- ✅ model.fit(): NO strategy.scope() needed (auto-distributes)
+- ✅ model.predict(): NO strategy.scope() needed (model already distributed)
+- ✅ model.load_weights(): IN strategy.scope()
+
+### Test Results
+
+Multi-GPU training test with 5% data:
+```
+Using MirroredStrategy (2 GPUs) with ReductionToOneDevice
+  (GPU-based gradient aggregation, NCCL-free for RTX 5090 compatibility)
+Effective batch size: 2× global batch size
+
+Run 1 Results for depth_rgb+depth_map:
+    accuracy: 0.31
+    Cohen's Kappa: 0.1203
+```
+
+Both GPUs detected and utilized correctly.
+
+### Why NCCL Still Fails
+
+The root cause is confirmed: TensorFlow 2.15.1's NCCL implementation is incompatible with RTX 5090's compute capability 12.0. Even with P2P disabled, NCCL collective operations fail with:
+```
+NCCL WARN Cuda failure 'too many resources requested for launch'
+Error invoking NCCL: unhandled cuda error
+```
+
+**Long-term fix**: Upgrade to TensorFlow 2.16+ when RTX 5090 support is added.
+
+#### 3. Fixed model.load_weights() Error with Multi-GPU
+
+**Problem**: After training, `model.load_weights()` failed with:
+```
+TypeError: unsupported operand type(s) for /: 'Dataset' and 'int'
+```
+
+**Root cause**: TensorFlow 2.15.1 has a bug loading HDF5 weights (`.weights.h5`) in multi-GPU mode on RTX 5090.
+
+**Solution**: Changed checkpoint format from HDF5 to TF checkpoint format:
+```python
+# BEFORE (broken):
+checkpoint_name = f'{modality_str}_{run}_{config_name}.weights.h5'
+
+# AFTER (works):
+checkpoint_name = f'{modality_str}_{run}_{config_name}.ckpt'
+```
+
+**Files modified**:
+- `src/training/training_utils.py` line 160: Changed checkpoint extension
+- `src/utils/config.py` lines 159, 207: Added `.ckpt*` cleanup patterns
+
+**Verification**: Multi-GPU training now completes without errors.
