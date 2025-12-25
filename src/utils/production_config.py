@@ -27,9 +27,8 @@ Categories:
 # Core training hyperparameters
 IMAGE_SIZE = 128  # Image dimensions (128x128 pixels for better detail)
 # IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-# GLOBAL_BATCH_SIZE = 128  # Total batch size across all GPU replicas (increased for RTX 5090 30GB VRAM)
-GLOBAL_BATCH_SIZE = 4  # Total batch size (reduced for 128x128 images on TITAN Xp 12GB VRAM - was 32 for 12x12)
-N_EPOCHS = 120  # Maximum number of training epochs (matches Phase 9 testing)
+GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas (for 2x RTX 5090 32GB VRAM with 128x128 images)
+N_EPOCHS = 20  # Quick speed test (normally 120 for full training)
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
@@ -210,7 +209,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata',),  # Temporary: Phase 2 evaluation
+    ('depth_rgb', 'depth_map'),  # Speed test on 2x RTX 5090
 ]
 
 # Results file naming
