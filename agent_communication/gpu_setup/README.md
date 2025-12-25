@@ -1,8 +1,14 @@
 # Multi-GPU Support
 
-Enhanced `src/main.py` with flexible GPU configuration for CPU, single-GPU, multi-GPU, and custom GPU setups.
+Flexible GPU configuration for CPU, single-GPU, multi-GPU, and custom GPU setups.
+
+**Scripts supporting GPU configuration:**
+- `src/main.py` - Main training pipeline
+- `scripts/auto_polish_dataset_v2.py` - Dataset polishing with Bayesian optimization
 
 ## Quick Start
+
+### Main Training Pipeline
 
 ```bash
 # Default - auto-select best GPU (>=8GB, non-display)
@@ -19,6 +25,19 @@ python src/main.py --mode search --device-mode custom --custom-gpus 0 1
 
 # Require 12GB+ memory
 python src/main.py --mode search --device-mode multi --min-gpu-memory 12.0
+```
+
+### Dataset Polishing
+
+```bash
+# Multi-GPU for faster polishing
+python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode multi
+
+# Custom GPU selection
+python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode custom --custom-gpus 0 1
+
+# Single GPU (default)
+python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode single
 ```
 
 ## Flags

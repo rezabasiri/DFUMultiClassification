@@ -45,6 +45,19 @@ Usage:
 
     # Custom optimization budget
     python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --n-evaluations 30
+
+GPU Configuration:
+    # Use all available GPUs (multi-GPU mode with MirroredStrategy)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode multi
+
+    # Use specific GPUs (custom mode)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode custom --custom-gpus 0 1
+
+    # Single GPU (auto-select best, default)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode single
+
+    # CPU only (no GPUs)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode cpu
 """
 
 import argparse
@@ -58,15 +71,12 @@ from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 
-# Force TensorFlow to use only GPU 0 (TITAN Xp) - must be set before subprocess calls
-# This ensures all child processes also use GPU 0
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.utils.config import get_project_paths, cleanup_for_resume_mode
+from src.utils.gpu_config import setup_device_strategy
 
 
 class BayesianDatasetPolisher:
@@ -89,7 +99,11 @@ class BayesianDatasetPolisher:
                  min_f1_threshold=0.25,
                  min_samples_per_class=30,
                  max_class_imbalance_ratio=5.0,
-                 min_retention_per_class=0.90):
+                 min_retention_per_class=0.90,
+                 device_mode='single',
+                 custom_gpus=None,
+                 min_gpu_memory=8.0,
+                 include_display_gpus=False):
         """
         Initialize the Bayesian dataset polisher.
 
@@ -112,6 +126,10 @@ class BayesianDatasetPolisher:
             max_class_imbalance_ratio: Hard constraint - reject if largest/smallest class ratio > this (default: 5.0)
             min_retention_per_class: Minimum fraction of samples to retain per class (default: 0.90)
                                      Optimization skipped if this cannot be achieved.
+            device_mode: GPU mode - 'cpu', 'single', 'multi', or 'custom' (default: 'single')
+            custom_gpus: List of GPU IDs for 'custom' mode (e.g., [0, 1])
+            min_gpu_memory: Minimum GPU memory in GB (default: 8.0)
+            include_display_gpus: Allow training on display GPUs (default: False)
         """
         if 'metadata' not in modalities:
             raise ValueError("Modalities must include 'metadata' for polishing")
@@ -133,6 +151,12 @@ class BayesianDatasetPolisher:
         self.min_samples_per_class = min_samples_per_class
         self.max_class_imbalance_ratio = max_class_imbalance_ratio
         self.min_retention_per_class = min_retention_per_class
+
+        # GPU configuration
+        self.device_mode = device_mode
+        self.custom_gpus = custom_gpus
+        self.min_gpu_memory = min_gpu_memory
+        self.include_display_gpus = include_display_gpus
 
         # Get project paths
         self.directory, self.result_dir, self.root = get_project_paths()
@@ -693,8 +717,18 @@ class BayesianDatasetPolisher:
                         '--cv_folds', str(self.phase1_cv_folds),
                         '--data_percentage', str(self.phase1_data_percentage),
                         '--verbosity', '0',
-                        '--resume_mode', 'fresh'  # Force fresh training for each run
+                        '--resume_mode', 'fresh',  # Force fresh training for each run
+                        '--device-mode', self.device_mode,
+                        '--min-gpu-memory', str(self.min_gpu_memory)
                     ]
+
+                    # Add custom GPU IDs if specified
+                    if self.device_mode == 'custom' and self.custom_gpus:
+                        cmd.extend(['--custom-gpus'] + [str(gpu) for gpu in self.custom_gpus])
+
+                    # Add display GPU flag if enabled
+                    if self.include_display_gpus:
+                        cmd.append('--include-display-gpus')
 
                     # Suppress all subprocess output - only show progress bar
                     result = subprocess.run(
@@ -1129,8 +1163,18 @@ class BayesianDatasetPolisher:
                 '--resume_mode', 'fresh',  # Force fresh training for each evaluation
                 '--threshold_I', str(thresholds['I']),
                 '--threshold_P', str(thresholds['P']),
-                '--threshold_R', str(thresholds['R'])
+                '--threshold_R', str(thresholds['R']),
+                '--device-mode', self.device_mode,
+                '--min-gpu-memory', str(self.min_gpu_memory)
             ]
+
+            # Add custom GPU IDs if specified
+            if self.device_mode == 'custom' and self.custom_gpus:
+                cmd.extend(['--custom-gpus'] + [str(gpu) for gpu in self.custom_gpus])
+
+            # Add display GPU flag if enabled
+            if self.include_display_gpus:
+                cmd.append('--include-display-gpus')
 
             print(f"⏳ Training with cv_folds={self.phase2_cv_folds} (fresh mode)...")
             result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
@@ -1243,6 +1287,19 @@ Examples:
 
   # More thorough optimization
   python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --n-evaluations 30
+
+GPU Configuration:
+  # Multi-GPU mode (use all available GPUs >=8GB)
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode multi
+
+  # Custom GPU selection
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode custom --custom-gpus 0 1
+
+  # Single GPU (default, auto-select best)
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode single
+
+  # CPU only
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode cpu
         """
     )
 
@@ -1278,6 +1335,17 @@ Examples:
                         help='Minimum retention per class (default: 0.90). '
                              'Optimization is skipped if this cannot be achieved.')
 
+    # GPU configuration flags
+    parser.add_argument('--device-mode', type=str, choices=['cpu', 'single', 'multi', 'custom'],
+                        default='single',
+                        help='GPU mode: cpu (no GPUs), single (auto-select best), multi (all available), custom (specify IDs)')
+    parser.add_argument('--custom-gpus', type=int, nargs='+', default=None,
+                        help='GPU IDs for custom mode (e.g., --custom-gpus 0 1)')
+    parser.add_argument('--min-gpu-memory', type=float, default=8.0,
+                        help='Minimum GPU memory in GB (default: 8.0)')
+    parser.add_argument('--include-display-gpus', action='store_true',
+                        help='Allow training on display GPUs (default: exclude them)')
+
     args = parser.parse_args()
 
     # Parse phase2-modalities (e.g., "metadata+depth_rgb" -> ['metadata', 'depth_rgb'])
@@ -1302,7 +1370,11 @@ Examples:
         phase2_n_evaluations=args.n_evaluations,
         phase2_data_percentage=args.phase2_data_percentage,
         min_dataset_fraction=args.min_dataset_fraction,
-        min_retention_per_class=args.min_retention_per_class
+        min_retention_per_class=args.min_retention_per_class,
+        device_mode=args.device_mode,
+        custom_gpus=args.custom_gpus,
+        min_gpu_memory=args.min_gpu_memory,
+        include_display_gpus=args.include_display_gpus
     )
 
     # Run phases
