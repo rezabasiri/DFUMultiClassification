@@ -158,6 +158,11 @@ def setup_device_strategy(
     Raises:
         ValueError: If invalid mode or no suitable GPUs found
     """
+    # Set environment variables for RTX 5090 compatibility (compute capability 12.0)
+    # These need to be set before TensorFlow initializes CUDA
+    os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Reduce TensorFlow logging
+    os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')  # Disable oneDNN optimizations
+
     if verbose:
         print("\n" + "="*80)
         print(f"DEVICE CONFIGURATION (mode: {mode})")
