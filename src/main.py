@@ -131,8 +131,8 @@ os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
 apply_environment_config()  # Apply threading and determinism settings
 tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
 
-# Distributed strategy (will be overridden by setup_gpu_strategy in main())
-# strategy = tf.distribute.MirroredStrategy()  # Disabled - use setup_gpu_strategy instead
+# Distributed strategy (temporary default, will be overridden by setup_device_strategy in main())
+strategy = tf.distribute.get_strategy()  # Use default strategy for now
 
 #%% Path Configuration
 directory, result_dir, root = get_project_paths()
