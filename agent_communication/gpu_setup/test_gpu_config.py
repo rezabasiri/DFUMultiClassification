@@ -9,7 +9,9 @@ import sys
 import os
 
 # Add project root to path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Script is in agent_communication/gpu_setup/, need to go up 2 levels
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
 sys.path.insert(0, project_root)
 
 from src.utils.gpu_config import (
