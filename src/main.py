@@ -12,8 +12,8 @@ import sys
 # This will be overridden later based on verbosity level, but default to minimal logging
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '1')  # Default: suppress INFO messages
 
-# Force TensorFlow to use only GPU 0 (TITAN Xp) - must be set before importing TensorFlow
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# GPU configuration will be set up later via argparse and gpu_config module
+# DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
 import glob
 import pandas as pd
 import numpy as np
@@ -69,6 +69,7 @@ from src.utils.config import get_project_paths, get_data_paths, get_output_paths
 from src.utils.production_config import *  # Import all production configuration parameters
 from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
 from src.utils.verbosity import set_verbosity, vprint, get_verbosity, init_progress_bar, update_progress, close_progress
+from src.utils.gpu_config import setup_device_strategy, get_effective_batch_size, print_gpu_memory_usage
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
     create_best_matching_dataset, prepare_dataset, preprocess_image_data,
@@ -2112,19 +2113,34 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Test all 31 modality combinations with default settings
+  # Test all 31 modality combinations with default settings (single GPU)
   python src/main.py --mode search
 
-  # Test all combinations with full data, 70% train split, 5 runs
-  python src/main.py --mode search --data_percentage 100 --train_patient_percentage 0.70 --n_runs 5
+  # Use CPU only (no GPUs)
+  python src/main.py --mode search --device-mode cpu
 
-  # Quick test with 10% of data and 1 run
-  python src/main.py --mode search --data_percentage 10 --n_runs 1
+  # Use all available GPUs (multi-GPU training)
+  python src/main.py --mode search --device-mode multi
 
-  # Run specialized evaluation mode
-  python src/main.py --mode specialized --train_patient_percentage 0.70 --n_runs 5
+  # Use specific GPUs (custom)
+  python src/main.py --mode search --device-mode custom --custom-gpus 0 1
+
+  # Quick test with 10% of data
+  python src/main.py --mode search --data_percentage 10 --cv_folds 1
+
+  # Run with 3-fold cross-validation
+  python src/main.py --mode search --cv_folds 3
+
+  # Filter out low-memory GPUs (require 12GB+)
+  python src/main.py --mode search --device-mode multi --min-gpu-memory 12.0
 
 Configuration:
+  GPU selection:
+  - --device-mode: 'cpu', 'single' (default), 'multi', or 'custom'
+  - Automatic filtering: >=8GB memory, non-display GPUs
+  - Single mode: auto-selects best GPU
+  - Multi mode: uses TensorFlow MirroredStrategy
+
   Modality combinations are configured in src/utils/production_config.py:
   - MODALITY_SEARCH_MODE: 'all' (test all 31) or 'custom' (test specific ones)
   - EXCLUDED_COMBINATIONS: List of combinations to skip
@@ -2257,7 +2273,83 @@ Configuration:
         (default: None - uses filter function defaults)"""
     )
 
+    parser.add_argument(
+        "--device-mode",
+        type=str,
+        choices=['cpu', 'single', 'multi', 'custom'],
+        default='single',
+        help="""Device mode for training:
+        'cpu': Use CPU only (disables all GPUs)
+        'single': Use single best GPU (auto-selected, >=8GB, non-display)
+        'multi': Use all available GPUs (>=8GB, non-display)
+        'custom': Use specific GPUs (requires --custom-gpus)
+
+        GPU selection criteria:
+        - Minimum 8GB memory (configurable with --min-gpu-memory)
+        - Excludes display GPUs by default (unless --include-display-gpus)
+        - Single mode: selects GPU with most memory
+        - Multi mode: uses TensorFlow MirroredStrategy for data parallelism
+        (default: single)"""
+    )
+
+    parser.add_argument(
+        "--custom-gpus",
+        type=int,
+        nargs='+',
+        default=None,
+        help="""GPU IDs to use in 'custom' device mode.
+        Must be valid GPU indices from nvidia-smi.
+        GPU filtering (memory, display) still applies.
+        Examples: --custom-gpus 0 (single GPU 0)
+                  --custom-gpus 0 1 (GPUs 0 and 1)
+                  --custom-gpus 1 2 3 (GPUs 1, 2, and 3)
+        (default: None - required for custom mode)"""
+    )
+
+    parser.add_argument(
+        "--min-gpu-memory",
+        type=float,
+        default=8.0,
+        help="""Minimum GPU memory in GB for GPU selection.
+        GPUs with less memory will be excluded.
+        Useful to filter out small/old GPUs.
+        Examples: 8.0 (exclude GPUs < 8GB)
+                  12.0 (exclude GPUs < 12GB)
+                  24.0 (only high-end GPUs)
+        (default: 8.0)"""
+    )
+
+    parser.add_argument(
+        "--include-display-gpus",
+        action='store_true',
+        help="""Include GPUs with active displays in selection.
+        By default, display GPUs are excluded to avoid interference.
+        Use this flag if you want to train on your display GPU.
+        WARNING: Training on display GPU may cause UI lag.
+        (default: False - display GPUs excluded)"""
+    )
+
     args = parser.parse_args()
+
+    # Set up GPU/device strategy BEFORE importing TensorFlow models
+    # This must happen early to properly configure CUDA_VISIBLE_DEVICES
+    try:
+        strategy, selected_gpus = setup_device_strategy(
+            mode=args.device_mode,
+            custom_gpus=args.custom_gpus,
+            min_memory_gb=args.min_gpu_memory,
+            exclude_display=not args.include_display_gpus,
+            verbose=True  # Always show GPU config
+        )
+    except ValueError as e:
+        print(f"\n❌ GPU configuration error: {e}")
+        print("Falling back to CPU mode...")
+        strategy, selected_gpus = setup_device_strategy(mode='cpu', verbose=True)
+
+    # Store strategy in global scope for use in training functions
+    # This allows training_utils.py to access the strategy
+    globals()['DISTRIBUTION_STRATEGY'] = strategy
+    globals()['SELECTED_GPUS'] = selected_gpus
 
     # Set verbosity level
     set_verbosity(args.verbosity)
@@ -2284,6 +2376,17 @@ Configuration:
     vprint(f"Resume mode: {args.resume_mode}", level=0)
     vprint(f"Data percentage: {args.data_percentage}%", level=0)
     vprint(f"Verbosity: {args.verbosity} ({'MINIMAL' if args.verbosity == 0 else 'NORMAL' if args.verbosity == 1 else 'DETAILED' if args.verbosity == 2 else 'PROGRESS_BAR'})", level=0)
+
+    # Device information
+    if selected_gpus:
+        if len(selected_gpus) == 1:
+            vprint(f"Device: GPU {selected_gpus[0]} (single GPU mode)", level=0)
+        else:
+            vprint(f"Device: GPUs {selected_gpus} (multi-GPU mode, MirroredStrategy)", level=0)
+            vprint(f"  Replicas: {strategy.num_replicas_in_sync}× batch size distribution", level=0)
+    else:
+        vprint(f"Device: CPU only", level=0)
+
     if args.cv_folds > 1:
         vprint(f"Cross-validation: {args.cv_folds}-fold CV (patient-level)", level=0)
     else:
@@ -2293,6 +2396,9 @@ Configuration:
     vprint(f"\nConfiguration loaded from: src/utils/production_config.py", level=0)
     vprint(f"Image size: {IMAGE_SIZE}x{IMAGE_SIZE}", level=0)
     vprint(f"Batch size: {GLOBAL_BATCH_SIZE}", level=0)
+    if len(selected_gpus) > 1:
+        per_gpu_batch = get_effective_batch_size(GLOBAL_BATCH_SIZE, strategy)
+        vprint(f"  Per-GPU batch: {per_gpu_batch} ({GLOBAL_BATCH_SIZE} / {len(selected_gpus)} GPUs)", level=0)
     vprint(f"Max epochs: {N_EPOCHS} (with early stopping)", level=0)
     if args.mode == 'search':
         vprint(f"Modality search mode: {MODALITY_SEARCH_MODE}", level=0)
