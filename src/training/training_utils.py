@@ -779,8 +779,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     # Get GPU info
     gpus = tf.config.list_physical_devices('GPU')
 
-    # Setup distribution strategy
-    strategy = tf.distribute.MirroredStrategy()
+    # Get current distribution strategy (set by setup_gpu_strategy in main)
+    strategy = tf.distribute.get_strategy()
 
     all_metrics = []
     all_confusion_matrices = []
