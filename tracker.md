@@ -2,6 +2,31 @@
 
 Tracks major repository changes and refactors.
 
+## 2025-12-25 — Multi-GPU support implementation
+
+### Multi-GPU Training with MirroredStrategy
+
+**Files Modified**:
+- `src/training/training_utils.py`: Wrapped dataset creation/processing in `strategy.scope()` for proper multi-GPU distribution (lines 926-927, 947-959, 1008-1021). Added multi-GPU logging (lines 786-794).
+- `src/utils/gpu_config.py`: Creates MirroredStrategy for multi-GPU mode, sets CUDA_VISIBLE_DEVICES, filters GPUs by memory/display status.
+- `agent_communication/gpu_setup/MULTI_GPU_GUIDE.md`: Created concise guide for multi-GPU usage.
+
+**Key Changes**:
+- Dataset operations now execute within `strategy.scope()` for proper distribution across GPUs
+- Global batch size automatically split across GPU replicas (e.g., 128 → 64 per GPU with 2 GPUs)
+- Model creation already wrapped in `strategy.scope()` (line 1070-1080)
+
+**Usage**:
+```bash
+python src/main.py --device-mode multi        # Use all GPUs (>=8GB, non-display)
+python src/main.py --device-mode single       # Single GPU (auto-select best)
+python src/main.py --device-mode custom --custom-gpus 0 1  # Specific GPUs
+```
+
+**RTX 5090 Compatibility**: Requires TensorFlow 2.15.1+ for compute capability 12.0 support (see `INSTALL_RTX5090_FIX.md`)
+
+---
+
 ## 2025-12-16 — Repository reorganization
 
 ### Structure created / standardized
