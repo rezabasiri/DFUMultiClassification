@@ -11,7 +11,7 @@ dependencies:
   - pillow>=9.3.0
 
   # ML stack (PINNED to prevent imblearn/sklearn import errors)
-  - scikit-learn=1.6.1
+  - scikit-learn=1.5.2
   - imbalanced-learn=0.12.4
 
   # Visualization / utilities
@@ -32,9 +32,16 @@ dependencies:
       - tensorflow[and-cuda]==2.15.1
       - keras==2.15.0
 
+      # PyTorch GPU (using --index-url for CUDA compatibility)
+      - torch
+      - torchvision
+
       # Diffusion / transformers stack
-      - transformers>=4.30.0
-      - diffusers>=0.21.0
+      - transformers==4.35.0
+      - diffusers==0.23.0
+
+      # Hyperparameter optimization
+      - scikit-optimize>=0.9.0
 
       # Interpretability
       - shap>=0.42.0
