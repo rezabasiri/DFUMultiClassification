@@ -112,27 +112,29 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # FATAL
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
 logging.basicConfig(level=logging.INFO)
 
-# Configure GPU
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        vprint(str(e), level=1)
+# Configure GPU memory growth - MOVED to after setup_device_strategy() is called
+# This is now done in setup_device_strategy() to avoid initializing TF before CUDA_VISIBLE_DEVICES is set
+# gpus = tf.config.list_physical_devices('GPU')
+# if gpus:
+#     try:
+#         for gpu in gpus:
+#             tf.config.experimental.set_memory_growth(gpu, True)
+#     except RuntimeError as e:
+#         vprint(str(e), level=1)
 
-# Set random seeds for reproducibility
+# Set random seeds for reproducibility (non-TensorFlow only - TF seed set later)
 random.seed(RANDOM_SEED)
-tf.random.set_seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
 
-# TensorFlow configuration - using production_config values
-apply_environment_config()  # Apply threading and determinism settings
-tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
+# TensorFlow configuration - MOVED to after setup_device_strategy() to avoid early GPU init
+# apply_environment_config()  # Apply threading and determinism settings
+# tf.random.set_seed(RANDOM_SEED)
+# tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
 
-# Distributed strategy (temporary default, will be overridden by setup_device_strategy in main())
-strategy = tf.distribute.get_strategy()  # Use default strategy for now
+# Distributed strategy - DO NOT initialize here! It will be set by setup_device_strategy() in main()
+# Setting it here would initialize TensorFlow before CUDA_VISIBLE_DEVICES is configured
+strategy = None  # Will be set in main() after parsing args
 
 #%% Path Configuration
 directory, result_dir, root = get_project_paths()
@@ -162,7 +164,8 @@ thermal_bb = pd.read_csv(thermal_bb_file)
 #%% Training Parameters - using production_config values
 image_size = IMAGE_SIZE
 global_batch_size = GLOBAL_BATCH_SIZE
-batch_size = global_batch_size // strategy.num_replicas_in_sync
+# batch_size will be calculated in main() after strategy is set up
+# batch_size = global_batch_size // strategy.num_replicas_in_sync
 n_epochs = N_EPOCHS
 
 #%% Main Function Section
@@ -2350,6 +2353,17 @@ Configuration:
     # This allows training_utils.py to access the strategy
     globals()['DISTRIBUTION_STRATEGY'] = strategy
     globals()['SELECTED_GPUS'] = selected_gpus
+
+    # Now that CUDA_VISIBLE_DEVICES is set, configure TensorFlow
+    tf.random.set_seed(RANDOM_SEED)
+    apply_environment_config()  # Apply threading and determinism settings
+    tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
+
+    # Calculate effective batch size now that strategy is set up
+    globals()['strategy'] = strategy  # Update global strategy variable
+    batch_size = global_batch_size // strategy.num_replicas_in_sync
+    globals()['batch_size'] = batch_size
+    vprint(f"\nBatch size per replica: {batch_size} (global batch size: {global_batch_size}, replicas: {strategy.num_replicas_in_sync})", level=0)
 
     # Set verbosity level
     set_verbosity(args.verbosity)

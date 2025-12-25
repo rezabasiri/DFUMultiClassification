@@ -252,6 +252,17 @@ def setup_device_strategy(
     # Set CUDA_VISIBLE_DEVICES
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(map(str, selected_gpu_ids))
 
+    # Configure GPU memory growth (must be done after setting CUDA_VISIBLE_DEVICES)
+    physical_gpus = tf.config.list_physical_devices('GPU')
+    if physical_gpus:
+        try:
+            for gpu in physical_gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            if verbose:
+                print(f"Enabled memory growth for {len(physical_gpus)} GPU(s)")
+        except RuntimeError as e:
+            print(f"⚠️  Could not set memory growth: {e}")
+
     # Create TensorFlow distribution strategy
     if len(selected_gpu_ids) == 1:
         # Single GPU - use default strategy (no distribution)
@@ -259,11 +270,14 @@ def setup_device_strategy(
         if verbose:
             print(f"\nUsing default strategy (single GPU)")
     else:
-        # Multi-GPU - use MirroredStrategy
-        strategy = tf.distribute.MirroredStrategy()
+        # Multi-GPU - use MirroredStrategy with hierarchical copy (avoids NCCL)
+        # Use HierarchicalCopyAllReduce instead of NCCL for RTX 5090 compatibility
+        cross_device_ops = tf.distribute.HierarchicalCopyAllReduce()
+        strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_device_ops)
         if verbose:
-            print(f"\nUsing MirroredStrategy ({len(selected_gpu_ids)} GPUs)")
-            print(f"Effective batch size: {tf.distribute.get_strategy().num_replicas_in_sync}× global batch size")
+            print(f"\nUsing MirroredStrategy ({len(selected_gpu_ids)} GPUs) with HierarchicalCopyAllReduce")
+            print(f"  (Using CPU-based gradient aggregation instead of NCCL for RTX 5090 compatibility)")
+            print(f"Effective batch size: {strategy.num_replicas_in_sync}× global batch size")
 
     if verbose:
         print("="*80 + "\n")
