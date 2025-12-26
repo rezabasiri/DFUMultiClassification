@@ -163,6 +163,7 @@ class BayesianDatasetPolisher:
         self.optimization_history = []
         self.best_thresholds = None
         self.best_score = -np.inf
+        self.phase1_baseline = None  # Will store baseline metrics from Phase 1
 
     def _calculate_phase2_batch_size(self):
         """
@@ -526,11 +527,15 @@ class BayesianDatasetPolisher:
 
     def calculate_combined_score(self, metrics, thresholds, filtered_size=None):
         """
-        Calculate enhanced combined optimization score with soft constraint penalties.
+        Calculate improvement-based optimization score for clinical applicability.
 
-        Formula: base_score - total_penalty
+        Formula: improvement_score + retention_bonus - penalties
 
-        Base Score: 0.3×macro_f1 + 0.5×min_per_class_f1 + 0.1×kappa + 0.1×balance_score
+        Improvement Score (focuses on beating baseline):
+        - 40% weighted F1 improvement (handles class imbalance)
+        - 30% min F1 improvement (no class left behind)
+        - 20% kappa improvement (inter-rater reliability)
+        - 10% data retention bonus (prefer less aggressive filtering)
 
         Penalties (smooth, integrated for Bayesian optimization):
         - dataset_size_penalty: Heavy exponential when filtered dataset < 50% of original
@@ -540,26 +545,51 @@ class BayesianDatasetPolisher:
         - empty_class_penalty: Large penalty when any class has 0 samples
 
         Args:
-            metrics: Dict with 'macro_f1', 'f1_per_class', 'kappa'
+            metrics: Dict with 'macro_f1', 'weighted_f1', 'f1_per_class', 'kappa'
             thresholds: Dict with threshold values
             filtered_size: Number of samples after filtering (for dataset size penalty)
 
         Returns:
             tuple: (final_score, penalties_dict)
         """
-        # Base performance score
-        macro_f1 = metrics['macro_f1']
+        # Extract current metrics
+        weighted_f1 = metrics.get('weighted_f1', 0.0)
         min_f1 = min(metrics['f1_per_class'].values())
         kappa = metrics['kappa']
-        balance_score = self.get_class_balance_score(thresholds)
 
-        base_score = 0.3 * macro_f1 + 0.5 * min_f1 + 0.1 * kappa + 0.1 * balance_score
+        # Calculate improvement over baseline (if available)
+        if self.phase1_baseline is not None:
+            # Improvement-based scoring: maximize delta from baseline
+            improvement_weighted_f1 = weighted_f1 - self.phase1_baseline['weighted_f1']
+            improvement_min_f1 = min_f1 - self.phase1_baseline['min_f1']
+            improvement_kappa = kappa - self.phase1_baseline['kappa']
+        else:
+            # Fallback if no baseline: use absolute scores (less ideal)
+            improvement_weighted_f1 = weighted_f1
+            improvement_min_f1 = min_f1
+            improvement_kappa = kappa
+
+        # Data retention bonus: reward keeping more samples (0.0-0.1 range)
+        if filtered_size is not None and self.original_dataset_size is not None:
+            retention_ratio = filtered_size / self.original_dataset_size
+            retention_bonus = 0.1 * retention_ratio
+        else:
+            retention_bonus = 0.0
+
+        # Improvement-based score
+        # Weights: 40% weighted F1, 30% min F1, 20% kappa, 10% retention
+        base_score = (
+            0.4 * improvement_weighted_f1 +
+            0.3 * improvement_min_f1 +
+            0.2 * improvement_kappa +
+            retention_bonus
+        )
 
         # Calculate constraint penalties (smooth, differentiable)
         penalties = self.calculate_constraint_penalties(thresholds, metrics, filtered_size)
         total_penalty = sum(penalties.values())
 
-        # Final score = base performance - penalties
+        # Final score = improvement score - penalties
         final_score = base_score - total_penalty
 
         return final_score, penalties
@@ -828,6 +858,10 @@ class BayesianDatasetPolisher:
             # Analyze misclassifications
             self.show_misclass_summary()
 
+            # CRITICAL: Save Phase 1 baseline metrics to a dedicated file
+            # This preserves the unfiltered baseline for Phase 2 to use
+            self._save_phase1_baseline()
+
             return True
 
         finally:
@@ -837,6 +871,90 @@ class BayesianDatasetPolisher:
             with open(config_path, 'w') as f:
                 f.write(original_config)
             backup_path.unlink(missing_ok=True)
+
+    def _save_phase1_baseline(self):
+        """
+        Save Phase 1 baseline metrics to a dedicated JSON file.
+
+        This prevents Phase 2 from accidentally using filtered results as baseline.
+        Saves all individual modality baselines from the CSV file.
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+
+        csv_files = [
+            os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv'),
+            os.path.join(self.result_dir, 'csv', 'modality_combination_results.csv')
+        ]
+
+        baselines = {}
+
+        for csv_file in csv_files:
+            if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
+                try:
+                    df = pd.read_csv(csv_file)
+                    for _, row in df.iterrows():
+                        modality = row.get('Modalities', 'unknown')
+                        baselines[modality] = {
+                            'modality': modality,
+                            'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                            'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                            'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                            'min_f1': min(
+                                float(row.get('I F1-score (Mean)', 0.0)),
+                                float(row.get('P F1-score (Mean)', 0.0)),
+                                float(row.get('R F1-score (Mean)', 0.0))
+                            )
+                        }
+                    break  # Use first valid CSV file
+                except Exception as e:
+                    continue
+
+        if baselines:
+            with open(baseline_file, 'w') as f:
+                json.dump(baselines, f, indent=2)
+            print(f"\n💾 Saved Phase 1 baseline metrics: {baseline_file}")
+            print(f"   Baselines for {len(baselines)} modalities preserved")
+
+    def _load_baseline_from_previous_run(self):
+        """
+        Load Phase 1 baseline from dedicated baseline file.
+
+        When --phase2-only is used, CSV files get overwritten with Phase 2 filtered results.
+        This method loads the preserved Phase 1 baseline from phase1_baseline.json.
+
+        Returns:
+            dict or None: Best baseline metrics if found
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+        if not os.path.exists(baseline_file):
+            return None
+
+        try:
+            with open(baseline_file, 'r') as f:
+                baselines = json.load(f)
+
+            # Find baselines matching the modalities being optimized
+            candidate_baselines = []
+            for modality in self.modalities:
+                # Check for exact match or substring match
+                for key, baseline in baselines.items():
+                    if modality in key.lower():
+                        candidate_baselines.append(baseline)
+                        break
+
+            # Select best baseline (highest weighted F1)
+            if candidate_baselines:
+                return max(candidate_baselines, key=lambda x: x['weighted_f1'])
+
+            return None
+
+        except Exception as e:
+            print(f"  ⚠️  Could not load baseline from saved file: {e}")
+            return None
 
     def show_misclass_summary(self):
         """Show summary of accumulated misclassifications."""
@@ -870,7 +988,7 @@ class BayesianDatasetPolisher:
                       f"median={phase_df['Misclass_Count'].median():.1f}")
 
     def show_phase1_baseline(self):
-        """Show Phase 1 baseline performance for each modality tested."""
+        """Show Phase 1 baseline performance for each modality tested and store it."""
         print(f"\n{'='*70}")
         print(f"PHASE 1 BASELINE PERFORMANCE (Before Optimization)")
         print(f"{'='*70}")
@@ -894,32 +1012,84 @@ class BayesianDatasetPolisher:
             modality = basename.replace('frequent_misclassifications_', '').replace('_saved.csv', '')
             modalities_tested.append(modality)
 
-        # Try to read performance from modality_results_averaged.csv if it exists
-        csv_file = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
-        if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
-            try:
-                df = pd.read_csv(csv_file)
-                for modality in modalities_tested:
-                    # Find rows matching this modality
-                    matching_rows = df[df['Modalities'].str.contains(modality, case=False, na=False)]
-                    if len(matching_rows) > 0:
-                        row = matching_rows.iloc[0]
-                        macro_f1 = row.get('Macro Avg F1-score (Mean)', 0.0)
-                        kappa = row.get("Cohen's Kappa (Mean)", 0.0)
-                        acc = row.get('Accuracy (Mean)', 0.0)
-                        f1_I = row.get('I F1-score (Mean)', 0.0)
-                        f1_P = row.get('P F1-score (Mean)', 0.0)
-                        f1_R = row.get('R F1-score (Mean)', 0.0)
-                        min_f1 = min(f1_I, f1_P, f1_R)
+        # CRITICAL: When running --phase2-only, CSV files may contain Phase 2 filtered results,
+        # NOT Phase 1 baseline. Try to load from previous optimization JSON first.
+        baseline_from_json = self._load_baseline_from_previous_run()
+        if baseline_from_json:
+            self.phase1_baseline = baseline_from_json
+            print(f"\n  📊 Using best Phase 1 baseline from previous run: {self.phase1_baseline['modality']}")
+            print(f"     Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}, " +
+                  f"Min F1: {self.phase1_baseline['min_f1']:.4f}, " +
+                  f"Kappa: {self.phase1_baseline['kappa']:.4f}")
+            print(f"\n  (Loaded from saved optimization history to avoid using filtered Phase 2 results)")
+            return
 
-                        print(f"\n  {modality}:")
-                        print(f"    Macro F1: {macro_f1:.4f}")
-                        print(f"    Min F1: {min_f1:.4f} (I:{f1_I:.4f}, P:{f1_P:.4f}, R:{f1_R:.4f})")
-                        print(f"    Kappa: {kappa:.4f}")
-                        print(f"    Accuracy: {acc:.4f}")
-                return
-            except Exception as e:
-                pass
+        # Try to read performance from CSV files
+        # Priority order:
+        # 1. modality_results_averaged.csv (single modality Phase 1 results)
+        # 2. modality_combination_results.csv (only if modalities match exactly what we're testing)
+        # We should NOT use modality_combination_results.csv if it contains Phase 2 filtered results
+        csv_files = [
+            os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv'),
+        ]
+
+        for csv_file in csv_files:
+            if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
+                try:
+                    df = pd.read_csv(csv_file)
+
+                    # Find ALL baselines for modalities being optimized
+                    # Then select the BEST one (highest weighted F1)
+                    candidate_baselines = []
+                    for modality in self.modalities:
+                        matching_rows = df[df['Modalities'].str.contains(modality, case=False, na=False)]
+                        if len(matching_rows) > 0:
+                            row = matching_rows.iloc[0]
+                            baseline = {
+                                'modality': modality,
+                                'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                                'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                                'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                                'min_f1': min(
+                                    float(row.get('I F1-score (Mean)', 0.0)),
+                                    float(row.get('P F1-score (Mean)', 0.0)),
+                                    float(row.get('R F1-score (Mean)', 0.0))
+                                )
+                            }
+                            candidate_baselines.append(baseline)
+
+                    # Select best baseline (highest weighted F1 for clinical relevance)
+                    if candidate_baselines:
+                        self.phase1_baseline = max(candidate_baselines, key=lambda x: x['weighted_f1'])
+                        print(f"\n  📊 Using best Phase 1 baseline: {self.phase1_baseline['modality']}")
+                        print(f"     Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}, " +
+                              f"Min F1: {self.phase1_baseline['min_f1']:.4f}, " +
+                              f"Kappa: {self.phase1_baseline['kappa']:.4f}")
+
+                    # Display all modalities tested
+                    for modality in modalities_tested:
+                        # Find rows matching this modality
+                        matching_rows = df[df['Modalities'].str.contains(modality, case=False, na=False)]
+                        if len(matching_rows) > 0:
+                            row = matching_rows.iloc[0]
+                            macro_f1 = row.get('Macro Avg F1-score (Mean)', 0.0)
+                            weighted_f1 = row.get('Weighted Avg F1-score (Mean)', 0.0)
+                            kappa = row.get("Cohen's Kappa (Mean)", 0.0)
+                            acc = row.get('Accuracy (Mean)', 0.0)
+                            f1_I = row.get('I F1-score (Mean)', 0.0)
+                            f1_P = row.get('P F1-score (Mean)', 0.0)
+                            f1_R = row.get('R F1-score (Mean)', 0.0)
+                            min_f1 = min(f1_I, f1_P, f1_R)
+
+                            print(f"\n  {modality}:")
+                            print(f"    Macro F1: {macro_f1:.4f}")
+                            print(f"    Weighted F1: {weighted_f1:.4f}")
+                            print(f"    Min F1: {min_f1:.4f} (I:{f1_I:.4f}, P:{f1_P:.4f}, R:{f1_R:.4f})")
+                            print(f"    Kappa: {kappa:.4f}")
+                            print(f"    Accuracy: {acc:.4f}")
+                    return
+                except Exception as e:
+                    pass
 
         # Fallback: Just show which modalities were tested
         print(f"\n  Modalities tested in Phase 1: {', '.join(modalities_tested)}")
@@ -1030,7 +1200,8 @@ class BayesianDatasetPolisher:
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
         print(f"  CV folds per evaluation: {self.phase2_cv_folds}")
-        print(f"  Score: 0.3×macro_f1 + 0.5×min_f1 + 0.1×kappa + 0.1×balance - penalties")
+        print(f"  Score: 0.4×Δweighted_f1 + 0.3×Δmin_f1 + 0.2×Δkappa + 0.1×retention - penalties")
+        print(f"  (Δ = improvement over baseline; focuses on clinical applicability)")
         print(f"\nSoft Constraints (smooth penalties guide optimizer):")
         print(f"  Dataset size: Target ≥{self.min_dataset_fraction*100:.0f}% of original (heavy exp penalty)")
         print(f"  Min F1 per class: Target ≥{self.min_f1_threshold} (exponential penalty)")
@@ -1102,11 +1273,35 @@ class BayesianDatasetPolisher:
             balance_score = self.get_class_balance_score(threshold_dict)
             score, penalties = self.calculate_combined_score(metrics, threshold_dict, filtered_size)
 
+            # Calculate improvements for display
+            weighted_f1 = metrics.get('weighted_f1', 0.0)
+            min_f1 = min(metrics['f1_per_class'].values())
+            kappa = metrics['kappa']
+
             print(f"Results:")
-            print(f"  Macro F1: {metrics['macro_f1']:.4f}")
-            print(f"  Min F1: {min(metrics['f1_per_class'].values()):.4f}")
-            print(f"  Kappa: {metrics['kappa']:.4f}")
-            print(f"  Balance: {balance_score:.4f}")
+            print(f"  Weighted F1: {weighted_f1:.4f}", end='')
+            if self.phase1_baseline:
+                delta = weighted_f1 - self.phase1_baseline['weighted_f1']
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
+            print(f"  Min F1: {min_f1:.4f}", end='')
+            if self.phase1_baseline:
+                delta = min_f1 - self.phase1_baseline['min_f1']
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
+            print(f"  Kappa: {kappa:.4f}", end='')
+            if self.phase1_baseline:
+                delta = kappa - self.phase1_baseline['kappa']
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
+            print(f"  Retention: {filtered_size}/{self.original_dataset_size} ({filtered_size/self.original_dataset_size*100:.1f}%)")
+
             if sum(penalties.values()) > 0:
                 print(f"  Penalties: {sum(penalties.values()):.3f} " +
                       f"({', '.join(f'{k}:{v:.2f}' for k, v in penalties.items() if v > 0)})")
@@ -1353,6 +1548,7 @@ class BayesianDatasetPolisher:
         metrics = {
             'f1_per_class': {'I': 0.0, 'P': 0.0, 'R': 0.0},
             'macro_f1': 0.0,
+            'weighted_f1': 0.0,
             'kappa': 0.0,
             'accuracy': 0.0
         }
@@ -1370,13 +1566,17 @@ class BayesianDatasetPolisher:
 
             row = matching_rows.iloc[-1]
             metrics['macro_f1'] = float(row.get('Macro Avg F1-score (Mean)', 0.0))
+            metrics['weighted_f1'] = float(row.get('Weighted Avg F1-score (Mean)', 0.0))
             metrics['kappa'] = float(row.get("Cohen's Kappa (Mean)", 0.0))
             metrics['accuracy'] = float(row.get('Accuracy (Mean)', 0.0))
 
-            for i, cls in enumerate(['I', 'P', 'R']):
-                col_name = f'Class {i} F1-score (Mean)'
+            # Extract per-class F1 scores
+            for cls in ['I', 'P', 'R']:
+                col_name = f'{cls} F1-score (Mean)'
                 if col_name in row:
                     metrics['f1_per_class'][cls] = float(row[col_name])
+                else:
+                    metrics['f1_per_class'][cls] = 0.0
 
             return metrics
 
@@ -1386,7 +1586,9 @@ class BayesianDatasetPolisher:
 
     def save_results(self):
         """Save optimization results to JSON."""
-        results_file = os.path.join(self.result_dir, 'bayesian_optimization_results.json')
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        results_file = os.path.join(output_paths['misclassifications'], 'bayesian_optimization_results.json')
 
         # Convert numpy types to native Python types for JSON serialization
         def convert_to_native(obj):
