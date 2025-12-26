@@ -1298,8 +1298,8 @@ class BayesianDatasetPolisher:
                 cmd_str = ' '.join(str(arg) for arg in cmd)
                 # Redirect output to temp file for debugging
                 temp_output = project_root / 'phase2_training_output.tmp'
-                # Add timeout to prevent infinite hangs (10 minutes max per evaluation)
-                return_code = os.system(f"timeout 600 {cmd_str} >{temp_output} 2>&1")
+                # Add timeout to prevent infinite hangs (30 minutes max per evaluation with 3-fold CV)
+                return_code = os.system(f"timeout 1800 {cmd_str} >{temp_output} 2>&1")
 
             finally:
                 # Restore original directory
