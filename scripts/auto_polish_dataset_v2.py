@@ -659,14 +659,17 @@ class BayesianDatasetPolisher:
         # Get original dataset size
         self.original_dataset_size = self.get_original_dataset_size()
         if self.original_dataset_size:
-            min_samples = int(self.original_dataset_size * self.min_dataset_fraction)
-            print(f"Dataset: {self.original_dataset_size} samples (min after filtering: {min_samples})")
+            # Calculate actual dataset size being used based on data percentage
+            actual_dataset_size = int(self.original_dataset_size * self.phase1_data_percentage / 100)
+            min_samples = int(actual_dataset_size * self.min_dataset_fraction)
+            print(f"Dataset: {actual_dataset_size} samples ({self.phase1_data_percentage}% of {self.original_dataset_size})")
+            print(f"Min after filtering: {min_samples} samples ({self.min_dataset_fraction*100:.0f}%)")
 
         total_runs = self.phase1_n_runs * len(self.phase1_modalities)
         print(f"Testing {len(self.phase1_modalities)} modalities individually: {self.phase1_modalities}")
         print(f"Running {self.phase1_n_runs} runs per modality (total {total_runs} runs)")
         print(f"Misclassification counts will be out of {total_runs}")
-        print(f"CV folds={self.phase1_cv_folds}, data={self.phase1_data_percentage}%, verbosity=silent\n")
+        print(f"CV folds={self.phase1_cv_folds}, verbosity=silent\n")
 
         # Clean up everything for fresh start
         cleanup_for_resume_mode('fresh')
