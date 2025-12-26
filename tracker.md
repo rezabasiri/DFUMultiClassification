@@ -2,6 +2,47 @@
 
 Tracks major repository changes and refactors.
 
+## 2025-12-26 — Phase 2 optimization fixes and improvements
+
+### Critical Bug Fixes in scripts/auto_polish_dataset_v2.py
+- **Fixed subprocess TensorFlow context conflicts**: Replaced `subprocess.run()` with `os.system()` to avoid parent/child TensorFlow context conflicts that caused thread creation failures (lines 768-780, 1292-1340)
+- **Fixed batch size adjustment**: Added `_calculate_phase2_batch_size()` method to prevent OOM by dividing batch size by number of image modalities in Phase 2 (lines 170-203, 1183, 1256-1260)
+- **Fixed metric extraction for non-metadata modalities**: Changed CSV search from hardcoded 'metadata' to actual modalities being tested (line 1367), fixed column names from `Class {i} F1-score` to `{cls} F1-score` (lines 1377-1382)
+- **Fixed timeout handling**: Added proper os.system() return code decoding, handle timeout exit code 124 gracefully (lines 1308-1340)
+- **Removed metadata requirement**: Deleted unnecessary check forcing metadata inclusion (line 134-135 removed)
+- **Fixed baseline corruption**: Phase 1 baseline now saved to `results/misclassifications/phase1_baseline.json` and loaded from there during Phase 2 to prevent using filtered results as baseline (lines 875-953)
+
+### New Features in scripts/auto_polish_dataset_v2.py
+- **Automatic logging**: All terminal output saved to timestamped files in `results/misclassifications/optimization_run_YYYYMMDD_HHMMSS.log` (lines 1410-1438)
+- **Phase 1 baseline display**: Added `show_phase1_baseline()` to show performance metrics before optimization for comparison (lines 872-978)
+- **CV folds arguments**: Added `--phase1-cv-folds` and `--phase2-cv-folds` command-line args for flexible cross-validation (lines 1498-1508, 1547, 1551)
+- **Dataset size display fix**: Shows actual samples used based on `--phase1-data-percentage` instead of full dataset (lines 663-666)
+- **Improved objective function for clinical applicability** (lines 527-594):
+  - Added weighted F1 extraction from CSV (lines 1356, 1373)
+  - New improvement-based scoring: `0.4×Δweighted_f1 + 0.3×Δmin_f1 + 0.2×Δkappa + 0.1×retention - penalties`
+  - Focuses on beating baseline rather than absolute scores
+  - Weighted F1 prioritized for imbalanced datasets (40% weight vs 30% for min F1)
+  - Shows improvement deltas in output: `Weighted F1: 0.4491 (Δ+0.0123)`
+- **Best baseline selection**: When multiple modalities tested in Phase 1, automatically selects best performing one (highest weighted F1) as optimization target (lines 923-949)
+
+### Files Modified
+- `scripts/auto_polish_dataset_v2.py`: All fixes and features above
+- `agent_communication/phase2_subprocess_investigation/`: Investigation docs (FINDINGS.md, SOLUTION.md) and test script
+
+### Key Parameters
+- Timeout: 3600s (60 min) per evaluation to allow completion
+- Default CV folds: Phase 1=1, Phase 2=3
+- Batch size adjustment: `GLOBAL_BATCH_SIZE / num_image_modalities` in Phase 2
+- Objective weights: 40% weighted F1, 30% min F1, 20% kappa, 10% data retention
+
+### Output Files (all in results/misclassifications/)
+- `phase1_baseline.json` - Preserved Phase 1 baseline metrics for all modalities
+- `bayesian_optimization_results.json` - Phase 2 optimization history and best thresholds
+- `optimization_run_YYYYMMDD_HHMMSS.log` - Timestamped execution logs
+- `frequent_misclassifications_saved.csv` - Misclassification counts from Phase 1
+
+---
+
 ## 2025-12-25 — Multi-GPU support implementation
 
 ### Multi-GPU Training with MirroredStrategy
