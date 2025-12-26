@@ -1,0 +1,263 @@
+{
+  "timestamp": "2025-12-26T13:57:27.833351",
+  "phase1_n_runs": 5,
+  "phase2_n_evaluations": 20,
+  "best_thresholds": {
+    "P": 19,
+    "I": 19,
+    "R": 17
+  },
+  "best_score": -3.5951925115565415,
+  "optimization_history": [
+    {
+      "evaluation": 1,
+      "thresholds": {
+        "P": 18,
+        "I": 17,
+        "R": 19
+      },
+      "score": -10.0,
+      "filtered_size": 639,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 2,
+      "thresholds": {
+        "P": 18,
+        "I": 18,
+        "R": 17
+      },
+      "score": -10.0,
+      "filtered_size": 639,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 3,
+      "thresholds": {
+        "P": 17,
+        "I": 18,
+        "R": 17
+      },
+      "score": -10.0,
+      "filtered_size": 636,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 4,
+      "thresholds": {
+        "P": 18,
+        "I": 17,
+        "R": 18
+      },
+      "score": -10.0,
+      "filtered_size": 635,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 5,
+      "thresholds": {
+        "P": 19,
+        "I": 17,
+        "R": 19
+      },
+      "score": -10.0,
+      "filtered_size": 641,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 6,
+      "thresholds": {
+        "P": 18,
+        "I": 18,
+        "R": 17
+      },
+      "score": -10.0,
+      "filtered_size": 639,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 7,
+      "thresholds": {
+        "P": 16,
+        "I": 18,
+        "R": 18
+      },
+      "score": -10.0,
+      "filtered_size": 627,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 8,
+      "thresholds": {
+        "P": 16,
+        "I": 19,
+        "R": 17
+      },
+      "score": -10.0,
+      "filtered_size": 625,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 9,
+      "thresholds": {
+        "P": 16,
+        "I": 18,
+        "R": 18
+      },
+      "score": -10.0,
+      "filtered_size": 627,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 10,
+      "thresholds": {
+        "P": 19,
+        "I": 18,
+        "R": 19
+      },
+      "score": -10.0,
+      "filtered_size": 647,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 11,
+      "thresholds": {
+        "P": 19,
+        "I": 19,
+        "R": 19
+      },
+      "score": -10.0,
+      "filtered_size": 647,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 12,
+      "thresholds": {
+        "P": 16,
+        "I": 19,
+        "R": 19
+      },
+      "score": -10.0,
+      "filtered_size": 631,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 13,
+      "thresholds": {
+        "P": 19,
+        "I": 19,
+        "R": 17
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.0,
+          "P": 0.0,
+          "R": 0.0
+        },
+        "macro_f1": 0.3517517418325775,
+        "kappa": 0.0835476866786179,
+        "accuracy": 0.5905354131534569
+      },
+      "score": -3.5951925115565415,
+      "filtered_size": 641,
+      "rejected": false
+    },
+    {
+      "evaluation": 14,
+      "thresholds": {
+        "P": 18,
+        "I": 19,
+        "R": 17
+      },
+      "score": -10.0,
+      "filtered_size": 639,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 15,
+      "thresholds": {
+        "P": 19,
+        "I": 17,
+        "R": 17
+      },
+      "score": -10.0,
+      "filtered_size": 635,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 16,
+      "thresholds": {
+        "P": 17,
+        "I": 19,
+        "R": 18
+      },
+      "score": -10.0,
+      "filtered_size": 638,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 17,
+      "thresholds": {
+        "P": 16,
+        "I": 17,
+        "R": 18
+      },
+      "score": -10.0,
+      "filtered_size": 621,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 18,
+      "thresholds": {
+        "P": 18,
+        "I": 18,
+        "R": 18
+      },
+      "score": -10.0,
+      "filtered_size": 641,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 19,
+      "thresholds": {
+        "P": 16,
+        "I": 17,
+        "R": 18
+      },
+      "score": -10.0,
+      "filtered_size": 621,
+      "rejected": true,
+      "failed": true
+    },
+    {
+      "evaluation": 20,
+      "thresholds": {
+        "P": 19,
+        "I": 17,
+        "R": 17
+      },
+      "score": -10.0,
+      "filtered_size": 635,
+      "rejected": true,
+      "failed": true
+    }
+  ],
+  "original_dataset_size": 647
+}
