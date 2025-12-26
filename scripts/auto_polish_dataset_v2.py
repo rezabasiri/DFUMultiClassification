@@ -1016,12 +1016,30 @@ class BayesianDatasetPolisher:
         # NOT Phase 1 baseline. Try to load from previous optimization JSON first.
         baseline_from_json = self._load_baseline_from_previous_run()
         if baseline_from_json:
+            # Display ALL baselines from the JSON file with full detail
+            from src.utils.config import get_output_paths
+            output_paths = get_output_paths(self.result_dir)
+            baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+
+            try:
+                with open(baseline_file, 'r') as f:
+                    all_baselines = json.load(f)
+
+                # Display all modalities with full metrics
+                for modality, baseline in all_baselines.items():
+                    print(f"\n  {modality}:")
+                    print(f"    Macro F1: {baseline['macro_f1']:.4f}")
+                    print(f"    Weighted F1: {baseline['weighted_f1']:.4f}")
+                    print(f"    Min F1: {baseline['min_f1']:.4f}")
+                    print(f"    Kappa: {baseline['kappa']:.4f}")
+
+            except:
+                pass
+
+            # Set and announce the best baseline being used
             self.phase1_baseline = baseline_from_json
-            print(f"\n  📊 Using best Phase 1 baseline from previous run: {self.phase1_baseline['modality']}")
-            print(f"     Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}, " +
-                  f"Min F1: {self.phase1_baseline['min_f1']:.4f}, " +
-                  f"Kappa: {self.phase1_baseline['kappa']:.4f}")
-            print(f"\n  (Loaded from saved optimization history to avoid using filtered Phase 2 results)")
+            print(f"\n  📊 Using best baseline for optimization: {self.phase1_baseline['modality']}")
+            print(f"     (Highest Weighted F1: {self.phase1_baseline['weighted_f1']:.4f})")
             return
 
         # Try to read performance from CSV files
