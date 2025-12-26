@@ -869,6 +869,62 @@ class BayesianDatasetPolisher:
                       f"counts {phase_df['Misclass_Count'].min()}-{phase_df['Misclass_Count'].max()}, " +
                       f"median={phase_df['Misclass_Count'].median():.1f}")
 
+    def show_phase1_baseline(self):
+        """Show Phase 1 baseline performance for each modality tested."""
+        print(f"\n{'='*70}")
+        print(f"PHASE 1 BASELINE PERFORMANCE (Before Optimization)")
+        print(f"{'='*70}")
+
+        # Look for saved modality CSV files from Phase 1
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+
+        import glob
+        saved_csv_files = glob.glob(os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_*_saved.csv'))
+
+        if not saved_csv_files:
+            print("  (No Phase 1 baseline data found - Phase 1 may have been skipped)")
+            return
+
+        # Extract modality names from saved files
+        modalities_tested = []
+        for f in saved_csv_files:
+            basename = os.path.basename(f)
+            # Extract modality name: frequent_misclassifications_metadata_saved.csv -> metadata
+            modality = basename.replace('frequent_misclassifications_', '').replace('_saved.csv', '')
+            modalities_tested.append(modality)
+
+        # Try to read performance from modality_results_averaged.csv if it exists
+        csv_file = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
+        if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
+            try:
+                df = pd.read_csv(csv_file)
+                for modality in modalities_tested:
+                    # Find rows matching this modality
+                    matching_rows = df[df['Modalities'].str.contains(modality, case=False, na=False)]
+                    if len(matching_rows) > 0:
+                        row = matching_rows.iloc[0]
+                        macro_f1 = row.get('Macro Avg F1-score (Mean)', 0.0)
+                        kappa = row.get("Cohen's Kappa (Mean)", 0.0)
+                        acc = row.get('Accuracy (Mean)', 0.0)
+                        f1_I = row.get('I F1-score (Mean)', 0.0)
+                        f1_P = row.get('P F1-score (Mean)', 0.0)
+                        f1_R = row.get('R F1-score (Mean)', 0.0)
+                        min_f1 = min(f1_I, f1_P, f1_R)
+
+                        print(f"\n  {modality}:")
+                        print(f"    Macro F1: {macro_f1:.4f}")
+                        print(f"    Min F1: {min_f1:.4f} (I:{f1_I:.4f}, P:{f1_P:.4f}, R:{f1_R:.4f})")
+                        print(f"    Kappa: {kappa:.4f}")
+                        print(f"    Accuracy: {acc:.4f}")
+                return
+            except Exception as e:
+                pass
+
+        # Fallback: Just show which modalities were tested
+        print(f"\n  Modalities tested in Phase 1: {', '.join(modalities_tested)}")
+        print(f"  (Performance metrics not available - CSV file may not exist yet)")
+
     def phase2_optimize_thresholds(self):
         """
         Phase 2: Use Bayesian optimization to find optimal thresholds.
@@ -981,6 +1037,9 @@ class BayesianDatasetPolisher:
         print(f"  Min samples per class: Target ≥{self.min_samples_per_class} (linear penalty)")
         print(f"  Max class imbalance: Target ≤{self.max_class_imbalance_ratio}x (linear penalty)")
         print(f"\nAll constraints are soft - optimizer learns from violations!\n")
+
+        # Show Phase 1 baseline performance
+        self.show_phase1_baseline()
 
         # Objective function
         @use_named_args(search_space)
