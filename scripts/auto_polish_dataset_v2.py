@@ -131,9 +131,6 @@ class BayesianDatasetPolisher:
             min_gpu_memory: Minimum GPU memory in GB (default: 8.0)
             include_display_gpus: Allow training on display GPUs (default: False)
         """
-        if 'metadata' not in modalities:
-            raise ValueError("Modalities must include 'metadata' for polishing")
-
         self.modalities = modalities
         self.min_f1_per_class = min_f1_per_class
         self.min_macro_f1 = min_macro_f1
