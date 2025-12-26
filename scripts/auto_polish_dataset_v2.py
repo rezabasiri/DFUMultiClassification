@@ -1226,27 +1226,40 @@ class BayesianDatasetPolisher:
                 cmd.append('--include-display-gpus')
 
             print(f"⏳ Training with cv_folds={self.phase2_cv_folds} (fresh mode)...")
-            result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
 
-            if result.returncode != 0:
+            # Save current directory
+            original_cwd = os.getcwd()
+            try:
+                # Change to project root for execution
+                os.chdir(project_root)
+
+                # Use os.system instead of subprocess.run to avoid TensorFlow context conflicts
+                # Build command string with proper quoting
+                cmd_str = ' '.join(str(arg) for arg in cmd)
+                # Redirect output to temp file for debugging
+                temp_output = project_root / 'phase2_training_output.tmp'
+                return_code = os.system(f"{cmd_str} >{temp_output} 2>&1")
+
+            finally:
+                # Restore original directory
+                os.chdir(original_cwd)
+
+            if return_code != 0:
                 print(f"\n{'='*80}")
-                print("❌ TRAINING SUBPROCESS FAILED")
+                print("❌ TRAINING FAILED")
                 print(f"{'='*80}")
-                print(f"Return code: {result.returncode}")
+                print(f"Return code: {return_code}")
                 print(f"\nCommand that failed:")
                 print(' '.join(cmd))
 
-                if result.stderr:
-                    print(f"\n{'─'*80}")
-                    print("STDERR (last 3000 chars):")
-                    print(f"{'─'*80}")
-                    print(result.stderr[-3000:])
-
-                if result.stdout:
-                    print(f"\n{'─'*80}")
-                    print("STDOUT (last 3000 chars):")
-                    print(f"{'─'*80}")
-                    print(result.stdout[-3000:])
+                # Show last part of output for debugging
+                if temp_output.exists():
+                    with open(temp_output, 'r') as f:
+                        output = f.read()
+                        print(f"\n{'─'*80}")
+                        print("OUTPUT (last 3000 chars):")
+                        print(f"{'─'*80}")
+                        print(output[-3000:])
 
                 print(f"{'='*80}\n")
                 return None
