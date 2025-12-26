@@ -1407,6 +1407,36 @@ class BayesianDatasetPolisher:
 
 
 def main():
+    # Set up automatic logging to file
+    import datetime
+    from pathlib import Path
+
+    # Create log directory if it doesn't exist
+    log_dir = Path('results/misclassifications')
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create timestamped log file
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = log_dir / f'optimization_run_{timestamp}.log'
+
+    # Tee stdout/stderr to both console and file
+    class TeeOutput:
+        def __init__(self, file_path):
+            self.terminal = sys.stdout
+            self.log = open(file_path, 'w', buffering=1)  # Line buffered
+
+        def write(self, message):
+            self.terminal.write(message)
+            self.log.write(message)
+
+        def flush(self):
+            self.terminal.flush()
+            self.log.flush()
+
+    # Redirect stdout to tee
+    sys.stdout = TeeOutput(log_file)
+    print(f"📝 Logging to: {log_file}\n")
+
     parser = argparse.ArgumentParser(
         description='Two-phase Bayesian dataset polishing',
         formatter_class=argparse.RawDescriptionHelpFormatter,
