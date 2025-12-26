@@ -765,16 +765,17 @@ class BayesianDatasetPolisher:
                     if self.include_display_gpus:
                         cmd.append('--include-display-gpus')
 
-                    # Suppress all subprocess output - only show progress bar
-                    result = subprocess.run(
-                        cmd,
-                        cwd=project_root,
-                        env=os.environ.copy(),
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL
-                    )
+                    # Use os.system to avoid TensorFlow context conflicts (same fix as Phase 2)
+                    # Save current directory
+                    original_cwd = os.getcwd()
+                    try:
+                        os.chdir(project_root)
+                        cmd_str = ' '.join(str(arg) for arg in cmd)
+                        return_code = os.system(f"{cmd_str} >/dev/null 2>&1")
+                    finally:
+                        os.chdir(original_cwd)
 
-                    if result.returncode != 0:
+                    if return_code != 0:
                         print(f"\n❌ Training failed on {modality_name} run {run_idx}")
                         return False
 
