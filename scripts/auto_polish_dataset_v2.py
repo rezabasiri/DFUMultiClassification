@@ -1495,11 +1495,17 @@ GPU Configuration:
     parser.add_argument('--phase1-data-percentage', type=int, default=100,
                         help='Percentage of data to use in Phase 1 (default: 100)')
 
+    parser.add_argument('--phase1-cv-folds', type=int, default=1,
+                        help='Number of CV folds in Phase 1 (default: 1)')
+
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')
 
     parser.add_argument('--phase2-data-percentage', type=int, default=100,
                         help='Percentage of data to use in Phase 2 (default: 100)')
+
+    parser.add_argument('--phase2-cv-folds', type=int, default=3,
+                        help='Number of CV folds in Phase 2 (default: 3)')
 
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
@@ -1538,9 +1544,11 @@ GPU Configuration:
     polisher = BayesianDatasetPolisher(
         modalities=phase2_modalities,
         phase1_n_runs=args.phase1_n_runs,
+        phase1_cv_folds=args.phase1_cv_folds,
         phase1_modalities=args.phase1_modalities,
         phase1_data_percentage=args.phase1_data_percentage,
         phase2_n_evaluations=args.n_evaluations,
+        phase2_cv_folds=args.phase2_cv_folds,
         phase2_data_percentage=args.phase2_data_percentage,
         min_dataset_fraction=args.min_dataset_fraction,
         min_retention_per_class=args.min_retention_per_class,
