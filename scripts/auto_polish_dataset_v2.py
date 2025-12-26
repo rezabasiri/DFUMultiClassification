@@ -1305,28 +1305,39 @@ class BayesianDatasetPolisher:
                 # Restore original directory
                 os.chdir(original_cwd)
 
+            # Check return code - os.system returns exit status << 8
+            # timeout command returns 124 when it times out
+            exit_status = return_code >> 8 if return_code > 255 else return_code
+
             if return_code != 0:
-                print(f"\n{'='*80}")
-                print("❌ TRAINING FAILED")
-                print(f"{'='*80}")
-                print(f"Return code: {return_code}")
-                print(f"\nCommand that failed:")
-                print(' '.join(cmd))
+                # Timeout exit code 124 might still have valid results
+                if exit_status == 124:
+                    print(f"⚠️  Training timed out but may have completed - checking for results...")
+                else:
+                    print(f"\n{'='*80}")
+                    print("❌ TRAINING FAILED")
+                    print(f"{'='*80}")
+                    print(f"Return code: {return_code} (exit status: {exit_status})")
+                    print(f"\nCommand that failed:")
+                    print(' '.join(cmd))
 
-                # Show last part of output for debugging
-                if temp_output.exists():
-                    with open(temp_output, 'r') as f:
-                        output = f.read()
-                        print(f"\n{'─'*80}")
-                        print("OUTPUT (last 3000 chars):")
-                        print(f"{'─'*80}")
-                        print(output[-3000:])
+                    # Show last part of output for debugging
+                    if temp_output.exists():
+                        with open(temp_output, 'r') as f:
+                            output = f.read()
+                            print(f"\n{'─'*80}")
+                            print("OUTPUT (last 3000 chars):")
+                            print(f"{'─'*80}")
+                            print(output[-3000:])
 
-                print(f"{'='*80}\n")
-                return None
+                    print(f"{'='*80}\n")
+                    return None
 
-            # Extract metrics from CSV
-            return self.extract_metrics_from_files()
+            # Extract metrics from CSV - will return None if no valid data
+            metrics = self.extract_metrics_from_files()
+            if metrics is None and return_code == 0:
+                print(f"❌ Training completed but no metrics found in CSV files")
+            return metrics
 
         finally:
             # Restore config
