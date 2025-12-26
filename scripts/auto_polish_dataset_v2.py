@@ -1363,11 +1363,12 @@ class BayesianDatasetPolisher:
 
         try:
             df = pd.read_csv(csv_file)
-            metadata_rows = df[df['Modalities'].str.contains('metadata', case=False, na=False)]
-            if len(metadata_rows) == 0:
+            # Look for rows matching any of the modalities being tested
+            matching_rows = df[df['Modalities'].str.contains('|'.join(self.modalities), case=False, na=False, regex=True)]
+            if len(matching_rows) == 0:
                 return None
 
-            row = metadata_rows.iloc[-1]
+            row = matching_rows.iloc[-1]
             metrics['macro_f1'] = float(row.get('Macro Avg F1-score (Mean)', 0.0))
             metrics['kappa'] = float(row.get("Cohen's Kappa (Mean)", 0.0))
             metrics['accuracy'] = float(row.get('Accuracy (Mean)', 0.0))
