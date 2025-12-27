@@ -342,11 +342,17 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
     k = steps * batch_size  # Total number of samples needed
     
-    # Cache the dataset with unique filename per modality combination AND fold
-    # CRITICAL: Include fold_id to prevent cache reuse across different CV folds
+    # Cache the dataset with unique filename per modality combination, fold, AND run
+    # CRITICAL: Include fold_id AND seed to prevent cache reuse across CV folds and multiple runs
     modality_suffix = '_'.join(sorted(selected_modalities))  # e.g., "depth_rgb_metadata"
     split_type = 'train' if is_training else 'valid'
-    cache_filename = f'tf_cache_{split_type}_{modality_suffix}_fold{fold_id}'
+
+    # Get seed from environment (set by auto_polish for multiple runs) or use default
+    # This ensures different runs (with different patient splits) don't share cache
+    import os
+    seed_suffix = os.environ.get('CV_FOLD_SEED', os.environ.get('CROSS_VAL_RANDOM_SEED', '42'))
+
+    cache_filename = f'tf_cache_{split_type}_{modality_suffix}_fold{fold_id}_seed{seed_suffix}'
 
     # Use results/tf_records as default cache directory
     if cache_dir is None:
