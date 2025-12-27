@@ -1,0 +1,104 @@
+FAST CLASS IMBALANCE STRATEGY COMPARISON - V3
+==========================================================================================
+
+Dataset: 932 samples (30% of full dataset)
+Class distribution: {1: 550, 2: 105, 0: 277}
+Cross-validation: 3-fold patient-level CV
+Total runtime: 4.3 minutes
+
+RESULTS (sorted by F1 Macro):
+------------------------------------------------------------------------------------------
+ 1. 7. SMOTE+Tomek
+    F1 Macro: 0.4334 ± 0.0353
+    Min F1: 0.2771
+    F1 per class: I=0.445, P=0.578, R=0.277
+
+ 2. 12. Oversample + Alpha
+    F1 Macro: 0.4156 ± 0.0238
+    Min F1: 0.2741
+    F1 per class: I=0.510, P=0.462, R=0.274
+
+ 3. 6. Borderline-SMOTE
+    F1 Macro: 0.4139 ± 0.0551
+    Min F1: 0.2859
+    F1 per class: I=0.401, P=0.555, R=0.286
+
+ 4. 17. Oversample + Alpha(sqrt)
+    F1 Macro: 0.4122 ± 0.0236
+    Min F1: 0.3244
+    F1 per class: I=0.432, P=0.481, R=0.324
+
+ 5. 4. SMOTE
+    F1 Macro: 0.4057 ± 0.0218
+    Min F1: 0.2353
+    F1 per class: I=0.371, P=0.549, R=0.297
+
+ 6. 10. Alpha (sqrt)
+    F1 Macro: 0.4055 ± 0.0454
+    Min F1: 0.1660
+    F1 per class: I=0.365, P=0.686, R=0.166
+
+ 7. 18. SMOTE + Alpha(sqrt)
+    F1 Macro: 0.3974 ± 0.0482
+    Min F1: 0.2805
+    F1 per class: I=0.472, P=0.410, R=0.311
+
+ 8. 9. Alpha (balanced)
+    F1 Macro: 0.3920 ± 0.0178
+    Min F1: 0.2634
+    F1 per class: I=0.367, P=0.529, R=0.280
+
+ 9. 2. RandomOverSampler
+    F1 Macro: 0.3905 ± 0.0399
+    Min F1: 0.2212
+    F1 per class: I=0.417, P=0.534, R=0.221
+
+10. 5. ADASYN
+    F1 Macro: 0.3877 ± 0.0090
+    Min F1: 0.2570
+    F1 per class: I=0.371, P=0.535, R=0.257
+
+11. 15. Oversample + Focal
+    F1 Macro: 0.3765 ± 0.0437
+    Min F1: 0.2438
+    F1 per class: I=0.511, P=0.323, R=0.296
+
+12. 3. RandomUnderSampler
+    F1 Macro: 0.3720 ± 0.0215
+    Min F1: 0.2333
+    F1 per class: I=0.396, P=0.486, R=0.233
+
+13. 16. SMOTE + Focal
+    F1 Macro: 0.3679 ± 0.0424
+    Min F1: 0.2741
+    F1 per class: I=0.465, P=0.355, R=0.283
+
+14. 11. Focal Loss
+    F1 Macro: 0.3614 ± 0.0086
+    Min F1: 0.2127
+    F1 per class: I=0.401, P=0.471, R=0.213
+
+15. 13. SMOTE + Alpha
+    F1 Macro: 0.3584 ± 0.0063
+    Min F1: 0.2415
+    F1 per class: I=0.484, P=0.299, R=0.292
+
+16. 8. SMOTE+ENN
+    F1 Macro: 0.3370 ± 0.0982
+    Min F1: 0.2093
+    F1 per class: I=0.494, P=0.230, R=0.287
+
+17. 1. Baseline (none)
+    F1 Macro: 0.3198 ± 0.0433
+    Min F1: 0.0247
+    F1 per class: I=0.227, P=0.708, R=0.025
+
+18. 14. SMOTE+ENN + Alpha
+    F1 Macro: 0.2944 ± 0.0692
+    Min F1: 0.1416
+    F1 per class: I=0.462, P=0.142, R=0.280
+
+
+==========================================================================================
+BEST OVERALL: 7. SMOTE+Tomek
+BEST MINORITY CLASS: 17. Oversample + Alpha(sqrt)

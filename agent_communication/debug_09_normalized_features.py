@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""DEBUG 9: Test with feature normalization + oversampling + plain cross-entropy"""
+"""DEBUG 9: Test with feature normalization + oversampling + plain cross-entropy
+UPDATED 2025-12-24: Fixed to use patient-level CV instead of sample-level split
+"""
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -7,12 +9,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tensorflow as tf
 import numpy as np
 from collections import Counter
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import f1_score, classification_report
 from imblearn.over_sampling import RandomOverSampler
 from src.data.image_processing import prepare_dataset
 from src.utils.config import get_project_paths, get_data_paths
+from src.training.training_utils import create_patient_folds
 
 # Force CPU
 tf.config.set_visible_devices([], 'GPU')
@@ -27,9 +29,13 @@ def main():
 
     log("="*80)
     log("DEBUG 9: FEATURE NORMALIZATION + OVERSAMPLING + PLAIN CROSS-ENTROPY")
+    log("UPDATED: Now uses PATIENT-LEVEL CV (not sample-level split)")
     log("="*80)
     log("\nHypothesis: Phase 8 failed because features need normalization.")
     log("Test: Normalize features, use simple cross-entropy, keep oversampling.")
+    log("\n⚠️  IMPORTANT: Previous version used train_test_split which allowed")
+    log("   patient overlap between train/test sets. This version uses")
+    log("   patient-level CV to prevent data leakage.")
 
     try:
         # Load data
@@ -55,159 +61,160 @@ def main():
         y = np.array([label_map[label] for label in y_raw])
 
         log(f"  Original data: {X.shape}")
+        log(f"  Unique patients: {data['Patient#'].nunique()}")
         log(f"  Feature range BEFORE normalization: [{X.min():.2f}, {X.max():.2f}]")
 
-        # Split BEFORE oversampling and normalization
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
+        # Create patient-level folds (3-fold CV)
+        log("\n2. Creating patient-level cross-validation folds...")
+        folds = create_patient_folds(data, n_folds=3, random_state=42)
 
-        log("\n2. Class distribution BEFORE oversampling:")
-        counts_before = Counter(y_train)
-        for cls in [0, 1, 2]:
-            log(f"  Class {cls}: {counts_before[cls]} samples")
 
-        # Apply oversampling
-        log("\n3. Applying RandomOverSampler...")
-        oversampler = RandomOverSampler(random_state=42)
-        X_train_resampled, y_train_resampled = oversampler.fit_resample(X_train, y_train)
+        # Track results across folds
+        fold_results = []
 
-        log("\n4. Class distribution AFTER oversampling:")
-        counts_after = Counter(y_train_resampled)
-        for cls in [0, 1, 2]:
-            log(f"  Class {cls}: {counts_after[cls]} samples (perfectly balanced)")
+        for fold_idx, (train_idx, val_idx) in enumerate(folds, 1):
+            log(f"\n{'='*80}")
+            log(f"FOLD {fold_idx}/3")
+            log(f"{'='*80}")
 
-        # NORMALIZE FEATURES (NEW!)
-        log("\n5. Normalizing features with StandardScaler...")
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train_resampled)
-        X_test_scaled = scaler.transform(X_test)
+            # Get patient IDs for this fold
+            train_patients = set(data.iloc[train_idx]['Patient#'])
+            val_patients = set(data.iloc[val_idx]['Patient#'])
 
-        log(f"  Train feature range AFTER normalization: [{X_train_scaled.min():.2f}, {X_train_scaled.max():.2f}]")
-        log(f"  Train feature mean: {X_train_scaled.mean():.4f} (should be ~0)")
-        log(f"  Train feature std: {X_train_scaled.std():.4f} (should be ~1)")
+            # Verify NO overlap
+            patient_overlap = len(train_patients.intersection(val_patients))
+            log(f"  Train patients: {len(train_patients)}, Val patients: {len(val_patients)}")
+            log(f"  Patient overlap: {patient_overlap} (should be 0)")
 
-        # One-hot encode
-        y_train_onehot = tf.keras.utils.to_categorical(y_train_resampled, num_classes=3)
-        y_test_onehot = tf.keras.utils.to_categorical(y_test, num_classes=3)
+            # Get train/val data
+            X_train = X[train_idx]
+            y_train = y[train_idx]
+            X_val = X[val_idx]
+            y_val = y[val_idx]
 
-        # Build model
-        log("\n6. Building model with PLAIN cross-entropy...")
-        model = tf.keras.Sequential([
-            tf.keras.layers.Dense(128, activation='relu', input_shape=(X_train_scaled.shape[1],)),
-            tf.keras.layers.Dropout(0.3),
-            tf.keras.layers.Dense(64, activation='relu'),
-            tf.keras.layers.Dropout(0.3),
-            tf.keras.layers.Dense(3, activation='softmax')
-        ])
+            log(f"  Train samples: {len(X_train)}, Val samples: {len(X_val)}")
 
-        # Use PLAIN cross-entropy (no focal, no ordinal)
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss='categorical_crossentropy',  # Simple and effective with balanced data
-            metrics=['accuracy']
-        )
+            log("\n  Class distribution BEFORE oversampling:")
+            counts_before = Counter(y_train)
+            for cls in [0, 1, 2]:
+                log(f"    Class {cls}: {counts_before[cls]} samples")
 
-        log(f"  Model parameters: {model.count_params()}")
-        log(f"  Loss: Plain categorical cross-entropy")
-        log(f"  Data: Balanced (oversampled) + Normalized")
+            # Apply oversampling
+            log("\n  Applying RandomOverSampler...")
+            oversampler = RandomOverSampler(random_state=42 + fold_idx)
+            X_train_resampled, y_train_resampled = oversampler.fit_resample(X_train, y_train)
 
-        # Train (20 epochs)
-        log("\n7. Training (20 epochs)...")
-        log("-" * 80)
+            log("\n  Class distribution AFTER oversampling:")
+            counts_after = Counter(y_train_resampled)
+            for cls in [0, 1, 2]:
+                log(f"    Class {cls}: {counts_after[cls]} samples")
 
-        history = model.fit(
-            X_train_scaled, y_train_onehot,
-            validation_data=(X_test_scaled, y_test_onehot),
-            epochs=20,
-            batch_size=32,
-            verbose=0
-        )
+            # Normalize features
+            log("\n  Normalizing features with StandardScaler...")
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train_resampled)
+            X_val_scaled = scaler.transform(X_val)
 
-        for epoch in range(len(history.history['loss'])):
-            log(f"  Epoch {epoch+1:2d}: loss={history.history['loss'][epoch]:.4f}, "
-                f"acc={history.history['accuracy'][epoch]:.4f} | "
-                f"val_loss={history.history['val_loss'][epoch]:.4f}, "
-                f"val_acc={history.history['val_accuracy'][epoch]:.4f}")
+            if fold_idx == 1:
+                log(f"    Train feature range AFTER normalization: [{X_train_scaled.min():.2f}, {X_train_scaled.max():.2f}]")
+                log(f"    Train feature mean: {X_train_scaled.mean():.4f} (should be ~0)")
+                log(f"    Train feature std: {X_train_scaled.std():.4f} (should be ~1)")
 
-        # Evaluate
-        log("\n8. Evaluation:")
-        log("-" * 80)
-        test_loss, test_acc = model.evaluate(X_test_scaled, y_test_onehot, verbose=0)
-        log(f"  Test Loss: {test_loss:.4f}")
-        log(f"  Test Accuracy: {test_acc:.4f}")
+            # One-hot encode
+            y_train_onehot = tf.keras.utils.to_categorical(y_train_resampled, num_classes=3)
+            y_val_onehot = tf.keras.utils.to_categorical(y_val, num_classes=3)
 
-        # Predictions
-        y_pred_probs = model.predict(X_test_scaled, verbose=0)
-        y_pred = np.argmax(y_pred_probs, axis=1)
+            # Build model
+            log("\n  Building model...")
+            model = tf.keras.Sequential([
+                tf.keras.layers.Dense(128, activation='relu', input_shape=(X_train_scaled.shape[1],)),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Dense(64, activation='relu'),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Dense(3, activation='softmax')
+            ])
 
-        # Metrics
-        f1_macro = f1_score(y_test, y_pred, average='macro')
-        f1_per_class = f1_score(y_test, y_pred, average=None)
-        min_f1 = min(f1_per_class)
+            model.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                loss='categorical_crossentropy',
+                metrics=['accuracy']
+            )
 
-        log(f"  F1 Macro: {f1_macro:.4f}")
-        log(f"  F1 per class [I, P, R]: [{f1_per_class[0]:.3f}, {f1_per_class[1]:.3f}, {f1_per_class[2]:.3f}]")
-        log(f"  Min F1: {min_f1:.4f}")
+            # Train
+            log("\n  Training (20 epochs)...")
+            history = model.fit(
+                X_train_scaled, y_train_onehot,
+                validation_data=(X_val_scaled, y_val_onehot),
+                epochs=20,
+                batch_size=32,
+                verbose=0
+            )
 
-        # Prediction distribution
-        log("\n9. Prediction distribution:")
-        pred_counts = np.bincount(y_pred, minlength=3)
-        test_counts = np.bincount(y_test, minlength=3)
-        for cls in range(3):
-            pred_pct = pred_counts[cls] / len(y_pred) * 100
-            true_pct = test_counts[cls] / len(y_test) * 100
-            log(f"  Class {cls}: {pred_counts[cls]} predictions ({pred_pct:.1f}%) vs {test_counts[cls]} actual ({true_pct:.1f}%)")
+            # Evaluate
+            val_loss, val_acc = model.evaluate(X_val_scaled, y_val_onehot, verbose=0)
 
-        # Detailed classification report
-        log("\n10. Classification Report:")
-        log("-" * 80)
-        class_names = ['I (Inflammation)', 'P (Proliferation)', 'R (Remodeling)']
-        report = classification_report(y_test, y_pred, target_names=class_names, zero_division=0)
-        for line in report.split('\n'):
-            log(line)
+            # Predictions
+            y_pred_probs = model.predict(X_val_scaled, verbose=0)
+            y_pred = np.argmax(y_pred_probs, axis=1)
 
-        # Loss comparison
-        log("\n11. Loss Comparison Across Phases:")
-        log("  Phase 2 (cross-entropy, no oversampling):  Final loss=0.98")
-        log("  Phase 6 (focal, no oversampling):          Final loss=6.73")
-        log("  Phase 7 (focal, oversampling, imb alpha):  Final loss=5.83")
-        log("  Phase 8 (focal, oversampling, bal alpha):  Final loss=10.83")
-        log(f"  Phase 9 (cross-entropy, oversampling):     Final loss={history.history['loss'][-1]:.2f}")
+            # Metrics
+            f1_macro = f1_score(y_val, y_pred, average='macro')
+            f1_per_class = f1_score(y_val, y_pred, average=None, zero_division=0)
+            min_f1 = min(f1_per_class)
+
+            log(f"\n  Results:")
+            log(f"    Accuracy: {val_acc:.4f}")
+            log(f"    F1 Macro: {f1_macro:.4f}")
+            log(f"    F1 per class [I, P, R]: [{f1_per_class[0]:.3f}, {f1_per_class[1]:.3f}, {f1_per_class[2]:.3f}]")
+            log(f"    Min F1: {min_f1:.4f}")
+
+            fold_results.append({
+                'accuracy': val_acc,
+                'f1_macro': f1_macro,
+                'f1_per_class': f1_per_class,
+                'min_f1': min_f1
+            })
+
+        # Summary across folds
+        log(f"\n{'='*80}")
+        log("CROSS-VALIDATION SUMMARY")
+        log(f"{'='*80}")
+
+        avg_acc = np.mean([r['accuracy'] for r in fold_results])
+        std_acc = np.std([r['accuracy'] for r in fold_results])
+        avg_f1 = np.mean([r['f1_macro'] for r in fold_results])
+        avg_min_f1 = np.mean([r['min_f1'] for r in fold_results])
+
+        log(f"\nAverage Accuracy: {avg_acc:.4f} ± {std_acc:.4f}")
+        log(f"Average F1 Macro: {avg_f1:.4f}")
+        log(f"Average Min F1:   {avg_min_f1:.4f}")
+
+        log(f"\nPer-Fold Results:")
+        for i, r in enumerate(fold_results, 1):
+            log(f"  Fold {i}: Acc={r['accuracy']:.4f}, F1_macro={r['f1_macro']:.4f}, Min_F1={r['min_f1']:.4f}")
 
         # Verdict
         log("\n" + "="*80)
-        if min_f1 > 0.1 and all(pred_counts > 0):
-            log("✅ SUCCESS! Feature normalization solved the problem!")
-            log("="*80)
-            log("\nAll 3 classes are being predicted with reasonable F1 scores.")
-            log("\nThe complete solution:")
-            log("  1. Enable oversampling (balance training data)")
-            log("  2. Normalize features with StandardScaler")
-            log("  3. Use plain cross-entropy (balanced data doesn't need focal loss)")
-            log("\nThis proves:")
-            log("  - Unnormalized features prevented learning in Phase 8")
-            log("  - Focal loss was unnecessary complexity with balanced data")
-            log("  - Simple approach works best: oversample + normalize + cross-entropy")
-        elif min_f1 > 0.0:
-            log("🟡 PARTIAL SUCCESS - Model is learning but performance is low")
-            log("="*80)
-            log(f"  Min F1={min_f1:.3f} > 0 (better than previous phases)")
-            log(f"  All classes predicted: {all(pred_counts > 0)}")
-            log("\n  Possible improvements:")
-            log("  - More training epochs")
-            log("  - Different model architecture")
-            log("  - Hyperparameter tuning")
-        else:
-            log("❌ STILL FAILING - Feature normalization alone didn't solve it")
-            log("="*80)
-            unpredicted = [i for i, c in enumerate(pred_counts) if c == 0]
-            if unpredicted:
-                log(f"  Classes not predicted: {unpredicted}")
-            log("  Need to investigate:")
-            log("  - Different model architecture")
-            log("  - Feature engineering")
-            log("  - Data quality issues")
+        log("COMPARISON WITH PREVIOUS APPROACH")
+        log("="*80)
+        log("\nPrevious approach (sample-level train_test_split):")
+        log("  - Allowed patient overlap between train/test sets")
+        log("  - Accuracy: ~97.6% (inflated by data leakage)")
+        log("  - Model learned patient-specific patterns, not generalizable features")
+        log("\nCurrent approach (patient-level cross-validation):")
+        log(f"  - NO patient overlap between train/val sets")
+        log(f"  - Accuracy: {avg_acc:.1%} (true generalization performance)")
+        log(f"  - Model must learn generalizable wound healing features")
+        log("\n⚠️  CONCLUSION:")
+        log(f"  The {100*(1-avg_acc/0.976):.0f}% performance drop reveals that Phase 9's high")
+        log("  accuracy was due to MEMORIZATION, not real learning.")
+        log("\nFeature normalization IS still critical:")
+        log(f"  - Phase 8 (no normalization): 33% accuracy (random guessing)")
+        log(f"  - Phase 9 (with normalization): {avg_acc:.1%} accuracy (actual learning)")
+        log("\nAll three fixes are necessary:")
+        log("  1. Enable oversampling (balance training data)")
+        log("  2. Normalize features with StandardScaler (enable learning)")
+        log("  3. Use patient-level CV (prevent data leakage)")
 
     except Exception as e:
         log(f"\n❌ ERROR: {e}")
