@@ -40,11 +40,11 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     Returns:
         List of tuples (train_patients, valid_patients) for each fold
     """
-    # Allow environment variable to override random_state for multi-run scenarios
-    # This enables running k-fold CV multiple times with different seeds
+    # NOTE: Do NOT use CROSS_VAL_RANDOM_SEED here!
+    # That variable is for controlling data splitting WITHIN a run,
+    # NOT for fold generation itself. Folds should be consistent
+    # across runs to enable proper comparison.
     import os
-    if 'CROSS_VAL_RANDOM_SEED' in os.environ:
-        random_state = int(os.environ['CROSS_VAL_RANDOM_SEED'])
 
     np.random.seed(random_state)
     random.seed(random_state)
