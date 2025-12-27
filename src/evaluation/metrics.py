@@ -10,16 +10,21 @@ def track_misclassifications(y_true, y_pred, sample_ids, selected_modalities, re
     """
     Track uniquely misclassified examples and update the CSV file.
 
+    FIXED: Now counts at SAMPLE LEVEL (how many folds was sample misclassified in),
+    not image level. Each sample counted once per fold regardless of:
+    - How many images it has
+    - What the predicted label was
+
     Args:
         y_true: True labels (numpy array)
         y_pred: Predicted labels (numpy array)
-        sample_ids: Array of sample identifiers
+        sample_ids: Array of sample identifiers (shape: [N, 3] for [Patient, Appt, DFU])
         result_dir: Directory to save the CSV file (caller passes misclassifications subdirectory)
     """
     modality_str = '_'.join(sorted(selected_modalities))
     misclass_file = os.path.join(result_dir, f'frequent_misclassifications_{modality_str}.csv')
     misclass_file_total = os.path.join(result_dir, f'frequent_misclassifications_total.csv')
-    
+
     # Create DataFrame of current misclassifications
     misclassified_mask = (y_true != y_pred)
     if misclassified_mask.any():
@@ -27,51 +32,52 @@ def track_misclassifications(y_true, y_pred, sample_ids, selected_modalities, re
             'Patient': sample_ids[misclassified_mask, 0].astype(int),
             'Appointment': sample_ids[misclassified_mask, 1].astype(int),
             'DFU': sample_ids[misclassified_mask, 2].astype(int),
-            'True_Label': [CLASS_LABELS[int(y)] for y in y_true[misclassified_mask]],
-            'Predicted_Label': [CLASS_LABELS[int(y)] for y in y_pred[misclassified_mask]]
+            'True_Label': [CLASS_LABELS[int(y)] for y in y_true[misclassified_mask]]
         })
-        
+
         # Add unique identifier column
         current_misclass['Sample_ID'] = (
-            'P' + current_misclass['Patient'].astype(str).str.zfill(3) + 
-            'A' + current_misclass['Appointment'].astype(str).str.zfill(2) + 
+            'P' + current_misclass['Patient'].astype(str).str.zfill(3) +
+            'A' + current_misclass['Appointment'].astype(str).str.zfill(2) +
             'D' + current_misclass['DFU'].astype(str)
         )
-        
-        # Drop duplicates based on Sample_ID, True_Label, and Predicted_Label
+
+        # FIXED: Drop duplicates at SAMPLE LEVEL only (ignore predicted label)
+        # This ensures each sample counts once per fold, regardless of:
+        # - How many images it has
+        # - Whether different images got different wrong predictions
         current_misclass = current_misclass.drop_duplicates(
-            subset=['Sample_ID', 'True_Label', 'Predicted_Label']
+            subset=['Sample_ID', 'True_Label']
         )
         # Save Modality-wise misclassifications
         if os.path.exists(misclass_file):
             # Load existing misclassifications
             existing_misclass = pd.read_csv(misclass_file)
-            
+
             # Update counts for existing misclassifications
             for _, row in current_misclass.iterrows():
                 mask = (
                     (existing_misclass['Sample_ID'] == row['Sample_ID']) &
-                    (existing_misclass['True_Label'] == row['True_Label']) &
-                    (existing_misclass['Predicted_Label'] == row['Predicted_Label'])
+                    (existing_misclass['True_Label'] == row['True_Label'])
                 )
-                
+
                 if mask.any():
                     existing_misclass.loc[mask, 'Misclass_Count'] += 1
                 else:
                     new_row = row.to_dict()
                     new_row['Misclass_Count'] = 1
                     existing_misclass = pd.concat([
-                        existing_misclass, 
+                        existing_misclass,
                         pd.DataFrame([new_row])
                     ], ignore_index=True)
         else:
             # Create new DataFrame with counts
             existing_misclass = current_misclass.copy()
             existing_misclass['Misclass_Count'] = 1
-        
+
         # Sort by misclassification count and save
         existing_misclass = existing_misclass.sort_values(
-            ['Misclass_Count', 'Sample_ID'], 
+            ['Misclass_Count', 'Sample_ID'],
             ascending=[False, True]
         )
         existing_misclass.to_csv(misclass_file, index=False)
@@ -80,32 +86,31 @@ def track_misclassifications(y_true, y_pred, sample_ids, selected_modalities, re
         if os.path.exists(misclass_file_total):
             # Load existing misclassifications
             existing_misclass = pd.read_csv(misclass_file_total)
-            
+
             # Update counts for existing misclassifications
             for _, row in current_misclass.iterrows():
                 mask = (
                     (existing_misclass['Sample_ID'] == row['Sample_ID']) &
-                    (existing_misclass['True_Label'] == row['True_Label']) &
-                    (existing_misclass['Predicted_Label'] == row['Predicted_Label'])
+                    (existing_misclass['True_Label'] == row['True_Label'])
                 )
-                
+
                 if mask.any():
                     existing_misclass.loc[mask, 'Misclass_Count'] += 1
                 else:
                     new_row = row.to_dict()
                     new_row['Misclass_Count'] = 1
                     existing_misclass = pd.concat([
-                        existing_misclass, 
+                        existing_misclass,
                         pd.DataFrame([new_row])
                     ], ignore_index=True)
         else:
             # Create new DataFrame with counts
             existing_misclass = current_misclass.copy()
             existing_misclass['Misclass_Count'] = 1
-        
+
         # Sort by misclassification count and save
         existing_misclass = existing_misclass.sort_values(
-            ['Misclass_Count', 'Sample_ID'], 
+            ['Misclass_Count', 'Sample_ID'],
             ascending=[False, True]
         )
         existing_misclass.to_csv(misclass_file_total, index=False)
