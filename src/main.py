@@ -2277,6 +2277,17 @@ Configuration:
     )
 
     parser.add_argument(
+        "--core-data",
+        action='store_true',
+        help="""Use optimized core dataset filtered by auto_polish_dataset_v2.py results.
+        Automatically loads best thresholds from results/bayesian_optimization_results.json
+        to exclude outlier samples that could result from human error or measurement issues.
+        This improves model performance by training on high-quality core data only.
+        Manual threshold arguments (--threshold_I/P/R) override these if specified.
+        (default: False - uses all available data)"""
+    )
+
+    parser.add_argument(
         "--device-mode",
         type=str,
         choices=['cpu', 'single', 'multi', 'custom'],
@@ -2435,7 +2446,33 @@ Configuration:
 
     # Build thresholds dict if any threshold is specified
     thresholds = None
+
+    # Load optimized thresholds from auto_polish_dataset_v2.py if --core-data is set
+    if args.core_data:
+        import json
+        bayesian_results_file = os.path.join(result_dir, 'bayesian_optimization_results.json')
+        if os.path.exists(bayesian_results_file):
+            try:
+                with open(bayesian_results_file, 'r') as f:
+                    bayesian_results = json.load(f)
+                thresholds = bayesian_results.get('best_thresholds', None)
+                if thresholds:
+                    vprint(f"Core data mode enabled: Using optimized thresholds from Bayesian optimization", level=0)
+                    vprint(f"  Best thresholds: {thresholds}", level=0)
+                    vprint(f"  Optimization score: {bayesian_results.get('best_score', 'N/A'):.4f}", level=0)
+                    vprint(f"  Original dataset size: {bayesian_results.get('original_dataset_size', 'N/A')} samples", level=0)
+                else:
+                    vprint(f"Warning: --core-data specified but no best_thresholds found in {bayesian_results_file}", level=0)
+            except Exception as e:
+                vprint(f"Warning: --core-data specified but failed to load {bayesian_results_file}: {e}", level=0)
+        else:
+            vprint(f"Warning: --core-data specified but {bayesian_results_file} not found", level=0)
+            vprint(f"  Run scripts/auto_polish_dataset_v2.py first to generate optimized thresholds", level=0)
+
+    # Manual thresholds override core-data thresholds
     if args.threshold_I is not None or args.threshold_P is not None or args.threshold_R is not None:
+        if thresholds is not None:
+            vprint(f"Manual thresholds override core-data thresholds", level=0)
         thresholds = {}
         if args.threshold_I is not None:
             thresholds['I'] = args.threshold_I

@@ -2,6 +2,32 @@
 
 Tracks major repository changes and refactors.
 
+## 2025-12-27 — Core data flag for optimized dataset filtering
+
+### Integration of auto_polish_dataset_v2.py results with main.py
+
+**Files Modified**:
+- `src/main.py`: Added `--core-data` flag that automatically loads optimized thresholds from `results/bayesian_optimization_results.json` and applies them via the existing `filter_frequent_misclassifications()` function (lines 2279-2288, 2450-2483)
+
+**Usage**:
+```bash
+# Use optimized core dataset (excludes outlier samples)
+python src/main.py --mode search --core-data
+
+# Manual thresholds override core-data
+python src/main.py --mode search --core-data --threshold_P 3
+```
+
+**What it does**:
+- Reads best_thresholds from Bayesian optimization results (e.g., P=5, I=4, R=3)
+- Filters out frequently misclassified samples that may result from human error
+- Improves model performance by training on high-quality core data
+- Manual threshold arguments (--threshold_I/P/R) override auto-loaded thresholds if specified
+
+**Requirements**: Must run `scripts/auto_polish_dataset_v2.py` first to generate optimization results
+
+---
+
 ## 2025-12-26 — Phase 2 optimization fixes and improvements
 
 ### Critical Bug Fixes in scripts/auto_polish_dataset_v2.py
