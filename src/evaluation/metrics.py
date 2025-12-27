@@ -159,7 +159,7 @@ def filter_frequent_misclassifications(data, result_dir, thresholds={'I': 12, 'P
 
     Args:
         data: Original DataFrame
-        result_dir: Directory containing the misclassifications CSV (caller passes misclassifications subdirectory)
+        result_dir: Base results directory (will check multiple subdirectories for misclassification CSV)
         thresholds: Dictionary with misclassification count thresholds for each class
 
     Returns:
@@ -169,8 +169,22 @@ def filter_frequent_misclassifications(data, result_dir, thresholds={'I': 12, 'P
     assert data is not None and len(data) > 0, "❌ Input data is empty or None!"
     original_size = len(data)
 
-    misclass_file = os.path.join(result_dir, 'frequent_misclassifications_saved.csv')
-    if not os.path.exists(misclass_file):
+    # Check multiple possible locations for misclassification file
+    # (auto_polish_dataset_v2.py may save to different subdirectories)
+    possible_paths = [
+        os.path.join(result_dir, 'misclassifications_saved', 'frequent_misclassifications_saved.csv'),
+        os.path.join(result_dir, 'misclassifications', 'frequent_misclassifications_saved.csv'),
+        os.path.join(result_dir, 'frequent_misclassifications_saved.csv'),  # Legacy direct path
+    ]
+
+    misclass_file = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            misclass_file = path
+            vprint(f"Found misclassification file: {os.path.basename(os.path.dirname(path))}/{os.path.basename(path)}", level=2)
+            break
+
+    if misclass_file is None:
         vprint("No misclassification file found. Using original dataset.", level=1)
         return data
 
