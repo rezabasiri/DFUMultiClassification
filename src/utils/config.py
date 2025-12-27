@@ -153,9 +153,10 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
         print("\n🧹 FRESH START MODE: Deleting all checkpoints...")
         print("="*80)
 
-        # Delete model weights
+        # Delete model weights (both HDF5 and TF checkpoint formats)
         delete_files([
             os.path.join(output_paths['models'], '*.h5'),
+            os.path.join(output_paths['models'], '*.ckpt*'),  # TF checkpoint format
             os.path.join(output_paths['models'], 'best_gating_model_*.h5'),
         ], 'models')
 
@@ -203,6 +204,7 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
         # Delete models, predictions, but keep processed data
         delete_files([
             os.path.join(output_paths['models'], '*.h5'),
+            os.path.join(output_paths['models'], '*.ckpt*'),  # TF checkpoint format
         ], 'models')
 
         delete_files([

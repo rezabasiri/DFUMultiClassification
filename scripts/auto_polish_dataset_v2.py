@@ -28,20 +28,36 @@ Key Advantages:
 - Safety constraint: rejects thresholds that filter >50% of data
 
 Usage:
-    # Run both phases automatically (test all 4 modalities in Phase 1)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata depth_rgb depth_map
+    # Run both phases with metadata-only evaluation in Phase 2
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata
+
+    # Run both phases with all modalities combined in Phase 2
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb+depth_map+thermal_map
 
     # Run Phase 1 with 100 runs per modality (400 total for 4 modalities)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-n-runs 100
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-n-runs 100
 
     # Run Phase 1 with custom modalities (e.g., only metadata and depth_rgb)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
 
-    # Just Phase 2 (if Phase 1 already completed)
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --phase2-only
+    # Just Phase 2 (if Phase 1 already completed) with combined modalities
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb --phase2-only
 
     # Custom optimization budget
-    python scripts/auto_polish_dataset_v2.py --modalities metadata --n_evaluations 30
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --n-evaluations 30
+
+GPU Configuration:
+    # Use all available GPUs (multi-GPU mode with MirroredStrategy)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode multi
+
+    # Use specific GPUs (custom mode)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode custom --custom-gpus 0 1
+
+    # Single GPU (auto-select best, default)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode single
+
+    # CPU only (no GPUs)
+    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode cpu
 """
 
 import argparse
@@ -55,15 +71,50 @@ from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 
-# Force TensorFlow to use only GPU 0 (TITAN Xp) - must be set before subprocess calls
-# This ensures all child processes also use GPU 0
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# =============================================================================
+# SET UP LOGGING EARLY (before any TensorFlow imports)
+# =============================================================================
+def setup_early_logging():
+    """Set up logging to capture all output including TensorFlow messages."""
+    log_dir = Path('results/misclassifications')
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = log_dir / f'optimization_run_{timestamp}.log'
+
+    class TeeOutput:
+        def __init__(self, file_path, stream):
+            self.terminal = stream
+            self.log = open(file_path, 'a', buffering=1)
+
+        def write(self, message):
+            self.terminal.write(message)
+            self.log.write(message)
+            self.log.flush()
+
+        def flush(self):
+            self.terminal.flush()
+            self.log.flush()
+
+    # Create the log file
+    log_file.touch()
+
+    # Redirect both stdout and stderr
+    sys.stdout = TeeOutput(log_file, sys.__stdout__)
+    sys.stderr = TeeOutput(log_file, sys.__stderr__)
+
+    print(f"📝 Logging to: {log_file}\n")
+    return log_file
+
+# Set up logging BEFORE any TensorFlow imports
+_log_file = setup_early_logging()
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.utils.config import get_project_paths, cleanup_for_resume_mode
+from src.utils.gpu_config import setup_device_strategy
 
 
 class BayesianDatasetPolisher:
@@ -77,27 +128,35 @@ class BayesianDatasetPolisher:
                  phase1_n_runs=10,
                  phase1_cv_folds=1,
                  phase1_modalities=None,
+                 phase1_data_percentage=100,
                  phase2_cv_folds=3,
                  phase2_n_evaluations=20,
+                 phase2_data_percentage=100,
                  base_random_seed=42,
                  min_dataset_fraction=0.5,
                  min_f1_threshold=0.25,
                  min_samples_per_class=30,
                  max_class_imbalance_ratio=5.0,
-                 min_retention_per_class=0.90):
+                 min_retention_per_class=0.90,
+                 device_mode='single',
+                 custom_gpus=None,
+                 min_gpu_memory=8.0,
+                 include_display_gpus=False):
         """
         Initialize the Bayesian dataset polisher.
 
         Args:
-            modalities: List of modalities to train (must include 'metadata')
+            modalities: List of modalities to train in Phase 2 (e.g., ['metadata'], ['depth_rgb', 'depth_map'])
             min_f1_per_class: Minimum F1 score for each class
             min_macro_f1: Minimum macro F1 score
             min_kappa: Minimum Cohen's Kappa
             phase1_n_runs: Number of runs per modality in Phase 1 for misclass detection (default: 10)
             phase1_cv_folds: CV folds in Phase 1 (default: 1 for speed)
             phase1_modalities: List of modalities to test individually in Phase 1 (default: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'])
+            phase1_data_percentage: Percentage of data to use in Phase 1 (default: 100)
             phase2_cv_folds: CV folds in Phase 2 for evaluation (default: 3)
             phase2_n_evaluations: Number of Bayesian optimization iterations (default: 20)
+            phase2_data_percentage: Percentage of data to use in Phase 2 (default: 100)
             base_random_seed: Base random seed
             min_dataset_fraction: Minimum fraction of dataset to keep (default: 0.5)
             min_f1_threshold: Hard constraint - reject if any class F1 < this (default: 0.25)
@@ -105,10 +164,11 @@ class BayesianDatasetPolisher:
             max_class_imbalance_ratio: Hard constraint - reject if largest/smallest class ratio > this (default: 5.0)
             min_retention_per_class: Minimum fraction of samples to retain per class (default: 0.90)
                                      Optimization skipped if this cannot be achieved.
+            device_mode: GPU mode - 'cpu', 'single', 'multi', or 'custom' (default: 'single')
+            custom_gpus: List of GPU IDs for 'custom' mode (e.g., [0, 1])
+            min_gpu_memory: Minimum GPU memory in GB (default: 8.0)
+            include_display_gpus: Allow training on display GPUs (default: False)
         """
-        if 'metadata' not in modalities:
-            raise ValueError("Modalities must include 'metadata' for polishing")
-
         self.modalities = modalities
         self.min_f1_per_class = min_f1_per_class
         self.min_macro_f1 = min_macro_f1
@@ -116,14 +176,22 @@ class BayesianDatasetPolisher:
         self.phase1_n_runs = phase1_n_runs
         self.phase1_cv_folds = phase1_cv_folds
         self.phase1_modalities = phase1_modalities if phase1_modalities is not None else ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+        self.phase1_data_percentage = phase1_data_percentage
         self.phase2_cv_folds = phase2_cv_folds
         self.phase2_n_evaluations = phase2_n_evaluations
+        self.phase2_data_percentage = phase2_data_percentage
         self.base_random_seed = base_random_seed
         self.min_dataset_fraction = min_dataset_fraction
         self.min_f1_threshold = min_f1_threshold
         self.min_samples_per_class = min_samples_per_class
         self.max_class_imbalance_ratio = max_class_imbalance_ratio
         self.min_retention_per_class = min_retention_per_class
+
+        # GPU configuration
+        self.device_mode = device_mode
+        self.custom_gpus = custom_gpus
+        self.min_gpu_memory = min_gpu_memory
+        self.include_display_gpus = include_display_gpus
 
         # Get project paths
         self.directory, self.result_dir, self.root = get_project_paths()
@@ -133,6 +201,42 @@ class BayesianDatasetPolisher:
         self.optimization_history = []
         self.best_thresholds = None
         self.best_score = -np.inf
+        self.phase1_baseline = None  # Will store baseline metrics from Phase 1
+
+    def _calculate_phase2_batch_size(self):
+        """
+        Calculate appropriate batch size for Phase 2 based on number of image modalities.
+
+        Phase 1 tests ONE modality at a time with GLOBAL_BATCH_SIZE.
+        Phase 2 tests MULTIPLE modalities simultaneously, requiring proportional reduction.
+
+        Returns:
+            int: Adjusted batch size for Phase 2
+        """
+        from src.utils.production_config import GLOBAL_BATCH_SIZE
+
+        # Count image modalities (exclude metadata which is small)
+        image_modalities = [m for m in self.modalities if m != 'metadata']
+        num_image_modalities = len(image_modalities)
+
+        if num_image_modalities == 0:
+            # Metadata only - use full batch size
+            return GLOBAL_BATCH_SIZE
+
+        # Divide batch size by number of image modalities to maintain similar memory usage
+        adjusted_batch_size = max(16, GLOBAL_BATCH_SIZE // num_image_modalities)
+
+        print(f"\n{'='*80}")
+        print("BATCH SIZE ADJUSTMENT FOR PHASE 2")
+        print(f"{'='*80}")
+        print(f"Phase 1 batch size (1 modality at a time): {GLOBAL_BATCH_SIZE}")
+        print(f"Phase 2 modalities: {self.modalities}")
+        print(f"  Image modalities: {image_modalities} (count: {num_image_modalities})")
+        print(f"  Adjusted batch size: {GLOBAL_BATCH_SIZE} / {num_image_modalities} = {adjusted_batch_size}")
+        print(f"  Memory reduction: ~{num_image_modalities}x less per batch")
+        print(f"{'='*80}\n")
+
+        return adjusted_batch_size
 
     def _find_misclass_file(self):
         """
@@ -461,11 +565,15 @@ class BayesianDatasetPolisher:
 
     def calculate_combined_score(self, metrics, thresholds, filtered_size=None):
         """
-        Calculate enhanced combined optimization score with soft constraint penalties.
+        Calculate improvement-based optimization score for clinical applicability.
 
-        Formula: base_score - total_penalty
+        Formula: improvement_score + retention_bonus - penalties
 
-        Base Score: 0.3×macro_f1 + 0.5×min_per_class_f1 + 0.1×kappa + 0.1×balance_score
+        Improvement Score (focuses on beating baseline):
+        - 40% weighted F1 improvement (handles class imbalance)
+        - 30% min F1 improvement (no class left behind)
+        - 20% kappa improvement (inter-rater reliability)
+        - 10% data retention bonus (prefer less aggressive filtering)
 
         Penalties (smooth, integrated for Bayesian optimization):
         - dataset_size_penalty: Heavy exponential when filtered dataset < 50% of original
@@ -475,26 +583,51 @@ class BayesianDatasetPolisher:
         - empty_class_penalty: Large penalty when any class has 0 samples
 
         Args:
-            metrics: Dict with 'macro_f1', 'f1_per_class', 'kappa'
+            metrics: Dict with 'macro_f1', 'weighted_f1', 'f1_per_class', 'kappa'
             thresholds: Dict with threshold values
             filtered_size: Number of samples after filtering (for dataset size penalty)
 
         Returns:
             tuple: (final_score, penalties_dict)
         """
-        # Base performance score
-        macro_f1 = metrics['macro_f1']
+        # Extract current metrics
+        weighted_f1 = metrics.get('weighted_f1', 0.0)
         min_f1 = min(metrics['f1_per_class'].values())
         kappa = metrics['kappa']
-        balance_score = self.get_class_balance_score(thresholds)
 
-        base_score = 0.3 * macro_f1 + 0.5 * min_f1 + 0.1 * kappa + 0.1 * balance_score
+        # Calculate improvement over baseline (if available)
+        if self.phase1_baseline is not None:
+            # Improvement-based scoring: maximize delta from baseline
+            improvement_weighted_f1 = weighted_f1 - self.phase1_baseline['weighted_f1']
+            improvement_min_f1 = min_f1 - self.phase1_baseline['min_f1']
+            improvement_kappa = kappa - self.phase1_baseline['kappa']
+        else:
+            # Fallback if no baseline: use absolute scores (less ideal)
+            improvement_weighted_f1 = weighted_f1
+            improvement_min_f1 = min_f1
+            improvement_kappa = kappa
+
+        # Data retention bonus: reward keeping more samples (0.0-0.1 range)
+        if filtered_size is not None and self.original_dataset_size is not None:
+            retention_ratio = filtered_size / self.original_dataset_size
+            retention_bonus = 0.1 * retention_ratio
+        else:
+            retention_bonus = 0.0
+
+        # Improvement-based score
+        # Weights: 40% weighted F1, 30% min F1, 20% kappa, 10% retention
+        base_score = (
+            0.4 * improvement_weighted_f1 +
+            0.3 * improvement_min_f1 +
+            0.2 * improvement_kappa +
+            retention_bonus
+        )
 
         # Calculate constraint penalties (smooth, differentiable)
         penalties = self.calculate_constraint_penalties(thresholds, metrics, filtered_size)
         total_penalty = sum(penalties.values())
 
-        # Final score = base performance - penalties
+        # Final score = improvement score - penalties
         final_score = base_score - total_penalty
 
         return final_score, penalties
@@ -594,8 +727,11 @@ class BayesianDatasetPolisher:
         # Get original dataset size
         self.original_dataset_size = self.get_original_dataset_size()
         if self.original_dataset_size:
-            min_samples = int(self.original_dataset_size * self.min_dataset_fraction)
-            print(f"Dataset: {self.original_dataset_size} samples (min after filtering: {min_samples})")
+            # Calculate actual dataset size being used based on data percentage
+            actual_dataset_size = int(self.original_dataset_size * self.phase1_data_percentage / 100)
+            min_samples = int(actual_dataset_size * self.min_dataset_fraction)
+            print(f"Dataset: {actual_dataset_size} samples ({self.phase1_data_percentage}% of {self.original_dataset_size})")
+            print(f"Min after filtering: {min_samples} samples ({self.min_dataset_fraction*100:.0f}%)")
 
         total_runs = self.phase1_n_runs * len(self.phase1_modalities)
         print(f"Testing {len(self.phase1_modalities)} modalities individually: {self.phase1_modalities}")
@@ -606,13 +742,20 @@ class BayesianDatasetPolisher:
         # Clean up everything for fresh start
         cleanup_for_resume_mode('fresh')
 
-        # Clear misclassifications directory for fresh start
+        # Clear misclassifications directory for fresh start (preserve log files)
         from src.utils.config import get_output_paths
         import shutil
+        import glob
         output_paths = get_output_paths(self.result_dir)
         misclass_dir = output_paths['misclassifications']
         if os.path.exists(misclass_dir):
-            shutil.rmtree(misclass_dir)
+            # Delete all files except .log files
+            for item in os.listdir(misclass_dir):
+                item_path = os.path.join(misclass_dir, item)
+                if os.path.isfile(item_path) and not item.endswith('.log'):
+                    os.remove(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
         os.makedirs(misclass_dir, exist_ok=True)
 
         # Temporarily override INCLUDED_COMBINATIONS
@@ -682,20 +825,32 @@ class BayesianDatasetPolisher:
                         sys.executable, 'src/main.py',
                         '--mode', 'search',
                         '--cv_folds', str(self.phase1_cv_folds),
+                        '--data_percentage', str(self.phase1_data_percentage),
                         '--verbosity', '0',
-                        '--resume_mode', 'fresh'  # Force fresh training for each run
+                        '--resume_mode', 'fresh',  # Force fresh training for each run
+                        '--device-mode', self.device_mode,
+                        '--min-gpu-memory', str(self.min_gpu_memory)
                     ]
 
-                    # Suppress all subprocess output - only show progress bar
-                    result = subprocess.run(
-                        cmd,
-                        cwd=project_root,
-                        env=os.environ.copy(),
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL
-                    )
+                    # Add custom GPU IDs if specified
+                    if self.device_mode == 'custom' and self.custom_gpus:
+                        cmd.extend(['--custom-gpus'] + [str(gpu) for gpu in self.custom_gpus])
 
-                    if result.returncode != 0:
+                    # Add display GPU flag if enabled
+                    if self.include_display_gpus:
+                        cmd.append('--include-display-gpus')
+
+                    # Use os.system to avoid TensorFlow context conflicts (same fix as Phase 2)
+                    # Save current directory
+                    original_cwd = os.getcwd()
+                    try:
+                        os.chdir(project_root)
+                        cmd_str = ' '.join(str(arg) for arg in cmd)
+                        return_code = os.system(f"{cmd_str} >/dev/null 2>&1")
+                    finally:
+                        os.chdir(original_cwd)
+
+                    if return_code != 0:
                         print(f"\n❌ Training failed on {modality_name} run {run_idx}")
                         return False
 
@@ -716,13 +871,29 @@ class BayesianDatasetPolisher:
 
             if os.path.exists(misclass_file):
                 shutil.copy2(misclass_file, misclass_saved)
-                print(f"\n💾 Saved Phase 1 misclassification data to: frequent_misclassifications_saved.csv")
+                print(f"\n💾 Saved Phase 1 misclassification data:")
+                print(f"   - frequent_misclassifications_saved.csv (total)")
 
-                # Delete all misclassification tracking files to prevent Phase 2 from updating them
-                # Phase 2 will create new files, but we'll ignore them and use only the saved file
+                # Also save per-modality files for later analysis
                 misclass_files = glob.glob(os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_*.csv'))
+                saved_modality_files = []
                 for f in misclass_files:
-                    if not f.endswith('_saved.csv'):  # Keep only the saved file
+                    if f.endswith('_saved.csv') or f.endswith('_total.csv'):
+                        continue  # Skip the saved and total files
+                    # Rename modality file: frequent_misclassifications_metadata.csv -> frequent_misclassifications_metadata_saved.csv
+                    base_name = os.path.basename(f)
+                    saved_name = base_name.replace('.csv', '_saved.csv')
+                    saved_path = os.path.join(output_paths['misclassifications'], saved_name)
+                    shutil.copy2(f, saved_path)
+                    saved_modality_files.append(saved_name)
+
+                for name in saved_modality_files:
+                    print(f"   - {name}")
+
+                # Delete all non-saved misclassification tracking files to prevent Phase 2 from updating them
+                # Phase 2 will create new files, but we'll ignore them and use only the saved files
+                for f in misclass_files:
+                    if not f.endswith('_saved.csv'):  # Keep only the saved files
                         try:
                             os.remove(f)
                         except:
@@ -731,6 +902,10 @@ class BayesianDatasetPolisher:
 
             # Analyze misclassifications
             self.show_misclass_summary()
+
+            # CRITICAL: Save Phase 1 baseline metrics to a dedicated file
+            # This preserves the unfiltered baseline for Phase 2 to use
+            self._save_phase1_baseline()
 
             return True
 
@@ -741,6 +916,90 @@ class BayesianDatasetPolisher:
             with open(config_path, 'w') as f:
                 f.write(original_config)
             backup_path.unlink(missing_ok=True)
+
+    def _save_phase1_baseline(self):
+        """
+        Save Phase 1 baseline metrics to a dedicated JSON file.
+
+        This prevents Phase 2 from accidentally using filtered results as baseline.
+        Saves all individual modality baselines from the CSV file.
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+
+        csv_files = [
+            os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv'),
+            os.path.join(self.result_dir, 'csv', 'modality_combination_results.csv')
+        ]
+
+        baselines = {}
+
+        for csv_file in csv_files:
+            if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
+                try:
+                    df = pd.read_csv(csv_file)
+                    for _, row in df.iterrows():
+                        modality = row.get('Modalities', 'unknown')
+                        baselines[modality] = {
+                            'modality': modality,
+                            'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                            'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                            'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                            'min_f1': min(
+                                float(row.get('I F1-score (Mean)', 0.0)),
+                                float(row.get('P F1-score (Mean)', 0.0)),
+                                float(row.get('R F1-score (Mean)', 0.0))
+                            )
+                        }
+                    break  # Use first valid CSV file
+                except Exception as e:
+                    continue
+
+        if baselines:
+            with open(baseline_file, 'w') as f:
+                json.dump(baselines, f, indent=2)
+            print(f"\n💾 Saved Phase 1 baseline metrics: {baseline_file}")
+            print(f"   Baselines for {len(baselines)} modalities preserved")
+
+    def _load_baseline_from_previous_run(self):
+        """
+        Load Phase 1 baseline from dedicated baseline file.
+
+        When --phase2-only is used, CSV files get overwritten with Phase 2 filtered results.
+        This method loads the preserved Phase 1 baseline from phase1_baseline.json.
+
+        Returns:
+            dict or None: Best baseline metrics if found
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+        if not os.path.exists(baseline_file):
+            return None
+
+        try:
+            with open(baseline_file, 'r') as f:
+                baselines = json.load(f)
+
+            # Find baselines matching the modalities being optimized
+            candidate_baselines = []
+            for modality in self.modalities:
+                # Check for exact match or substring match
+                for key, baseline in baselines.items():
+                    if modality in key.lower():
+                        candidate_baselines.append(baseline)
+                        break
+
+            # Select best baseline (highest weighted F1)
+            if candidate_baselines:
+                return max(candidate_baselines, key=lambda x: x['weighted_f1'])
+
+            return None
+
+        except Exception as e:
+            print(f"  ⚠️  Could not load baseline from saved file: {e}")
+            return None
 
     def show_misclass_summary(self):
         """Show summary of accumulated misclassifications."""
@@ -772,6 +1031,132 @@ class BayesianDatasetPolisher:
                 print(f"    {phase}: {len(phase_df)} samples, " +
                       f"counts {phase_df['Misclass_Count'].min()}-{phase_df['Misclass_Count'].max()}, " +
                       f"median={phase_df['Misclass_Count'].median():.1f}")
+
+    def show_phase1_baseline(self):
+        """Show Phase 1 baseline performance for each modality tested and store it."""
+        print(f"\n{'='*70}")
+        print(f"PHASE 1 BASELINE PERFORMANCE (Before Optimization)")
+        print(f"{'='*70}")
+
+        # Look for saved modality CSV files from Phase 1
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+
+        import glob
+        saved_csv_files = glob.glob(os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_*_saved.csv'))
+
+        if not saved_csv_files:
+            print("  (No Phase 1 baseline data found - Phase 1 may have been skipped)")
+            return
+
+        # Extract modality names from saved files
+        modalities_tested = []
+        for f in saved_csv_files:
+            basename = os.path.basename(f)
+            # Extract modality name: frequent_misclassifications_metadata_saved.csv -> metadata
+            modality = basename.replace('frequent_misclassifications_', '').replace('_saved.csv', '')
+            modalities_tested.append(modality)
+
+        # CRITICAL: When running --phase2-only, CSV files may contain Phase 2 filtered results,
+        # NOT Phase 1 baseline. Try to load from previous optimization JSON first.
+        baseline_from_json = self._load_baseline_from_previous_run()
+        if baseline_from_json:
+            # Display ALL baselines from the JSON file with full detail
+            from src.utils.config import get_output_paths
+            output_paths = get_output_paths(self.result_dir)
+            baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+
+            try:
+                with open(baseline_file, 'r') as f:
+                    all_baselines = json.load(f)
+
+                # Display all modalities with full metrics
+                for modality, baseline in all_baselines.items():
+                    print(f"\n  {modality}:")
+                    print(f"    Macro F1: {baseline['macro_f1']:.4f}")
+                    print(f"    Weighted F1: {baseline['weighted_f1']:.4f}")
+                    print(f"    Min F1: {baseline['min_f1']:.4f}")
+                    print(f"    Kappa: {baseline['kappa']:.4f}")
+
+            except:
+                pass
+
+            # Set and announce the best baseline being used
+            self.phase1_baseline = baseline_from_json
+            print(f"\n  📊 Using best baseline for optimization: {self.phase1_baseline['modality']}")
+            print(f"     (Highest Weighted F1: {self.phase1_baseline['weighted_f1']:.4f})")
+            return
+
+        # Try to read performance from CSV files
+        # Priority order:
+        # 1. modality_results_averaged.csv (single modality Phase 1 results)
+        # 2. modality_combination_results.csv (only if modalities match exactly what we're testing)
+        # We should NOT use modality_combination_results.csv if it contains Phase 2 filtered results
+        csv_files = [
+            os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv'),
+        ]
+
+        for csv_file in csv_files:
+            if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
+                try:
+                    df = pd.read_csv(csv_file)
+
+                    # Find ALL baselines for modalities being optimized
+                    # Then select the BEST one (highest weighted F1)
+                    candidate_baselines = []
+                    for modality in self.modalities:
+                        matching_rows = df[df['Modalities'].str.contains(modality, case=False, na=False)]
+                        if len(matching_rows) > 0:
+                            row = matching_rows.iloc[0]
+                            baseline = {
+                                'modality': modality,
+                                'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                                'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                                'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                                'min_f1': min(
+                                    float(row.get('I F1-score (Mean)', 0.0)),
+                                    float(row.get('P F1-score (Mean)', 0.0)),
+                                    float(row.get('R F1-score (Mean)', 0.0))
+                                )
+                            }
+                            candidate_baselines.append(baseline)
+
+                    # Select best baseline (highest weighted F1 for clinical relevance)
+                    if candidate_baselines:
+                        self.phase1_baseline = max(candidate_baselines, key=lambda x: x['weighted_f1'])
+                        print(f"\n  📊 Using best Phase 1 baseline: {self.phase1_baseline['modality']}")
+                        print(f"     Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}, " +
+                              f"Min F1: {self.phase1_baseline['min_f1']:.4f}, " +
+                              f"Kappa: {self.phase1_baseline['kappa']:.4f}")
+
+                    # Display all modalities tested
+                    for modality in modalities_tested:
+                        # Find rows matching this modality
+                        matching_rows = df[df['Modalities'].str.contains(modality, case=False, na=False)]
+                        if len(matching_rows) > 0:
+                            row = matching_rows.iloc[0]
+                            macro_f1 = row.get('Macro Avg F1-score (Mean)', 0.0)
+                            weighted_f1 = row.get('Weighted Avg F1-score (Mean)', 0.0)
+                            kappa = row.get("Cohen's Kappa (Mean)", 0.0)
+                            acc = row.get('Accuracy (Mean)', 0.0)
+                            f1_I = row.get('I F1-score (Mean)', 0.0)
+                            f1_P = row.get('P F1-score (Mean)', 0.0)
+                            f1_R = row.get('R F1-score (Mean)', 0.0)
+                            min_f1 = min(f1_I, f1_P, f1_R)
+
+                            print(f"\n  {modality}:")
+                            print(f"    Macro F1: {macro_f1:.4f}")
+                            print(f"    Weighted F1: {weighted_f1:.4f}")
+                            print(f"    Min F1: {min_f1:.4f} (I:{f1_I:.4f}, P:{f1_P:.4f}, R:{f1_R:.4f})")
+                            print(f"    Kappa: {kappa:.4f}")
+                            print(f"    Accuracy: {acc:.4f}")
+                    return
+                except Exception as e:
+                    pass
+
+        # Fallback: Just show which modalities were tested
+        print(f"\n  Modalities tested in Phase 1: {', '.join(modalities_tested)}")
+        print(f"  (Performance metrics not available - CSV file may not exist yet)")
 
     def phase2_optimize_thresholds(self):
         """
@@ -878,13 +1263,17 @@ class BayesianDatasetPolisher:
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
         print(f"  CV folds per evaluation: {self.phase2_cv_folds}")
-        print(f"  Score: 0.3×macro_f1 + 0.5×min_f1 + 0.1×kappa + 0.1×balance - penalties")
+        print(f"  Score: 0.4×Δweighted_f1 + 0.3×Δmin_f1 + 0.2×Δkappa + 0.1×retention - penalties")
+        print(f"  (Δ = improvement over baseline; focuses on clinical applicability)")
         print(f"\nSoft Constraints (smooth penalties guide optimizer):")
         print(f"  Dataset size: Target ≥{self.min_dataset_fraction*100:.0f}% of original (heavy exp penalty)")
         print(f"  Min F1 per class: Target ≥{self.min_f1_threshold} (exponential penalty)")
         print(f"  Min samples per class: Target ≥{self.min_samples_per_class} (linear penalty)")
         print(f"  Max class imbalance: Target ≤{self.max_class_imbalance_ratio}x (linear penalty)")
         print(f"\nAll constraints are soft - optimizer learns from violations!\n")
+
+        # Show Phase 1 baseline performance
+        self.show_phase1_baseline()
 
         # Objective function
         @use_named_args(search_space)
@@ -947,11 +1336,35 @@ class BayesianDatasetPolisher:
             balance_score = self.get_class_balance_score(threshold_dict)
             score, penalties = self.calculate_combined_score(metrics, threshold_dict, filtered_size)
 
+            # Calculate improvements for display
+            weighted_f1 = metrics.get('weighted_f1', 0.0)
+            min_f1 = min(metrics['f1_per_class'].values())
+            kappa = metrics['kappa']
+
             print(f"Results:")
-            print(f"  Macro F1: {metrics['macro_f1']:.4f}")
-            print(f"  Min F1: {min(metrics['f1_per_class'].values()):.4f}")
-            print(f"  Kappa: {metrics['kappa']:.4f}")
-            print(f"  Balance: {balance_score:.4f}")
+            print(f"  Weighted F1: {weighted_f1:.4f}", end='')
+            if self.phase1_baseline:
+                delta = weighted_f1 - self.phase1_baseline['weighted_f1']
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
+            print(f"  Min F1: {min_f1:.4f}", end='')
+            if self.phase1_baseline:
+                delta = min_f1 - self.phase1_baseline['min_f1']
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
+            print(f"  Kappa: {kappa:.4f}", end='')
+            if self.phase1_baseline:
+                delta = kappa - self.phase1_baseline['kappa']
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
+            print(f"  Retention: {filtered_size}/{self.original_dataset_size} ({filtered_size/self.original_dataset_size*100:.1f}%)")
+
             if sum(penalties.values()) > 0:
                 print(f"  Penalties: {sum(penalties.values()):.3f} " +
                       f"({', '.join(f'{k}:{v:.2f}' for k, v in penalties.items() if v > 0)})")
@@ -1083,11 +1496,27 @@ class BayesianDatasetPolisher:
 
         try:
             import re
+
+            # Calculate adjusted batch size for Phase 2
+            adjusted_batch_size = self._calculate_phase2_batch_size()
+
+            # Build the modality tuple string, e.g., "('metadata', 'depth_rgb')"
+            modality_tuple = "(" + ", ".join(f"'{m}'" for m in self.modalities) + ",)"
+
+            # Modify INCLUDED_COMBINATIONS
             modified_config = re.sub(
                 r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
-                "INCLUDED_COMBINATIONS = [\n    ('metadata',),  # Temporary: Phase 2 evaluation\n]",
+                f"INCLUDED_COMBINATIONS = [\n    {modality_tuple},  # Temporary: Phase 2 evaluation\n]",
                 original_config
             )
+
+            # Modify GLOBAL_BATCH_SIZE for Phase 2
+            modified_config = re.sub(
+                r'GLOBAL_BATCH_SIZE\s*=\s*\d+',
+                f"GLOBAL_BATCH_SIZE = {adjusted_batch_size}",
+                modified_config
+            )
+
             with open(config_path, 'w') as f:
                 f.write(modified_config)
 
@@ -1096,21 +1525,78 @@ class BayesianDatasetPolisher:
                 sys.executable, 'src/main.py',
                 '--mode', 'search',
                 '--cv_folds', str(self.phase2_cv_folds),
+                '--data_percentage', str(self.phase2_data_percentage),
                 '--verbosity', '0',  # Minimal output during optimization
                 '--resume_mode', 'fresh',  # Force fresh training for each evaluation
                 '--threshold_I', str(thresholds['I']),
                 '--threshold_P', str(thresholds['P']),
-                '--threshold_R', str(thresholds['R'])
+                '--threshold_R', str(thresholds['R']),
+                '--device-mode', self.device_mode,
+                '--min-gpu-memory', str(self.min_gpu_memory)
             ]
 
+            # Add custom GPU IDs if specified
+            if self.device_mode == 'custom' and self.custom_gpus:
+                cmd.extend(['--custom-gpus'] + [str(gpu) for gpu in self.custom_gpus])
+
+            # Add display GPU flag if enabled
+            if self.include_display_gpus:
+                cmd.append('--include-display-gpus')
+
             print(f"⏳ Training with cv_folds={self.phase2_cv_folds} (fresh mode)...")
-            result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
 
-            if result.returncode != 0:
-                return None
+            # Save current directory
+            original_cwd = os.getcwd()
+            try:
+                # Change to project root for execution
+                os.chdir(project_root)
 
-            # Extract metrics from CSV
-            return self.extract_metrics_from_files()
+                # Use os.system instead of subprocess.run to avoid TensorFlow context conflicts
+                # Build command string with proper quoting
+                cmd_str = ' '.join(str(arg) for arg in cmd)
+                # Redirect output to temp file for debugging
+                temp_output = project_root / 'phase2_training_output.tmp'
+                # Add timeout to prevent infinite hangs (60 minutes max per evaluation)
+                # With 1 CV fold this should be more than enough
+                return_code = os.system(f"timeout 3600 {cmd_str} >{temp_output} 2>&1")
+
+            finally:
+                # Restore original directory
+                os.chdir(original_cwd)
+
+            # Check return code - os.system returns exit status << 8
+            # timeout command returns 124 when it times out
+            exit_status = return_code >> 8 if return_code > 255 else return_code
+
+            if return_code != 0:
+                # Timeout exit code 124 might still have valid results
+                if exit_status == 124:
+                    print(f"⚠️  Training timed out but may have completed - checking for results...")
+                else:
+                    print(f"\n{'='*80}")
+                    print("❌ TRAINING FAILED")
+                    print(f"{'='*80}")
+                    print(f"Return code: {return_code} (exit status: {exit_status})")
+                    print(f"\nCommand that failed:")
+                    print(' '.join(cmd))
+
+                    # Show last part of output for debugging
+                    if temp_output.exists():
+                        with open(temp_output, 'r') as f:
+                            output = f.read()
+                            print(f"\n{'─'*80}")
+                            print("OUTPUT (last 3000 chars):")
+                            print(f"{'─'*80}")
+                            print(output[-3000:])
+
+                    print(f"{'='*80}\n")
+                    return None
+
+            # Extract metrics from CSV - will return None if no valid data
+            metrics = self.extract_metrics_from_files()
+            if metrics is None and return_code == 0:
+                print(f"❌ Training completed but no metrics found in CSV files")
+            return metrics
 
         finally:
             # Restore config
@@ -1125,6 +1611,7 @@ class BayesianDatasetPolisher:
         metrics = {
             'f1_per_class': {'I': 0.0, 'P': 0.0, 'R': 0.0},
             'macro_f1': 0.0,
+            'weighted_f1': 0.0,
             'kappa': 0.0,
             'accuracy': 0.0
         }
@@ -1135,19 +1622,24 @@ class BayesianDatasetPolisher:
 
         try:
             df = pd.read_csv(csv_file)
-            metadata_rows = df[df['Modalities'].str.contains('metadata', case=False, na=False)]
-            if len(metadata_rows) == 0:
+            # Look for rows matching any of the modalities being tested
+            matching_rows = df[df['Modalities'].str.contains('|'.join(self.modalities), case=False, na=False, regex=True)]
+            if len(matching_rows) == 0:
                 return None
 
-            row = metadata_rows.iloc[-1]
+            row = matching_rows.iloc[-1]
             metrics['macro_f1'] = float(row.get('Macro Avg F1-score (Mean)', 0.0))
+            metrics['weighted_f1'] = float(row.get('Weighted Avg F1-score (Mean)', 0.0))
             metrics['kappa'] = float(row.get("Cohen's Kappa (Mean)", 0.0))
             metrics['accuracy'] = float(row.get('Accuracy (Mean)', 0.0))
 
-            for i, cls in enumerate(['I', 'P', 'R']):
-                col_name = f'Class {i} F1-score (Mean)'
+            # Extract per-class F1 scores
+            for cls in ['I', 'P', 'R']:
+                col_name = f'{cls} F1-score (Mean)'
                 if col_name in row:
                     metrics['f1_per_class'][cls] = float(row[col_name])
+                else:
+                    metrics['f1_per_class'][cls] = 0.0
 
             return metrics
 
@@ -1157,7 +1649,9 @@ class BayesianDatasetPolisher:
 
     def save_results(self):
         """Save optimization results to JSON."""
-        results_file = os.path.join(self.result_dir, 'bayesian_optimization_results.json')
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        results_file = os.path.join(output_paths['misclassifications'], 'bayesian_optimization_results.json')
 
         # Convert numpy types to native Python types for JSON serialization
         def convert_to_native(obj):
@@ -1192,30 +1686,50 @@ class BayesianDatasetPolisher:
 
 
 def main():
+    # Logging is already set up at module load time (before TensorFlow imports)
+    # See setup_early_logging() at the top of this file
+
     parser = argparse.ArgumentParser(
         description='Two-phase Bayesian dataset polishing',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run both phases (test all 4 modalities in Phase 1)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata depth_rgb depth_map
+  # Run both phases with metadata-only evaluation in Phase 2
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata
+
+  # Run both phases with all modalities combined in Phase 2
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb+depth_map+thermal_map
 
   # Just Phase 1 with 100 runs per modality (400 total)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-n-runs 100
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-n-runs 100
 
   # Phase 1 with custom modalities (only metadata and depth_rgb)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
 
-  # Just Phase 2 (if Phase 1 already done)
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --phase2-only
+  # Just Phase 2 with combined modalities (if Phase 1 already done)
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb --phase2-only
 
   # More thorough optimization
-  python scripts/auto_polish_dataset_v2.py --modalities metadata --n_evaluations 30
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --n-evaluations 30
+
+GPU Configuration:
+  # Multi-GPU mode (use all available GPUs >=8GB)
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode multi
+
+  # Custom GPU selection
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode custom --custom-gpus 0 1
+
+  # Single GPU (default, auto-select best)
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode single
+
+  # CPU only
+  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --device-mode cpu
         """
     )
 
-    parser.add_argument('--modalities', nargs='+', required=True,
-                        help='Modalities to train (must include metadata)')
+    parser.add_argument('--phase2-modalities', type=str, required=True,
+                        help='Modalities for Phase 2 evaluation. Use + to combine modalities. '
+                             'Examples: "metadata", "metadata+depth_rgb", "metadata+depth_rgb+depth_map+thermal_map"')
 
     parser.add_argument('--phase1-only', action='store_true',
                         help='Run only Phase 1 (misclassification detection)')
@@ -1229,8 +1743,20 @@ Examples:
     parser.add_argument('--phase1-modalities', nargs='+', default=['metadata', 'depth_rgb', 'depth_map', 'thermal_map'],
                         help='Modalities to test individually in Phase 1 (default: metadata depth_rgb depth_map thermal_map)')
 
+    parser.add_argument('--phase1-data-percentage', type=int, default=100,
+                        help='Percentage of data to use in Phase 1 (default: 100)')
+
+    parser.add_argument('--phase1-cv-folds', type=int, default=1,
+                        help='Number of CV folds in Phase 1 (default: 1)')
+
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')
+
+    parser.add_argument('--phase2-data-percentage', type=int, default=100,
+                        help='Percentage of data to use in Phase 2 (default: 100)')
+
+    parser.add_argument('--phase2-cv-folds', type=int, default=3,
+                        help='Number of CV folds in Phase 2 (default: 3)')
 
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
@@ -1239,19 +1765,48 @@ Examples:
                         help='Minimum retention per class (default: 0.90). '
                              'Optimization is skipped if this cannot be achieved.')
 
+    # GPU configuration flags
+    parser.add_argument('--device-mode', type=str, choices=['cpu', 'single', 'multi', 'custom'],
+                        default='single',
+                        help='GPU mode: cpu (no GPUs), single (auto-select best), multi (all available), custom (specify IDs)')
+    parser.add_argument('--custom-gpus', type=int, nargs='+', default=None,
+                        help='GPU IDs for custom mode (e.g., --custom-gpus 0 1)')
+    parser.add_argument('--min-gpu-memory', type=float, default=8.0,
+                        help='Minimum GPU memory in GB (default: 8.0)')
+    parser.add_argument('--include-display-gpus', action='store_true',
+                        help='Allow training on display GPUs (default: exclude them)')
+
     args = parser.parse_args()
 
-    if 'metadata' not in args.modalities:
-        print("❌ Error: --modalities must include 'metadata'")
+    # Parse phase2-modalities (e.g., "metadata+depth_rgb" -> ['metadata', 'depth_rgb'])
+    phase2_modalities = [m.strip() for m in args.phase2_modalities.split('+')]
+
+    valid_modalities = {'metadata', 'depth_rgb', 'depth_map', 'thermal_map'}
+    invalid = set(phase2_modalities) - valid_modalities
+    if invalid:
+        print(f"❌ Error: Invalid modalities: {invalid}")
+        print(f"   Valid options: {valid_modalities}")
+        sys.exit(1)
+
+    if not phase2_modalities:
+        print("❌ Error: --phase2-modalities cannot be empty")
         sys.exit(1)
 
     polisher = BayesianDatasetPolisher(
-        modalities=args.modalities,
+        modalities=phase2_modalities,
         phase1_n_runs=args.phase1_n_runs,
+        phase1_cv_folds=args.phase1_cv_folds,
         phase1_modalities=args.phase1_modalities,
+        phase1_data_percentage=args.phase1_data_percentage,
         phase2_n_evaluations=args.n_evaluations,
+        phase2_cv_folds=args.phase2_cv_folds,
+        phase2_data_percentage=args.phase2_data_percentage,
         min_dataset_fraction=args.min_dataset_fraction,
-        min_retention_per_class=args.min_retention_per_class
+        min_retention_per_class=args.min_retention_per_class,
+        device_mode=args.device_mode,
+        custom_gpus=args.custom_gpus,
+        min_gpu_memory=args.min_gpu_memory,
+        include_display_gpus=args.include_display_gpus
     )
 
     # Run phases

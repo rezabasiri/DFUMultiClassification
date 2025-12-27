@@ -2,6 +2,99 @@
 
 Tracks major repository changes and refactors.
 
+## 2025-12-27 — Core data flag for optimized dataset filtering
+
+### Integration of auto_polish_dataset_v2.py results with main.py
+
+**Files Modified**:
+- `src/main.py`: Added `--core-data` flag that automatically loads optimized thresholds from `results/bayesian_optimization_results.json` and applies them via the existing `filter_frequent_misclassifications()` function (lines 2279-2288, 2450-2483)
+- `src/evaluation/metrics.py`: Fixed `filter_frequent_misclassifications()` to check multiple possible locations for misclassification CSV file (lines 172-188) - handles both `misclassifications/` and `misclassifications_saved/` subdirectories
+
+**Usage**:
+```bash
+# Use optimized core dataset (excludes outlier samples)
+python src/main.py --mode search --core-data
+
+# Manual thresholds override core-data
+python src/main.py --mode search --core-data --threshold_P 3
+```
+
+**What it does**:
+- Reads best_thresholds from Bayesian optimization results (e.g., P=5, I=4, R=3)
+- Filters out frequently misclassified samples that may result from human error
+- Improves model performance by training on high-quality core data
+- Manual threshold arguments (--threshold_I/P/R) override auto-loaded thresholds if specified
+
+**Requirements**: Must run `scripts/auto_polish_dataset_v2.py` first to generate optimization results
+
+---
+
+## 2025-12-26 — Phase 2 optimization fixes and improvements
+
+### Critical Bug Fixes in scripts/auto_polish_dataset_v2.py
+- **Fixed subprocess TensorFlow context conflicts**: Replaced `subprocess.run()` with `os.system()` to avoid parent/child TensorFlow context conflicts that caused thread creation failures (lines 768-780, 1292-1340)
+- **Fixed batch size adjustment**: Added `_calculate_phase2_batch_size()` method to prevent OOM by dividing batch size by number of image modalities in Phase 2 (lines 170-203, 1183, 1256-1260)
+- **Fixed metric extraction for non-metadata modalities**: Changed CSV search from hardcoded 'metadata' to actual modalities being tested (line 1367), fixed column names from `Class {i} F1-score` to `{cls} F1-score` (lines 1377-1382)
+- **Fixed timeout handling**: Added proper os.system() return code decoding, handle timeout exit code 124 gracefully (lines 1308-1340)
+- **Removed metadata requirement**: Deleted unnecessary check forcing metadata inclusion (line 134-135 removed)
+- **Fixed baseline corruption**: Phase 1 baseline now saved to `results/misclassifications/phase1_baseline.json` and loaded from there during Phase 2 to prevent using filtered results as baseline (lines 875-953)
+
+### New Features in scripts/auto_polish_dataset_v2.py
+- **Automatic logging**: All terminal output saved to timestamped files in `results/misclassifications/optimization_run_YYYYMMDD_HHMMSS.log` (lines 1410-1438)
+- **Phase 1 baseline display**: Added `show_phase1_baseline()` to show performance metrics before optimization for comparison (lines 872-978)
+- **CV folds arguments**: Added `--phase1-cv-folds` and `--phase2-cv-folds` command-line args for flexible cross-validation (lines 1498-1508, 1547, 1551)
+- **Dataset size display fix**: Shows actual samples used based on `--phase1-data-percentage` instead of full dataset (lines 663-666)
+- **Improved objective function for clinical applicability** (lines 527-594):
+  - Added weighted F1 extraction from CSV (lines 1356, 1373)
+  - New improvement-based scoring: `0.4×Δweighted_f1 + 0.3×Δmin_f1 + 0.2×Δkappa + 0.1×retention - penalties`
+  - Focuses on beating baseline rather than absolute scores
+  - Weighted F1 prioritized for imbalanced datasets (40% weight vs 30% for min F1)
+  - Shows improvement deltas in output: `Weighted F1: 0.4491 (Δ+0.0123)`
+- **Best baseline selection**: When multiple modalities tested in Phase 1, automatically selects best performing one (highest weighted F1) as optimization target (lines 923-949)
+
+### Files Modified
+- `scripts/auto_polish_dataset_v2.py`: All fixes and features above
+- `agent_communication/phase2_subprocess_investigation/`: Investigation docs (FINDINGS.md, SOLUTION.md) and test script
+
+### Key Parameters
+- Timeout: 3600s (60 min) per evaluation to allow completion
+- Default CV folds: Phase 1=1, Phase 2=3
+- Batch size adjustment: `GLOBAL_BATCH_SIZE / num_image_modalities` in Phase 2
+- Objective weights: 40% weighted F1, 30% min F1, 20% kappa, 10% data retention
+
+### Output Files (all in results/misclassifications/)
+- `phase1_baseline.json` - Preserved Phase 1 baseline metrics for all modalities
+- `bayesian_optimization_results.json` - Phase 2 optimization history and best thresholds
+- `optimization_run_YYYYMMDD_HHMMSS.log` - Timestamped execution logs
+- `frequent_misclassifications_saved.csv` - Misclassification counts from Phase 1
+
+---
+
+## 2025-12-25 — Multi-GPU support implementation
+
+### Multi-GPU Training with MirroredStrategy
+
+**Files Modified**:
+- `src/training/training_utils.py`: Wrapped dataset creation/processing in `strategy.scope()` for proper multi-GPU distribution (lines 926-927, 947-959, 1008-1021). Added multi-GPU logging (lines 786-794).
+- `src/utils/gpu_config.py`: Creates MirroredStrategy for multi-GPU mode, sets CUDA_VISIBLE_DEVICES, filters GPUs by memory/display status.
+- `agent_communication/gpu_setup/MULTI_GPU_GUIDE.md`: Created concise guide for multi-GPU usage.
+
+**Key Changes**:
+- Dataset operations now execute within `strategy.scope()` for proper distribution across GPUs
+- Global batch size automatically split across GPU replicas (e.g., 128 → 64 per GPU with 2 GPUs)
+- Model creation already wrapped in `strategy.scope()` (line 1070-1080)
+
+**Usage**:
+```bash
+python src/main.py --device-mode multi        # Use all GPUs (>=8GB, non-display)
+python src/main.py --device-mode single       # Single GPU (auto-select best)
+python src/main.py --device-mode custom --custom-gpus 0 1  # Specific GPUs
+```
+
+**RTX 5090 Compatibility**: Requires TensorFlow 2.15.1+ for compute capability 12.0 support (see `INSTALL_RTX5090_FIX.md`)
+
+---
+
 ## 2025-12-16 — Repository reorganization
 
 ### Structure created / standardized
@@ -627,13 +720,45 @@ Training produced catastrophic results: Min F1=0.0, Macro F1=0.21, model predict
 1. **Phase 9 tested metadata only** (61 tabular features) - easiest modality. Image modalities need separate verification.
 2. **Feature normalization is CRITICAL** - without it, model cannot learn (proven by Phase 8 vs Phase 9 comparison).
 3. **Solution requires ALL THREE fixes**: oversampling + balanced alpha + feature normalization.
-4. **No data leaks detected**: StandardScaler fitted only on train data, train/val splits properly separated.
+4. ~~**No data leaks detected**: StandardScaler fitted only on train data, train/val splits properly separated.~~ **INCORRECT - See Phase 9 Data Leakage Discovery below**
+
+### Phase 9 Data Leakage Discovery (2025-12-24)
+
+**CRITICAL FINDING**: Phase 9's 97.6% accuracy was **NOT due to real generalization** - it was due to **patient-level data leakage**.
+
+**Root Cause**:
+- **File**: `agent_communication/debug_09_normalized_features.py:61-63`
+- **Bug**: Used `train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)` which splits by **SAMPLES**, not **PATIENTS**
+- **Problem**: Same patient's visits appeared in both train and test sets → model learned patient-specific patterns (memorization), not generalizable wound healing features
+- **Evidence**:
+  - Phase 9 with sample-level split: 97.59% accuracy, Min F1=0.964
+  - Same architecture with patient-level CV: **47.26% accuracy**, Min F1=0.245 (created via `test_metadata_phase9_cv.py`)
+  - Performance drop: **50.33 percentage points**
+
+**Verification Test**:
+- Created `agent_communication/test_metadata_phase9_cv.py` implementing proper patient-level CV
+- Results across 3 folds with patient-level splitting:
+  - Fold 1: Acc=44.9%, F1_macro=0.378, Min_F1=0.231
+  - Fold 2: Acc=52.0%, F1_macro=0.440, Min_F1=0.249
+  - Fold 3: Acc=44.8%, F1_macro=0.404, Min_F1=0.256
+  - **Average: 47.3% accuracy** (not 97.6%)
+- Patient overlap verification: 0 patients shared between train/val in all folds ✓
+
+**Correct Interpretation**:
+1. **Feature normalization IS still critical** - enables learning (Phase 8: 33% → Phase 9 with normalization: 47%)
+2. **True metadata performance**: ~47-50% accuracy (not 97.6%)
+3. **All three fixes (oversampling + balanced alpha + normalization) are necessary** but not sufficient alone
+4. **Patient-level CV is essential** to prevent overfitting to patient-specific characteristics
+5. **CV test results (~50% accuracy) were CORRECT** - Phase 9 results were the outlier due to leakage
+
+**Investigation Details**: See `agent_communication/test_metadata_phase9_cv_output.txt` and `metadata_investigation_summary.txt`
 
 ### Next Steps
 
-- Test with image modalities (depth_rgb, depth_map, thermal_map) to verify fix works across all modalities
-- Run comprehensive CV test with all modality combinations
-- Verify no data/model leaks in full pipeline
+- ✅ Test with image modalities (depth_rgb, depth_map, thermal_map) - COMPLETED via comprehensive CV test
+- ✅ Run comprehensive CV test with all modality combinations - COMPLETED (results in `results_comprehensive_cv_test.txt`)
+- ✅ Verify no data/model leaks in full pipeline - COMPLETED (thermal_map warning was false positive)
+- **NEW**: Develop feature engineering strategies to improve true generalization performance beyond current ~47-50% baseline
 
 ---
 

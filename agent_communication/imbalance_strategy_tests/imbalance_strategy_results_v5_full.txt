@@ -1,0 +1,39 @@
+COMPREHENSIVE CLASS IMBALANCE STRATEGY COMPARISON - V5 (FULL DATA)
+========================================================================================================================
+
+Dataset: 3107 samples (FULL)
+Class distribution: I=892, P=1880, R=335
+Imbalance ratio: 5.6:1
+Cross-validation: 3-fold patient-level CV
+Runtime: 5.7 minutes
+
+Baseline: F1m=0.3640, F1w=0.5238, MinF1=0.0945, κ=0.0768, BA=0.3781
+
+RESULTS (sorted by avg improvement):
+------------------------------------------------------------------------------------------------------------------------
+2. RandomOverSampler: avg_imp=+73.7%, F1m=0.4436, MinF1=0.2808, κ=0.1719
+17. SMOTE+Alpha(sqrt): avg_imp=+67.3%, F1m=0.3967, MinF1=0.3142, κ=0.1416
+9. Alpha (balanced): avg_imp=+65.9%, F1m=0.4204, MinF1=0.3067, κ=0.1353
+6. Borderline-SMOTE: avg_imp=+61.3%, F1m=0.4171, MinF1=0.2975, κ=0.1259
+16. Oversample+Alpha(sqrt): avg_imp=+59.9%, F1m=0.3865, MinF1=0.2829, κ=0.1426
+12. Oversample+Alpha: avg_imp=+59.5%, F1m=0.3948, MinF1=0.3110, κ=0.1190
+5. ADASYN: avg_imp=+57.7%, F1m=0.4216, MinF1=0.3064, κ=0.1034
+11. Focal Loss: avg_imp=+56.4%, F1m=0.4122, MinF1=0.2654, κ=0.1349
+4. SMOTE: avg_imp=+55.4%, F1m=0.4148, MinF1=0.2686, κ=0.1263
+3. RandomUnderSampler: avg_imp=+53.9%, F1m=0.4047, MinF1=0.2892, κ=0.1102
+7. SMOTE+Tomek: avg_imp=+52.9%, F1m=0.4200, MinF1=0.2514, κ=0.1296
+8. SMOTE+ENN: avg_imp=+47.7%, F1m=0.3650, MinF1=0.2794, κ=0.1113
+18. SMOTE+Tomek+Alpha: avg_imp=+44.4%, F1m=0.3653, MinF1=0.2737, κ=0.1040
+15. SMOTE+Focal: avg_imp=+42.7%, F1m=0.3460, MinF1=0.2448, κ=0.1275
+13. SMOTE+Alpha: avg_imp=+40.7%, F1m=0.3635, MinF1=0.2498, κ=0.1113
+14. Oversample+Focal: avg_imp=+32.0%, F1m=0.3421, MinF1=0.2129, κ=0.1162
+10. Alpha (sqrt): avg_imp=+6.7%, F1m=0.3778, MinF1=0.1178, κ=0.0811
+
+
+TOP 3:
+
+1. 2. RandomOverSampler - +73.7% avg improvement
+
+2. 17. SMOTE+Alpha(sqrt) - +67.3% avg improvement
+
+3. 9. Alpha (balanced) - +65.9% avg improvement
