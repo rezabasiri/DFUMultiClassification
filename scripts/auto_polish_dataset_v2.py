@@ -71,6 +71,44 @@ from pathlib import Path
 from datetime import datetime
 from tqdm import tqdm
 
+# =============================================================================
+# SET UP LOGGING EARLY (before any TensorFlow imports)
+# =============================================================================
+def setup_early_logging():
+    """Set up logging to capture all output including TensorFlow messages."""
+    log_dir = Path('results/misclassifications')
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = log_dir / f'optimization_run_{timestamp}.log'
+
+    class TeeOutput:
+        def __init__(self, file_path, stream):
+            self.terminal = stream
+            self.log = open(file_path, 'a', buffering=1)
+
+        def write(self, message):
+            self.terminal.write(message)
+            self.log.write(message)
+            self.log.flush()
+
+        def flush(self):
+            self.terminal.flush()
+            self.log.flush()
+
+    # Create the log file
+    log_file.touch()
+
+    # Redirect both stdout and stderr
+    sys.stdout = TeeOutput(log_file, sys.__stdout__)
+    sys.stderr = TeeOutput(log_file, sys.__stderr__)
+
+    print(f"📝 Logging to: {log_file}\n")
+    return log_file
+
+# Set up logging BEFORE any TensorFlow imports
+_log_file = setup_early_logging()
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -704,13 +742,20 @@ class BayesianDatasetPolisher:
         # Clean up everything for fresh start
         cleanup_for_resume_mode('fresh')
 
-        # Clear misclassifications directory for fresh start
+        # Clear misclassifications directory for fresh start (preserve log files)
         from src.utils.config import get_output_paths
         import shutil
+        import glob
         output_paths = get_output_paths(self.result_dir)
         misclass_dir = output_paths['misclassifications']
         if os.path.exists(misclass_dir):
-            shutil.rmtree(misclass_dir)
+            # Delete all files except .log files
+            for item in os.listdir(misclass_dir):
+                item_path = os.path.join(misclass_dir, item)
+                if os.path.isfile(item_path) and not item.endswith('.log'):
+                    os.remove(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
         os.makedirs(misclass_dir, exist_ok=True)
 
         # Temporarily override INCLUDED_COMBINATIONS
@@ -1641,35 +1686,8 @@ class BayesianDatasetPolisher:
 
 
 def main():
-    # Set up automatic logging to file
-    import datetime
-    from pathlib import Path
-
-    # Create log directory if it doesn't exist
-    log_dir = Path('results/misclassifications')
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create timestamped log file
-    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = log_dir / f'optimization_run_{timestamp}.log'
-
-    # Tee stdout/stderr to both console and file
-    class TeeOutput:
-        def __init__(self, file_path):
-            self.terminal = sys.stdout
-            self.log = open(file_path, 'w', buffering=1)  # Line buffered
-
-        def write(self, message):
-            self.terminal.write(message)
-            self.log.write(message)
-
-        def flush(self):
-            self.terminal.flush()
-            self.log.flush()
-
-    # Redirect stdout to tee
-    sys.stdout = TeeOutput(log_file)
-    print(f"📝 Logging to: {log_file}\n")
+    # Logging is already set up at module load time (before TensorFlow imports)
+    # See setup_early_logging() at the top of this file
 
     parser = argparse.ArgumentParser(
         description='Two-phase Bayesian dataset polishing',
