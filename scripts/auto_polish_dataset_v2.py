@@ -141,7 +141,8 @@ class BayesianDatasetPolisher:
                  device_mode='single',
                  custom_gpus=None,
                  min_gpu_memory=8.0,
-                 include_display_gpus=False):
+                 include_display_gpus=False,
+                 track_misclass='valid'):
         """
         Initialize the Bayesian dataset polisher.
 
@@ -193,6 +194,9 @@ class BayesianDatasetPolisher:
         self.custom_gpus = custom_gpus
         self.min_gpu_memory = min_gpu_memory
         self.include_display_gpus = include_display_gpus
+
+        # Misclassification tracking mode
+        self.track_misclass = track_misclass
 
         # Get project paths
         self.directory, self.result_dir, self.root = get_project_paths()
@@ -865,13 +869,14 @@ class BayesianDatasetPolisher:
                                 except Exception:
                                     pass
 
-                    # NOTE: Do NOT set CROSS_VAL_RANDOM_SEED when using CV folds!
-                    # CV folds should use their natural per-fold seed variation.
-                    # Only set this for multiple independent runs with random splits.
+                    # Set different random seeds for each run to get diverse patient fold splits
                     if self.phase1_cv_folds <= 1:
-                        # Only for single-split mode: set seed for reproducibility across runs
+                        # Single-split mode: set seed for data splitting within the run
                         os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_counter)
-                    # else: For CV mode, let each fold use its default seed (42 + fold_idx * (fold_idx + 3))
+                    else:
+                        # CV mode: set seed for fold generation to get different patient splits each run
+                        os.environ['CV_FOLD_SEED'] = str(self.base_random_seed + run_counter)
+                        # Each fold within the run still uses its deterministic seed (42 + fold_idx * (fold_idx + 3))
 
                     # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
                     # NOTE: Don't pass threshold parameters - Phase 1 needs full dataset for misclassification detection
@@ -882,6 +887,7 @@ class BayesianDatasetPolisher:
                         '--data_percentage', str(self.phase1_data_percentage),
                         '--verbosity', '0',
                         '--resume_mode', 'fresh',  # Force fresh training for each run
+                        '--track-misclass', self.track_misclass,  # Control which dataset to track from
                         '--device-mode', self.device_mode,
                         '--min-gpu-memory', str(self.min_gpu_memory)
                     ]
@@ -1812,6 +1818,11 @@ GPU Configuration:
     parser.add_argument('--phase1-cv-folds', type=int, default=1,
                         help='Number of CV folds in Phase 1 (default: 1)')
 
+    parser.add_argument('--track-misclass', type=str, choices=['both', 'valid', 'train'], default='valid',
+                        help='Which dataset to track misclassifications from: '
+                             'both (train+valid), valid (recommended - faster), train (not recommended). '
+                             'Default: valid')
+
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')
 
@@ -1872,7 +1883,8 @@ GPU Configuration:
         device_mode=args.device_mode,
         custom_gpus=args.custom_gpus,
         min_gpu_memory=args.min_gpu_memory,
-        include_display_gpus=args.include_display_gpus
+        include_display_gpus=args.include_display_gpus,
+        track_misclass=args.track_misclass
     )
 
     # Run phases

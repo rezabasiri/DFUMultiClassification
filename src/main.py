@@ -1756,7 +1756,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_fo
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thresholds=None):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
     """
     Test all modality combinations and save results to CSV.
 
@@ -1851,7 +1851,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thres
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
         cv_results, confusion_matrices, histories = cross_validation_manual_split(
-            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds
+            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=track_misclass
         )
 
         # Save predictions per combination for later gating network ensemble
@@ -2062,7 +2062,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thres
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2072,6 +2072,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
         cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
         thresholds (dict): Misclassification filtering thresholds {'I': x, 'P': y, 'R': z}
+        track_misclass (str): Which dataset to track misclassifications from ('both', 'valid', 'train')
     """
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
@@ -2094,9 +2095,9 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
             vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, thresholds=thresholds)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, thresholds=thresholds, track_misclass=track_misclass)
     elif mode.lower() == 'specialized':
-        main_with_specialized_evaluation(data_percentage, train_patient_percentage, cv_folds)
+        main_with_specialized_evaluation(data_percentage, train_patient_percentage, cv_folds, track_misclass=track_misclass)
     else:
         raise ValueError("Mode must be either 'search' or 'specialized'")
 
@@ -2264,6 +2265,19 @@ Configuration:
         This improves model performance by training on high-quality core data only.
         Manual threshold arguments (--threshold_I/P/R) override these if specified.
         (default: False - uses all available data)"""
+    )
+
+    parser.add_argument(
+        "--track-misclass",
+        type=str,
+        choices=['both', 'valid', 'train'],
+        default='both',
+        help="""Which dataset to track misclassifications from:
+        'both': Track from both train and validation sets (default)
+        'valid': Track only from validation set (recommended - faster, more meaningful)
+        'train': Track only from training set (not recommended)
+        Validation-only tracking skips inference on training data, saving computation.
+        (default: both)"""
     )
 
     parser.add_argument(
@@ -2460,7 +2474,7 @@ Configuration:
         vprint(f"Misclassification filtering thresholds: {thresholds}", level=0)
 
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, thresholds)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, thresholds, args.track_misclass)
 
     # Clear memory after completion
     clear_gpu_memory()
