@@ -1,0 +1,85 @@
+2025-12-27 15:18:47.584774: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2025-12-27 15:18:47.584940: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2025-12-27 15:18:47.586426: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-12-27 15:18:48.309610: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 5090 - 31.8GB
+  GPU 1: NVIDIA GeForce RTX 5090 - 31.8GB
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 5090 (31.8GB)
+  GPU 1: NVIDIA GeForce RTX 5090 (31.8GB)
+2025-12-27 15:18:52.738123: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+2025-12-27 15:18:52.740709: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+Enabled memory growth for 2 GPU(s)
+2025-12-27 15:18:53.042570: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+2025-12-27 15:18:53.044495: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+
+Using MirroredStrategy (2 GPUs) with ReductionToOneDevice
+  (GPU-based gradient aggregation, NCCL-free for RTX 5090 compatibility)
+Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 30 (global batch size: 60, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 60
+  Per-GPU batch: 30 (60 / 2 GPUs)
+Max epochs: 150 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Csv Results: 7 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+2025-12-27 15:18:53.809215: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+2025-12-27 15:18:53.812218: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+Misclassification filtering thresholds: {'I': 14, 'P': 20, 'R': 22}
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=14, P=20, R=22
+
+Excluded samples per class:
+  Class I: 93 samples
+  Class P: 5 samples
+  Class R: 0 samples
+
+Total unique samples to exclude: 98
+
+Dataset size (rows): 3107 -> 2594 (83.5%)
+Unique samples: 647 -> 549 (removed 98)
+
+Class distribution after filtering:
+  Class I: 406 rows
+  Class P: 1853 rows
+  Class R: 335 rows
+============================================================
+
+2025-12-27 15:19:01.124424: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
