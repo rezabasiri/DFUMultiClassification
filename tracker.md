@@ -8,6 +8,7 @@ Tracks major repository changes and refactors.
 
 **Files Modified**:
 - `src/main.py`: Added `--core-data` flag that automatically loads optimized thresholds from `results/bayesian_optimization_results.json` and applies them via the existing `filter_frequent_misclassifications()` function (lines 2279-2288, 2450-2483)
+- `src/evaluation/metrics.py`: Fixed `filter_frequent_misclassifications()` to check multiple possible locations for misclassification CSV file (lines 172-188) - handles both `misclassifications/` and `misclassifications_saved/` subdirectories
 
 **Usage**:
 ```bash
