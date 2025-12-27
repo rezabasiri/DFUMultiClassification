@@ -693,7 +693,7 @@ def average_attention_values(result_dir, num_runs):
             for run_idx, run_mean in enumerate(run_means_per_modality[i]):
                 f.write(f"Run {run_idx + 1}: {run_mean:.4f}\n")
             f.write("\n")
-def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, cv_folds=3):
+def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, cv_folds=3, track_misclass='both'):
     """
     Perform cross-validation using cached dataset pipeline.
 
@@ -702,6 +702,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         configs: Dictionary of configurations for different modality combinations, or a list of modalities
         train_patient_percentage: Percentage of data to use for training (ignored if cv_folds > 1)
         cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single train/val split.
+        track_misclass: Which dataset to track misclassifications from ('both', 'valid', 'train')
 
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
@@ -1245,10 +1246,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         if run_true_labels_t is None:
                             run_true_labels_t = np.array(y_true_t)
 
-                        # Track misclassifications
-                        sample_ids_t = np.array(all_sample_ids_t)
-                        track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
-                        
+                        # Track misclassifications from training set (if requested)
+                        if track_misclass in ['both', 'train']:
+                            sample_ids_t = np.array(all_sample_ids_t)
+                            track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
+
                         # Evaluate model
                         y_true_v = []
                         y_pred_v = []
@@ -1281,9 +1283,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         if run_true_labels_v is None:
                             run_true_labels_v = np.array(y_true_v)
                         
-                        # Track misclassifications
-                        sample_ids_v = np.array(all_sample_ids_v)
-                        track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
+                        # Track misclassifications from validation set (if requested)
+                        if track_misclass in ['both', 'valid']:
+                            sample_ids_v = np.array(all_sample_ids_v)
+                            track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
 
                         # Calculate metrics
                         accuracy = accuracy_score(y_true_v, y_pred_v)
