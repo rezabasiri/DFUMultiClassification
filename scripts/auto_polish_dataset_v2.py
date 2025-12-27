@@ -672,13 +672,25 @@ class BayesianDatasetPolisher:
         """Get original dataset size before any filtering."""
         # Try multiple sources to get dataset size
 
-        # Option 1: Read from balanced CSV if it exists
+        # Option 1: Read from best_matching.csv (primary source used by main.py)
+        best_matching_path = os.path.join(self.result_dir, 'best_matching.csv')
+        if os.path.exists(best_matching_path):
+            df = pd.read_csv(best_matching_path)
+            # Create Sample_ID to count unique samples
+            df['Sample_ID'] = (
+                'P' + df['Patient#'].astype(str).str.zfill(3) +
+                'A' + df['Appt#'].astype(str).str.zfill(2) +
+                'D' + df['DFU#'].astype(str)
+            )
+            return df['Sample_ID'].nunique()
+
+        # Option 2: Read from balanced CSV if it exists
         data_path = os.path.join(self.directory, 'balanced_combined_healing_phases.csv')
         if os.path.exists(data_path):
             df = pd.read_csv(data_path)
             return len(df)
 
-        # Option 2: Get from misclassification CSV (count unique Sample_IDs)
+        # Option 3: Get from misclassification CSV (count unique Sample_IDs)
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
         misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
@@ -687,7 +699,7 @@ class BayesianDatasetPolisher:
             unique_samples = df['Sample_ID'].nunique()
             return unique_samples
 
-        # Option 3: Read from raw data
+        # Option 4: Read from raw data
         raw_data_path = os.path.join(self.directory, 'data', 'raw', 'DataMaster_Processed_V12_WithMissing.csv')
         if os.path.exists(raw_data_path):
             df = pd.read_csv(raw_data_path)
@@ -785,10 +797,10 @@ class BayesianDatasetPolisher:
         output_paths = get_output_paths(self.result_dir)
         misclass_dir = output_paths['misclassifications']
         if os.path.exists(misclass_dir):
-            # Delete all files except .log files
+            # Delete all files except .log and .json files
             for item in os.listdir(misclass_dir):
                 item_path = os.path.join(misclass_dir, item)
-                if os.path.isfile(item_path) and not item.endswith('.log'):
+                if os.path.isfile(item_path) and not item.endswith('.log') and not item.endswith('.json'):
                     os.remove(item_path)
                 elif os.path.isdir(item_path):
                     shutil.rmtree(item_path)
@@ -853,10 +865,16 @@ class BayesianDatasetPolisher:
                                 except Exception:
                                     pass
 
-                    # Set random seed via environment variable (use run_counter for unique seeds)
-                    os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_counter)
+                    # NOTE: Do NOT set CROSS_VAL_RANDOM_SEED when using CV folds!
+                    # CV folds should use their natural per-fold seed variation.
+                    # Only set this for multiple independent runs with random splits.
+                    if self.phase1_cv_folds <= 1:
+                        # Only for single-split mode: set seed for reproducibility across runs
+                        os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_counter)
+                    # else: For CV mode, let each fold use its default seed (42 + fold_idx * (fold_idx + 3))
 
                     # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
+                    # NOTE: Don't pass threshold parameters - Phase 1 needs full dataset for misclassification detection
                     cmd = [
                         sys.executable, 'src/main.py',
                         '--mode', 'search',
@@ -998,6 +1016,16 @@ class BayesianDatasetPolisher:
             print(f"\n💾 Saved Phase 1 baseline metrics: {baseline_file}")
             print(f"   Baselines for {len(baselines)} modalities preserved")
 
+            # Also copy the CSV to misclassifications_saved folder (never gets deleted)
+            import shutil
+            csv_source = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
+            saved_dir = os.path.join(self.result_dir, 'misclassifications_saved')
+            os.makedirs(saved_dir, exist_ok=True)
+            csv_backup = os.path.join(saved_dir, 'phase1_modality_results.csv')
+            if os.path.exists(csv_source):
+                shutil.copy2(csv_source, csv_backup)
+                print(f"   CSV backup: {csv_backup}")
+
     def _load_baseline_from_previous_run(self):
         """
         Load Phase 1 baseline from dedicated baseline file.
@@ -1018,18 +1046,11 @@ class BayesianDatasetPolisher:
             with open(baseline_file, 'r') as f:
                 baselines = json.load(f)
 
-            # Find baselines matching the modalities being optimized
-            candidate_baselines = []
-            for modality in self.modalities:
-                # Check for exact match or substring match
-                for key, baseline in baselines.items():
-                    if modality in key.lower():
-                        candidate_baselines.append(baseline)
-                        break
-
-            # Select best baseline (highest weighted F1)
-            if candidate_baselines:
-                return max(candidate_baselines, key=lambda x: x['weighted_f1'])
+            # Return the best baseline (highest weighted F1) from all Phase 1 results
+            # This is what we compare Phase 2 optimization against
+            if baselines:
+                all_baselines = list(baselines.values())
+                return max(all_baselines, key=lambda x: x['weighted_f1'])
 
             return None
 
@@ -1098,8 +1119,6 @@ class BayesianDatasetPolisher:
         baseline_from_json = self._load_baseline_from_previous_run()
         if baseline_from_json:
             # Display ALL baselines from the JSON file with full detail
-            from src.utils.config import get_output_paths
-            output_paths = get_output_paths(self.result_dir)
             baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
 
             try:
@@ -1596,8 +1615,10 @@ class BayesianDatasetPolisher:
                 # Use os.system instead of subprocess.run to avoid TensorFlow context conflicts
                 # Build command string with proper quoting
                 cmd_str = ' '.join(str(arg) for arg in cmd)
-                # Redirect output to temp file for debugging
-                temp_output = project_root / 'phase2_training_output.tmp'
+                # Redirect output to misclassifications_saved (never deleted)
+                saved_dir = project_root / 'results' / 'misclassifications_saved'
+                saved_dir.mkdir(parents=True, exist_ok=True)
+                temp_output = saved_dir / 'phase2_training_output.tmp'
                 # Add timeout to prevent infinite hangs (60 minutes max per evaluation)
                 # With 1 CV fold this should be more than enough
                 return_code = os.system(f"timeout 3600 {cmd_str} >{temp_output} 2>&1")
