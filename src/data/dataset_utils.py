@@ -181,7 +181,7 @@ def load_patient_split(run, checkpoint_dir=None):
 
 
 def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
-                         is_training=True, cache_dir=None, augmentation_fn=None, image_size=128):
+                         is_training=True, cache_dir=None, augmentation_fn=None, image_size=128, fold_id=0):
     """
     Create a cached TF dataset optimized for training/validation with support for generative augmentation.
 
@@ -193,6 +193,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         cache_dir: Directory for caching
         augmentation_fn: Custom augmentation function (including generative augmentations)
         image_size: Target image size for preprocessing (default: 128)
+        fold_id: Fold/run identifier for k-fold CV (ensures unique cache per fold)
     """
     # Extract folder paths from data_paths for use in nested functions
     image_folder = data_paths['image_folder']
@@ -341,9 +342,11 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
     k = steps * batch_size  # Total number of samples needed
     
-    # Cache the dataset with unique filename per modality combination
+    # Cache the dataset with unique filename per modality combination AND fold
+    # CRITICAL: Include fold_id to prevent cache reuse across different CV folds
     modality_suffix = '_'.join(sorted(selected_modalities))  # e.g., "depth_rgb_metadata"
-    cache_filename = f'tf_cache_train_{modality_suffix}' if is_training else f'tf_cache_valid_{modality_suffix}'
+    split_type = 'train' if is_training else 'valid'
+    cache_filename = f'tf_cache_{split_type}_{modality_suffix}_fold{fold_id}'
 
     # Use results/tf_records as default cache directory
     if cache_dir is None:
@@ -1004,7 +1007,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         is_training=True,
         cache_dir=cache_dir,  # Pass through the cache_dir parameter
         augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None,
-        image_size=image_size)
+        image_size=image_size,
+        fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
 
     valid_dataset, _, validation_steps = create_cached_dataset(
         valid_data,
@@ -1013,7 +1017,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         is_training=False,
         cache_dir=cache_dir,  # Pass through the cache_dir parameter
         augmentation_fn=None,
-        image_size=image_size)
+        image_size=image_size,
+        fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
     
     return train_dataset, pre_aug_dataset, valid_dataset, steps_per_epoch, validation_steps, alpha_values
 class BatchVisualizationCallback(tf.keras.callbacks.Callback):

@@ -1897,14 +1897,17 @@ def filter_dataset_modalities(dataset, selected_modalities):
 def clear_cache_files():
     """Clear any existing cache files."""
     import glob
-    
+
+    # FIXED: Include tf_records subdirectory where cache files are actually stored
     cache_patterns = [
-        os.path.join(result_dir, 'tf_cache_train*'),
-        os.path.join(result_dir, 'tf_cache_valid*'),
+        os.path.join(result_dir, 'tf_records', 'tf_cache_train*'),
+        os.path.join(result_dir, 'tf_records', 'tf_cache_valid*'),
+        os.path.join(result_dir, 'tf_cache_train*'),  # Legacy location
+        os.path.join(result_dir, 'tf_cache_valid*'),  # Legacy location
         'tf_cache_train*',
         'tf_cache_valid*'
     ]
-    
+
     for pattern in cache_patterns:
         try:
             cache_files = glob.glob(pattern)
