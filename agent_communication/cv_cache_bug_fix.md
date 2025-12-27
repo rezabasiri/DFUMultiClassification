@@ -97,14 +97,22 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
                          image_size=128, fold_id=0):  # ← NEW PARAMETER
 ```
 
-2. **Include `fold_id` in cache filename** (lines 345-349):
+2. **Include `fold_id` AND `seed` in cache filename** (lines 345-355):
 ```python
-# Cache the dataset with unique filename per modality combination AND fold
-# CRITICAL: Include fold_id to prevent cache reuse across different CV folds
+# Cache the dataset with unique filename per modality combination, fold, AND run
+# CRITICAL: Include fold_id AND seed to prevent cache reuse across CV folds and multiple runs
 modality_suffix = '_'.join(sorted(selected_modalities))
 split_type = 'train' if is_training else 'valid'
-cache_filename = f'tf_cache_{split_type}_{modality_suffix}_fold{fold_id}'  # ← fold_id added
+
+# Get seed from environment (set by auto_polish for multiple runs) or use default
+# This ensures different runs (with different patient splits) don't share cache
+import os
+seed_suffix = os.environ.get('CV_FOLD_SEED', os.environ.get('CROSS_VAL_RANDOM_SEED', '42'))
+
+cache_filename = f'tf_cache_{split_type}_{modality_suffix}_fold{fold_id}_seed{seed_suffix}'
 ```
+
+**Why seed is needed**: With `--phase1-n-runs > 1`, auto_polish runs multiple times with different patient splits (using different CV_FOLD_SEED values). Without including seed, Run 2 would reuse Run 1's cache!
 
 3. **Pass `run` from `prepare_cached_datasets`** (lines 1011, 1021):
 ```python
@@ -153,17 +161,30 @@ def clear_cache_files():
 
 ### After Fix
 
-Cache files will now be:
+**Single run with 3-fold CV (`--phase1-n-runs=1 --phase1-cv-folds=3`)**:
 ```bash
-tf_cache_valid_metadata_fold0.data-00000-of-00001  # Fold 1's validation data
-tf_cache_valid_metadata_fold0.index
-tf_cache_valid_metadata_fold1.data-00000-of-00001  # Fold 2's validation data
-tf_cache_valid_metadata_fold1.index
-tf_cache_valid_metadata_fold2.data-00000-of-00001  # Fold 3's validation data
-tf_cache_valid_metadata_fold2.index
+tf_cache_valid_metadata_fold0_seed42.data-00000-of-00001  # Fold 1
+tf_cache_valid_metadata_fold0_seed42.index
+tf_cache_valid_metadata_fold1_seed42.data-00000-of-00001  # Fold 2
+tf_cache_valid_metadata_fold1_seed42.index
+tf_cache_valid_metadata_fold2_seed42.data-00000-of-00001  # Fold 3
+tf_cache_valid_metadata_fold2_seed42.index
 ```
 
-Each fold now has its own unique cache! ✅
+**Multiple runs with 3-fold CV (`--phase1-n-runs=2 --phase1-cv-folds=3`)**:
+```bash
+# Run 1 (seed=43)
+tf_cache_valid_metadata_fold0_seed43.data-00000-of-00001
+tf_cache_valid_metadata_fold1_seed43.data-00000-of-00001
+tf_cache_valid_metadata_fold2_seed43.data-00000-of-00001
+
+# Run 2 (seed=44)
+tf_cache_valid_metadata_fold0_seed44.data-00000-of-00001  # Different cache!
+tf_cache_valid_metadata_fold1_seed44.data-00000-of-00001
+tf_cache_valid_metadata_fold2_seed44.data-00000-of-00001
+```
+
+Each fold **AND each run** now has its own unique cache! ✅
 
 ## Impact
 
