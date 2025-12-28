@@ -10,16 +10,23 @@ Tracks major repository changes and refactors.
 - Ensured CSV directory exists before training to prevent write failures
 - Added better error messages when CSV files not found
 
-### Improved Phase 2 optimization logging
+### Simplified Phase 2 optimization logging
 **File**: `scripts/auto_polish_dataset_v2.py`
 - Replaced temporary output file with timestamped persistent log: `phase2_optimization_YYYYMMDD_HHMMSS.log`
 - Cumulative log retains ALL evaluation outputs with clear separators (never overwrites)
-- Individual per-evaluation logs: `phase2_eval_N_thresholds_I*_P*_R*.log` for easier debugging
+- Removed individual per-evaluation logs (excessive; single cumulative log is sufficient)
+- Simplified output redirection (direct append to cumulative log)
 - Added evaluation headers with timestamp, eval number, and thresholds
-- Added completion messages to logs with best thresholds and total evaluations
-- Used `tee` to write output to both cumulative and individual logs simultaneously
 
-**Impact**: Phase 2 optimization can now extract metrics successfully; complete optimization history preserved instead of just last evaluation.
+### Enhanced baseline performance display
+**File**: `scripts/auto_polish_dataset_v2.py`
+- Save per-class F1 scores (I, P, R) in `phase1_baseline.json`
+- Display per-class F1 in all baseline output (not just min F1)
+- Show baseline at end of Phase 1 (after saving metrics)
+- Show baseline again at start of Phase 2 (for comparison during optimization)
+- Enhanced "Using best baseline" message with per-class F1 scores
+
+**Impact**: Phase 2 optimization works correctly; cleaner logging; better baseline visibility for analysis.
 
 ---
 
