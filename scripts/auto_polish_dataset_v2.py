@@ -1274,22 +1274,83 @@ class BayesianDatasetPolisher:
         print(f"  Minority class retention target: {target_retention*100:.0f}%")
 
         can_optimize = True
+        needs_adjustment = False
+        adjusted_retention_info = {}
+
+        # First pass: check if CV requirements are violated
+        min_samples_for_cv = self.phase2_cv_folds * 2
+        for phase in ['I', 'P', 'R']:
+            info = retention_info[phase].copy()
+            if info['retained'] < min_samples_for_cv and info['original'] >= min_samples_for_cv:
+                needs_adjustment = True
+            adjusted_retention_info[phase] = info
+
+        # If adjustment needed, recalculate with CV constraints
+        if needs_adjustment:
+            print(f"\n⚠️  Initial retention targets violate {self.phase2_cv_folds}-fold CV requirements")
+            print(f"   Auto-adjusting search space to ensure ≥{min_samples_for_cv} samples per class...\n")
+
+            # Recalculate with minimum retention that satisfies CV
+            for phase in ['I', 'P', 'R']:
+                info = adjusted_retention_info[phase]
+                if info['original'] < min_samples_for_cv:
+                    print(f"❌ Class {phase} has only {info['original']} samples (need {min_samples_for_cv} for {self.phase2_cv_folds}-fold CV)")
+                    can_optimize = False
+                    continue
+
+                if info['retained'] < min_samples_for_cv:
+                    # Force retention to at least min_samples_for_cv
+                    # Find the threshold that keeps exactly min_samples_for_cv samples
+                    misclass_file = self._find_misclass_file()
+                    if misclass_file:
+                        df = pd.read_csv(misclass_file)
+                        max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
+                        phase_misclass = max_misclass[max_misclass['True_Label'] == phase]['Misclass_Count'].values
+
+                        if len(phase_misclass) > 0:
+                            # Sort counts descending to find exclusion threshold
+                            sorted_counts = np.sort(phase_misclass)[::-1]
+                            max_to_exclude = info['original'] - min_samples_for_cv
+
+                            if 0 <= max_to_exclude < len(sorted_counts):
+                                # New threshold excludes the top max_to_exclude samples
+                                new_threshold = int(sorted_counts[max_to_exclude]) + 1
+                            else:
+                                new_threshold = int(phase_misclass.min())  # Keep all
+
+                            new_retained = np.sum(phase_misclass < new_threshold)
+                            new_retention_pct = new_retained / info['original'] * 100
+
+                            info['min_threshold'] = new_threshold
+                            info['retained'] = new_retained
+                            info['retention_pct'] = new_retention_pct
+                            adjusted_retention_info[phase] = info
+
+            # Update min_thresholds with adjusted values
+            for phase in ['I', 'P', 'R']:
+                min_thresholds[phase] = adjusted_retention_info[phase]['min_threshold']
+                retention_info[phase] = adjusted_retention_info[phase]
+
+        # Display retention analysis (with adjustments if applied)
         for phase in ['I', 'P', 'R']:
             info = retention_info[phase]
             class_target = info.get('target_retention', target_retention)
             print(f"\n  Class {phase}:")
             print(f"    Original samples: {info['original']} ({info['original_images']} images)")
-            print(f"    Target retention for balance: {class_target*100:.1f}%")
+            if needs_adjustment and info['retained'] >= min_samples_for_cv:
+                print(f"    Target retention: {class_target*100:.1f}% (adjusted to {info['retention_pct']:.1f}% for CV)")
+            else:
+                print(f"    Target retention for balance: {class_target*100:.1f}%")
             print(f"    Misclass count range: {info['count_range'][0]}-{info['count_range'][1]}, median={info['count_median']:.1f}")
-            print(f"    Min threshold for {class_target*100:.1f}% retention: {info['min_threshold']}")
+            print(f"    Min threshold for retention: {info['min_threshold']}")
             img_ratio = info['original_images'] / info['original'] if info['original'] > 0 else 1
             est_images = int(info['retained'] * img_ratio)
             print(f"    Actual retention at this threshold: {info['retained']}/{info['original']} ({info['retention_pct']:.1f}%) ≈ {est_images} images")
 
-            # Check if threshold exceeds max observed count (meaning we can't retain enough)
+            # Check if threshold exceeds max observed count
             if info['min_threshold'] > info['count_range'][1]:
                 print(f"    ⚠️  WARNING: Threshold {info['min_threshold']} exceeds max count {info['count_range'][1]}")
-                print(f"       Cannot achieve {class_target*100:.1f}% retention - all samples have high misclass counts")
+                print(f"       Cannot achieve retention - all samples have high misclass counts")
                 can_optimize = False
 
         # Check if optimization should be skipped
@@ -1297,12 +1358,22 @@ class BayesianDatasetPolisher:
             print(f"\n{'='*70}")
             print(f"⚠️  SKIPPING PHASE 2 OPTIMIZATION")
             print(f"{'='*70}")
-            print(f"\nReason: Cannot achieve {target_retention*100:.0f}% data retention.")
-            print("All samples have been frequently misclassified, suggesting:")
-            print("  1. The classification task may be inherently difficult")
-            print("  2. The misclassification tracking has accumulated too many counts")
-            print("  3. Consider running Phase 1 with fewer runs to reduce count accumulation")
-            print("\nRecommendation: Use NO filtering (keep all samples) or manually set thresholds.")
+            print(f"\nReason: Cannot achieve {target_retention*100:.0f}% retention with {self.phase2_cv_folds}-fold CV.")
+
+            # Calculate minimum retention that would work
+            min_samples_for_cv = self.phase2_cv_folds * 2
+            rarest_class = min(retention_info.items(), key=lambda x: x[1]['original'])
+            rarest_class_name, rarest_info = rarest_class
+            min_retention_for_cv = min_samples_for_cv / rarest_info['original'] if rarest_info['original'] > 0 else 1.0
+
+            print(f"\nWith {self.phase2_cv_folds}-fold CV, each class needs ≥{min_samples_for_cv} samples.")
+            print(f"Rarest class ({rarest_class_name}) has {rarest_info['original']} samples.")
+            print(f"Minimum retention needed: {min_retention_for_cv*100:.1f}%")
+
+            print(f"\nPossible solutions:")
+            print(f"  1. Increase --min-minority-retention to {min_retention_for_cv:.2f} or higher")
+            print(f"  2. Reduce --phase2-cv-folds to {max(2, min_samples_for_cv // 2)} or lower")
+            print(f"  3. Use NO filtering: python src/main.py --mode search --cv_folds {self.phase2_cv_folds}")
 
             # Return "success" but with no thresholds (no filtering)
             return True, None
