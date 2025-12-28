@@ -1,32 +1,25 @@
-2025-12-28 06:28:23.699397: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2025-12-28 06:28:23.699555: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2025-12-28 06:28:23.701130: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2025-12-28 06:28:24.442306: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2025-12-28 14:48:17.387000: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2025-12-28 14:48:17.387123: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2025-12-28 14:48:17.389062: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-12-28 14:48:18.150172: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
 
 ================================================================================
-DEVICE CONFIGURATION (mode: multi)
+DEVICE CONFIGURATION (mode: single)
 ================================================================================
 
 Detected 2 GPU(s):
   GPU 0: NVIDIA GeForce RTX 5090 - 31.8GB
   GPU 1: NVIDIA GeForce RTX 5090 - 31.8GB
 
-Selected 2 GPU(s):
-  GPU 0: NVIDIA GeForce RTX 5090 (31.8GB)
-  GPU 1: NVIDIA GeForce RTX 5090 (31.8GB)
-2025-12-28 06:28:28.653620: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
-2025-12-28 06:28:28.656024: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
-Enabled memory growth for 2 GPU(s)
-2025-12-28 06:28:28.954890: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
-2025-12-28 06:28:28.956593: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+Selected GPU 0: NVIDIA GeForce RTX 5090 (31.8GB)
+2025-12-28 14:48:22.318748: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+Enabled memory growth for 1 GPU(s)
 
-Using MirroredStrategy (2 GPUs) with ReductionToOneDevice
-  (GPU-based gradient aggregation, NCCL-free for RTX 5090 compatibility)
-Effective batch size: 2× global batch size
+Using default strategy (single GPU)
 ================================================================================
 
 
-Batch size per replica: 8 (global batch size: 16, replicas: 2)
+Batch size per replica: 16 (global batch size: 16, replicas: 1)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
@@ -35,14 +28,12 @@ Mode: search
 Resume mode: fresh
 Data percentage: 100.0%
 Verbosity: 0 (MINIMAL)
-Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
-  Replicas: 2× batch size distribution
+Device: GPU 0 (single GPU mode)
 Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
 Image size: 128x128
 Batch size: 16
-  Per-GPU batch: 8 (16 / 2 GPUs)
 Max epochs: 150 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
@@ -53,33 +44,54 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
-  Csv Results: 1 files deleted
+  Csv Results: 9 files deleted
   Tf Cache: 4 files deleted
 ================================================================================
 
-2025-12-28 06:28:29.980753: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
-2025-12-28 06:28:29.982699: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
-Misclassification filtering thresholds: {'I': 3, 'P': 5, 'R': 5}
+2025-12-28 14:48:23.581396: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+Misclassification filtering thresholds: {'I': 4, 'P': 4, 'R': 4}
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=3, P=5, R=5
+Thresholds: I=4, P=4, R=4
 
 Excluded samples per class:
-  Class I: 125 samples
-  Class P: 0 samples
-  Class R: 0 samples
+  Class I: 30 samples
+  Class P: 151 samples
+  Class R: 32 samples
 
-Total unique samples to exclude: 125
+Total unique samples to exclude: 213
 
-Dataset size (rows): 3107 -> 2512 (80.8%)
-Unique samples: 647 -> 522 (removed 125)
+Dataset size (rows): 3107 -> 1946 (62.6%)
+Unique samples: 647 -> 434 (removed 213)
 
 Class distribution after filtering:
-  Class I: 297 rows
-  Class P: 1880 rows
-  Class R: 335 rows
+  Class I: 737 rows
+  Class P: 1036 rows
+  Class R: 173 rows
 ============================================================
 
-2025-12-28 06:28:37.912165: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+2025-12-28 14:48:27.283298: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+2025-12-28 14:48:29.026250: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+2025-12-28 14:50:34.662682: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1766933445.091823 3381401 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+2025-12-28 14:51:11.935977: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+2025-12-28 14:52:00.769294: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Restoring model weights from the end of the best epoch: 13.
+Epoch 33: early stopping
+
+Run 1 Results for metadata+depth_rgb+depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       1.00      0.03      0.05       264
+           P       0.55      0.98      0.71       392
+           R       0.36      0.07      0.11        59
+
+    accuracy                           0.55       715
+   macro avg       0.64      0.36      0.29       715
+weighted avg       0.70      0.55      0.42       715
+
+Cohen's Kappa: 0.0708
+2025-12-28 15:06:34.437993: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
