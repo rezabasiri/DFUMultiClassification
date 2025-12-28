@@ -1646,7 +1646,7 @@ def create_current_get_focal_ordinal_loss(ordinal_weight, gamma, alpha):
         return create_focal_ordinal_loss2(ordinal_weight, gamma, alpha)
     return current_get_focal_ordinal_loss
 
-def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_runs=3):
+def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
     """
     Perform grid search over loss function parameters.
     """
@@ -1698,7 +1698,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
                     metrics = main_with_specialized_evaluation(
                         data_percentage=data_percentage,
                         train_patient_percentage=train_patient_percentage,
-                        n_runs=n_runs
+                        cv_folds=cv_folds
                     )
                     
                     # Prepare results
@@ -1756,14 +1756,13 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, n_run
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_folds=3, thresholds=None):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
     """
     Test all modality combinations and save results to CSV.
 
     Args:
         data_percentage: Percentage of data to use (1-100)
         train_patient_percentage: Percentage of patients for training (ignored if cv_folds > 1)
-        n_runs: DEPRECATED - Use cv_folds instead
         cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
 
     Configuration is read from production_config.py:
@@ -1772,18 +1771,13 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
     - INCLUDED_COMBINATIONS: Combinations to include (when mode='custom')
     - RESULTS_CSV_FILENAME: Output CSV filename
     """
-    # Handle backwards compatibility
-    if n_runs is not None:
-        vprint(f"Warning: n_runs parameter is deprecated. Using it for backwards compatibility.", level=1)
-        num_iterations = n_runs
-        cv_mode_name = f"{n_runs} runs"
+    # Determine number of iterations
+    if cv_folds <= 1:
+        num_iterations = 1
+        cv_mode_name = "single split"
     else:
-        if cv_folds <= 1:
-            num_iterations = 1
-            cv_mode_name = "single split"
-        else:
-            num_iterations = cv_folds
-            cv_mode_name = f"{cv_folds}-fold CV"
+        num_iterations = cv_folds
+        cv_mode_name = f"{cv_folds}-fold CV"
     # Use config for CSV filename (saved in organized csv subfolder)
     csv_filename = os.path.join(csv_path, RESULTS_CSV_FILENAME)
     fieldnames = ['Modalities', 'Accuracy (Mean)', 'Accuracy (Std)',
@@ -1847,18 +1841,17 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
         vprint(f"\nTesting modalities: {', '.join(selected_modalities)}")
         # Load and prepare the dataset
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities)
-        from src.evaluation.metrics import filter_frequent_misclassifications
+        # Only apply filtering if thresholds are explicitly provided (via --threshold_* or --core-data)
         if thresholds is not None:
+            from src.evaluation.metrics import filter_frequent_misclassifications
             data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
-        else:
-            data = filter_frequent_misclassifications(data, result_dir)
         if data_percentage < 100:
             data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
         vprint(f"Using {data_percentage}% of the data: {len(data)} samples")
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
         cv_results, confusion_matrices, histories = cross_validation_manual_split(
-            run_data, selected_modalities, train_patient_percentage, n_runs=n_runs, cv_folds=cv_folds
+            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=track_misclass
         )
 
         # Save predictions per combination for later gating network ensemble
@@ -1947,9 +1940,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
         vprint(f"Ensembling predictions from {len(combinations_to_process)} modality combinations")
 
         for run in range(num_iterations):
-            if n_runs is not None:
-                iter_name = f"Run {run + 1}/{num_iterations}"
-            elif cv_folds > 1:
+            if cv_folds > 1:
                 iter_name = f"Fold {run + 1}/{num_iterations}"
             else:
                 iter_name = f"Iteration {run + 1}/{num_iterations}"
@@ -2071,7 +2062,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, n_runs=None, cv_f
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_runs=None, cv_folds=3, thresholds=None):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2079,9 +2070,9 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
         mode (str): Either 'search' or 'specialized' to determine which analysis to run
         data_percentage (float): Percentage of data to use
         train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
-        n_runs (int): DEPRECATED - Number of runs for random holdout validation
         cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
         thresholds (dict): Misclassification filtering thresholds {'I': x, 'P': y, 'R': z}
+        track_misclass (str): Which dataset to track misclassifications from ('both', 'valid', 'train')
     """
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
@@ -2104,9 +2095,9 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, n_run
             vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, n_runs=n_runs, cv_folds=cv_folds, thresholds=thresholds)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, thresholds=thresholds, track_misclass=track_misclass)
     elif mode.lower() == 'specialized':
-        main_with_specialized_evaluation(data_percentage, train_patient_percentage, n_runs)
+        main_with_specialized_evaluation(data_percentage, train_patient_percentage, cv_folds, track_misclass=track_misclass)
     else:
         raise ValueError("Mode must be either 'search' or 'specialized'")
 
@@ -2183,18 +2174,6 @@ Configuration:
         Patient-level split ensures no data leakage.
         Examples: 0.67 (67%% train), 0.70 (70%% train), 0.80 (80%% train)
         (default: 0.67)"""
-    )
-
-    parser.add_argument(
-        "--n_runs",
-        type=int,
-        default=None,
-        help="""DEPRECATED: Use --cv_folds instead for proper cross-validation.
-        Number of independent runs with different random patient splits.
-        Results are averaged across runs with standard deviation.
-        More runs = more robust results but longer runtime.
-        Examples: 1 (quick test), 3 (standard), 5 (robust)
-        (deprecated - use --cv_folds)"""
     )
 
     parser.add_argument(
@@ -2279,12 +2258,26 @@ Configuration:
     parser.add_argument(
         "--core-data",
         action='store_true',
+        default=False,
         help="""Use optimized core dataset filtered by auto_polish_dataset_v2.py results.
         Automatically loads best thresholds from results/bayesian_optimization_results.json
         to exclude outlier samples that could result from human error or measurement issues.
         This improves model performance by training on high-quality core data only.
         Manual threshold arguments (--threshold_I/P/R) override these if specified.
         (default: False - uses all available data)"""
+    )
+
+    parser.add_argument(
+        "--track-misclass",
+        type=str,
+        choices=['both', 'valid', 'train'],
+        default='both',
+        help="""Which dataset to track misclassifications from:
+        'both': Track from both train and validation sets (default)
+        'valid': Track only from validation set (recommended - faster, more meaningful)
+        'train': Track only from training set (not recommended)
+        Validation-only tracking skips inference on training data, saving computation.
+        (default: both)"""
     )
 
     parser.add_argument(
@@ -2416,8 +2409,6 @@ Configuration:
         vprint(f"Cross-validation: {args.cv_folds}-fold CV (patient-level)", level=0)
     else:
         vprint(f"Train/validation split: {args.train_patient_percentage*100:.0f}% train / {(1-args.train_patient_percentage)*100:.0f}% val", level=0)
-    if args.n_runs is not None:  # Only show if user explicitly provided legacy n_runs
-        vprint(f"Number of runs (legacy): {args.n_runs}", level=0)
     vprint(f"\nConfiguration loaded from: src/utils/production_config.py", level=0)
     vprint(f"Image size: {IMAGE_SIZE}x{IMAGE_SIZE}", level=0)
     vprint(f"Batch size: {GLOBAL_BATCH_SIZE}", level=0)
@@ -2483,7 +2474,7 @@ Configuration:
         vprint(f"Misclassification filtering thresholds: {thresholds}", level=0)
 
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.n_runs, args.cv_folds, thresholds)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, thresholds, args.track_misclass)
 
     # Clear memory after completion
     clear_gpu_memory()

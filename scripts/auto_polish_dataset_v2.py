@@ -137,11 +137,12 @@ class BayesianDatasetPolisher:
                  min_f1_threshold=0.25,
                  min_samples_per_class=30,
                  max_class_imbalance_ratio=5.0,
-                 min_retention_per_class=0.90,
+                 min_minority_retention=0.90,
                  device_mode='single',
                  custom_gpus=None,
                  min_gpu_memory=8.0,
-                 include_display_gpus=False):
+                 include_display_gpus=False,
+                 track_misclass='valid'):
         """
         Initialize the Bayesian dataset polisher.
 
@@ -162,8 +163,9 @@ class BayesianDatasetPolisher:
             min_f1_threshold: Hard constraint - reject if any class F1 < this (default: 0.25)
             min_samples_per_class: Hard constraint - reject if any class < this many samples (default: 30)
             max_class_imbalance_ratio: Hard constraint - reject if largest/smallest class ratio > this (default: 5.0)
-            min_retention_per_class: Minimum fraction of samples to retain per class (default: 0.90)
-                                     Optimization skipped if this cannot be achieved.
+            min_minority_retention: Target retention for the minority (rarest) class (default: 0.90).
+                                    Other classes are adjusted to achieve a balanced dataset.
+                                    Optimization skipped if this cannot be achieved.
             device_mode: GPU mode - 'cpu', 'single', 'multi', or 'custom' (default: 'single')
             custom_gpus: List of GPU IDs for 'custom' mode (e.g., [0, 1])
             min_gpu_memory: Minimum GPU memory in GB (default: 8.0)
@@ -185,13 +187,16 @@ class BayesianDatasetPolisher:
         self.min_f1_threshold = min_f1_threshold
         self.min_samples_per_class = min_samples_per_class
         self.max_class_imbalance_ratio = max_class_imbalance_ratio
-        self.min_retention_per_class = min_retention_per_class
+        self.min_minority_retention = min_minority_retention
 
         # GPU configuration
         self.device_mode = device_mode
         self.custom_gpus = custom_gpus
         self.min_gpu_memory = min_gpu_memory
         self.include_display_gpus = include_display_gpus
+
+        # Misclassification tracking mode
+        self.track_misclass = track_misclass
 
         # Get project paths
         self.directory, self.result_dir, self.root = get_project_paths()
@@ -261,14 +266,20 @@ class BayesianDatasetPolisher:
 
     def calculate_min_thresholds_for_retention(self, target_retention=0.90):
         """
-        Calculate the minimum threshold for each class to retain at least target_retention
-        fraction of samples.
+        Calculate minimum thresholds for balanced dataset after filtering.
 
-        For example, with target_retention=0.90, finds the threshold that keeps 90% of
-        each class's samples.
+        The target_retention is applied to the RAREST class (typically R).
+        Other classes get lower retention rates calculated to achieve perfect balance.
+
+        Example with original counts I=203, P=368, R=76 and target_retention=0.90:
+        - R (rarest): keeps 90% → 68 samples (target for balance)
+        - I: needs to keep 68/203 = 33.5% to match R
+        - P: needs to keep 68/368 = 18.5% to match R
+
+        This ensures the filtered dataset is perfectly balanced.
 
         Args:
-            target_retention: Fraction of samples to retain per class (0.0-1.0)
+            target_retention: Fraction of samples to retain for the RAREST class (0.0-1.0)
 
         Returns:
             dict: Minimum thresholds like {'I': 52, 'P': 55, 'R': 48} or None if impossible
@@ -295,9 +306,34 @@ class BayesianDatasetPolisher:
             'D' + best_matching['DFU#'].astype(str)
         )
         original_counts = best_matching.groupby('Healing Phase Abs')['Sample_ID'].nunique().to_dict()
+        # Also get total image counts per class (for display purposes)
+        image_counts = best_matching.groupby('Healing Phase Abs').size().to_dict()
 
         # Get max misclass count per sample (handling duplicates)
         max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
+
+        # Find the rarest class and calculate balanced target counts
+        rarest_class = min(original_counts, key=original_counts.get)
+        rarest_count = original_counts[rarest_class]
+        target_count_balanced = int(np.ceil(rarest_count * target_retention))
+
+        print(f"\n  📊 Balancing Strategy:")
+        print(f"     Rarest class: {rarest_class} ({rarest_count} samples)")
+        print(f"     Target after {target_retention*100:.0f}% retention: {target_count_balanced} samples per class")
+
+        # Calculate target retention for each class to achieve balance
+        target_retentions = {}
+        for phase in ['I', 'P', 'R']:
+            orig = original_counts.get(phase, 0)
+            if orig > 0:
+                # How much of this class do we need to keep to match target_count_balanced?
+                target_retentions[phase] = min(1.0, target_count_balanced / orig)
+            else:
+                target_retentions[phase] = 1.0
+
+        print(f"     Calculated retention rates for balance:")
+        for phase in ['I', 'P', 'R']:
+            print(f"       {phase}: {target_retentions[phase]*100:.1f}% of {original_counts.get(phase, 0)} → ~{int(original_counts.get(phase, 0) * target_retentions[phase])} samples")
 
         min_thresholds = {}
         retention_info = {}
@@ -305,6 +341,7 @@ class BayesianDatasetPolisher:
         for phase in ['I', 'P', 'R']:
             phase_data = max_misclass[max_misclass['True_Label'] == phase]
             original_count = original_counts.get(phase, 0)
+            phase_target_retention = target_retentions[phase]
 
             if original_count == 0 or len(phase_data) == 0:
                 min_thresholds[phase] = 1  # Default to 1 if no data
@@ -312,12 +349,13 @@ class BayesianDatasetPolisher:
                     'original': 0,
                     'min_threshold': 1,
                     'retained': 0,
-                    'retention_pct': 0.0
+                    'retention_pct': 0.0,
+                    'target_retention': phase_target_retention
                 }
                 continue
 
             counts = phase_data['Misclass_Count'].values
-            min_to_keep = int(np.ceil(original_count * target_retention))
+            min_to_keep = int(np.ceil(original_count * phase_target_retention))
 
             # Find the minimum threshold that keeps at least min_to_keep samples
             # Threshold T keeps samples where count < T, so we need: original - (count >= T) >= min_to_keep
@@ -346,9 +384,11 @@ class BayesianDatasetPolisher:
             min_thresholds[phase] = min_threshold
             retention_info[phase] = {
                 'original': original_count,
+                'original_images': image_counts.get(phase, 0),
                 'min_threshold': min_threshold,
                 'retained': retained,
                 'retention_pct': retention_pct,
+                'target_retention': phase_target_retention,
                 'count_range': (int(counts.min()), int(counts.max())),
                 'count_median': float(np.median(counts))
             }
@@ -636,13 +676,25 @@ class BayesianDatasetPolisher:
         """Get original dataset size before any filtering."""
         # Try multiple sources to get dataset size
 
-        # Option 1: Read from balanced CSV if it exists
+        # Option 1: Read from best_matching.csv (primary source used by main.py)
+        best_matching_path = os.path.join(self.result_dir, 'best_matching.csv')
+        if os.path.exists(best_matching_path):
+            df = pd.read_csv(best_matching_path)
+            # Create Sample_ID to count unique samples
+            df['Sample_ID'] = (
+                'P' + df['Patient#'].astype(str).str.zfill(3) +
+                'A' + df['Appt#'].astype(str).str.zfill(2) +
+                'D' + df['DFU#'].astype(str)
+            )
+            return df['Sample_ID'].nunique()
+
+        # Option 2: Read from balanced CSV if it exists
         data_path = os.path.join(self.directory, 'balanced_combined_healing_phases.csv')
         if os.path.exists(data_path):
             df = pd.read_csv(data_path)
             return len(df)
 
-        # Option 2: Get from misclassification CSV (count unique Sample_IDs)
+        # Option 3: Get from misclassification CSV (count unique Sample_IDs)
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
         misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
@@ -651,7 +703,7 @@ class BayesianDatasetPolisher:
             unique_samples = df['Sample_ID'].nunique()
             return unique_samples
 
-        # Option 3: Read from raw data
+        # Option 4: Read from raw data
         raw_data_path = os.path.join(self.directory, 'data', 'raw', 'DataMaster_Processed_V12_WithMissing.csv')
         if os.path.exists(raw_data_path):
             df = pd.read_csv(raw_data_path)
@@ -749,10 +801,10 @@ class BayesianDatasetPolisher:
         output_paths = get_output_paths(self.result_dir)
         misclass_dir = output_paths['misclassifications']
         if os.path.exists(misclass_dir):
-            # Delete all files except .log files
+            # Delete all files except .log and .json files
             for item in os.listdir(misclass_dir):
                 item_path = os.path.join(misclass_dir, item)
-                if os.path.isfile(item_path) and not item.endswith('.log'):
+                if os.path.isfile(item_path) and not item.endswith('.log') and not item.endswith('.json'):
                     os.remove(item_path)
                 elif os.path.isdir(item_path):
                     shutil.rmtree(item_path)
@@ -817,10 +869,17 @@ class BayesianDatasetPolisher:
                                 except Exception:
                                     pass
 
-                    # Set random seed via environment variable (use run_counter for unique seeds)
-                    os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_counter)
+                    # Set different random seeds for each run to get diverse patient fold splits
+                    if self.phase1_cv_folds <= 1:
+                        # Single-split mode: set seed for data splitting within the run
+                        os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_counter)
+                    else:
+                        # CV mode: set seed for fold generation to get different patient splits each run
+                        os.environ['CV_FOLD_SEED'] = str(self.base_random_seed + run_counter)
+                        # Each fold within the run still uses its deterministic seed (42 + fold_idx * (fold_idx + 3))
 
                     # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
+                    # NOTE: Don't pass threshold parameters - Phase 1 needs full dataset for misclassification detection
                     cmd = [
                         sys.executable, 'src/main.py',
                         '--mode', 'search',
@@ -828,6 +887,7 @@ class BayesianDatasetPolisher:
                         '--data_percentage', str(self.phase1_data_percentage),
                         '--verbosity', '0',
                         '--resume_mode', 'fresh',  # Force fresh training for each run
+                        '--track-misclass', self.track_misclass,  # Control which dataset to track from
                         '--device-mode', self.device_mode,
                         '--min-gpu-memory', str(self.min_gpu_memory)
                     ]
@@ -962,6 +1022,16 @@ class BayesianDatasetPolisher:
             print(f"\n💾 Saved Phase 1 baseline metrics: {baseline_file}")
             print(f"   Baselines for {len(baselines)} modalities preserved")
 
+            # Also copy the CSV to misclassifications_saved folder (never gets deleted)
+            import shutil
+            csv_source = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
+            saved_dir = os.path.join(self.result_dir, 'misclassifications_saved')
+            os.makedirs(saved_dir, exist_ok=True)
+            csv_backup = os.path.join(saved_dir, 'phase1_modality_results.csv')
+            if os.path.exists(csv_source):
+                shutil.copy2(csv_source, csv_backup)
+                print(f"   CSV backup: {csv_backup}")
+
     def _load_baseline_from_previous_run(self):
         """
         Load Phase 1 baseline from dedicated baseline file.
@@ -982,18 +1052,11 @@ class BayesianDatasetPolisher:
             with open(baseline_file, 'r') as f:
                 baselines = json.load(f)
 
-            # Find baselines matching the modalities being optimized
-            candidate_baselines = []
-            for modality in self.modalities:
-                # Check for exact match or substring match
-                for key, baseline in baselines.items():
-                    if modality in key.lower():
-                        candidate_baselines.append(baseline)
-                        break
-
-            # Select best baseline (highest weighted F1)
-            if candidate_baselines:
-                return max(candidate_baselines, key=lambda x: x['weighted_f1'])
+            # Return the best baseline (highest weighted F1) from all Phase 1 results
+            # This is what we compare Phase 2 optimization against
+            if baselines:
+                all_baselines = list(baselines.values())
+                return max(all_baselines, key=lambda x: x['weighted_f1'])
 
             return None
 
@@ -1062,8 +1125,6 @@ class BayesianDatasetPolisher:
         baseline_from_json = self._load_baseline_from_previous_run()
         if baseline_from_json:
             # Display ALL baselines from the JSON file with full detail
-            from src.utils.config import get_output_paths
-            output_paths = get_output_paths(self.result_dir)
             baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
 
             try:
@@ -1198,7 +1259,7 @@ class BayesianDatasetPolisher:
             return self.phase2_grid_search()
 
         # Calculate automatic threshold bounds based on data retention target
-        target_retention = self.min_retention_per_class
+        target_retention = self.min_minority_retention
         min_thresholds, retention_info = self.calculate_min_thresholds_for_retention(target_retention)
 
         if min_thresholds is None:
@@ -1208,22 +1269,88 @@ class BayesianDatasetPolisher:
 
         # Display retention analysis
         print(f"\n{'='*70}")
-        print(f"AUTOMATIC THRESHOLD CALCULATION (Target: {target_retention*100:.0f}% retention per class)")
+        print(f"AUTOMATIC THRESHOLD CALCULATION (Balanced Dataset Strategy)")
         print(f"{'='*70}")
+        print(f"  Minority class retention target: {target_retention*100:.0f}%")
 
         can_optimize = True
+        needs_adjustment = False
+        adjusted_retention_info = {}
+
+        # First pass: check if CV requirements are violated
+        min_samples_for_cv = self.phase2_cv_folds * 2
+        for phase in ['I', 'P', 'R']:
+            info = retention_info[phase].copy()
+            if info['retained'] < min_samples_for_cv and info['original'] >= min_samples_for_cv:
+                needs_adjustment = True
+            adjusted_retention_info[phase] = info
+
+        # If adjustment needed, recalculate with CV constraints
+        if needs_adjustment:
+            print(f"\n⚠️  Initial retention targets violate {self.phase2_cv_folds}-fold CV requirements")
+            print(f"   Auto-adjusting search space to ensure ≥{min_samples_for_cv} samples per class...\n")
+
+            # Recalculate with minimum retention that satisfies CV
+            for phase in ['I', 'P', 'R']:
+                info = adjusted_retention_info[phase]
+                if info['original'] < min_samples_for_cv:
+                    print(f"❌ Class {phase} has only {info['original']} samples (need {min_samples_for_cv} for {self.phase2_cv_folds}-fold CV)")
+                    can_optimize = False
+                    continue
+
+                if info['retained'] < min_samples_for_cv:
+                    # Force retention to at least min_samples_for_cv
+                    # Find the threshold that keeps exactly min_samples_for_cv samples
+                    misclass_file = self._find_misclass_file()
+                    if misclass_file:
+                        df = pd.read_csv(misclass_file)
+                        max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
+                        phase_misclass = max_misclass[max_misclass['True_Label'] == phase]['Misclass_Count'].values
+
+                        if len(phase_misclass) > 0:
+                            # Sort counts descending to find exclusion threshold
+                            sorted_counts = np.sort(phase_misclass)[::-1]
+                            max_to_exclude = info['original'] - min_samples_for_cv
+
+                            if 0 <= max_to_exclude < len(sorted_counts):
+                                # New threshold excludes the top max_to_exclude samples
+                                new_threshold = int(sorted_counts[max_to_exclude]) + 1
+                            else:
+                                new_threshold = int(phase_misclass.min())  # Keep all
+
+                            new_retained = np.sum(phase_misclass < new_threshold)
+                            new_retention_pct = new_retained / info['original'] * 100
+
+                            info['min_threshold'] = new_threshold
+                            info['retained'] = new_retained
+                            info['retention_pct'] = new_retention_pct
+                            adjusted_retention_info[phase] = info
+
+            # Update min_thresholds with adjusted values
+            for phase in ['I', 'P', 'R']:
+                min_thresholds[phase] = adjusted_retention_info[phase]['min_threshold']
+                retention_info[phase] = adjusted_retention_info[phase]
+
+        # Display retention analysis (with adjustments if applied)
         for phase in ['I', 'P', 'R']:
             info = retention_info[phase]
+            class_target = info.get('target_retention', target_retention)
             print(f"\n  Class {phase}:")
-            print(f"    Original samples: {info['original']}")
+            print(f"    Original samples: {info['original']} ({info['original_images']} images)")
+            if needs_adjustment and info['retained'] >= min_samples_for_cv:
+                print(f"    Target retention: {class_target*100:.1f}% (adjusted to {info['retention_pct']:.1f}% for CV)")
+            else:
+                print(f"    Target retention for balance: {class_target*100:.1f}%")
             print(f"    Misclass count range: {info['count_range'][0]}-{info['count_range'][1]}, median={info['count_median']:.1f}")
-            print(f"    Min threshold for {target_retention*100:.0f}% retention: {info['min_threshold']}")
-            print(f"    Actual retention at this threshold: {info['retained']}/{info['original']} ({info['retention_pct']:.1f}%)")
+            print(f"    Min threshold for retention: {info['min_threshold']}")
+            img_ratio = info['original_images'] / info['original'] if info['original'] > 0 else 1
+            est_images = int(info['retained'] * img_ratio)
+            print(f"    Actual retention at this threshold: {info['retained']}/{info['original']} ({info['retention_pct']:.1f}%) ≈ {est_images} images")
 
-            # Check if threshold exceeds max observed count (meaning we can't retain enough)
+            # Check if threshold exceeds max observed count
             if info['min_threshold'] > info['count_range'][1]:
                 print(f"    ⚠️  WARNING: Threshold {info['min_threshold']} exceeds max count {info['count_range'][1]}")
-                print(f"       Cannot achieve {target_retention*100:.0f}% retention - all samples have high misclass counts")
+                print(f"       Cannot achieve retention - all samples have high misclass counts")
                 can_optimize = False
 
         # Check if optimization should be skipped
@@ -1231,12 +1358,22 @@ class BayesianDatasetPolisher:
             print(f"\n{'='*70}")
             print(f"⚠️  SKIPPING PHASE 2 OPTIMIZATION")
             print(f"{'='*70}")
-            print(f"\nReason: Cannot achieve {target_retention*100:.0f}% data retention.")
-            print("All samples have been frequently misclassified, suggesting:")
-            print("  1. The classification task may be inherently difficult")
-            print("  2. The misclassification tracking has accumulated too many counts")
-            print("  3. Consider running Phase 1 with fewer runs to reduce count accumulation")
-            print("\nRecommendation: Use NO filtering (keep all samples) or manually set thresholds.")
+            print(f"\nReason: Cannot achieve {target_retention*100:.0f}% retention with {self.phase2_cv_folds}-fold CV.")
+
+            # Calculate minimum retention that would work
+            min_samples_for_cv = self.phase2_cv_folds * 2
+            rarest_class = min(retention_info.items(), key=lambda x: x[1]['original'])
+            rarest_class_name, rarest_info = rarest_class
+            min_retention_for_cv = min_samples_for_cv / rarest_info['original'] if rarest_info['original'] > 0 else 1.0
+
+            print(f"\nWith {self.phase2_cv_folds}-fold CV, each class needs ≥{min_samples_for_cv} samples.")
+            print(f"Rarest class ({rarest_class_name}) has {rarest_info['original']} samples.")
+            print(f"Minimum retention needed: {min_retention_for_cv*100:.1f}%")
+
+            print(f"\nPossible solutions:")
+            print(f"  1. Increase --min-minority-retention to {min_retention_for_cv:.2f} or higher")
+            print(f"  2. Reduce --phase2-cv-folds to {max(2, min_samples_for_cv // 2)} or lower")
+            print(f"  3. Use NO filtering: python src/main.py --mode search --cv_folds {self.phase2_cv_folds}")
 
             # Return "success" but with no thresholds (no filtering)
             return True, None
@@ -1254,11 +1391,12 @@ class BayesianDatasetPolisher:
         ]
 
         print(f"\n{'='*70}")
-        print(f"SEARCH SPACE (auto-calculated to preserve ≥{target_retention*100:.0f}% per class)")
+        print(f"SEARCH SPACE (auto-calculated for balanced dataset)")
         print(f"{'='*70}")
-        print(f"  P: {search_space[0].low}-{search_space[0].high} (min threshold to keep {target_retention*100:.0f}%)")
-        print(f"  I: {search_space[1].low}-{search_space[1].high} (min threshold to keep {target_retention*100:.0f}%)")
-        print(f"  R: {search_space[2].low}-{search_space[2].high} (min threshold to keep {target_retention*100:.0f}%)")
+        for phase in ['P', 'I', 'R']:
+            info = retention_info[phase]
+            class_target = info.get('target_retention', target_retention)
+            print(f"  {phase}: {min_thresholds[phase]}-{upper_bound} (min threshold for {class_target*100:.1f}% retention)")
 
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
@@ -1554,8 +1692,10 @@ class BayesianDatasetPolisher:
                 # Use os.system instead of subprocess.run to avoid TensorFlow context conflicts
                 # Build command string with proper quoting
                 cmd_str = ' '.join(str(arg) for arg in cmd)
-                # Redirect output to temp file for debugging
-                temp_output = project_root / 'phase2_training_output.tmp'
+                # Redirect output to misclassifications_saved (never deleted)
+                saved_dir = project_root / 'results' / 'misclassifications_saved'
+                saved_dir.mkdir(parents=True, exist_ok=True)
+                temp_output = saved_dir / 'phase2_training_output.tmp'
                 # Add timeout to prevent infinite hangs (60 minutes max per evaluation)
                 # With 1 CV fold this should be more than enough
                 return_code = os.system(f"timeout 3600 {cmd_str} >{temp_output} 2>&1")
@@ -1749,6 +1889,11 @@ GPU Configuration:
     parser.add_argument('--phase1-cv-folds', type=int, default=1,
                         help='Number of CV folds in Phase 1 (default: 1)')
 
+    parser.add_argument('--track-misclass', type=str, choices=['both', 'valid', 'train'], default='valid',
+                        help='Which dataset to track misclassifications from: '
+                             'both (train+valid), valid (recommended - faster), train (not recommended). '
+                             'Default: valid')
+
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')
 
@@ -1761,9 +1906,12 @@ GPU Configuration:
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
 
-    parser.add_argument('--min-retention-per-class', type=float, default=0.90,
-                        help='Minimum retention per class (default: 0.90). '
-                             'Optimization is skipped if this cannot be achieved.')
+    parser.add_argument('--min-minority-retention', type=float, default=0.90,
+                        help='Target retention for the MINORITY (rarest) class (default: 0.90). '
+                             'Other classes get lower retention rates calculated to achieve '
+                             'a perfectly balanced dataset. For example, with I=203, P=368, R=76 '
+                             'and 90%% retention: R keeps 68 samples, I keeps 68/203=33.5%%, '
+                             'P keeps 68/368=18.5%%. Optimization is skipped if this cannot be achieved.')
 
     # GPU configuration flags
     parser.add_argument('--device-mode', type=str, choices=['cpu', 'single', 'multi', 'custom'],
@@ -1802,11 +1950,12 @@ GPU Configuration:
         phase2_cv_folds=args.phase2_cv_folds,
         phase2_data_percentage=args.phase2_data_percentage,
         min_dataset_fraction=args.min_dataset_fraction,
-        min_retention_per_class=args.min_retention_per_class,
+        min_minority_retention=args.min_minority_retention,
         device_mode=args.device_mode,
         custom_gpus=args.custom_gpus,
         min_gpu_memory=args.min_gpu_memory,
-        include_display_gpus=args.include_display_gpus
+        include_display_gpus=args.include_display_gpus,
+        track_misclass=args.track_misclass
     )
 
     # Run phases
@@ -1829,10 +1978,10 @@ GPU Configuration:
             print("\n" + "="*70)
             print("⚠️  OPTIMIZATION SKIPPED")
             print("="*70)
-            print(f"\nCannot achieve {args.min_retention_per_class*100:.0f}% retention per class.")
+            print(f"\nCannot achieve {args.min_minority_retention*100:.0f}% retention for minority class.")
             print("Recommendation: Use NO filtering for training:")
             print(f"   python src/main.py --mode search --cv_folds 5")
-            print("\nOr reduce --min-retention-per-class to allow more aggressive filtering.")
+            print("\nOr reduce --min-minority-retention to allow more aggressive filtering.")
         else:
             polisher.save_results()
 

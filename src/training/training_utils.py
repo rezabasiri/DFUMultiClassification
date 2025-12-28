@@ -693,7 +693,7 @@ def average_attention_values(result_dir, num_runs):
             for run_idx, run_mean in enumerate(run_means_per_modality[i]):
                 f.write(f"Run {run_idx + 1}: {run_mean:.4f}\n")
             f.write("\n")
-def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n_runs=None, cv_folds=3):
+def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, cv_folds=3, track_misclass='both'):
     """
     Perform cross-validation using cached dataset pipeline.
 
@@ -701,24 +701,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         data: Input DataFrame
         configs: Dictionary of configurations for different modality combinations, or a list of modalities
         train_patient_percentage: Percentage of data to use for training (ignored if cv_folds > 1)
-        n_runs: DEPRECATED - Number of random holdout runs (backwards compatibility)
         cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single train/val split.
+        track_misclass: Which dataset to track misclassifications from ('both', 'valid', 'train')
 
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
     """
-    # Handle backwards compatibility: if n_runs is specified, use it
-    if n_runs is not None:
-        vprint(f"Warning: n_runs parameter is deprecated. Please use cv_folds instead.", level=1)
-        cv_folds = 0  # Force single split mode when using legacy n_runs
-        use_legacy_mode = True
-        num_iterations = n_runs
+    # Determine number of iterations
+    if cv_folds <= 1:
+        num_iterations = 1  # Single split
     else:
-        use_legacy_mode = False
-        if cv_folds <= 1:
-            num_iterations = 1  # Single split
-        else:
-            num_iterations = cv_folds  # k-fold CV
+        num_iterations = cv_folds  # k-fold CV
     # Handle configs being passed as a list instead of dict
     if isinstance(configs, list):
         modality_list = configs  # Save original list
@@ -811,7 +804,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
     all_runs_metrics = []
 
     # Generate patient folds for k-fold CV (if cv_folds > 1)
-    if not use_legacy_mode and cv_folds > 1:
+    if cv_folds > 1:
         vprint(f"\n{'='*80}", level=1)
         vprint(f"GENERATING {cv_folds}-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)", level=1)
         vprint(f"{'='*80}", level=1)
@@ -824,8 +817,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
         patient_fold_splits = None
 
     for iteration_idx in range(num_iterations):
-        # Use appropriate naming: "Fold" for k-fold CV, "Run" for legacy mode
-        if not use_legacy_mode and cv_folds > 1:
+        # Use appropriate naming: "Fold" for k-fold CV, "Run" for single split mode
+        if cv_folds > 1:
             iteration_name = f"Fold {iteration_idx + 1}/{cv_folds}"
         else:
             iteration_name = f"Run {iteration_idx + 1}/{num_iterations}"
@@ -1013,7 +1006,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
 
             selected_modalities = config['modalities']
             # Display proper iteration context
-            if not use_legacy_mode and cv_folds > 1:
+            if cv_folds > 1:
                 vprint(f"\nTraining {config_name} with modalities: {selected_modalities}, fold {run + 1}/{cv_folds}", level=1)
             else:
                 vprint(f"\nTraining {config_name} with modalities: {selected_modalities}, run {run + 1}/{num_iterations}", level=1)
@@ -1253,10 +1246,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         if run_true_labels_t is None:
                             run_true_labels_t = np.array(y_true_t)
 
-                        # Track misclassifications
-                        sample_ids_t = np.array(all_sample_ids_t)
-                        track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
-                        
+                        # Track misclassifications from training set (if requested)
+                        if track_misclass in ['both', 'train']:
+                            sample_ids_t = np.array(all_sample_ids_t)
+                            track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
+
                         # Evaluate model
                         y_true_v = []
                         y_pred_v = []
@@ -1289,9 +1283,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, n
                         if run_true_labels_v is None:
                             run_true_labels_v = np.array(y_true_v)
                         
-                        # Track misclassifications
-                        sample_ids_v = np.array(all_sample_ids_v)
-                        track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
+                        # Track misclassifications from validation set (if requested)
+                        if track_misclass in ['both', 'valid']:
+                            sample_ids_v = np.array(all_sample_ids_v)
+                            track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
 
                         # Calculate metrics
                         accuracy = accuracy_score(y_true_v, y_pred_v)
@@ -1771,7 +1766,7 @@ def is_run_complete(run_number, ck_path):
     """Check if a run has completed gating metrics."""
     gating_metrics_file = os.path.join(ck_path, f'gating_network_run_{run_number}_results.csv')
     return os.path.exists(gating_metrics_file)
-def main_with_specialized_evaluation(data_percentage=100, train_patient_percentage=0.8, n_runs=3):
+def main_with_specialized_evaluation(data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
     """
     Run specialized evaluation with the new cross-validation structure.
     """
@@ -1849,10 +1844,8 @@ def main_with_specialized_evaluation(data_percentage=100, train_patient_percenta
     # Run cross-validation
     vprint("\nStarting cross-validation...", level=1)
     metrics, confusion_matrices, histories = cross_validation_manual_split(
-        data, configs, train_patient_percentage, n_runs
+        data, configs, train_patient_percentage, cv_folds
     )
-    # After all runs are complete
-    # average_attention_values(result_dir, num_runs=n_runs)
     
     # # Train gating network if needed
     # if os.path.exists(os.path.join(result_dir, 'predictions_list.npy')):
@@ -1904,14 +1897,17 @@ def filter_dataset_modalities(dataset, selected_modalities):
 def clear_cache_files():
     """Clear any existing cache files."""
     import glob
-    
+
+    # FIXED: Include tf_records subdirectory where cache files are actually stored
     cache_patterns = [
-        os.path.join(result_dir, 'tf_cache_train*'),
-        os.path.join(result_dir, 'tf_cache_valid*'),
+        os.path.join(result_dir, 'tf_records', 'tf_cache_train*'),
+        os.path.join(result_dir, 'tf_records', 'tf_cache_valid*'),
+        os.path.join(result_dir, 'tf_cache_train*'),  # Legacy location
+        os.path.join(result_dir, 'tf_cache_valid*'),  # Legacy location
         'tf_cache_train*',
         'tf_cache_valid*'
     ]
-    
+
     for pattern in cache_patterns:
         try:
             cache_files = glob.glob(pattern)
