@@ -1,0 +1,2 @@
+Modalities,Accuracy (Mean),Accuracy (Std),Macro Avg F1-score (Mean),Macro Avg F1-score (Std),Weighted Avg F1-score (Mean),Weighted Avg F1-score (Std),I F1-score (Mean),P F1-score (Mean),R F1-score (Mean),Cohen's Kappa (Mean),Cohen's Kappa (Std)
+thermal_map,0.4108211926452971,0.03330130007812175,0.34840118758345134,0.005329147412225158,0.4219416546702934,0.020300486763755076,0.2672581519108464,0.5266893812469208,0.2512560295925867,0.07850962671676771,0.03895403586237077
