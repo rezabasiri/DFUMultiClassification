@@ -967,6 +967,9 @@ class BayesianDatasetPolisher:
             # This preserves the unfiltered baseline for Phase 2 to use
             self._save_phase1_baseline()
 
+            # Display Phase 1 baseline performance
+            self.show_phase1_baseline()
+
             return True
 
         finally:
@@ -1001,16 +1004,18 @@ class BayesianDatasetPolisher:
                     df = pd.read_csv(csv_file)
                     for _, row in df.iterrows():
                         modality = row.get('Modalities', 'unknown')
+                        f1_I = float(row.get('I F1-score (Mean)', 0.0))
+                        f1_P = float(row.get('P F1-score (Mean)', 0.0))
+                        f1_R = float(row.get('R F1-score (Mean)', 0.0))
                         baselines[modality] = {
                             'modality': modality,
                             'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
                             'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
                             'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
-                            'min_f1': min(
-                                float(row.get('I F1-score (Mean)', 0.0)),
-                                float(row.get('P F1-score (Mean)', 0.0)),
-                                float(row.get('R F1-score (Mean)', 0.0))
-                            )
+                            'f1_I': f1_I,
+                            'f1_P': f1_P,
+                            'f1_R': f1_R,
+                            'min_f1': min(f1_I, f1_P, f1_R)
                         }
                     break  # Use first valid CSV file
                 except Exception as e:
@@ -1136,6 +1141,10 @@ class BayesianDatasetPolisher:
                     print(f"\n  {modality}:")
                     print(f"    Macro F1: {baseline['macro_f1']:.4f}")
                     print(f"    Weighted F1: {baseline['weighted_f1']:.4f}")
+                    f1_I = baseline.get('f1_I', 0.0)
+                    f1_P = baseline.get('f1_P', 0.0)
+                    f1_R = baseline.get('f1_R', 0.0)
+                    print(f"    Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}")
                     print(f"    Min F1: {baseline['min_f1']:.4f}")
                     print(f"    Kappa: {baseline['kappa']:.4f}")
 
@@ -1144,8 +1153,11 @@ class BayesianDatasetPolisher:
 
             # Set and announce the best baseline being used
             self.phase1_baseline = baseline_from_json
+            f1_I = self.phase1_baseline.get('f1_I', 0.0)
+            f1_P = self.phase1_baseline.get('f1_P', 0.0)
+            f1_R = self.phase1_baseline.get('f1_R', 0.0)
             print(f"\n  📊 Using best baseline for optimization: {self.phase1_baseline['modality']}")
-            print(f"     (Highest Weighted F1: {self.phase1_baseline['weighted_f1']:.4f})")
+            print(f"     Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}, Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}")
             return
 
         # Try to read performance from CSV files
@@ -1760,9 +1772,8 @@ class BayesianDatasetPolisher:
                     f.write(f"CV folds per evaluation: {self.phase2_cv_folds}\n")
                     f.write("="*80 + "\n\n")
 
-            # Individual per-evaluation log file (for easier debugging)
+            # Evaluation label for headers
             eval_label = f"eval_{eval_num}" if eval_num else "eval_unknown"
-            individual_log = saved_dir / f'phase2_{eval_label}_thresholds_I{thresholds["I"]}_P{thresholds["P"]}_R{thresholds["R"]}.log'
 
             # Save current directory
             original_cwd = os.getcwd()
@@ -1784,13 +1795,9 @@ class BayesianDatasetPolisher:
                 with open(self.phase2_log_file, 'a') as f:
                     f.write(eval_header)
 
-                # Also write to individual log
-                with open(individual_log, 'w') as f:
-                    f.write(eval_header)
-
                 # Add timeout to prevent infinite hangs (60 minutes max per evaluation)
-                # Redirect to BOTH cumulative log (append) and individual log
-                return_code = os.system(f"timeout 3600 {cmd_str} 2>&1 | tee -a {individual_log} >> {self.phase2_log_file}")
+                # Redirect to cumulative log (append mode)
+                return_code = os.system(f"timeout 3600 {cmd_str} >> {self.phase2_log_file} 2>&1")
 
             finally:
                 # Restore original directory
@@ -1812,18 +1819,16 @@ class BayesianDatasetPolisher:
                     print(f"\nCommand that failed:")
                     print(' '.join(cmd))
 
-                    # Show last part of output for debugging from individual log
-                    if individual_log.exists():
-                        with open(individual_log, 'r') as f:
+                    # Show last part of output for debugging from cumulative log
+                    if self.phase2_log_file.exists():
+                        with open(self.phase2_log_file, 'r') as f:
                             output = f.read()
                             print(f"\n{'─'*80}")
                             print("OUTPUT (last 3000 chars):")
                             print(f"{'─'*80}")
                             print(output[-3000:])
 
-                    print(f"\n💡 Full output saved to:")
-                    print(f"   Cumulative log: {self.phase2_log_file}")
-                    print(f"   This evaluation: {individual_log}")
+                    print(f"\n💡 Full output saved to: {self.phase2_log_file}")
                     print(f"{'='*80}\n")
                     return None
 
