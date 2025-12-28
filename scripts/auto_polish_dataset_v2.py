@@ -788,7 +788,19 @@ class BayesianDatasetPolisher:
         total_runs = self.phase1_n_runs * len(self.phase1_modalities)
         print(f"Testing {len(self.phase1_modalities)} modalities individually: {self.phase1_modalities}")
         print(f"Running {self.phase1_n_runs} runs per modality (total {total_runs} runs)")
-        print(f"Misclassification counts will be out of {total_runs}")
+
+        # Calculate maximum possible misclassification count based on tracking mode
+        if self.track_misclass == 'valid':
+            # Each sample appears in validation once per run
+            max_misclass = self.phase1_n_runs
+        elif self.track_misclass == 'train':
+            # Each sample appears in training (cv_folds - 1) times per run
+            max_misclass = self.phase1_n_runs * max(1, self.phase1_cv_folds - 1)
+        else:  # 'both'
+            # Each sample tracked from whichever dataset it's in, each fold
+            max_misclass = self.phase1_n_runs * self.phase1_cv_folds
+
+        print(f"Misclassification counts: max={max_misclass} (mode={self.track_misclass}, runs={self.phase1_n_runs}, folds={self.phase1_cv_folds})")
         print(f"CV folds={self.phase1_cv_folds}, verbosity=silent\n")
 
         # Clean up everything for fresh start
