@@ -1,0 +1,101 @@
+2025-12-28 02:42:14.425159: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2025-12-28 02:42:14.425271: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2025-12-28 02:42:14.427207: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-12-28 02:42:15.171125: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 5090 - 31.8GB
+  GPU 1: NVIDIA GeForce RTX 5090 - 31.8GB
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 5090 (31.8GB)
+  GPU 1: NVIDIA GeForce RTX 5090 (31.8GB)
+2025-12-28 02:42:19.496659: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+2025-12-28 02:42:19.500315: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+Enabled memory growth for 2 GPU(s)
+2025-12-28 02:42:19.877271: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+2025-12-28 02:42:19.879183: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+
+Using MirroredStrategy (2 GPUs) with ReductionToOneDevice
+  (GPU-based gradient aggregation, NCCL-free for RTX 5090 compatibility)
+Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 16 (global batch size: 33, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 33
+  Per-GPU batch: 16 (33 / 2 GPUs)
+Max epochs: 150 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Csv Results: 1 files deleted
+================================================================================
+
+2025-12-28 02:42:20.569932: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+2025-12-28 02:42:20.571389: W tensorflow/core/common_runtime/gpu/gpu_device.cc:2348] TensorFlow was not built with CUDA kernel binaries compatible with compute capability 12.0. CUDA kernels will be jit-compiled from PTX, which could take 30 minutes or longer.
+Misclassification filtering thresholds: {'I': 2, 'P': 1, 'R': 4}
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=2, P=1, R=4
+
+Excluded samples per class:
+  Class I: 183 samples
+  Class P: 367 samples
+  Class R: 32 samples
+
+Total unique samples to exclude: 582
+
+Dataset size (rows): 3107 -> 242 (7.8%)
+Unique samples: 647 -> 65 (removed 582)
+
+Class distribution after filtering:
+  Class I: 66 rows
+  Class P: 3 rows
+  Class R: 173 rows
+============================================================
+
+⚠️  WARNING: Over 80% of data filtered out!
+   Consider adjusting thresholds: {'I': 2, 'P': 1, 'R': 4}
+Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 2477, in <module>
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, thresholds, args.track_misclass)
+  File "/workspace/DFUMultiClassification/src/main.py", line 2098, in main
+    main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, thresholds=thresholds, track_misclass=track_misclass)
+  File "/workspace/DFUMultiClassification/src/main.py", line 1853, in main_search
+    cv_results, confusion_matrices, histories = cross_validation_manual_split(
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 941, in cross_validation_manual_split
+    data_manager.process_all_modalities()
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 271, in process_all_modalities
+    temp_train, _, _, _, _, _ = prepare_cached_datasets(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/data/dataset_utils.py", line 571, in prepare_cached_datasets
+    raise ValueError("Could not create valid data split")
+ValueError: Could not create valid data split
