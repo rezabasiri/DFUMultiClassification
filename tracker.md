@@ -26,6 +26,14 @@ Tracks major repository changes and refactors.
 - Show baseline again at start of Phase 2 (for comparison during optimization)
 - Enhanced "Using best baseline" message with per-class F1 scores
 
+### Fixed misclassification count calculation
+**File**: `scripts/auto_polish_dataset_v2.py`
+- Corrected max misclassification count message to account for tracking mode:
+  - `track_misclass='valid'`: max = runs (each sample in valid once per run)
+  - `track_misclass='train'`: max = runs × (cv_folds - 1)
+  - `track_misclass='both'`: max = runs × cv_folds (tracked from both datasets)
+- Previous message incorrectly used total_runs without considering CV folds or tracking mode
+
 **Impact**: Phase 2 optimization works correctly; cleaner logging; better baseline visibility for analysis.
 
 ---
