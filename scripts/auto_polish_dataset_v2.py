@@ -1683,6 +1683,11 @@ class BayesianDatasetPolisher:
 
             print(f"⏳ Training with cv_folds={self.phase2_cv_folds} (fresh mode)...")
 
+            # Ensure CSV directory exists (create before training to avoid write failures)
+            from src.utils.config import get_output_paths
+            output_paths = get_output_paths(self.result_dir)
+            os.makedirs(output_paths['csv'], exist_ok=True)
+
             # Save current directory
             original_cwd = os.getcwd()
             try:
@@ -1756,8 +1761,23 @@ class BayesianDatasetPolisher:
             'accuracy': 0.0
         }
 
-        csv_file = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
-        if not os.path.exists(csv_file) or os.path.getsize(csv_file) == 0:
+        # Try modality_combination_results.csv first (written by main.py in search mode)
+        # Fallback to modality_results_averaged.csv (older format)
+        csv_files_to_try = [
+            os.path.join(self.result_dir, 'csv', 'modality_combination_results.csv'),
+            os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
+        ]
+
+        csv_file = None
+        for candidate in csv_files_to_try:
+            if os.path.exists(candidate) and os.path.getsize(candidate) > 0:
+                csv_file = candidate
+                break
+
+        if csv_file is None:
+            print(f"⚠️  No CSV results found. Tried:")
+            for candidate in csv_files_to_try:
+                print(f"    - {candidate}")
             return None
 
         try:
