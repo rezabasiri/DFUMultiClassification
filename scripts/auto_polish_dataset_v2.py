@@ -7,7 +7,10 @@ filtering thresholds:
 PHASE 1: Misclassification Detection (Run Once)
 - Tests each modality individually (default: metadata, depth_rgb, depth_map, thermal_map)
 - Runs training N times per modality (e.g., 10) with different random seeds
-- Accumulates misclassification counts across all modality runs (max count = N * num_modalities)
+- Accumulates misclassification counts (max count depends on track_misclass mode and cv_folds):
+  * track_misclass='valid': max = N (each sample in validation once per run)
+  * track_misclass='train': max = N × (cv_folds - 1)
+  * track_misclass='both': max = N × cv_folds (tracked from both train and validation)
 - Creates comprehensive misclassification profile
 - Time: ~30-60 minutes for N=10 runs per modality (e.g., 40 runs total for 4 modalities)
 
