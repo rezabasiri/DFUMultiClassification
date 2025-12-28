@@ -1440,7 +1440,7 @@ class BayesianDatasetPolisher:
 
             # No hard rejection - let penalty guide the optimizer
             # Train and evaluate (even if below min_size, penalty will handle it)
-            metrics = self.train_with_thresholds(threshold_dict)
+            metrics = self.train_with_thresholds(threshold_dict, eval_num=eval_num)
 
             if metrics is None:
                 print(f"❌ Training failed")
@@ -1528,6 +1528,8 @@ class BayesianDatasetPolisher:
 
         # Run Bayesian optimization
         print(f"\n🔍 Starting Bayesian optimization...\n")
+        print(f"📋 Training outputs will be logged to:")
+        print(f"   (Log file will be created on first evaluation)\n")
 
         result = gp_minimize(
             objective,
@@ -1542,6 +1544,21 @@ class BayesianDatasetPolisher:
         print(f"{'='*70}")
         print(f"\nBest thresholds found: {self.best_thresholds}")
         print(f"Best score: {self.best_score:.4f}")
+
+        # Write completion message to log file
+        if hasattr(self, 'phase2_log_file'):
+            from datetime import datetime
+            with open(self.phase2_log_file, 'a') as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"OPTIMIZATION COMPLETED\n")
+                f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Best thresholds: {self.best_thresholds}\n")
+                f.write(f"Best score: {self.best_score:.4f}\n")
+                f.write(f"Total evaluations: {len(self.optimization_history)}\n")
+                f.write(f"{'='*80}\n")
+
+            print(f"\n💾 Complete optimization log saved to:")
+            print(f"   {self.phase2_log_file}")
 
         return True, self.best_thresholds
 
@@ -1566,6 +1583,23 @@ class BayesianDatasetPolisher:
 
         print(f"Testing {len(grid)} threshold combinations...\n")
 
+        # Initialize log file for grid search mode
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        saved_dir = project_root / 'results' / 'misclassifications_saved'
+        saved_dir.mkdir(parents=True, exist_ok=True)
+        self.phase2_log_file = saved_dir / f'phase2_optimization_{timestamp}.log'
+
+        # Write initial header
+        with open(self.phase2_log_file, 'w') as f:
+            f.write("="*80 + "\n")
+            f.write(f"PHASE 2 GRID SEARCH LOG\n")
+            f.write(f"Started: {timestamp}\n")
+            f.write(f"Modalities: {'+'.join(self.modalities)}\n")
+            f.write(f"Total combinations: {len(grid)}\n")
+            f.write(f"CV folds per evaluation: {self.phase2_cv_folds}\n")
+            f.write("="*80 + "\n\n")
+
         for eval_num, (p, i, r) in enumerate(grid, 1):
             threshold_dict = {'P': p, 'I': i, 'R': r}
 
@@ -1580,7 +1614,7 @@ class BayesianDatasetPolisher:
 
             # No hard rejection - let penalty guide optimization
             # Train and evaluate
-            metrics = self.train_with_thresholds(threshold_dict)
+            metrics = self.train_with_thresholds(threshold_dict, eval_num=eval_num)
             if metrics is None:
                 continue
 
@@ -1608,14 +1642,30 @@ class BayesianDatasetPolisher:
                 'filtered_size': filtered_size
             })
 
+        # Write completion message to log file
+        if hasattr(self, 'phase2_log_file'):
+            from datetime import datetime
+            with open(self.phase2_log_file, 'a') as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"GRID SEARCH COMPLETED\n")
+                f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Best thresholds: {self.best_thresholds}\n")
+                f.write(f"Best score: {self.best_score:.4f}\n")
+                f.write(f"Total evaluations: {len(self.optimization_history)}\n")
+                f.write(f"{'='*80}\n")
+
+            print(f"\n💾 Complete optimization log saved to:")
+            print(f"   {self.phase2_log_file}")
+
         return True, self.best_thresholds
 
-    def train_with_thresholds(self, thresholds):
+    def train_with_thresholds(self, thresholds, eval_num=None):
         """
         Train metadata with given thresholds and return metrics.
 
         Args:
             thresholds: Dict like {'I': 5, 'P': 3, 'R': 8}
+            eval_num: Evaluation number (for logging purposes)
 
         Returns:
             dict: Metrics or None if training failed
@@ -1688,6 +1738,32 @@ class BayesianDatasetPolisher:
             output_paths = get_output_paths(self.result_dir)
             os.makedirs(output_paths['csv'], exist_ok=True)
 
+            # Setup logging
+            saved_dir = project_root / 'results' / 'misclassifications_saved'
+            saved_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create timestamped log file for all evaluations (appends each time)
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # Main cumulative log file (contains all evaluations)
+            if not hasattr(self, 'phase2_log_file'):
+                # First evaluation - create new log file with timestamp
+                self.phase2_log_file = saved_dir / f'phase2_optimization_{timestamp}.log'
+                # Write initial header
+                with open(self.phase2_log_file, 'w') as f:
+                    f.write("="*80 + "\n")
+                    f.write(f"PHASE 2 OPTIMIZATION LOG\n")
+                    f.write(f"Started: {timestamp}\n")
+                    f.write(f"Modalities: {'+'.join(self.modalities)}\n")
+                    f.write(f"Total evaluations planned: {self.phase2_n_evaluations}\n")
+                    f.write(f"CV folds per evaluation: {self.phase2_cv_folds}\n")
+                    f.write("="*80 + "\n\n")
+
+            # Individual per-evaluation log file (for easier debugging)
+            eval_label = f"eval_{eval_num}" if eval_num else "eval_unknown"
+            individual_log = saved_dir / f'phase2_{eval_label}_thresholds_I{thresholds["I"]}_P{thresholds["P"]}_R{thresholds["R"]}.log'
+
             # Save current directory
             original_cwd = os.getcwd()
             try:
@@ -1697,13 +1773,24 @@ class BayesianDatasetPolisher:
                 # Use os.system instead of subprocess.run to avoid TensorFlow context conflicts
                 # Build command string with proper quoting
                 cmd_str = ' '.join(str(arg) for arg in cmd)
-                # Redirect output to misclassifications_saved (never deleted)
-                saved_dir = project_root / 'results' / 'misclassifications_saved'
-                saved_dir.mkdir(parents=True, exist_ok=True)
-                temp_output = saved_dir / 'phase2_training_output.tmp'
+
+                # Write evaluation header to cumulative log
+                eval_header = f"\n{'='*80}\n"
+                eval_header += f"EVALUATION {eval_label.upper()}\n"
+                eval_header += f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                eval_header += f"Thresholds: I={thresholds['I']}, P={thresholds['P']}, R={thresholds['R']}\n"
+                eval_header += f"{'='*80}\n\n"
+
+                with open(self.phase2_log_file, 'a') as f:
+                    f.write(eval_header)
+
+                # Also write to individual log
+                with open(individual_log, 'w') as f:
+                    f.write(eval_header)
+
                 # Add timeout to prevent infinite hangs (60 minutes max per evaluation)
-                # With 1 CV fold this should be more than enough
-                return_code = os.system(f"timeout 3600 {cmd_str} >{temp_output} 2>&1")
+                # Redirect to BOTH cumulative log (append) and individual log
+                return_code = os.system(f"timeout 3600 {cmd_str} 2>&1 | tee -a {individual_log} >> {self.phase2_log_file}")
 
             finally:
                 # Restore original directory
@@ -1725,15 +1812,18 @@ class BayesianDatasetPolisher:
                     print(f"\nCommand that failed:")
                     print(' '.join(cmd))
 
-                    # Show last part of output for debugging
-                    if temp_output.exists():
-                        with open(temp_output, 'r') as f:
+                    # Show last part of output for debugging from individual log
+                    if individual_log.exists():
+                        with open(individual_log, 'r') as f:
                             output = f.read()
                             print(f"\n{'─'*80}")
                             print("OUTPUT (last 3000 chars):")
                             print(f"{'─'*80}")
                             print(output[-3000:])
 
+                    print(f"\n💡 Full output saved to:")
+                    print(f"   Cumulative log: {self.phase2_log_file}")
+                    print(f"   This evaluation: {individual_log}")
                     print(f"{'='*80}\n")
                     return None
 
