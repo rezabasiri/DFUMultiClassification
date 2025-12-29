@@ -942,9 +942,9 @@ class BayesianDatasetPolisher:
                         print(f"\n❌ Training failed on {modality_name} run {run_idx}")
                         return False
 
-            # After each modality completes all its runs, update baseline file
-            print(f"\n📊 Updating baseline with {modality_name} results...")
-            self._update_baseline_continuously()
+                    # After each run completes, update baseline file
+                    print(f"\n📊 Updating baseline after {modality_name} run {run_idx}...")
+                    self._update_baseline_continuously()
 
             # Clear environment variable
             if 'CROSS_VAL_RANDOM_SEED' in os.environ:
