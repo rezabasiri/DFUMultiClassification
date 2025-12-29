@@ -32,6 +32,14 @@ dependencies:
       - tensorflow[and-cuda]==2.15.1
       - keras==2.15.0
 
+      # CUDA 12 libraries (required for RTX 4090 and RTX 5090)
+      # Note: Only CUDA 12 packages should be installed, not CUDA 11
+      - nvidia-cuda-cupti-cu12==12.2.142
+      - nvidia-cuda-nvrtc-cu12==12.2.140
+      - nvidia-cuda-runtime-cu12==12.2.140
+      - nvidia-cudnn-cu12==8.9.4.25
+      - nvidia-cublas-cu12
+
       # PyTorch GPU (using --index-url for CUDA compatibility)
       - torch
       - torchvision

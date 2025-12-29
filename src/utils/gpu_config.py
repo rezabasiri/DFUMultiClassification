@@ -20,15 +20,15 @@ def get_gpu_info() -> List[Dict[str, any]]:
     Query GPU information using nvidia-smi.
 
     Returns:
-        List of dicts with GPU info: [{'id': 0, 'name': 'RTX 5090', 'memory_mb': 32768, 'is_display': False}, ...]
+        List of dicts with GPU info: [{'id': 0, 'name': 'RTX 5090', 'memory_mb': 32768, 'is_display': False, 'compute_cap': 12.0}, ...]
         Returns empty list if no GPUs found or nvidia-smi fails.
     """
     try:
-        # Query nvidia-smi for GPU information
+        # Query nvidia-smi for GPU information including compute capability
         result = subprocess.run(
             [
                 'nvidia-smi',
-                '--query-gpu=index,name,memory.total,display_active',
+                '--query-gpu=index,name,memory.total,display_active,compute_cap',
                 '--format=csv,noheader,nounits'
             ],
             capture_output=True,
@@ -46,7 +46,7 @@ def get_gpu_info() -> List[Dict[str, any]]:
                 continue
 
             parts = [p.strip() for p in line.split(',')]
-            if len(parts) < 4:
+            if len(parts) < 5:
                 continue
 
             try:
@@ -54,13 +54,15 @@ def get_gpu_info() -> List[Dict[str, any]]:
                 name = parts[1]
                 memory_mb = int(parts[2])
                 is_display = parts[3].lower() == 'enabled'
+                compute_cap = float(parts[4])
 
                 gpus.append({
                     'id': gpu_id,
                     'name': name,
                     'memory_mb': memory_mb,
                     'memory_gb': memory_mb / 1024,
-                    'is_display': is_display
+                    'is_display': is_display,
+                    'compute_cap': compute_cap
                 })
             except (ValueError, IndexError) as e:
                 print(f"⚠️  Failed to parse GPU info line: {line} ({e})")
@@ -145,6 +147,11 @@ def setup_device_strategy(
     """
     Set up TensorFlow distribution strategy based on device mode.
 
+    Automatically detects GPU compute capability and selects the appropriate
+    multi-GPU communication strategy:
+    - NCCL (fastest) for RTX 4090 and older (compute capability < 9.0)
+    - ReductionToOneDevice for RTX 5090+ (compute capability >= 9.0)
+
     Args:
         mode: Device mode - 'cpu', 'single', 'multi', or 'custom'
         custom_gpus: List of GPU IDs for 'custom' mode (e.g., [0, 1])
@@ -158,7 +165,7 @@ def setup_device_strategy(
     Raises:
         ValueError: If invalid mode or no suitable GPUs found
     """
-    # Set environment variables for RTX 5090 compatibility (compute capability 12.0)
+    # Set environment variables for GPU compatibility
     # These need to be set before TensorFlow initializes CUDA
     os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Reduce TensorFlow logging
     os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')  # Disable oneDNN optimizations
@@ -187,7 +194,8 @@ def setup_device_strategy(
         print(f"\nDetected {len(all_gpus)} GPU(s):")
         for gpu in all_gpus:
             display_str = " (display)" if gpu['is_display'] else ""
-            print(f"  GPU {gpu['id']}: {gpu['name']} - {gpu['memory_gb']:.1f}GB{display_str}")
+            compute_str = f" (compute {gpu['compute_cap']})" if 'compute_cap' in gpu else ""
+            print(f"  GPU {gpu['id']}: {gpu['name']} - {gpu['memory_gb']:.1f}GB{display_str}{compute_str}")
 
     # Filter GPUs by criteria
     filtered_gpus = filter_gpus(all_gpus, min_memory_gb, exclude_display)
@@ -270,17 +278,31 @@ def setup_device_strategy(
         if verbose:
             print(f"\nUsing default strategy (single GPU)")
     else:
-        # Multi-GPU strategy for RTX 5090 (compute capability 12.0)
-        # NCCL doesn't work with TF 2.15.1 on RTX 5090 - tested and confirmed CUDA errors
-        # Options that work:
-        #   1. ReductionToOneDevice - aggregates gradients on one GPU (faster)
-        #   2. HierarchicalCopyAllReduce - aggregates via CPU (slower but more stable)
-        cross_device_ops = tf.distribute.ReductionToOneDevice()
-        strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_device_ops)
-        if verbose:
-            print(f"\nUsing MirroredStrategy ({len(selected_gpu_ids)} GPUs) with ReductionToOneDevice")
-            print(f"  (GPU-based gradient aggregation, NCCL-free for RTX 5090 compatibility)")
-            print(f"Effective batch size: {strategy.num_replicas_in_sync}× global batch size")
+        # Multi-GPU strategy - choose based on compute capability
+        # Get compute capability of selected GPUs
+        selected_gpus_info = [g for g in all_gpus if g['id'] in selected_gpu_ids]
+        max_compute_cap = max(g.get('compute_cap', 0) for g in selected_gpus_info)
+
+        # RTX 5090 has compute capability 12.0, RTX 4090 has 8.9
+        # NCCL has issues with newer architectures (compute capability >= 9.0) on TF 2.15.1
+        # Use NCCL (fastest) for older GPUs, fallback for newer GPUs
+        if max_compute_cap >= 9.0:
+            # Newer GPUs (RTX 5000 series+) - use ReductionToOneDevice
+            cross_device_ops = tf.distribute.ReductionToOneDevice()
+            strategy = tf.distribute.MirroredStrategy(cross_device_ops=cross_device_ops)
+            if verbose:
+                print(f"\nUsing MirroredStrategy ({len(selected_gpu_ids)} GPUs) with ReductionToOneDevice")
+                print(f"  Compute capability {max_compute_cap:.1f} detected (GPU-based gradient aggregation)")
+                print(f"  (NCCL-free mode for compatibility with newer GPU architectures)")
+                print(f"  Effective batch size: {strategy.num_replicas_in_sync}× global batch size")
+        else:
+            # Older GPUs (RTX 4000 series and earlier) - use NCCL (default, fastest)
+            strategy = tf.distribute.MirroredStrategy()
+            if verbose:
+                print(f"\nUsing MirroredStrategy ({len(selected_gpu_ids)} GPUs) with NCCL")
+                print(f"  Compute capability {max_compute_cap:.1f} detected (native NCCL support)")
+                print(f"  (Using NCCL for fastest multi-GPU communication)")
+                print(f"  Effective batch size: {strategy.num_replicas_in_sync}× global batch size")
 
     if verbose:
         print("="*80 + "\n")
