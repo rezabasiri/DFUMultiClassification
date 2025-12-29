@@ -2,6 +2,42 @@
 
 Tracks major repository changes and refactors.
 
+## 2025-12-28 — Phase 2 optimization bug fixes and logging improvements
+
+### Fixed CSV file reading and directory creation
+**File**: `scripts/auto_polish_dataset_v2.py`
+- Fixed CSV filename mismatch: optimization now checks `modality_combination_results.csv` (written by main.py) with fallback to `modality_results_averaged.csv`
+- Ensured CSV directory exists before training to prevent write failures
+- Added better error messages when CSV files not found
+
+### Simplified Phase 2 optimization logging
+**File**: `scripts/auto_polish_dataset_v2.py`
+- Replaced temporary output file with timestamped persistent log: `phase2_optimization_YYYYMMDD_HHMMSS.log`
+- Cumulative log retains ALL evaluation outputs with clear separators (never overwrites)
+- Removed individual per-evaluation logs (excessive; single cumulative log is sufficient)
+- Simplified output redirection (direct append to cumulative log)
+- Added evaluation headers with timestamp, eval number, and thresholds
+
+### Enhanced baseline performance display
+**File**: `scripts/auto_polish_dataset_v2.py`
+- Save per-class F1 scores (I, P, R) in `phase1_baseline.json`
+- Display per-class F1 in all baseline output (not just min F1)
+- Show baseline at end of Phase 1 (after saving metrics)
+- Show baseline again at start of Phase 2 (for comparison during optimization)
+- Enhanced "Using best baseline" message with per-class F1 scores
+
+### Fixed misclassification count calculation
+**File**: `scripts/auto_polish_dataset_v2.py`
+- Corrected max misclassification count message to account for tracking mode:
+  - `track_misclass='valid'`: max = runs (each sample in valid once per run)
+  - `track_misclass='train'`: max = runs × (cv_folds - 1)
+  - `track_misclass='both'`: max = runs × cv_folds (tracked from both datasets)
+- Previous message incorrectly used total_runs without considering CV folds or tracking mode
+
+**Impact**: Phase 2 optimization works correctly; cleaner logging; better baseline visibility for analysis.
+
+---
+
 ## 2025-12-27 — Core data flag for optimized dataset filtering
 
 ### Integration of auto_polish_dataset_v2.py results with main.py

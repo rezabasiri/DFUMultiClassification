@@ -1,4 +1,4 @@
-name: dfu_gpu
+name: multimodal
 channels:
   - conda-forge
 dependencies:
@@ -26,15 +26,41 @@ dependencies:
   - black
   - flake8
 
-  # Pip-only packages (GPU TensorFlow and fast-moving libs)
+  # ============================================================================
+  # GPU/CUDA PACKAGES - CRITICAL FOR RTX 4090/5090
+  # ============================================================================
+  # This section configures TensorFlow and PyTorch for CUDA 12.
+  # DO NOT install any CUDA 11 (cu11) packages - they are incompatible.
+  #
+  # Known issues if you mix CUDA versions:
+  # - TensorFlow: "DNN library initialization failed"
+  # - PyTorch: "libcudart.so.11.0: cannot open shared object file"
+  # - auto_polish_dataset_v2.py: Silent failures with "Training failed"
+  #
+  # After creating environment, verify with:
+  #   conda activate multimodal
+  #   conda list | grep cuda  # Should only show cu12 packages, NO cu11
+  #   python -c "import tensorflow as tf; import torch; print('TF GPUs:', len(tf.config.list_physical_devices('GPU'))); print('PyTorch GPUs:', torch.cuda.device_count())"
+  # ============================================================================
   - pip:
-      # TensorFlow GPU (installs CUDA runtime + cuDNN user-space libs automatically)
+      # TensorFlow GPU (CUDA 12.2 + cuDNN 8.9.4)
+      # Installs CUDA runtime + cuDNN automatically
       - tensorflow[and-cuda]==2.15.1
       - keras==2.15.0
 
-      # PyTorch GPU (using --index-url for CUDA compatibility)
+      # PyTorch GPU (CUDA 12.1)
+      # IMPORTANT: Must use PyTorch's CUDA 12.1 index, NOT default PyPI
+      # This installs PyTorch with CUDA 12.1 binaries (not CUDA 11!)
+      - --index-url https://download.pytorch.org/whl/cu121
       - torch
       - torchvision
+
+      # cuDNN for TensorFlow (CUDA 12)
+      # PyTorch installs cuDNN 9.1, but TensorFlow needs 8.9.4
+      # Install this AFTER PyTorch to ensure TensorFlow compatibility
+      # If you recreate the environment, run this after conda env create:
+      #   pip install --force-reinstall nvidia-cudnn-cu12==8.9.4.25
+      - nvidia-cudnn-cu12==8.9.4.25
 
       # Diffusion / transformers stack
       - transformers==4.35.0
