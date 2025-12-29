@@ -921,13 +921,30 @@ class BayesianDatasetPolisher:
                     try:
                         os.chdir(project_root)
                         cmd_str = ' '.join(str(arg) for arg in cmd)
-                        return_code = os.system(f"{cmd_str} >/dev/null 2>&1")
+
+                        # Redirect output to consolidated log file in misclassifications directory
+                        from src.utils.config import get_output_paths
+                        output_paths = get_output_paths(self.result_dir)
+                        detailed_log = os.path.join(output_paths['misclassifications'], 'phase1_detailed.log')
+
+                        # Append separator showing which modality/run is starting
+                        with open(detailed_log, 'a') as log_f:
+                            log_f.write(f"\n{'='*80}\n")
+                            log_f.write(f"MODALITY: {modality_name} | RUN: {run_idx}/{self.phase1_n_runs}\n")
+                            log_f.write(f"{'='*80}\n")
+
+                        # Show output in real-time AND append to log file
+                        return_code = os.system(f"{cmd_str} 2>&1 | tee -a {detailed_log}")
                     finally:
                         os.chdir(original_cwd)
 
                     if return_code != 0:
                         print(f"\n❌ Training failed on {modality_name} run {run_idx}")
                         return False
+
+            # After each modality completes all its runs, update baseline file
+            print(f"\n📊 Updating baseline with {modality_name} results...")
+            self._update_baseline_continuously()
 
             # Clear environment variable
             if 'CROSS_VAL_RANDOM_SEED' in os.environ:
@@ -994,6 +1011,61 @@ class BayesianDatasetPolisher:
             with open(config_path, 'w') as f:
                 f.write(original_config)
             backup_path.unlink(missing_ok=True)
+
+    def _update_baseline_continuously(self):
+        """
+        Continuously update the baseline file as each modality completes.
+        This allows monitoring progress during Phase 1.
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+
+        # Load existing baselines if file exists
+        existing_baselines = {}
+        if os.path.exists(baseline_file):
+            try:
+                with open(baseline_file, 'r') as f:
+                    existing_baselines = json.load(f)
+            except:
+                pass
+
+        # Read latest results from CSV
+        csv_files = [
+            os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv'),
+            os.path.join(self.result_dir, 'csv', 'modality_combination_results.csv')
+        ]
+
+        new_baselines = {}
+        for csv_file in csv_files:
+            if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
+                try:
+                    df = pd.read_csv(csv_file)
+                    for _, row in df.iterrows():
+                        modality = row.get('Modalities', 'unknown')
+                        f1_I = float(row.get('I F1-score (Mean)', 0.0))
+                        f1_P = float(row.get('P F1-score (Mean)', 0.0))
+                        f1_R = float(row.get('R F1-score (Mean)', 0.0))
+                        new_baselines[modality] = {
+                            'modality': modality,
+                            'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                            'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                            'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                            'f1_I': f1_I,
+                            'f1_P': f1_P,
+                            'f1_R': f1_R,
+                            'min_f1': min(f1_I, f1_P, f1_R)
+                        }
+                    break
+                except Exception as e:
+                    pass
+
+        # Merge with existing baselines (new results take precedence)
+        existing_baselines.update(new_baselines)
+
+        if existing_baselines:
+            with open(baseline_file, 'w') as f:
+                json.dump(existing_baselines, f, indent=2)
 
     def _save_phase1_baseline(self):
         """
