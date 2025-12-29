@@ -1,4 +1,4 @@
-name: dfu_gpu
+name: multimodal
 channels:
   - conda-forge
 dependencies:
