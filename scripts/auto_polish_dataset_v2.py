@@ -213,35 +213,54 @@ class BayesianDatasetPolisher:
 
     def _calculate_phase2_batch_size(self):
         """
-        Calculate appropriate batch size for Phase 2 based on number of image modalities.
+        Calculate appropriate batch size for Phase 2 based on weighted image modalities.
 
         Phase 1 tests ONE modality at a time with GLOBAL_BATCH_SIZE.
         Phase 2 tests MULTIPLE modalities simultaneously, requiring proportional reduction.
+
+        Modality weights (based on memory usage):
+        - depth_rgb: 1.0 (full RGB image)
+        - depth_map: 0.6 (single channel)
+        - thermal_map: 0.6 (single channel)
+        - thermal_rgb: 1.0 (full RGB image)
 
         Returns:
             int: Adjusted batch size for Phase 2
         """
         from src.utils.production_config import GLOBAL_BATCH_SIZE
 
-        # Count image modalities (exclude metadata which is small)
-        image_modalities = [m for m in self.modalities if m != 'metadata']
-        num_image_modalities = len(image_modalities)
+        # Define memory weights for each modality type
+        MODALITY_WEIGHTS = {
+            'depth_rgb': 1.0,     # Full RGB image (3 channels)
+            'thermal_rgb': 1.0,   # Full RGB image (3 channels)
+            'depth_map': 0.6,     # Single channel (1 channel)
+            'thermal_map': 0.6,   # Single channel (1 channel)
+            'metadata': 0.0       # Negligible memory (exclude from calculation)
+        }
 
-        if num_image_modalities == 0:
+        # Calculate total weighted units
+        image_modalities = [m for m in self.modalities if m != 'metadata']
+        total_weight = sum(MODALITY_WEIGHTS.get(m, 1.0) for m in image_modalities)
+
+        if total_weight == 0:
             # Metadata only - use full batch size
             return GLOBAL_BATCH_SIZE
 
-        # Divide batch size by number of image modalities to maintain similar memory usage
-        adjusted_batch_size = max(16, GLOBAL_BATCH_SIZE // num_image_modalities)
+        # Divide batch size by total weighted units to maintain similar memory usage
+        adjusted_batch_size = max(16, int(GLOBAL_BATCH_SIZE / total_weight))
 
         print(f"\n{'='*80}")
         print("BATCH SIZE ADJUSTMENT FOR PHASE 2")
         print(f"{'='*80}")
         print(f"Phase 1 batch size (1 modality at a time): {GLOBAL_BATCH_SIZE}")
         print(f"Phase 2 modalities: {self.modalities}")
-        print(f"  Image modalities: {image_modalities} (count: {num_image_modalities})")
-        print(f"  Adjusted batch size: {GLOBAL_BATCH_SIZE} / {num_image_modalities} = {adjusted_batch_size}")
-        print(f"  Memory reduction: ~{num_image_modalities}x less per batch")
+        print(f"  Image modalities with weights:")
+        for m in image_modalities:
+            weight = MODALITY_WEIGHTS.get(m, 1.0)
+            print(f"    - {m}: {weight} units")
+        print(f"  Total weight: {total_weight:.1f} units")
+        print(f"  Adjusted batch size: {GLOBAL_BATCH_SIZE} / {total_weight:.1f} = {adjusted_batch_size}")
+        print(f"  Memory reduction: ~{total_weight:.1f}x less per batch")
         print(f"{'='*80}\n")
 
         return adjusted_batch_size
