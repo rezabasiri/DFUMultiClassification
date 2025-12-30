@@ -2,6 +2,25 @@
 
 Tracks major repository changes and refactors.
 
+## 2025-12-30 — Critical metadata preprocessing fixes
+
+### Fixed data leakage in imputation
+**File**: `src/data/caching.py`
+- Fixed imputation to properly separate train/validation: `fit_transform` on training data, `transform` on validation data
+- Previously used `fit_transform` on both train and validation, causing data leakage
+- Added imputer and scaler parameters to `preprocess_split()` function signature
+- Updated function calls to pass fitted imputer/scaler from training to validation preprocessing
+
+### Added missing normalization step
+**File**: `src/data/caching.py`
+- Added StandardScaler normalization after imputation (was missing in refactored code)
+- Properly separates train/validation: `fit_transform` on training data, `transform` on validation data
+- Added missing imports: `KNNImputer` and `StandardScaler` from sklearn
+
+**Impact**: Metadata preprocessing now matches original implementation; eliminates data leakage and adds critical normalization step for proper feature scaling.
+
+---
+
 ## 2025-12-28 — Phase 2 optimization bug fixes and logging improvements
 
 ### Fixed CSV file reading and directory creation
