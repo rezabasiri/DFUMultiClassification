@@ -1,0 +1,1032 @@
+📝 Logging to: results/misclassifications/optimization_run_20251230_120008.log
+
+
+🚀 Starting Phase 2: Bayesian Threshold Optimization
+
+
+======================================================================
+PHASE 2: BAYESIAN THRESHOLD OPTIMIZATION
+======================================================================
+
+Original dataset size: 647 samples
+Minimum dataset size after filtering: 323 samples (50%)
+
+  📊 Balancing Strategy:
+     Rarest class: R (76 samples)
+     Target after 70% retention: 54 samples per class
+     Calculated retention rates for balance:
+       I: 26.6% of 203 → ~54 samples
+       P: 14.7% of 368 → ~54 samples
+       R: 71.1% of 76 → ~54 samples
+
+======================================================================
+AUTOMATIC THRESHOLD CALCULATION (Balanced Dataset Strategy)
+======================================================================
+  Minority class retention target: 70%
+
+  Class I:
+    Original samples: 203 (892 images)
+    Target retention for balance: 26.6%
+    Misclass count range: 60-97, median=86.0
+    Min threshold for retention: 81
+    Actual retention at this threshold: 58/203 (28.6%) ≈ 254 images
+
+  Class P:
+    Original samples: 368 (1880 images)
+    Target retention for balance: 14.7%
+    Misclass count range: 29-89, median=70.0
+    Min threshold for retention: 60
+    Actual retention at this threshold: 60/368 (16.3%) ≈ 306 images
+
+  Class R:
+    Original samples: 76 (335 images)
+    Target retention for balance: 71.1%
+    Misclass count range: 52-89, median=81.5
+    Min threshold for retention: 85
+    Actual retention at this threshold: 55/76 (72.4%) ≈ 242 images
+
+======================================================================
+SEARCH SPACE (auto-calculated for balanced dataset)
+======================================================================
+  P: 60-98 (min threshold for 14.7% retention)
+  I: 81-98 (min threshold for 26.6% retention)
+  R: 85-98 (min threshold for 71.1% retention)
+
+Optimization Settings:
+  Evaluations: 30
+  CV folds per evaluation: 2
+  Score: 0.4×Δweighted_f1 + 0.3×Δmin_f1 + 0.2×Δkappa + 0.1×retention - penalties
+  (Δ = improvement over baseline; focuses on clinical applicability)
+
+Soft Constraints (smooth penalties guide optimizer):
+  Dataset size: Target ≥50% of original (heavy exp penalty)
+  Min F1 per class: Target ≥0.25 (exponential penalty)
+  Min samples per class: Target ≥30 (linear penalty)
+  Max class imbalance: Target ≤5.0x (linear penalty)
+
+All constraints are soft - optimizer learns from violations!
+
+
+======================================================================
+PHASE 1 BASELINE PERFORMANCE (Before Optimization)
+======================================================================
+
+  thermal_map:
+    Macro F1: 0.3625
+    Weighted F1: 0.4465
+    Per-class F1: I=0.3604, P=0.5112, R=0.2160
+    Min F1: 0.2160
+    Kappa: 0.0811
+
+  📊 Using best baseline for optimization: thermal_map
+     Weighted F1: 0.4465, Per-class F1: I=0.3604, P=0.5112, R=0.2160
+
+🔍 Starting Bayesian optimization...
+
+📋 Training outputs will be logged to:
+   (Log file will be created on first evaluation)
+
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 1/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=90, I=84, R=95
+Dataset after filtering: 524/647 samples (81.0%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.6447 (Δ+0.1982)
+  Min F1: 0.0128 (Δ-0.2032)
+  Kappa: 0.0660 (Δ-0.0151)
+  Retention: 524/647 (81.0%)
+  Penalties: 3.206 (min_f1:3.21)
+  Combined Score: -3.1094
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 2/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=83, I=89, R=86
+Dataset after filtering: 533/647 samples (82.4%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.5535 (Δ+0.1069)
+  Min F1: 0.0153 (Δ-0.2007)
+  Kappa: 0.0776 (Δ-0.0035)
+  Retention: 533/647 (82.4%)
+  Penalties: 3.342 (min_f1:3.14, imbalance:0.21)
+  Combined Score: -3.2775
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 3/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=77, I=87, R=87
+Dataset after filtering: 463/647 samples (71.6%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.4508 (Δ+0.0043)
+  Min F1: 0.0480 (Δ-0.1679)
+  Kappa: 0.0455 (Δ-0.0357)
+  Retention: 463/647 (71.6%)
+  Penalties: 2.397 (min_f1:2.40)
+  Combined Score: -2.3811
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 4/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=85, I=82, R=94
+Dataset after filtering: 502/647 samples (77.6%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.6833 (Δ+0.2368)
+  Min F1: 0.0000 (Δ-0.2160)
+  Kappa: 0.0409 (Δ-0.0403)
+  Retention: 502/647 (77.6%)
+  Penalties: 3.852 (min_f1:3.67, imbalance:0.18)
+  Combined Score: -3.7522
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 5/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=96, I=81, R=98
+Dataset after filtering: 502/647 samples (77.6%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.7043 (Δ+0.2577)
+  Min F1: 0.0382 (Δ-0.1778)
+  Kappa: 0.0824 (Δ+0.0013)
+  Retention: 502/647 (77.6%)
+  Penalties: 3.130 (min_f1:2.59, imbalance:0.54)
+  Combined Score: -3.0022
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 6/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=83, I=91, R=85
+Dataset after filtering: 550/647 samples (85.0%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.5585 (Δ+0.1120)
+  Min F1: 0.0396 (Δ-0.1764)
+  Kappa: 0.0459 (Δ-0.0353)
+  Retention: 550/647 (85.0%)
+  Penalties: 3.050 (min_f1:2.56, imbalance:0.49)
+  Combined Score: -2.9799
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 7/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=61, I=90, R=90
+Dataset after filtering: 283/647 samples (43.7%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.2702 (Δ-0.1763)
+  Min F1: 0.1718 (Δ-0.0442)
+  Kappa: 0.0672 (Δ-0.0139)
+  Retention: 283/647 (43.7%)
+  Penalties: 3.038 (dataset_size:2.25, min_f1:0.79)
+  Combined Score: -3.0804
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 8/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=62, I=98, R=88
+Dataset after filtering: 347/647 samples (53.6%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.3799 (Δ-0.0666)
+  Min F1: 0.1736 (Δ-0.0423)
+  Kappa: 0.1679 (Δ+0.0867)
+  Retention: 347/647 (53.6%)
+  Penalties: 0.771 (min_f1:0.77)
+  Combined Score: -0.7397
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 9/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=63, I=92, R=90
+Dataset after filtering: 328/647 samples (50.7%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.2732 (Δ-0.1733)
+  Min F1: 0.1484 (Δ-0.0676)
+  Kappa: 0.0864 (Δ+0.0053)
+  Retention: 328/647 (50.7%)
+  Penalties: 1.013 (min_f1:1.01)
+  Combined Score: -1.0509
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 10/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=97, I=89, R=96
+Dataset after filtering: 573/647 samples (88.6%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.5808 (Δ+0.1342)
+  Min F1: 0.0240 (Δ-0.1920)
+  Kappa: 0.0652 (Δ-0.0159)
+  Retention: 573/647 (88.6%)
+  Penalties: 2.908 (min_f1:2.91)
+  Combined Score: -2.8266
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 11/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=66, I=98, R=90
+Dataset after filtering: 397/647 samples (61.4%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.3019 (Δ-0.1447)
+  Min F1: 0.1352 (Δ-0.0807)
+  Kappa: 0.0906 (Δ+0.0094)
+  Retention: 397/647 (61.4%)
+  Penalties: 1.152 (min_f1:1.15)
+  Combined Score: -1.1707
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 12/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=93, R=94
+Dataset after filtering: 311/647 samples (48.1%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.2610 (Δ-0.1855)
+  Min F1: 0.2080 (Δ-0.0080)
+  Kappa: 0.0781 (Δ-0.0030)
+  Retention: 311/647 (48.1%)
+  Penalties: 1.078 (dataset_size:0.59, min_f1:0.49)
+  Combined Score: -1.1076
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 13/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=97, R=86
+Dataset after filtering: 323/647 samples (49.9%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.4244 (Δ-0.0221)
+  Min F1: 0.1315 (Δ-0.0845)
+  Kappa: 0.1245 (Δ+0.0433)
+  Retention: 323/647 (49.9%)
+  Penalties: 1.194 (min_f1:1.19)
+  Combined Score: -1.1693
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 14/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=98, R=98
+Dataset after filtering: 339/647 samples (52.4%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.3653 (Δ-0.0812)
+  Min F1: 0.1152 (Δ-0.1008)
+  Kappa: 0.0422 (Δ-0.0390)
+  Retention: 339/647 (52.4%)
+  Penalties: 1.383 (min_f1:1.38)
+  Combined Score: -1.4013
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 15/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=98, R=85
+Dataset after filtering: 318/647 samples (49.1%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.4580 (Δ+0.0114)
+  Min F1: 0.0841 (Δ-0.1318)
+  Kappa: 0.1453 (Δ+0.0641)
+  Retention: 318/647 (49.1%)
+  Penalties: 2.036 (dataset_size:0.24, min_f1:1.80)
+  Combined Score: -2.0094
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 16/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=97, I=95, R=98
+Dataset after filtering: 637/647 samples (98.5%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.4765 (Δ+0.0299)
+  Min F1: 0.0258 (Δ-0.1902)
+  Kappa: -0.0347 (Δ-0.1159)
+  Retention: 637/647 (98.5%)
+  Penalties: 2.865 (min_f1:2.86)
+  Combined Score: -2.8345
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 17/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=68, I=98, R=98
+Dataset after filtering: 425/647 samples (65.7%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.2746 (Δ-0.1719)
+  Min F1: 0.0623 (Δ-0.1537)
+  Kappa: 0.0214 (Δ-0.0597)
+  Retention: 425/647 (65.7%)
+  Penalties: 2.142 (min_f1:2.14)
+  Combined Score: -2.2032
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 18/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=81, R=97
+Dataset after filtering: 194/647 samples (30.0%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.2786 (Δ-0.1679)
+  Min F1: 0.1592 (Δ-0.0568)
+  Kappa: -0.1248 (Δ-0.2059)
+  Retention: 194/647 (30.0%)
+  Penalties: 12.475 (dataset_size:11.57, min_f1:0.91)
+  Combined Score: -12.5707
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 19/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=69, I=93, R=85
+Dataset after filtering: 390/647 samples (60.3%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.3249 (Δ-0.1216)
+  Min F1: 0.0338 (Δ-0.1822)
+  Kappa: 0.0738 (Δ-0.0074)
+  Retention: 390/647 (60.3%)
+  Penalties: 2.684 (min_f1:2.68)
+  Combined Score: -2.7282
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 20/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=88, I=98, R=98
+Dataset after filtering: 643/647 samples (99.4%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.4622 (Δ+0.0157)
+  Min F1: 0.0449 (Δ-0.1710)
+  Kappa: -0.0053 (Δ-0.0864)
+  Retention: 643/647 (99.4%)
+  Penalties: 2.456 (min_f1:2.46)
+  Combined Score: -2.4193
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 21/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=63, I=95, R=98
+Dataset after filtering: 355/647 samples (54.9%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.2803 (Δ-0.1663)
+  Min F1: 0.1287 (Δ-0.0873)
+  Kappa: 0.0838 (Δ+0.0027)
+  Retention: 355/647 (54.9%)
+  Penalties: 1.225 (min_f1:1.22)
+  Combined Score: -1.2620
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 22/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=98, I=81, R=85
+Dataset after filtering: 481/647 samples (74.3%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.7404 (Δ+0.2939)
+  Min F1: 0.0000 (Δ-0.2160)
+  Kappa: 0.0878 (Δ+0.0067)
+  Retention: 481/647 (74.3%)
+  Penalties: 4.346 (min_f1:3.67, imbalance:0.68)
+  Combined Score: -4.2178
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 23/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=95, R=98
+Dataset after filtering: 329/647 samples (50.9%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.3749 (Δ-0.0716)
+  Min F1: 0.1208 (Δ-0.0952)
+  Kappa: 0.1375 (Δ+0.0564)
+  Retention: 329/647 (50.9%)
+  Penalties: 1.316 (min_f1:1.32)
+  Combined Score: -1.3114
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 24/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=96, R=91
+Dataset after filtering: 333/647 samples (51.5%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
+Results:
+  Weighted F1: 0.3523 (Δ-0.0943)
+  Min F1: 0.1148 (Δ-0.1011)
+  Kappa: 0.0636 (Δ-0.0175)
+  Retention: 333/647 (51.5%)
+  Penalties: 1.388 (min_f1:1.39)
+  Combined Score: -1.4080
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 25/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=98, I=98, R=85
+Dataset after filtering: 626/647 samples (96.8%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 4 files deleted
+  Predictions: 24 files deleted
+================================================================================
+
+
+================================================================================
+BATCH SIZE ADJUSTMENT FOR PHASE 2
+================================================================================
+Phase 1 batch size (1 modality at a time): 800
+Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+  Image modalities with weights:
+    - depth_rgb: 1.0 units
+    - depth_map: 0.6 units
+    - thermal_map: 0.6 units
+  Total weight: 2.2 units
+  Adjusted batch size: 800 / 2.2 = 363
+  Memory reduction: ~2.2x less per batch
+================================================================================
+
+⏳ Training with cv_folds=2 (fresh mode)...
