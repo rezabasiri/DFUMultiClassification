@@ -492,14 +492,14 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         print("Using Scikit-learn RandomForestClassifier")
                         from sklearn.ensemble import RandomForestClassifier
                         rf_model1 = RandomForestClassifier(
-                            n_estimators=800,
-                            random_state=42,
+                            n_estimators=300,
+                            random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary1,
                             n_jobs=-1
                         )
                         rf_model2 = RandomForestClassifier(
-                            n_estimators=800,
-                            random_state=42,
+                            n_estimators=300,
+                            random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary2,
                             n_jobs=-1
                         )
