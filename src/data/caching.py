@@ -212,7 +212,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset, steps
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
-                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0):
+                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None):
     """
     Prepare cached datasets with proper metadata handling based on selected modalities.
     """
@@ -438,13 +438,13 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         rf_model1 = tfdf.keras.RandomForestModel(
                             num_trees=300,
                             task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42 + run * (run + 3),
+                            random_seed=42,
                             verbose=0
                         )
                         rf_model2 = tfdf.keras.RandomForestModel(
                             num_trees=300,
                             task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42 + run * (run + 3),
+                            random_seed=42,
                             verbose=0
                         )
                         
@@ -493,13 +493,13 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         from sklearn.ensemble import RandomForestClassifier
                         rf_model1 = RandomForestClassifier(
                             n_estimators=300,
-                            random_state=42 + run * (run + 3),
+                            random_state=42,
                             class_weight=class_weight_dict_binary1,
                             n_jobs=-1
                         )
                         rf_model2 = RandomForestClassifier(
                             n_estimators=300,
-                            random_state=42 + run * (run + 3),
+                            random_state=42,
                             class_weight=class_weight_dict_binary2,
                             n_jobs=-1
                         )
