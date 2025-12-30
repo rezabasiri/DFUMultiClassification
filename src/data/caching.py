@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from src.data.generative_augmentation_v1_3 import create_enhanced_augmentation_fn
@@ -323,8 +325,9 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     
     train_data = apply_sampling_to_df(train_data)
     
-    def preprocess_split(split_data, is_training=True, class_weight_dict_binary1=None, 
-                            class_weight_dict_binary2=None, rf_model1=None, rf_model2=None):
+    def preprocess_split(split_data, is_training=True, class_weight_dict_binary1=None,
+                            class_weight_dict_binary2=None, rf_model1=None, rf_model2=None,
+                            imputer=None, scaler=None):
             """Preprocess data with proper handling of metadata and image columns"""
             # Create a copy of the data
             split_data = split_data.copy()
@@ -403,13 +406,28 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                                                                         'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
                                                                         'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']+['Healing Phase Abs']]
                 # numeric_columns = split_data.select_dtypes(include=[np.number]).columns
-                imputer = KNNImputer(n_neighbors=5)
-                metadata_df[columns_to_impute] = imputer.fit_transform(metadata_df[columns_to_impute])
+
+                # Proper train/valid separation for imputation
+                if is_training:
+                    imputer = KNNImputer(n_neighbors=5)
+                    metadata_df[columns_to_impute] = imputer.fit_transform(metadata_df[columns_to_impute])
+                else:
+                    # Use fitted imputer from training
+                    metadata_df[columns_to_impute] = imputer.transform(metadata_df[columns_to_impute])
+
                 for column in integer_columns:
                     if column in metadata_df.columns:
                         metadata_df[column] = metadata_df[column].astype(int)
                     else:
                         continue
+
+                # Normalize features with StandardScaler
+                if is_training:
+                    scaler = StandardScaler()
+                    metadata_df[columns_to_impute] = scaler.fit_transform(metadata_df[columns_to_impute])
+                else:
+                    # Use fitted scaler from training
+                    metadata_df[columns_to_impute] = scaler.transform(metadata_df[columns_to_impute])
                 # Random Forest processing
                 if is_training:
                     try:
@@ -532,12 +550,12 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 'Patient#', 'Appt#', 'DFU#'
             ]]
             split_data = split_data.drop(columns=metadata_columns)
-            
-            return split_data, rf_model1, rf_model2
+
+            return split_data, rf_model1, rf_model2, imputer, scaler
 
     # Preprocess both splits
-    train_data, rf_model1, rf_model2 = preprocess_split(train_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
-    valid_data, _, _ = preprocess_split(valid_data, is_training=False, rf_model1=rf_model1, rf_model2=rf_model2)
+    train_data, rf_model1, rf_model2, imputer, scaler = preprocess_split(train_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
+    valid_data, _, _, _, _ = preprocess_split(valid_data, is_training=False, rf_model1=rf_model1, rf_model2=rf_model2, imputer=imputer, scaler=scaler)
         
     # Create cached datasets
     train_dataset, steps_per_epoch = create_cached_dataset(
