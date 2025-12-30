@@ -1901,9 +1901,10 @@ class BayesianDatasetPolisher:
                 with open(self.phase2_log_file, 'a') as f:
                     f.write(eval_header)
 
-                # Add timeout to prevent infinite hangs (60 minutes max per evaluation)
+                # Add timeout to prevent infinite hangs (4 hours max per evaluation)
+                # Phase 2 with multiple modalities takes ~75-100 mins for 5-fold CV
                 # Redirect to cumulative log (append mode)
-                return_code = os.system(f"timeout 3600 {cmd_str} >> {self.phase2_log_file} 2>&1")
+                return_code = os.system(f"timeout 14400 {cmd_str} >> {self.phase2_log_file} 2>&1")
 
             finally:
                 # Restore original directory
