@@ -17,7 +17,13 @@ Tracks major repository changes and refactors.
 - Properly separates train/validation: `fit_transform` on training data, `transform` on validation data
 - Added missing imports: `KNNImputer` and `StandardScaler` from sklearn
 
-**Impact**: Metadata preprocessing now matches original implementation; eliminates data leakage and adds critical normalization step for proper feature scaling.
+### Fixed Random Forest parameters
+**File**: `src/data/caching.py`
+- Changed `num_trees` from 800 to 300 to match original implementation
+- Fixed `random_seed` from fixed value `42` to varying `42 + run * (run + 3)` for model diversity across runs
+- Added `run` parameter to `prepare_cached_datasets()` function signature to support varying seed
+
+**Impact**: Metadata preprocessing now matches original implementation; eliminates data leakage and adds critical normalization step for proper feature scaling. RF models now vary across runs for better robustness.
 
 ---
 

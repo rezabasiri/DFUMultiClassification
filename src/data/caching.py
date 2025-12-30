@@ -212,7 +212,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset, steps
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
-                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None):
+                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0):
     """
     Prepare cached datasets with proper metadata handling based on selected modalities.
     """
@@ -436,15 +436,15 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         
                         # Create models
                         rf_model1 = tfdf.keras.RandomForestModel(
-                            num_trees=800,
+                            num_trees=300,
                             task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42,
+                            random_seed=42 + run * (run + 3),
                             verbose=0
                         )
                         rf_model2 = tfdf.keras.RandomForestModel(
-                            num_trees=800,
+                            num_trees=300,
                             task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42,
+                            random_seed=42 + run * (run + 3),
                             verbose=0
                         )
                         
