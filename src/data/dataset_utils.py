@@ -989,13 +989,28 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     if 'metadata' in selected_modalities:
         # Note: StandardScaler is already imported at module level (line 14)
 
-        # Identify numeric columns to normalize (exclude images, labels, identifiers)
+        # Identify numeric columns to normalize (exclude images, labels, identifiers, data leakage)
+        # CRITICAL: Exclude Phase Confidence (%) - it's the model's own confidence (DATA LEAKAGE!)
+        # Full exclusion list matches main_original.py:1110
         exclude_cols = [
+            # Core identifiers and target
             'Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
+            # Data leakage columns (from main_original.py:1110)
+            'ID', 'Location', 'Healing Phase', 'Phase Confidence (%)',
+            'Appt Days',
+            'Type of Pain', 'Type of Pain2', 'Type of Pain_Grouped2', 'Type of Pain Grouped',
+            'Peri-Ulcer Temperature (°C)', 'Wound Centre Temperature (°C)',
+            'Dressing', 'Dressing Grouped',
+            'No Offloading', 'Offloading: Therapeutic Footwear',
+            'Offloading: Scotcast Boot or RCW', 'Offloading: Half Shoes or Sandals',
+            'Offloading: Total Contact Cast', 'Offloading: Crutches, Walkers or Wheelchairs',
+            'Offloading Score',
+            # Image modalities and coordinates
             'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
             'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
             'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax',
-            'rf_prob_I', 'rf_prob_P', 'rf_prob_R'  # RF probabilities must not be normalized
+            # RF probabilities (must not be normalized - they're already in [0,1])
+            'rf_prob_I', 'rf_prob_P', 'rf_prob_R'
         ]
 
         # Get numeric columns from train_data
