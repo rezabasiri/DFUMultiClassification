@@ -1245,6 +1245,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     fusion_use_pretrained = True
                                     vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
                                     vprint(f"  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+
+                                    # DEBUG: Check RF predictions from metadata input
+                                    vprint("  DEBUG: Checking RF metadata predictions...", level=2)
+                                    for batch in train_dataset.take(1):
+                                        inputs, labels = batch
+                                        if 'metadata_input' in inputs:
+                                            rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
+                                            vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
+                                            vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
+                                        labels_sample = labels.numpy()[:5]
+                                        vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
                                     vprint("=" * 80, level=1)
 
                                 except Exception as e:
