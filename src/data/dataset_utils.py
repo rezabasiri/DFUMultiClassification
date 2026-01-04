@@ -897,19 +897,20 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         import tensorflow_decision_forests as tfdf
                         vprint("Using TensorFlow Decision Forests", level=2)
                         
-                        # Create models with tuned hyperparameters (validated with Kappa=0.22)
+                        # Create models with Bayesian-optimized hyperparameters (validated Kappa=0.205)
+                        # Optimized via end-to-end 3-class Kappa maximization
                         rf_model1 = tfdf.keras.RandomForestModel(
-                            num_trees=500,  # Increased from 300 for stability
-                            max_depth=10,   # Prevent overfitting
-                            min_examples=10,  # Equivalent to min_samples_split
+                            num_trees=646,      # Optimized from 500 (Bayesian search)
+                            max_depth=14,       # Optimized from 10 (deeper trees capture patterns)
+                            min_examples=19,    # Optimized from 10 (more conservative splitting)
                             task=tfdf.keras.Task.CLASSIFICATION,
                             random_seed=42 + run * (run + 3),
                             verbose=0
                         )
                         rf_model2 = tfdf.keras.RandomForestModel(
-                            num_trees=500,
-                            max_depth=10,
-                            min_examples=10,
+                            num_trees=646,
+                            max_depth=14,
+                            min_examples=19,
                             task=tfdf.keras.Task.CLASSIFICATION,
                             random_seed=42 + run * (run + 3),
                             verbose=0
@@ -958,25 +959,27 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     except ImportError:
                         vprint("Using Scikit-learn RandomForestClassifier")
                         from sklearn.ensemble import RandomForestClassifier
-                        # Tuned hyperparameters (validated with Kappa=0.22)
+                        # Bayesian-optimized hyperparameters (validated Kappa=0.205 ± 0.057)
+                        # Optimized via end-to-end 3-class Kappa maximization
                         rf_model1 = RandomForestClassifier(
-                            n_estimators=500,      # Increased from 300 for stability
-                            max_depth=10,          # Prevent overfitting
-                            min_samples_split=10,  # Require sufficient samples
-                            max_features='sqrt',   # Reduce variance
+                            n_estimators=646,       # Optimized from 500 (Bayesian search)
+                            max_depth=14,           # Optimized from 10 (deeper trees capture patterns)
+                            min_samples_split=19,   # Optimized from 10 (more conservative splitting)
+                            min_samples_leaf=2,     # Optimized (prevents overfitting on leaves)
+                            max_features='log2',    # Optimized from 'sqrt' (better feature diversity)
                             random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary1,
                             n_jobs=-1
                         )
                         rf_model2 = RandomForestClassifier(
-                            n_estimators=500,
-                            max_depth=10,
-                            min_samples_split=10,
-                            max_features='sqrt',
+                            n_estimators=646,
+                            max_depth=14,
+                            min_samples_split=19,
+                            min_samples_leaf=2,
+                            max_features='log2',
                             random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary2,
-                            n_jobs=-1,
-                            # max_features=None
+                            n_jobs=-1
                         )
                         # Prepare features for RF
                         X = metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1)
