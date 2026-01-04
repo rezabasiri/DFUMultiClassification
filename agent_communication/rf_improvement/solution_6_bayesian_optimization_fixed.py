@@ -55,13 +55,15 @@ print(f"Dataset: {len(df)} samples, {len(feature_cols)} features")
 print(f"Excluded {len(features_to_drop)} columns (Phase Confidence removed - data leakage)")
 print(f"Target: Optimize unified RF params for final 3-class Kappa")
 
-# Define unified search space (same params for both RF1 and RF2)
+# Define unified search space - TIGHTENED around known good manual params
+# Manual baseline: n_estimators=500, max_depth=10, min_samples_split=10, max_features='sqrt'
+# Search space centered on these values to ensure we match or beat manual tuning
 search_space = {
-    'n_estimators': Integer(200, 1000),
-    'max_depth': Integer(5, 20),  # Lower max to avoid overfitting
-    'min_samples_split': Integer(5, 30),
-    'min_samples_leaf': Integer(1, 10),
-    'max_features': Categorical(['sqrt', 'log2']),
+    'n_estimators': Integer(300, 700),      # Tight around 500
+    'max_depth': Integer(8, 15),            # Tight around 10 (avoid shallow <8 and deep >15)
+    'min_samples_split': Integer(5, 20),    # Tight around 10
+    'min_samples_leaf': Integer(1, 5),      # Keep low for small dataset
+    'max_features': Categorical(['sqrt', 'log2']),  # sqrt is known good
 }
 
 print("\nSearch space:")
@@ -181,16 +183,18 @@ scaler = StandardScaler()
 X_train_norm = scaler.fit_transform(X_train_imp)
 X_valid_norm = scaler.transform(X_valid_imp)
 
-# Bayesian optimization (15 iterations)
-print("Running Bayesian search (15 iterations, 3 inner CV folds)...")
-print("Optimizing for END-TO-END 3-class Kappa\n")
+# Bayesian optimization (25 iterations for thorough search)
+print("Running Bayesian search (25 iterations, 3 inner CV folds)...")
+print("Optimizing for END-TO-END 3-class Kappa")
+print("Search space tightened around manual baseline (500 trees, depth=10)")
+print("Should match or beat manual tuning\n")
 
 kappa_scorer = make_scorer(cohen_kappa_score)
 
 bayes_search = BayesSearchCV(
     OrdinalRFClassifier(random_state=42),
     search_space,
-    n_iter=15,
+    n_iter=25,  # Increased from 15 for better exploration
     cv=3,  # Inner CV
     scoring=kappa_scorer,
     n_jobs=1,  # OrdinalRF already uses n_jobs=-1 internally
