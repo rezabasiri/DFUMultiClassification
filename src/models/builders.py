@@ -6,9 +6,9 @@ Functions for creating image branches, metadata branches, fusion layers, and com
 import os
 import tensorflow as tf
 from tensorflow.keras.layers import (
-    Input, Dense, Conv2D, concatenate, Concatenate, GlobalAveragePooling2D, 
-    Multiply, Layer, BatchNormalization, Dropout, Lambda, GlobalAveragePooling1D, 
-    Flatten, Add, Attention, LayerNormalization, Reshape, MultiHeadAttention
+    Input, Dense, Conv2D, concatenate, Concatenate, GlobalAveragePooling2D,
+    Multiply, Layer, BatchNormalization, Dropout, Lambda, GlobalAveragePooling1D,
+    Flatten, Add, Attention, LayerNormalization, Reshape, MultiHeadAttention, Activation
 )
 from tensorflow.keras.models import Model
 import numpy as np
