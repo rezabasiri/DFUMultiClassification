@@ -1092,6 +1092,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         has_metadata = 'metadata' in selected_modalities
                         has_image = any(m in selected_modalities for m in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'])
                         is_fusion = has_metadata and has_image
+                        fusion_use_pretrained = False  # Track if pre-trained weights loaded successfully
 
                         if is_fusion:
                             # Get the image modality name
@@ -1117,24 +1118,30 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             except:
                                                 continue  # Layer might not exist in fusion model (e.g., output layer)
 
-                                    # FREEZE all image branch layers to prevent overfitting
-                                    vprint(f"  Freezing {image_modality} branch to prevent overfitting...", level=2)
+                                    # FREEZE all image branch layers for STAGE 1
+                                    vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
+                                    frozen_layers = []
                                     for layer in model.layers:
                                         if image_modality in layer.name or 'image_classifier' in layer.name:
                                             layer.trainable = False
+                                            frozen_layers.append(layer.name)
                                             vprint(f"    Frozen layer: {layer.name}", level=3)
 
                                     del temp_model  # Free memory
-                                    vprint(f"  Successfully loaded and frozen pre-trained image weights!", level=2)
+                                    fusion_use_pretrained = True
+                                    vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
+                                    vprint(f"  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
 
                                 except Exception as e:
                                     vprint(f"  Warning: Could not load pre-trained weights: {e}", level=1)
                                     vprint(f"  Training image branch from scratch (may overfit!)", level=1)
+                                    fusion_use_pretrained = False
                             else:
                                 vprint(f"  Warning: No pre-trained {image_modality} weights found at:", level=1)
                                 vprint(f"    {image_only_checkpoint}", level=1)
                                 vprint(f"  Please train {image_modality}-only first, then re-run fusion!", level=1)
                                 vprint(f"  Continuing with random init (will likely overfit)...", level=1)
+                                fusion_use_pretrained = False
 
                         # Use loss parameters from config if available, otherwise use defaults
                         ordinal_weight = config.get('ordinal_weight', 0.05)
@@ -1253,15 +1260,120 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 fit_verbose = 2  # Print every epoch
                             else:
                                 fit_verbose = 0  # Silent
-                            history = model.fit(
-                                train_dataset_dis,
-                                epochs=max_epochs,
-                                steps_per_epoch=steps_per_epoch,
-                                validation_data=valid_dataset_dis,
-                                validation_steps=validation_steps,
-                                callbacks=callbacks,
-                                verbose=fit_verbose
-                            )
+
+                            # TWO-STAGE TRAINING for fusion with pre-trained weights
+                            if is_fusion and fusion_use_pretrained:
+                                vprint("=" * 80, level=2)
+                                vprint("STAGE 1: Training with FROZEN image branch (30 epochs)", level=2)
+                                vprint("  Goal: Stabilize fusion layer before fine-tuning image", level=2)
+                                vprint("=" * 80, level=2)
+
+                                # Stage 1: Train with frozen image branch
+                                stage1_epochs = 30
+                                stage1_callbacks = [
+                                    EarlyStopping(
+                                        patience=10,  # More patient for stage 1
+                                        restore_best_weights=True,
+                                        monitor='val_weighted_f1_score',
+                                        min_delta=0.001,
+                                        mode='max',
+                                        verbose=1
+                                    ),
+                                    tf.keras.callbacks.ModelCheckpoint(
+                                        checkpoint_path + '_stage1',
+                                        monitor='val_weighted_f1_score',
+                                        save_best_only=True,
+                                        mode='max',
+                                        save_weights_only=True
+                                    ),
+                                ]
+                                history_stage1 = model.fit(
+                                    train_dataset_dis,
+                                    epochs=stage1_epochs,
+                                    steps_per_epoch=steps_per_epoch,
+                                    validation_data=valid_dataset_dis,
+                                    validation_steps=validation_steps,
+                                    callbacks=stage1_callbacks,
+                                    verbose=fit_verbose
+                                )
+
+                                # Load best Stage 1 weights
+                                model.load_weights(checkpoint_path + '_stage1')
+                                stage1_best_kappa = max(history_stage1.history.get('val_cohen_kappa', [0]))
+                                vprint(f"  Stage 1 completed. Best val kappa: {stage1_best_kappa:.4f}", level=2)
+
+                                # STAGE 2: Unfreeze image branch and fine-tune with VERY low LR
+                                vprint("=" * 80, level=2)
+                                vprint("STAGE 2: Fine-tuning with UNFROZEN image branch", level=2)
+                                vprint("  Learning rate: 1e-6 (very low to prevent overfitting)", level=2)
+                                vprint("  Unfreezing image layers...", level=2)
+                                vprint("=" * 80, level=2)
+
+                                # Unfreeze image branch
+                                for layer in model.layers:
+                                    if image_modality in layer.name or 'image_classifier' in layer.name:
+                                        layer.trainable = True
+                                        vprint(f"    Unfrozen: {layer.name}", level=3)
+
+                                # Recompile with VERY low learning rate
+                                model.compile(
+                                    optimizer=Adam(learning_rate=1e-6, clipnorm=1.0),  # 100x lower than Stage 1
+                                    loss=loss,
+                                    metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
+                                )
+                                vprint(f"  Model recompiled with LR=1e-6", level=2)
+
+                                # Stage 2: Fine-tune with aggressive early stopping
+                                stage2_epochs = 100  # Allow more epochs but will likely stop early
+                                stage2_callbacks = [
+                                    EarlyStopping(
+                                        patience=10,  # Aggressive - stop if no improvement
+                                        restore_best_weights=True,
+                                        monitor='val_weighted_f1_score',
+                                        min_delta=0.0005,  # Tiny improvements ok
+                                        mode='max',
+                                        verbose=1
+                                    ),
+                                    tf.keras.callbacks.ModelCheckpoint(
+                                        checkpoint_path,  # Final checkpoint
+                                        monitor='val_weighted_f1_score',
+                                        save_best_only=True,
+                                        mode='max',
+                                        save_weights_only=True
+                                    ),
+                                ]
+                                history_stage2 = model.fit(
+                                    train_dataset_dis,
+                                    epochs=stage2_epochs,
+                                    steps_per_epoch=steps_per_epoch,
+                                    validation_data=valid_dataset_dis,
+                                    validation_steps=validation_steps,
+                                    callbacks=stage2_callbacks,
+                                    verbose=fit_verbose
+                                )
+
+                                stage2_best_kappa = max(history_stage2.history.get('val_cohen_kappa', [stage1_best_kappa]))
+                                vprint("=" * 80, level=2)
+                                vprint(f"Two-stage training completed!", level=2)
+                                vprint(f"  Stage 1 (frozen):    Kappa {stage1_best_kappa:.4f}", level=2)
+                                vprint(f"  Stage 2 (fine-tune): Kappa {stage2_best_kappa:.4f}", level=2)
+                                if stage2_best_kappa > stage1_best_kappa:
+                                    vprint(f"  Improvement: +{stage2_best_kappa - stage1_best_kappa:.4f} ✓", level=2)
+                                else:
+                                    vprint(f"  No improvement from fine-tuning (kept Stage 1 weights)", level=2)
+                                vprint("=" * 80, level=2)
+
+                            else:
+                                # Standard single-stage training
+                                history = model.fit(
+                                    train_dataset_dis,
+                                    epochs=max_epochs,
+                                    steps_per_epoch=steps_per_epoch,
+                                    validation_data=valid_dataset_dis,
+                                    validation_steps=validation_steps,
+                                    callbacks=callbacks,
+                                    verbose=fit_verbose
+                                )
 
                         # Load best weights (must be in strategy scope for distributed training)
                         with strategy.scope():

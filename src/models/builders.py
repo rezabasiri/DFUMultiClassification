@@ -319,7 +319,7 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 # CRITICAL: Image branch MUST use pre-trained weights from standalone training!
                 # Training image branch in fusion mode causes catastrophic overfitting
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 1 image - fixed weighted fusion with FROZEN pre-trained image", level=2)
+                vprint("Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image", level=2)
 
                 # Get RF probabilities (already optimal - Kappa 0.254, proper probabilities)
                 rf_probs = branches[metadata_idx]
