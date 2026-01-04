@@ -1097,7 +1097,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         if is_fusion:
                             # Get the image modality name
                             image_modality = [m for m in selected_modalities if m != 'metadata'][0]
-                            image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, config_name)
+
+                            # CRITICAL: Use image modality as config_name to match thermal_map-only checkpoint
+                            # When thermal_map-only trains, it saves as: thermal_map_run1_thermal_map.ckpt
+                            # We need to load that same file, not thermal_map_run1_metadata+thermal_map.ckpt
+                            image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, image_modality)
 
                             # Try to load pre-trained image weights
                             if os.path.exists(image_only_checkpoint):
