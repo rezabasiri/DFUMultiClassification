@@ -316,9 +316,10 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
         elif len(selected_modalities) == 2:
             if has_metadata:
                 # MULTI-MODAL (2): Metadata + 1 Image
-                # Preserve RF quality with CONSTRAINED weighted average fusion
+                # CRITICAL: Image branch MUST use pre-trained weights from standalone training!
+                # Training image branch in fusion mode causes catastrophic overfitting
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 1 image - constrained weighted fusion preserving RF quality", level=2)
+                vprint("Model: Metadata + 1 image - fixed weighted fusion with FROZEN pre-trained image", level=2)
 
                 # Get RF probabilities (already optimal - Kappa 0.254, proper probabilities)
                 rf_probs = branches[metadata_idx]
@@ -326,12 +327,12 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 # Get image features and classify
                 image_idx = 1 - metadata_idx  # The other branch
                 image_features = branches[image_idx]
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_features)
+                image_classifier = Dense(3, activation='softmax', name='image_classifier')
+                image_probs = image_classifier(image_features)
 
                 # FIXED WEIGHTED AVERAGE FUSION
                 # Use FIXED α = 0.70: output = 0.70*RF + 0.30*Image
                 # This GUARANTEES RF quality dominates while allowing image contribution
-                # Fixed weight prevents collapse during training
 
                 # Create fixed weights as constants (not trainable)
                 rf_weight = 0.70  # RF contributes 70% (since RF has Kappa 0.254)
