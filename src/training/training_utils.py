@@ -1141,11 +1141,116 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     vprint(f"  Training image branch from scratch (may overfit!)", level=1)
                                     fusion_use_pretrained = False
                             else:
-                                vprint(f"  Warning: No pre-trained {image_modality} weights found at:", level=1)
-                                vprint(f"    {image_only_checkpoint}", level=1)
-                                vprint(f"  Please train {image_modality}-only first, then re-run fusion!", level=1)
-                                vprint(f"  Continuing with random init (will likely overfit)...", level=1)
-                                fusion_use_pretrained = False
+                                # AUTOMATIC PRE-TRAINING: Train image-only model inline
+                                vprint("=" * 80, level=1)
+                                vprint(f"AUTOMATIC PRE-TRAINING: {image_modality} weights not found", level=1)
+                                vprint(f"  Training {image_modality}-only model first (same data split)...", level=1)
+                                vprint("=" * 80, level=1)
+
+                                try:
+                                    # Create standalone image-only model
+                                    pretrain_model = create_multimodal_model(input_shapes, [image_modality], None)
+
+                                    # Use same loss configuration as fusion
+                                    pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
+                                    pretrain_gamma = config.get('gamma', 2.0)
+                                    pretrain_alpha = config.get('alpha', alpha_value)
+                                    pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
+                                                                           gamma=pretrain_gamma, alpha=pretrain_alpha)
+                                    pretrain_macro_f1 = MacroF1Score(num_classes=3)
+
+                                    # Compile pre-training model
+                                    pretrain_model.compile(
+                                        optimizer=Adam(learning_rate=1e-4, clipnorm=1.0),
+                                        loss=pretrain_loss,
+                                        metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
+                                    )
+
+                                    # Create distributed dataset for pre-training (same data as fusion will use!)
+                                    pretrain_train_dis = strategy.experimental_distribute_dataset(train_dataset)
+                                    pretrain_valid_dis = strategy.experimental_distribute_dataset(valid_dataset)
+
+                                    # Pre-training callbacks
+                                    pretrain_callbacks = [
+                                        EarlyStopping(
+                                            patience=EARLY_STOP_PATIENCE,
+                                            restore_best_weights=True,
+                                            monitor='val_weighted_f1_score',
+                                            min_delta=0.001,
+                                            mode='max',
+                                            verbose=1
+                                        ),
+                                        ReduceLROnPlateau(
+                                            factor=0.50,
+                                            patience=REDUCE_LR_PATIENCE,
+                                            monitor='val_weighted_f1_score',
+                                            min_delta=0.0005,
+                                            min_lr=1e-10,
+                                            mode='max',
+                                        ),
+                                        tf.keras.callbacks.ModelCheckpoint(
+                                            image_only_checkpoint,  # Save to same path fusion will load from
+                                            monitor='val_weighted_f1_score',
+                                            save_best_only=True,
+                                            mode='max',
+                                            save_weights_only=True
+                                        )
+                                    ]
+
+                                    # Determine verbosity for pre-training
+                                    if get_verbosity() >= 2:
+                                        pretrain_verbose = 2
+                                    else:
+                                        pretrain_verbose = 0
+
+                                    vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
+
+                                    # Train image-only model
+                                    pretrain_history = pretrain_model.fit(
+                                        pretrain_train_dis,
+                                        epochs=max_epochs,
+                                        steps_per_epoch=steps_per_epoch,
+                                        validation_data=pretrain_valid_dis,
+                                        validation_steps=validation_steps,
+                                        callbacks=pretrain_callbacks,
+                                        verbose=pretrain_verbose
+                                    )
+
+                                    # Get best kappa from pre-training
+                                    pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
+                                    vprint(f"  Pre-training completed! Best val kappa: {pretrain_best_kappa:.4f}", level=1)
+                                    vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
+
+                                    # Now load the pre-trained weights into fusion model
+                                    vprint(f"  Transferring pre-trained weights to fusion model...", level=2)
+                                    for layer in pretrain_model.layers:
+                                        if image_modality in layer.name or layer.name == 'output':
+                                            try:
+                                                fusion_layer = model.get_layer(layer.name)
+                                                fusion_layer.set_weights(layer.get_weights())
+                                                vprint(f"    Loaded weights for layer: {layer.name}", level=3)
+                                            except:
+                                                continue  # Layer might not exist in fusion model
+
+                                    # FREEZE all image branch layers for STAGE 1
+                                    vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
+                                    frozen_layers = []
+                                    for layer in model.layers:
+                                        if image_modality in layer.name or 'image_classifier' in layer.name:
+                                            layer.trainable = False
+                                            frozen_layers.append(layer.name)
+                                            vprint(f"    Frozen layer: {layer.name}", level=3)
+
+                                    del pretrain_model  # Free memory
+                                    fusion_use_pretrained = True
+                                    vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
+                                    vprint(f"  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+                                    vprint("=" * 80, level=1)
+
+                                except Exception as e:
+                                    vprint(f"  ERROR: Automatic pre-training failed: {e}", level=0)
+                                    vprint(f"  Continuing with random init (will likely overfit)...", level=1)
+                                    fusion_use_pretrained = False
 
                         # Use loss parameters from config if available, otherwise use defaults
                         ordinal_weight = config.get('ordinal_weight', 0.05)
