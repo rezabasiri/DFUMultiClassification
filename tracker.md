@@ -2,6 +2,47 @@
 
 Tracks major repository changes and refactors.
 
+## 2026-01-04 — CRITICAL: Data leakage discovery in Phase 2 testing
+
+### Phase Confidence (%) data leakage invalidates initial Phase 2 results
+**Files**: All Phase 2 solutions in `agent_communication/rf_improvement/`
+- **CRITICAL BUG**: "Phase Confidence (%)" was included as a feature in initial Phase 2 testing
+- **IMPACT**: This column is the model's own confidence score - **MASSIVE DATA LEAKAGE**
+- **DISCOVERY**: Solution 7 (Feature Selection) showed "Phase Confidence (%)" as #1 most informative feature (MI=0.0521)
+- **VALIDATION**: Checked `src/main_original.py:1110` - Phase Confidence explicitly excluded in original code
+
+**Root Cause**: Phase 2 solutions only excluded 4 columns (Patient#, Appt#, DFU#, Healing Phase Abs). Should exclude 30+ columns per original implementation.
+
+**Additional leakage sources discovered**:
+- Temperature measurements: Peri-Ulcer Temperature (°C), Wound Centre Temperature (°C)
+- Individual Offloading categorical columns (No Offloading, Offloading: Therapeutic Footwear, etc.)
+- Dressing variants (Dressing, Dressing Grouped)
+- Type of Pain variants (Type of Pain, Type of Pain2, Type of Pain_Grouped2)
+- Offloading Score
+- Appt Days
+
+**INVALIDATED RESULTS** (from initial Phase 2 run):
+- Solution 7 (Feature Selection k=50): Kappa 0.2201 ← **INVALID** (used Phase Confidence)
+- Solution 8 (Median Imputation): Kappa 0.2159 ← **INVALID**
+- Solution 9 (Strategy B): Kappa 0.2124 ← **INVALID**
+- Solution 6 (Bayesian): Kappa 0.2062 ← **INVALID** (also had wrong optimization objective)
+
+**Expected TRUE performance** (without Phase Confidence leakage):
+- Baseline: Kappa ~0.10-0.15 (not 0.22)
+- The ~0.10 Kappa drop is expected and correct
+
+**FIXES APPLIED**:
+1. Updated all Phase 2 solutions (6, 7, 8, 9) with correct 30+ column exclusion list
+2. Created `solution_6_bayesian_optimization_fixed.py` - optimizes end-to-end 3-class Kappa (not binary separately)
+3. Created `solution_11_feature_engineering.py` - 20+ domain-specific engineered features to overcome reduced feature count
+4. Created `README_PHASE2_FIXES.md` with detailed explanation and re-run instructions
+
+**Impact**: Phase 2 must be completely re-run with corrected feature exclusions. Previous results were artificially inflated by data leakage and cannot be trusted.
+
+**Lesson Learned**: Always validate feature exclusions against original implementation before running experiments. Phase Confidence being the top feature was a red flag that should have been caught immediately.
+
+---
+
 ## 2026-01-04 — Implement validated RF hyperparameter tuning
 
 ### Tuned RF parameters for metadata classifier
