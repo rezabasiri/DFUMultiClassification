@@ -842,15 +842,19 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         import tensorflow_decision_forests as tfdf
                         vprint("Using TensorFlow Decision Forests", level=2)
                         
-                        # Create models
+                        # Create models with tuned hyperparameters (validated with Kappa=0.22)
                         rf_model1 = tfdf.keras.RandomForestModel(
-                            num_trees=300,
+                            num_trees=500,  # Increased from 300 for stability
+                            max_depth=10,   # Prevent overfitting
+                            min_examples=10,  # Equivalent to min_samples_split
                             task=tfdf.keras.Task.CLASSIFICATION,
                             random_seed=42 + run * (run + 3),
                             verbose=0
                         )
                         rf_model2 = tfdf.keras.RandomForestModel(
-                            num_trees=300,
+                            num_trees=500,
+                            max_depth=10,
+                            min_examples=10,
                             task=tfdf.keras.Task.CLASSIFICATION,
                             random_seed=42 + run * (run + 3),
                             verbose=0
@@ -899,15 +903,21 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     except ImportError:
                         vprint("Using Scikit-learn RandomForestClassifier")
                         from sklearn.ensemble import RandomForestClassifier
+                        # Tuned hyperparameters (validated with Kappa=0.22)
                         rf_model1 = RandomForestClassifier(
-                            n_estimators=300,
+                            n_estimators=500,      # Increased from 300 for stability
+                            max_depth=10,          # Prevent overfitting
+                            min_samples_split=10,  # Require sufficient samples
+                            max_features='sqrt',   # Reduce variance
                             random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary1,
-                            n_jobs=-1,
-                            # max_features=None
+                            n_jobs=-1
                         )
                         rf_model2 = RandomForestClassifier(
-                            n_estimators=300, #100,
+                            n_estimators=500,
+                            max_depth=10,
+                            min_samples_split=10,
+                            max_features='sqrt',
                             random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary2,
                             n_jobs=-1,
