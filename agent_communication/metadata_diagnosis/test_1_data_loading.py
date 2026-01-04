@@ -1,6 +1,7 @@
 """Test 1: Data Loading and Basic Statistics"""
 import sys
-sys.path.insert(0, '/home/user/DFUMultiClassification')
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 import pandas as pd
 import numpy as np
@@ -13,7 +14,7 @@ print("="*60)
 # Load data
 _, _, root = get_project_paths()
 data_paths = get_data_paths(root)
-df = pd.read_csv(data_paths['metadata'])
+df = pd.read_csv(data_paths['csv_file'])
 
 print(f"\n✓ Data loaded: {len(df)} rows, {len(df.columns)} columns")
 
@@ -55,8 +56,8 @@ print(f"  Weight (Kg): {df['Weight (Kg)'].dtype}")
 # Check label values
 unique_labels = sorted(df[label_col].unique())
 print(f"\n✓ Unique labels: {unique_labels}")
-if not all(x in [0, 1, 2] for x in unique_labels):
-    print(f"⚠️  FAIL: Labels not in [0, 1, 2]!")
+if not all(x in ['I', 'P', 'R'] for x in unique_labels):
+    print(f"⚠️  FAIL: Labels not in ['I', 'P', 'R']!")
     sys.exit(1)
 
 print(f"\n{'='*60}")
