@@ -25,11 +25,30 @@ warnings.filterwarnings('ignore')
 _, _, root = get_project_paths()
 df = pd.read_csv(get_data_paths(root)['csv_file'])
 
-# Extract metadata features (only numeric columns)
-exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
-feature_cols = [c for c in df.select_dtypes(include=[np.number]).columns if c not in exclude_cols]
+# Extract metadata features - exclude data leakage columns (from main_original.py:1110)
+# CRITICAL: Exclude Phase Confidence (%) - it's the model's own confidence (data leakage!)
+features_to_drop = [
+    'Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
+    'ID', 'Location', 'Healing Phase', 'Phase Confidence (%)',  # Data leakage
+    'Appt Days', 'Type of Pain2', 'Type of Pain_Grouped2', 'Type of Pain',
+    'Peri-Ulcer Temperature (°C)', 'Wound Centre Temperature (°C)',
+    'Dressing', 'Dressing Grouped',
+    'No Offloading', 'Offloading: Therapeutic Footwear',
+    'Offloading: Scotcast Boot or RCW', 'Offloading: Half Shoes or Sandals',
+    'Offloading: Total Contact Cast', 'Offloading: Crutches, Walkers or Wheelchairs',
+    'Offloading Score',
+    # Image paths
+    'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+    'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+    'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax'
+]
+feature_cols = [c for c in df.select_dtypes(include=[np.number]).columns
+                if c not in features_to_drop]
 X = df[feature_cols]
 y = df['Healing Phase Abs'].map({'I':0, 'P':1, 'R':2}).values
+
+print(f"Excluded {len(features_to_drop)} columns (including Phase Confidence - data leakage)")
+print(f"Using {len(feature_cols)} valid metadata features")
 
 print("="*80)
 print("SOLUTION 7: Feature Selection")
