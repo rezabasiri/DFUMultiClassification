@@ -1,0 +1,110 @@
+"""Test 3: Full Preprocessing Pipeline (Imputation + Normalization)"""
+import sys
+sys.path.insert(0, '/home/user/DFUMultiClassification')
+
+import pandas as pd
+import numpy as np
+from sklearn.impute import KNNImputer
+from sklearn.preprocessing import StandardScaler
+from src.utils.config import get_data_paths, get_project_paths
+
+print("="*60)
+print("TEST 3: PREPROCESSING PIPELINE")
+print("="*60)
+
+# Load and prepare data (using test_2 logic)
+_, _, root = get_project_paths()
+data_paths = get_data_paths(root)
+df = pd.read_csv(data_paths['metadata']).copy()
+
+# Quick feature engineering
+df['BMI'] = df['Weight (Kg)'] / ((df['Height (cm)'] / 100) ** 2)
+
+# Split train/valid (simple 80/20 split for testing)
+from sklearn.model_selection import train_test_split
+train_df = df.sample(frac=0.8, random_state=42)
+valid_df = df.drop(train_df.index)
+
+print(f"\n✓ Split: {len(train_df)} train, {len(valid_df)} valid")
+
+# Identify columns to impute (exclude image-related and label)
+exclude_cols = ['Healing Phase Abs', 'Patient#', 'Appt#', 'DFU#',
+                'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
+columns_to_impute = [c for c in train_df.select_dtypes(include=[np.number]).columns
+                     if c not in exclude_cols]
+
+print(f"\n✓ Will impute {len(columns_to_impute)} columns")
+
+# Check NaN before imputation
+train_nan_before = train_df[columns_to_impute].isna().sum().sum()
+valid_nan_before = valid_df[columns_to_impute].isna().sum().sum()
+print(f"  Train NaN before: {train_nan_before}")
+print(f"  Valid NaN before: {valid_nan_before}")
+
+# Imputation
+imputer = KNNImputer(n_neighbors=5)
+train_imputed = imputer.fit_transform(train_df[columns_to_impute])
+valid_imputed = imputer.transform(valid_df[columns_to_impute])
+
+train_df[columns_to_impute] = train_imputed
+valid_df[columns_to_impute] = valid_imputed
+
+# Check NaN after imputation
+train_nan_after = pd.DataFrame(train_imputed).isna().sum().sum()
+valid_nan_after = pd.DataFrame(valid_imputed).isna().sum().sum()
+print(f"\n✓ After imputation:")
+print(f"  Train NaN: {train_nan_after}")
+print(f"  Valid NaN: {valid_nan_after}")
+
+if train_nan_after > 0 or valid_nan_after > 0:
+    print(f"⚠️  FAIL: NaN values remain after imputation!")
+    sys.exit(1)
+
+# Check for Inf
+train_inf = np.isinf(train_imputed).sum()
+valid_inf = np.isinf(valid_imputed).sum()
+if train_inf > 0 or valid_inf > 0:
+    print(f"⚠️  FAIL: Inf values after imputation! Train: {train_inf}, Valid: {valid_inf}")
+    sys.exit(1)
+
+print(f"✓ No Inf values")
+
+# Normalization
+scaler = StandardScaler()
+train_scaled = scaler.fit_transform(train_df[columns_to_impute])
+valid_scaled = scaler.transform(valid_df[columns_to_impute])
+
+train_df[columns_to_impute] = train_scaled
+valid_df[columns_to_impute] = valid_scaled
+
+# Check normalization
+train_means = pd.DataFrame(train_scaled).mean()
+train_stds = pd.DataFrame(train_scaled).std()
+
+print(f"\n✓ After normalization (train):")
+print(f"  Mean range: {train_means.min():.6f} to {train_means.max():.6f}")
+print(f"  Std range: {train_stds.min():.6f} to {train_stds.max():.6f}")
+
+if train_means.abs().max() > 0.01:
+    print(f"⚠️  WARNING: Train means not near zero!")
+
+if (train_stds < 0.9).any() or (train_stds > 1.1).any():
+    print(f"⚠️  WARNING: Train stds not near 1.0!")
+
+valid_means = pd.DataFrame(valid_scaled).mean()
+valid_stds = pd.DataFrame(valid_scaled).std()
+
+print(f"\n✓ After normalization (valid):")
+print(f"  Mean range: {valid_means.min():.6f} to {valid_means.max():.6f}")
+print(f"  Std range: {valid_stds.min():.6f} to {valid_stds.max():.6f}")
+
+# Check data integrity
+print(f"\n✓ Final data shape:")
+print(f"  Train: {train_df.shape}")
+print(f"  Valid: {valid_df.shape}")
+
+print(f"\n{'='*60}")
+print("TEST 3: PASSED ✓")
+print("="*60)
