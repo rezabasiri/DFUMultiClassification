@@ -85,3 +85,16 @@ python src/main.py --mode search --data_percentage 100 \
   --cv_folds 3 --device-mode cpu \
   --track-misclass valid --resume_mode fresh \
   --verbosity 2
+
+  python scripts/auto_polish_dataset_v2.py \
+  --phase1-modalities metadata \
+  --phase2-modalities "metadata" \
+  --phase1-cv-folds 3 \
+  --phase2-cv-folds 3 \
+  --phase1-n-runs 10 \
+  --n-evaluations 20 \
+  --device-mode cpu \
+  --min-minority-retention 0.7 \
+  --track-misclass both \
+  --phase2-data-percentage 100 \
+  --phase1-data-percentage 100
