@@ -146,34 +146,47 @@ vprint("Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image
 
 ## Testing Protocol
 
-### Step 1: Train thermal_map-only (REQUIRED)
+### Single-Command Execution (AUTOMATIC PRE-TRAINING)
 
-Creates pre-trained weights for fusion to load:
-
-```bash
-# In production_config.py:
-INCLUDED_COMBINATIONS = [('thermal_map',),]
-
-python src/main.py --mode search --cv_folds 3 --verbosity 2 --resume_mode fresh
-```
-
-**Expected**: Kappa ~0.145, checkpoint saved at:
-```
-checkpoints/thermal_map_run1_default.weights.h5
-```
-
----
-
-### Step 2: Train fusion with two-stage fine-tuning
+**NEW**: The system now automatically trains the image-only model if checkpoint not found!
 
 ```bash
 # In production_config.py:
 INCLUDED_COMBINATIONS = [('metadata', 'thermal_map'),]
 
+# Single command - automatically handles pre-training if needed
 python src/main.py --mode search --cv_folds 3 --verbosity 3 --resume_mode fresh
 ```
 
-**Expected output**:
+**What happens automatically**:
+1. **If thermal_map checkpoint exists**: Loads and proceeds to fusion training
+2. **If thermal_map checkpoint missing**: Automatically pre-trains thermal_map-only first, then fusion
+
+**Expected output (automatic pre-training)**:
+```
+================================================================================
+AUTOMATIC PRE-TRAINING: thermal_map weights not found
+  Training thermal_map-only model first (same data split)...
+================================================================================
+  Pre-training thermal_map-only on same data split (prevents data leakage)
+Epoch 1/300 - loss: 1.45 - val_loss: 1.52 - kappa: 0.120 - val_kappa: 0.115
+...
+Epoch 45: early stopping
+  Pre-training completed! Best val kappa: 0.1450
+  Checkpoint saved to: checkpoints/thermal_map_run1_thermal_map.ckpt
+  Transferring pre-trained weights to fusion model...
+    Loaded weights for layer: thermal_map_Conv2D_1
+    Loaded weights for layer: thermal_map_Conv2D_2
+    ...
+  STAGE 1: Freezing thermal_map branch (will unfreeze for Stage 2)...
+    Frozen layer: thermal_map_Conv2D_1
+    ...
+  Successfully loaded and frozen 18 layers!
+  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)
+================================================================================
+```
+
+**Expected output (checkpoint already exists)**:
 ```
 Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image
   Loading pre-trained thermal_map weights from standalone training...
@@ -254,6 +267,48 @@ Two-stage training completed!
 2. **Allows growth**: Stage 2 explores potential improvements
 3. **Protected**: Early stopping prevents catastrophic failures
 4. **Proven**: Transfer learning approach used successfully in many domains
+5. **Automatic**: No manual two-step workflow - handles everything in one command
+
+---
+
+## Automatic Pre-Training (No Manual Steps!)
+
+**Problem with manual workflow**:
+- User must run thermal_map-only first, then fusion
+- Risk of using wrong `--resume_mode` and deleting checkpoints
+- Risk of data leakage if not using same splits
+- Confusing and error-prone
+
+**Automatic solution**:
+```python
+if checkpoint_missing:
+    # 1. Detect missing checkpoint
+    # 2. Train image-only on SAME data split (same patients!)
+    # 3. Save checkpoint
+    # 4. Load into fusion model
+    # 5. Freeze for two-stage training
+    # All in one execution!
+```
+
+**Benefits**:
+- ✅ **Single command**: Just run fusion, pre-training happens automatically
+- ✅ **Same data split**: Uses identical train/val patients (no leakage)
+- ✅ **CV fold alignment**: Fold 1 fusion uses Fold 1 pre-trained weights
+- ✅ **No user error**: Can't forget to pre-train or use wrong resume mode
+- ✅ **Checkpoint reuse**: If checkpoint exists, skips pre-training (fast)
+
+**Data leakage prevention**:
+```
+Fold 1: Patients [A, B, C] train, [D] val
+  → Pre-trains thermal_map on [A,B,C] / [D]
+  → Fusion trains on [A,B,C] / [D] with frozen weights from same split ✓
+
+Fold 2: Patients [A, B, D] train, [C] val
+  → Pre-trains thermal_map on [A,B,D] / [C]
+  → Fusion trains on [A,B,D] / [C] with frozen weights from same split ✓
+```
+
+Each fold's fusion model uses weights pre-trained on the EXACT same patient split!
 
 ---
 
@@ -274,7 +329,8 @@ If Stage 1 already fails (Kappa < 0.15):
 
 ## Summary
 
-**Approach**: Two-stage fine-tuning with pre-trained frozen weights
+**Approach**: Two-stage fine-tuning with automatic pre-training
+- **Automatic pre-training**: Trains image-only if checkpoint missing (same data split)
 - **Stage 1** (30 epochs): Frozen image → Kappa ~0.22 (stable)
 - **Stage 2** (up to 100 epochs): Fine-tune with LR 1e-6 → Kappa 0.22-0.28 (potential)
 
@@ -282,14 +338,23 @@ If Stage 1 already fails (Kappa < 0.15):
 
 **Confidence**: HIGH - combines safety of V3 with potential of joint training
 
-**Requirements**: Train thermal_map-only first to create pre-trained weights
+**Requirements**: NONE - Just run fusion, automatic pre-training handles everything!
+
+**Usage**: Single command
+```bash
+# In production_config.py:
+INCLUDED_COMBINATIONS = [('metadata', 'thermal_map'),]
+
+python src/main.py --mode search --cv_folds 3 --verbosity 3 --resume_mode fresh
+```
 
 ---
 
-**Status**: Implemented and ready for testing
+**Status**: Implemented with automatic pre-training
 **Branch**: `claude/run-dataset-polishing-X1NHe`
 **Commit**: Pending
 
 **Files modified**:
-- `src/training/training_utils.py`: Two-stage training loop
+- `src/training/training_utils.py`: Two-stage training + automatic pre-training
 - `src/models/builders.py`: Updated message
+- `agent_communication/rf_improvement/FUSION_FIX_V5_TWO_STAGE_FINETUNING.md`: Updated docs

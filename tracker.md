@@ -1008,6 +1008,21 @@ from sklearn.preprocessing import StandardScaler
 
 **Note**: Fusion weight "alpha" (70/30 split) is DIFFERENT from class weight alphas (computed from class frequencies for focal loss). Class weight alphas remain dynamic.
 
-**Testing protocol**: Train thermal_map-only first → creates checkpoint → train fusion (loads + freezes → fine-tunes)
+**Automatic pre-training** (NEW): System now automatically trains image-only model if checkpoint missing
+- Detects missing thermal_map checkpoint
+- Trains thermal_map-only on SAME data split (prevents data leakage)
+- Saves checkpoint with correct CV fold alignment
+- Loads weights into fusion model and freezes
+- Proceeds with two-stage fusion training
+- **Single command execution** - no manual two-step workflow required!
+
+**Testing protocol**: Just run fusion training - automatic pre-training handles everything!
+```bash
+# In production_config.py:
+INCLUDED_COMBINATIONS = [('metadata', 'thermal_map'),]
+
+# Single command - auto pre-trains if needed
+python src/main.py --mode search --cv_folds 3 --verbosity 3 --resume_mode fresh
+```
 
 ---
