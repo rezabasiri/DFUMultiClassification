@@ -18,18 +18,13 @@ print("="*60)
 # Load data
 _, _, root = get_project_paths()
 data_paths = get_data_paths(root)
-df = pd.read_csv(data_paths['csv_file']).copy()
+df = pd.read_csv(data_paths['metadata']).copy()
 
 # Simple 80/20 split
 train_df = df.sample(frac=0.8, random_state=42).copy()
 valid_df = df.drop(train_df.index).copy()
 
 print(f"\n✓ Data split: {len(train_df)} train, {len(valid_df)} valid")
-
-# Encode labels: I=0, P=1, R=2
-label_map = {'I': 0, 'P': 1, 'R': 2}
-train_df['Healing Phase Abs'] = train_df['Healing Phase Abs'].map(label_map)
-valid_df['Healing Phase Abs'] = valid_df['Healing Phase Abs'].map(label_map)
 
 # Labels
 y_train = train_df['Healing Phase Abs'].values

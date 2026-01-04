@@ -16,7 +16,7 @@ print("="*60)
 # Load and prepare data (using test_2 logic)
 _, _, root = get_project_paths()
 data_paths = get_data_paths(root)
-df = pd.read_csv(data_paths['csv_file']).copy()
+df = pd.read_csv(data_paths['metadata']).copy()
 
 # Quick feature engineering
 df['BMI'] = df['Weight (Kg)'] / ((df['Height (cm)'] / 100) ** 2)

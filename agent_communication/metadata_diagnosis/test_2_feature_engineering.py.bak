@@ -14,7 +14,7 @@ print("="*60)
 # Load data
 _, _, root = get_project_paths()
 data_paths = get_data_paths(root)
-df = pd.read_csv(data_paths['csv_file']).copy()
+df = pd.read_csv(data_paths['metadata']).copy()
 
 print(f"\n✓ Starting with {len(df.columns)} columns")
 
