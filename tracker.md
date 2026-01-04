@@ -2,6 +2,21 @@
 
 Tracks major repository changes and refactors.
 
+## 2026-01-04 — Fix catastrophic metadata classifier failure
+
+### Fixed RF probability normalization bug
+**File**: `src/data/dataset_utils.py`
+- **BUG**: StandardScaler was normalizing RF probability columns (`rf_prob_I`, `rf_prob_P`, `rf_prob_R`), converting valid probabilities to z-scores
+- **IMPACT**: Probabilities that should sum to 1.0 became arbitrary z-scores with negative values, causing 10% accuracy
+- **FIX**: Added RF probability columns to `exclude_cols` list to prevent normalization (line 988)
+- **DIAGNOSIS**: Comprehensive test suite in `agent_communication/metadata_diagnosis/` isolated the bug through 6 sequential tests
+
+**Root Cause**: Probabilities expected range [0-1] summing to 1.0, but received z-scores with mean≈0, std≈1, and negative values. Neural network couldn't learn from corrupted probability distributions.
+
+**Impact**: Metadata modality should now achieve 40-50% accuracy instead of 10%. RF classifier still has issues with minority class (R), but probabilities are now valid.
+
+---
+
 ## 2025-12-30 — Critical metadata preprocessing fixes
 
 ### Fixed data leakage in imputation
