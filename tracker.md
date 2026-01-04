@@ -970,3 +970,44 @@ from sklearn.preprocessing import StandardScaler
 - Unblocks comprehensive CV test for all modalities
 - No functional change - same StandardScaler is used, just from module-level import
 - Local agent can now re-run `test_comprehensive_cv.py` to verify Phase 9 fix works across all modalities
+
+---
+
+## 2026-01-04 — Multi-modal fusion catastrophic failure fix (V5: Two-stage fine-tuning)
+
+### Fusion architecture overfitting issue
+
+**Files**: `src/models/builders.py` (lines 318-347), `src/training/training_utils.py` (lines 1090-1375)
+
+**Problem**: Multi-modal fusion (metadata + thermal_map) failed catastrophically:
+- Metadata-only: Kappa 0.254 ✅
+- thermal_map-only: Kappa 0.145 ✅
+- Fusion V1 (learned weights): Kappa 0.014 ❌ (Train 0.96, Val -0.02)
+- Fusion V2 (fixed 70/30 weights): Kappa 0.023 ❌ (Train 0.96, Val 0.02)
+
+**Root causes identified**:
+1. BatchNormalization destroyed RF probability structure (negative values, wrong scale)
+2. Image branch trained in fusion mode optimizes different objective than standalone
+3. Image learns to overfit training data (complementary-but-weak features)
+
+**Solution V5 - Two-stage fine-tuning**:
+- **Stage 1** (30 epochs): Load pre-trained thermal_map weights → freeze image branch → train with fixed 70/30 fusion → establish stable baseline (Kappa ~0.22)
+- **Stage 2** (up to 100 epochs): Unfreeze image → recompile with LR 1e-6 (100x lower) → fine-tune gently → allow potential synergy (Kappa 0.22-0.28)
+- Early stopping reverts to Stage 1 if overfitting detected
+
+**Expected results**:
+- Stage 1: Kappa 0.22 (frozen baseline, no overfitting)
+- Stage 2: Kappa 0.22-0.28 (potential improvement from synergy)
+- Better than individual modalities if fusion benefits achieved
+
+**Implementation**:
+- Removed BatchNorm from metadata branch (was converting probabilities to z-scores)
+- Fixed 70/30 fusion weights (RF dominates since Kappa 0.254 > Image 0.145)
+- Two-stage training with pre-trained frozen → fine-tune pipeline
+- Aggressive early stopping (patience=10) prevents catastrophic overfitting
+
+**Note**: Fusion weight "alpha" (70/30 split) is DIFFERENT from class weight alphas (computed from class frequencies for focal loss). Class weight alphas remain dynamic.
+
+**Testing protocol**: Train thermal_map-only first → creates checkpoint → train fusion (loads + freezes → fine-tunes)
+
+---
