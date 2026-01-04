@@ -25,10 +25,10 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (128x128 pixels for better detail)
-# IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-GLOBAL_BATCH_SIZE = 363  # Total batch size across all GPU replicas (for 2x RTX 5090 32GB VRAM with 128x128 images)
-N_EPOCHS = 300  # Quick speed test (normally 120 for full training)
+IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
+# IMAGE_SIZE = 12  # Image dimensions (12x12 pixels for faster testing)
+GLOBAL_BATCH_SIZE = 323  # Total batch size across all GPU replicas
+N_EPOCHS = 300  # Full training epochs
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
@@ -209,7 +209,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb'),  # TEST 2: Multi-modal fusion - preserving RF quality
+    ('metadata', 'thermal_map'),  # TEST 2: Multi-modal fusion - preserving RF quality
 ]
 
 # Results file naming
