@@ -1,4 +1,4 @@
-"""CV Validation: Test tuned RF with 5-fold CV"""
+"""CV Validation: Patient-level 5-fold CV (NO DATA LEAKAGE)"""
 import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
@@ -8,11 +8,11 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.class_weight import compute_class_weight
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
 from sklearn.metrics import cohen_kappa_score, accuracy_score, f1_score
 from src.utils.config import get_data_paths, get_project_paths
 
-print("CV VALIDATION: Tuned RF (5-fold)")
+print("PATIENT-LEVEL 5-FOLD CV VALIDATION")
 print("="*60)
 
 _, _, root = get_project_paths()
@@ -21,33 +21,54 @@ df = pd.read_csv(get_data_paths(root)['csv_file'])
 # Map labels
 df['label'] = df['Healing Phase Abs'].map({'I':0, 'P':1, 'R':2})
 
-exclude = ['Healing Phase Abs', 'Patient#', 'Appt#', 'DFU#', 'label']
-feature_cols = [c for c in df.select_dtypes(include=[np.number]).columns if c not in exclude]
+# Get unique patients
+patients = df['Patient#'].unique()
+np.random.seed(42)
+np.random.shuffle(patients)
 
-X = df[feature_cols].values
-y = df['label'].values
-
-# 5-fold CV
-skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+# 5-fold patient-level CV
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
 fold_results = []
 
-for fold_idx, (train_idx, valid_idx) in enumerate(skf.split(X, y)):
+for fold_idx, (train_patient_idx, valid_patient_idx) in enumerate(kf.split(patients)):
     print(f"\nFold {fold_idx+1}/5...")
 
-    X_train, X_valid = X[train_idx], X[valid_idx]
-    y_train, y_valid = y[train_idx], y[valid_idx]
+    # Split patients
+    train_patients = patients[train_patient_idx]
+    valid_patients = patients[valid_patient_idx]
 
-    # Preprocess
+    # Split data by patients (NO LEAKAGE)
+    train_df = df[df['Patient#'].isin(train_patients)].copy()
+    valid_df = df[df['Patient#'].isin(valid_patients)].copy()
+
+    print(f"  Train: {len(train_patients)} patients, {len(train_df)} samples")
+    print(f"  Valid: {len(valid_patients)} patients, {len(valid_df)} samples")
+
+    # Verify no patient overlap
+    assert len(set(train_patients) & set(valid_patients)) == 0, "Patient leakage detected!"
+
+    # Extract labels
+    y_train = train_df['label'].values
+    y_valid = valid_df['label'].values
+
+    # Extract features (NO VALIDATION DATA IN PREPROCESSING)
+    exclude = ['Healing Phase Abs', 'Patient#', 'Appt#', 'DFU#', 'label']
+    feature_cols = [c for c in train_df.select_dtypes(include=[np.number]).columns if c not in exclude]
+
+    X_train = train_df[feature_cols].values
+    X_valid = valid_df[feature_cols].values
+
+    # Imputation: FIT on train ONLY
     imputer = KNNImputer(n_neighbors=5)
-    X_train = imputer.fit_transform(X_train)
-    X_valid = imputer.transform(X_valid)
+    X_train = imputer.fit_transform(X_train)  # Fit on train
+    X_valid = imputer.transform(X_valid)      # Transform valid (NO FIT)
 
+    # Normalization: FIT on train ONLY
     scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_valid = scaler.transform(X_valid)
+    X_train = scaler.fit_transform(X_train)   # Fit on train
+    X_valid = scaler.transform(X_valid)       # Transform valid (NO FIT)
 
-    # Class weights (on unique cases - use train indices on original df)
-    train_df = df.iloc[train_idx]
+    # Class weights: TRAIN DATA ONLY (unique cases)
     unique_cases = train_df[['Patient#', 'Appt#', 'DFU#', 'label']].drop_duplicates()
     unique_cases['bin1'] = (unique_cases['label'] > 0).astype(int)
     unique_cases['bin2'] = (unique_cases['label'] > 1).astype(int)
@@ -60,7 +81,7 @@ for fold_idx, (train_idx, valid_idx) in enumerate(skf.split(X, y)):
     y_bin1_train = (y_train > 0).astype(int)
     y_bin2_train = (y_train > 1).astype(int)
 
-    # Tuned RF
+    # Tuned RF (TRAIN DATA ONLY)
     rf1 = RandomForestClassifier(
         n_estimators=500,
         max_depth=10,
@@ -83,7 +104,7 @@ for fold_idx, (train_idx, valid_idx) in enumerate(skf.split(X, y)):
     rf1.fit(X_train, y_bin1_train)
     rf2.fit(X_train, y_bin2_train)
 
-    # Predict
+    # Predict on VALIDATION ONLY
     prob1 = rf1.predict_proba(X_valid)[:, 1]
     prob2 = rf2.predict_proba(X_valid)[:, 1]
 
@@ -114,7 +135,7 @@ for fold_idx, (train_idx, valid_idx) in enumerate(skf.split(X, y)):
 # Summary
 results_df = pd.DataFrame(fold_results)
 print("\n" + "="*60)
-print("CV RESULTS (5-fold)")
+print("PATIENT-LEVEL CV RESULTS (5-fold, NO LEAKAGE)")
 print("="*60)
 print(f"\nAccuracy:  {results_df['accuracy'].mean():.3f} ± {results_df['accuracy'].std():.3f}")
 print(f"Kappa:     {results_df['kappa'].mean():.3f} ± {results_df['kappa'].std():.3f}")
@@ -128,10 +149,14 @@ print(f"  R: {results_df['f1_R'].mean():.3f} ± {results_df['f1_R'].std():.3f}")
 results_df.to_csv('cv_validation.csv', index=False)
 print("\n✓ Saved to cv_validation.csv")
 
-# Check if improvement is robust
+# Validation check
 mean_kappa = results_df['kappa'].mean()
 if mean_kappa > 0.2:
-    print(f"\n✅ VALIDATED: Kappa {mean_kappa:.3f} > 0.2 across 5 folds")
-    print("   RECOMMEND: Implement tuned RF parameters")
+    print(f"\n✅ VALIDATED: Kappa {mean_kappa:.3f} > 0.2 (target met)")
+    print("   RECOMMEND: Implement tuned RF in production")
+elif mean_kappa > 0.15:
+    print(f"\n⚠️  MARGINAL: Kappa {mean_kappa:.3f} (0.15-0.2)")
+    print("   Consider further improvements")
 else:
-    print(f"\n⚠️  WARNING: Kappa {mean_kappa:.3f} < 0.2 - not robust")
+    print(f"\n❌ FAILED: Kappa {mean_kappa:.3f} < 0.15")
+    print("   Parameters not robust - reject")
