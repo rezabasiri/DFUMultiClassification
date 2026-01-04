@@ -209,7 +209,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata',),  # Phase 2 validation: metadata-only with feature selection
+    ('metadata', 'depth_rgb'),  # TEST 2: Multi-modal fusion - preserving RF quality
 ]
 
 # Results file naming
