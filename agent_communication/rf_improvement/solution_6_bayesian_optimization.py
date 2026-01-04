@@ -5,6 +5,9 @@ Systematically search for optimal hyperparameters using Bayesian optimization.
 Optimizes both RF classifiers independently with different search spaces.
 """
 
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -15,18 +18,23 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import cohen_kappa_score, accuracy_score, f1_score, make_scorer
 from skopt import BayesSearchCV
 from skopt.space import Integer, Real, Categorical
+from src.utils.config import get_data_paths, get_project_paths
 import warnings
 warnings.filterwarnings('ignore')
 
 # Load data
-df = pd.read_csv('data/processed/best_matching.csv')
+_, _, root = get_project_paths()
+df = pd.read_csv(get_data_paths(root)['csv_file'])
+
+# Map labels
+df['label'] = df['Healing Phase Abs'].map({'I':0, 'P':1, 'R':2})
 
 # Create binary labels for ordinal decomposition
-y_bin1 = (df['Healing Phase Abs'] > 0).astype(int)  # I vs (P+R)
-y_bin2 = (df['Healing Phase Abs'] > 1).astype(int)  # (I+P) vs R
+y_bin1 = (df['label'] > 0).astype(int)  # I vs (P+R)
+y_bin2 = (df['label'] > 1).astype(int)  # (I+P) vs R
 
 # Extract metadata features (73 features)
-exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
+exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs', 'label',
                 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
                 'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
                 'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
@@ -85,10 +93,13 @@ for fold_idx, (train_patient_idx, valid_patient_idx) in enumerate(kf.split(patie
     train_df = df[df['Patient#'].isin(train_patients)].copy()
     valid_df = df[df['Patient#'].isin(valid_patients)].copy()
 
-    X_train = train_df.drop(columns=exclude_cols, errors='ignore')
-    X_valid = valid_df.drop(columns=exclude_cols, errors='ignore')
-    y_train = (train_df['Healing Phase Abs'] > 0).astype(int)
-    y_valid = (valid_df['Healing Phase Abs'] > 0).astype(int)
+    feature_cols_cv = [c for c in train_df.select_dtypes(include=[np.number]).columns if c not in exclude_cols and c != 'label']
+    X_train = train_df[feature_cols_cv]
+    X_valid = valid_df[feature_cols_cv]
+    y_train_label = train_df['label'].values
+    y_valid_label = valid_df['label'].values
+    y_train = (y_train_label > 0).astype(int)
+    y_valid = (y_valid_label > 0).astype(int)
 
     # Imputation
     imputer = KNNImputer(n_neighbors=5)
@@ -148,10 +159,13 @@ for fold_idx, (train_patient_idx, valid_patient_idx) in enumerate(kf.split(patie
     train_df = df[df['Patient#'].isin(train_patients)].copy()
     valid_df = df[df['Patient#'].isin(valid_patients)].copy()
 
-    X_train = train_df.drop(columns=exclude_cols, errors='ignore')
-    X_valid = valid_df.drop(columns=exclude_cols, errors='ignore')
-    y_train = (train_df['Healing Phase Abs'] > 1).astype(int)
-    y_valid = (valid_df['Healing Phase Abs'] > 1).astype(int)
+    feature_cols_cv = [c for c in train_df.select_dtypes(include=[np.number]).columns if c not in exclude_cols and c != 'label']
+    X_train = train_df[feature_cols_cv]
+    X_valid = valid_df[feature_cols_cv]
+    y_train_label = train_df['label'].values
+    y_valid_label = valid_df['label'].values
+    y_train = (y_train_label > 1).astype(int)
+    y_valid = (y_valid_label > 1).astype(int)
 
     # Imputation
     imputer = KNNImputer(n_neighbors=5)
@@ -214,10 +228,11 @@ for fold_idx, (train_patient_idx, valid_patient_idx) in enumerate(kf.split(patie
     train_df = df[df['Patient#'].isin(train_patients)].copy()
     valid_df = df[df['Patient#'].isin(valid_patients)].copy()
 
-    X_train = train_df.drop(columns=exclude_cols, errors='ignore')
-    X_valid = valid_df.drop(columns=exclude_cols, errors='ignore')
-    y_train = train_df['Healing Phase Abs'].values
-    y_valid = valid_df['Healing Phase Abs'].values
+    feature_cols_cv = [c for c in train_df.select_dtypes(include=[np.number]).columns if c not in exclude_cols and c != 'label']
+    X_train = train_df[feature_cols_cv]
+    X_valid = valid_df[feature_cols_cv]
+    y_train = train_df['label'].values
+    y_valid = valid_df['label'].values
 
     # Imputation
     imputer = KNNImputer(n_neighbors=5)

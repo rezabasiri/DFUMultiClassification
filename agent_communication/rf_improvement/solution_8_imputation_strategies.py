@@ -5,27 +5,31 @@ Tests: KNN, Median, Mean, and Iterative imputation.
 Current implementation uses KNN(k=5), but other methods might work better.
 """
 
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import KFold
+from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import KNNImputer, SimpleImputer, IterativeImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import cohen_kappa_score, accuracy_score, f1_score
+from src.utils.config import get_data_paths, get_project_paths
 import warnings
 warnings.filterwarnings('ignore')
 
 # Load data
-df = pd.read_csv('data/processed/best_matching.csv')
+_, _, root = get_project_paths()
+df = pd.read_csv(get_data_paths(root)['csv_file'])
 
-# Extract metadata features
-exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
-                'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
-                'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
-                'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
-X = df.drop(columns=exclude_cols, errors='ignore')
-y = df['Healing Phase Abs'].values
+# Extract metadata features (only numeric columns)
+exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+feature_cols = [c for c in df.select_dtypes(include=[np.number]).columns if c not in exclude_cols]
+X = df[feature_cols]
+y = df['Healing Phase Abs'].map({'I':0, 'P':1, 'R':2}).values
 
 print("="*80)
 print("SOLUTION 8: Imputation Strategy Comparison")
@@ -69,10 +73,10 @@ for imputer_name, imputer_obj in imputers.items():
         train_df = df[df['Patient#'].isin(train_patients)].copy()
         valid_df = df[df['Patient#'].isin(valid_patients)].copy()
 
-        X_train = train_df.drop(columns=exclude_cols, errors='ignore')
-        X_valid = valid_df.drop(columns=exclude_cols, errors='ignore')
-        y_train = train_df['Healing Phase Abs'].values
-        y_valid = valid_df['Healing Phase Abs'].values
+        X_train = train_df[feature_cols]
+        X_valid = valid_df[feature_cols]
+        y_train = train_df['Healing Phase Abs'].map({'I':0, 'P':1, 'R':2}).values
+        y_valid = valid_df['Healing Phase Abs'].map({'I':0, 'P':1, 'R':2}).values
 
         # Imputation with current strategy
         X_train_imp = imputer_obj.fit_transform(X_train)
