@@ -140,17 +140,18 @@ class ConfidenceBasedMetadataAttention(Layer):
         return scaled_features * confidence_scale
     
 def create_metadata_branch(input_shape, index):
-    """Metadata branch with basic processing"""
+    """
+    Metadata branch - minimal processing to preserve RF quality.
+
+    CRITICAL: RF produces calibrated probabilities (Kappa ~0.20).
+    BatchNormalization was destroying probability structure (negative values, wrong scale).
+    Just cast to float32 - that's it!
+    """
     metadata_input = Input(shape=input_shape, name=f'metadata_input')
-    
-    # Add minimal processing
+
+    # ONLY cast to float32 - RF probabilities are already calibrated
+    # DO NOT use BatchNormalization - it destroys probability structure
     x = tf.keras.layers.Lambda(lambda x: tf.cast(x, tf.float32), name=f'metadata_cast_{index}')(metadata_input)
-    x = BatchNormalization(name=f'metadata_BN_{index}')(x)
-    # x = tf.repeat(x, repeats=20, axis=1)
-    # x = tf.keras.layers.Dense(64, activation='relu')(x)
-    # # Simple Attention Mechanism directly on the 3 inputs
-    # attention_weights = Dense(3, activation='softmax', name=f'metadata_attention')(x) # output (None, 3)
-    # attended_metadata = Multiply(name=f'metadata_weighted_{index}')([x, attention_weights]) # (None, 3)
 
     return metadata_input, x
 
@@ -315,11 +316,11 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
         elif len(selected_modalities) == 2:
             if has_metadata:
                 # MULTI-MODAL (2): Metadata + 1 Image
-                # Preserve RF quality, combine with image predictions
+                # Preserve RF quality with CONSTRAINED weighted average fusion
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 1 image - preserving RF quality in fusion", level=2)
+                vprint("Model: Metadata + 1 image - constrained weighted fusion preserving RF quality", level=2)
 
-                # Get RF probabilities (already optimal - Kappa 0.20)
+                # Get RF probabilities (already optimal - Kappa 0.254, proper probabilities)
                 rf_probs = branches[metadata_idx]
 
                 # Get image features and classify
@@ -327,14 +328,27 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 image_features = branches[image_idx]
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(image_features)
 
-                # Simple weighted average fusion
-                # Concatenate both predictions
-                merged = concatenate([rf_probs, image_probs], name='concat_predictions')
+                # CONSTRAINED WEIGHTED AVERAGE FUSION
+                # Learn a single weight α ∈ [0, 1]: output = α*RF + (1-α)*Image
+                # This GUARANTEES RF quality preservation (if α=1, output=RF exactly)
 
-                # Learn fusion weights (lightweight - just learns α and (1-α))
-                # This preserves RF quality while allowing image contribution
-                fusion = Dense(3, activation='softmax', name='output')(merged)
-                output = fusion
+                # Concatenate predictions to estimate fusion weight
+                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
+                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
+                             kernel_initializer='ones', bias_initializer='zeros')(combined)
+
+                # Compute weighted average: α * RF_probs
+                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
+
+                # Compute (1-α) * Image_probs
+                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
+                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
+
+                # Sum weighted predictions (mathematically sums to 1.0)
+                # Normalize to ensure numerical stability
+                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
+                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
+                               name='output')(fused)
             else:
                 # Two image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -344,9 +358,9 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
             if has_metadata:
                 # MULTI-MODAL (3): Metadata + 2 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 2 images - preserving RF quality in fusion", level=2)
+                vprint("Model: Metadata + 2 images - constrained weighted fusion preserving RF quality", level=2)
 
-                # Get RF probabilities
+                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
 
                 # Get image branches and fuse them
@@ -359,9 +373,16 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # Combine RF and image predictions
-                merged = concatenate([rf_probs, image_probs], name='concat_predictions')
-                output = Dense(3, activation='softmax', name='output')(merged)
+                # CONSTRAINED weighted average fusion
+                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
+                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
+                             kernel_initializer='ones', bias_initializer='zeros')(combined)
+                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
+                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
+                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
+                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
+                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
+                               name='output')(fused)
             else:
                 # Three image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -374,9 +395,9 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
             if has_metadata:
                 # MULTI-MODAL (4): Metadata + 3 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 3 images - preserving RF quality in fusion", level=2)
+                vprint("Model: Metadata + 3 images - constrained weighted fusion preserving RF quality", level=2)
 
-                # Get RF probabilities
+                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
 
                 # Get image branches and fuse them
@@ -392,9 +413,16 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # Combine RF and image predictions
-                merged = concatenate([rf_probs, image_probs], name='concat_predictions')
-                output = Dense(3, activation='softmax', name='output')(merged)
+                # CONSTRAINED weighted average fusion
+                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
+                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
+                             kernel_initializer='ones', bias_initializer='zeros')(combined)
+                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
+                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
+                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
+                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
+                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
+                               name='output')(fused)
             else:
                 # Four image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -410,9 +438,9 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
             if has_metadata:
                 # MULTI-MODAL (5): Metadata + 4 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 4 images - preserving RF quality in fusion", level=2)
+                vprint("Model: Metadata + 4 images - constrained weighted fusion preserving RF quality", level=2)
 
-                # Get RF probabilities
+                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
 
                 # Get image branches and fuse them
@@ -431,9 +459,16 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_3')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # Combine RF and image predictions
-                merged = concatenate([rf_probs, image_probs], name='concat_predictions')
-                output = Dense(3, activation='softmax', name='output')(merged)
+                # CONSTRAINED weighted average fusion
+                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
+                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
+                             kernel_initializer='ones', bias_initializer='zeros')(combined)
+                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
+                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
+                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
+                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
+                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
+                               name='output')(fused)
             else:
                 # Five image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
