@@ -1087,6 +1087,55 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         input_shapes = data_manager.get_shapes_for_modalities(selected_modalities)
                         model = create_multimodal_model(input_shapes, selected_modalities, None)
 
+                        # CRITICAL FIX: For fusion with metadata, load pre-trained image weights and FREEZE image branch
+                        # Training image in fusion mode causes catastrophic overfitting (Train 0.96, Val 0.02)
+                        has_metadata = 'metadata' in selected_modalities
+                        has_image = any(m in selected_modalities for m in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'])
+                        is_fusion = has_metadata and has_image
+
+                        if is_fusion:
+                            # Get the image modality name
+                            image_modality = [m for m in selected_modalities if m != 'metadata'][0]
+                            image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, config_name)
+
+                            # Try to load pre-trained image weights
+                            if os.path.exists(image_only_checkpoint):
+                                vprint(f"  Loading pre-trained {image_modality} weights from standalone training...", level=2)
+                                try:
+                                    # Create a temporary model with just the image modality to load weights
+                                    temp_model = create_multimodal_model(input_shapes, [image_modality], None)
+                                    temp_model.load_weights(image_only_checkpoint)
+
+                                    # Transfer image branch weights to fusion model
+                                    # Match layers by name (image layers have modality prefix)
+                                    for layer in temp_model.layers:
+                                        if image_modality in layer.name or layer.name == 'output':
+                                            try:
+                                                fusion_layer = model.get_layer(layer.name)
+                                                fusion_layer.set_weights(layer.get_weights())
+                                                vprint(f"    Loaded weights for layer: {layer.name}", level=3)
+                                            except:
+                                                continue  # Layer might not exist in fusion model (e.g., output layer)
+
+                                    # FREEZE all image branch layers to prevent overfitting
+                                    vprint(f"  Freezing {image_modality} branch to prevent overfitting...", level=2)
+                                    for layer in model.layers:
+                                        if image_modality in layer.name or 'image_classifier' in layer.name:
+                                            layer.trainable = False
+                                            vprint(f"    Frozen layer: {layer.name}", level=3)
+
+                                    del temp_model  # Free memory
+                                    vprint(f"  Successfully loaded and frozen pre-trained image weights!", level=2)
+
+                                except Exception as e:
+                                    vprint(f"  Warning: Could not load pre-trained weights: {e}", level=1)
+                                    vprint(f"  Training image branch from scratch (may overfit!)", level=1)
+                            else:
+                                vprint(f"  Warning: No pre-trained {image_modality} weights found at:", level=1)
+                                vprint(f"    {image_only_checkpoint}", level=1)
+                                vprint(f"  Please train {image_modality}-only first, then re-run fusion!", level=1)
+                                vprint(f"  Continuing with random init (will likely overfit)...", level=1)
+
                         # Use loss parameters from config if available, otherwise use defaults
                         ordinal_weight = config.get('ordinal_weight', 0.05)
                         gamma = config.get('gamma', 2.0)
