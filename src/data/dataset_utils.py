@@ -893,10 +893,12 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     vprint(f"Using {len(selected_features)} features from training selection", level=2)
 
                 # Apply feature selection to both source and metadata dataframes
-                # Keep Patient#, Appt#, DFU#, Healing Phase Abs for processing
+                # Keep Patient#, Appt#, DFU#, Healing Phase Abs for processing (if they exist)
                 keep_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
-                source_df = source_df[keep_cols + selected_features]
-                metadata_df = metadata_df[keep_cols + selected_features]
+                # Only keep columns that actually exist (Appt# and DFU# may have been dropped in features_to_drop)
+                available_keep_cols = [col for col in keep_cols if col in source_df.columns]
+                source_df = source_df[available_keep_cols + selected_features]
+                metadata_df = metadata_df[available_keep_cols + selected_features]
                 columns_to_impute = selected_features  # Update for subsequent processing
 
                 # Random Forest processing
