@@ -328,27 +328,23 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 image_features = branches[image_idx]
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(image_features)
 
-                # CONSTRAINED WEIGHTED AVERAGE FUSION
-                # Learn a single weight α ∈ [0, 1]: output = α*RF + (1-α)*Image
-                # This GUARANTEES RF quality preservation (if α=1, output=RF exactly)
+                # FIXED WEIGHTED AVERAGE FUSION
+                # Use FIXED α = 0.70: output = 0.70*RF + 0.30*Image
+                # This GUARANTEES RF quality dominates while allowing image contribution
+                # Fixed weight prevents collapse during training
 
-                # Concatenate predictions to estimate fusion weight
-                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
-                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
-                             kernel_initializer='ones', bias_initializer='zeros')(combined)
+                # Create fixed weights as constants (not trainable)
+                rf_weight = 0.70  # RF contributes 70% (since RF has Kappa 0.254)
+                image_weight = 0.30  # Image contributes 30%
 
-                # Compute weighted average: α * RF_probs
-                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
+                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
 
-                # Compute (1-α) * Image_probs
-                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
-                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
+                # Compute weighted average with FIXED weights
+                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
+                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
 
-                # Sum weighted predictions (mathematically sums to 1.0)
-                # Normalize to ensure numerical stability
-                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
-                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
-                               name='output')(fused)
+                # Sum weighted predictions (always sums to 1.0)
+                output = Add(name='output')([weighted_rf, weighted_image])
             else:
                 # Two image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -373,16 +369,13 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # CONSTRAINED weighted average fusion
-                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
-                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
-                             kernel_initializer='ones', bias_initializer='zeros')(combined)
-                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
-                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
-                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
-                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
-                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
-                               name='output')(fused)
+                # FIXED weighted average fusion
+                rf_weight = 0.70
+                image_weight = 0.30
+                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
+                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
+                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
+                output = Add(name='output')([weighted_rf, weighted_image])
             else:
                 # Three image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -413,16 +406,13 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # CONSTRAINED weighted average fusion
-                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
-                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
-                             kernel_initializer='ones', bias_initializer='zeros')(combined)
-                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
-                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
-                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
-                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
-                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
-                               name='output')(fused)
+                # FIXED weighted average fusion
+                rf_weight = 0.70
+                image_weight = 0.30
+                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
+                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
+                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
+                output = Add(name='output')([weighted_rf, weighted_image])
             else:
                 # Four image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -459,16 +449,13 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_3')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # CONSTRAINED weighted average fusion
-                combined = concatenate([rf_probs, image_probs], name='concat_for_weight')
-                alpha = Dense(1, activation='sigmoid', name='fusion_alpha',
-                             kernel_initializer='ones', bias_initializer='zeros')(combined)
-                weighted_rf = Multiply(name='weighted_rf')([rf_probs, alpha])
-                one_minus_alpha = Lambda(lambda x: 1.0 - x, name='one_minus_alpha')(alpha)
-                weighted_image = Multiply(name='weighted_image')([image_probs, one_minus_alpha])
-                fused = Add(name='fused_predictions')([weighted_rf, weighted_image])
-                output = Lambda(lambda x: x / tf.reduce_sum(x, axis=-1, keepdims=True),
-                               name='output')(fused)
+                # FIXED weighted average fusion
+                rf_weight = 0.70
+                image_weight = 0.30
+                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
+                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
+                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
+                output = Add(name='output')([weighted_rf, weighted_image])
             else:
                 # Five image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
