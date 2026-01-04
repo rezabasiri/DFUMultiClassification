@@ -984,7 +984,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             'Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
             'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
             'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
-            'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax'
+            'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax',
+            'rf_prob_I', 'rf_prob_P', 'rf_prob_R'  # RF probabilities must not be normalized
         ]
 
         # Get numeric columns from train_data
