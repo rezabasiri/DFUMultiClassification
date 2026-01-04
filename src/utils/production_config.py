@@ -209,7 +209,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'thermal_map'),  # TEST 2: Multi-modal fusion - preserving RF quality
+    ('thermal_map',),  # TEST 3: thermal_map only
 ]
 
 # Results file naming
