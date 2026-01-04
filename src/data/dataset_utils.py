@@ -945,16 +945,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         # print("\nWeight1 unique values:", train_df['weight1'].unique())
                         # print("Weight2 unique values:", train_df['weight2'].unique())
                         
-                        # Remove unnecessary columns
-                        cols_to_drop = ['Patient#', 'Healing Phase Abs']
-                        
+                        # Remove identifiers and labels (keep for tracking but don't train on them)
+                        cols_to_drop = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+
                         # Create datasets
                         dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
                             train_df.drop(columns=cols_to_drop + ['label_bin2', 'weight2']),
                             label='label_bin1',
                             weight='weight1'
                         )
-                        
+
                         dataset2 = tfdf.keras.pd_dataframe_to_tf_dataset(
                             train_df.drop(columns=cols_to_drop + ['label_bin1', 'weight1']),
                             label='label_bin2',
@@ -989,8 +989,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                             class_weight=class_weight_dict_binary2,
                             n_jobs=-1
                         )
-                        # Prepare features for RF
-                        X = metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1)
+                        # Prepare features for RF (drop identifiers - keep for tracking but don't train on them)
+                        X = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1)
                         # y = split_data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
                         y = metadata_df['Healing Phase Abs']
                         y_bin1 = (y > 0).astype(int)
@@ -1001,10 +1001,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 try:
                     import tensorflow_decision_forests as tfdf
                     dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                        metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1),
+                        metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1),
                         label=None  # No label needed for prediction
                     )
-                    
+
                     # Get predictions
                     with tf.device('/CPU:0'):
                         pred1 = rf_model1.predict(dataset1)
@@ -1016,7 +1016,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         prob1 = np.squeeze(pred1)
                         prob2 = np.squeeze(pred2)
                 except ImportError:
-                    dataset = metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1)
+                    dataset = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1)
                     # dataset_pd = tf_to_pd(dataset)
                     prob1 = rf_model1.predict_proba(dataset)[:, 1]
                     prob2 = rf_model2.predict_proba(dataset)[:, 1]
