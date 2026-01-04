@@ -27,9 +27,20 @@ Tracks major repository changes and refactors.
 - Solution 9 (Strategy B): Kappa 0.2124 ← **INVALID**
 - Solution 6 (Bayesian): Kappa 0.2062 ← **INVALID** (also had wrong optimization objective)
 
-**Expected TRUE performance** (without Phase Confidence leakage):
-- Baseline: Kappa ~0.10-0.15 (not 0.22)
-- The ~0.10 Kappa drop is expected and correct
+**VALIDATED TRUE PERFORMANCE** (without Phase Confidence leakage):
+- **Baseline: Kappa 0.176 ± 0.078** (was 0.220 ± 0.088 with leakage)
+- **Performance drop: -20%** (-0.044 Kappa points)
+- Feature count: 73 → 42 valid features (-31 leakage columns)
+- Top feature changed: Phase Confidence → Height (cm)
+
+**RE-RUN RESULTS** (after fixes):
+- Solution 7 (Feature Selection k=40): Kappa **0.202 ± 0.049** ← **WINNER** (+14.8% vs baseline)
+- Solution 8 (KNN k=3 Imputation): Kappa **0.201 ± 0.043** ← TIED (+14.2% vs baseline)
+- Solution 9 (Strategy A Decomp): Kappa 0.181 ± 0.061 (+2.8% vs baseline)
+- Solution 6 (Bayesian - FIXED): Kappa 0.148 ± 0.046 ← FAILED (overfit)
+- Solution 11 (Feature Engineering): Kappa 0.125 ± 0.039 ← FAILED (added noise)
+
+**Performance Ceiling Identified**: Kappa ~0.20 appears to be maximum achievable with metadata-only features
 
 **FIXES APPLIED**:
 1. Updated all Phase 2 solutions (6, 7, 8, 9) with correct 30+ column exclusion list
@@ -37,9 +48,15 @@ Tracks major repository changes and refactors.
 3. Created `solution_11_feature_engineering.py` - 20+ domain-specific engineered features to overcome reduced feature count
 4. Created `README_PHASE2_FIXES.md` with detailed explanation and re-run instructions
 
-**Impact**: Phase 2 must be completely re-run with corrected feature exclusions. Previous results were artificially inflated by data leakage and cannot be trusted.
+**Impact**: Phase 2 completely re-run with validated results. Previous Kappa 0.220 was artificially inflated by 20% due to Phase Confidence leakage. True baseline is 0.176.
 
-**Lesson Learned**: Always validate feature exclusions against original implementation before running experiments. Phase Confidence being the top feature was a red flag that should have been caught immediately.
+**Production-Ready Configuration** (validated):
+- **Feature Selection**: Top 40 features (Height, Onset, Weight, Smoking, Cancer History as top 5)
+- **Imputation**: KNN k=3 (improves over current k=5)
+- **RF Parameters**: Keep manual tuning (500 trees, depth=10, min_samples_split=10)
+- **Expected Performance**: Kappa 0.20 ± 0.05 (robust, validated, no leakage)
+
+**Lesson Learned**: Always validate feature exclusions against original implementation before running experiments. Phase Confidence being the top feature was a red flag that should have been caught immediately. The 20% performance drop from fixing leakage is expected and represents true model capability.
 
 ---
 
