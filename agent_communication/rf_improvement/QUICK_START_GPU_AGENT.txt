@@ -1,0 +1,118 @@
+================================================================================
+QUICK START FOR GPU AGENT - RF Quality Validation (TEST 2-5)
+================================================================================
+
+STATUS: TEST 1 PASSED ✅ (Kappa 0.254, target ≥0.19)
+YOUR MISSION: Complete TEST 2, 3, 4, 5
+
+================================================================================
+SETUP (5 minutes)
+================================================================================
+
+1. Clone/Pull:
+   git pull origin claude/run-dataset-polishing-X1NHe
+
+2. CRITICAL FIX (must apply):
+   File: src/models/builders.py
+   Line 11: Add ", Activation" to imports
+
+   Change:
+   from tensorflow.keras.layers import (
+       ..., MultiHeadAttention
+   )
+
+   To:
+   from tensorflow.keras.layers import (
+       ..., MultiHeadAttention, Activation
+   )
+
+3. Verify:
+   python -c "from src.models.builders import create_multimodal_model; print('✅')"
+
+================================================================================
+TEST 2: METADATA + IMAGE (25-30 min)
+================================================================================
+
+Config: src/utils/production_config.py line 211:
+INCLUDED_COMBINATIONS = [('metadata', 'depth_rgb'),]
+
+Run:
+python src/main.py --mode search --cv_folds 3 --verbosity 2 --resume_mode fresh
+
+Expected:
+✅ "Model: Metadata + 1 image - preserving RF quality in fusion"
+✅ Kappa: 0.22-0.28 (better than 0.254 metadata-only)
+✅ No errors
+
+Report: Kappa, Accuracy, F1, 3-fold results
+
+================================================================================
+TEST 3: IMAGE ONLY (25-30 min)
+================================================================================
+
+Config: src/utils/production_config.py line 211:
+INCLUDED_COMBINATIONS = [('depth_rgb',),]
+
+Run:
+python src/main.py --mode search --cv_folds 3 --verbosity 2 --resume_mode fresh
+
+Expected:
+✅ NO metadata messages
+✅ Standard NN training
+✅ No regression
+
+Report: Kappa, Accuracy, F1, 3-fold results
+
+================================================================================
+TEST 4: ARCHITECTURE (<1 min)
+================================================================================
+
+Create inspect_model.py (see HANDOFF_TO_GPU_AGENT.md for full script)
+
+Run:
+python inspect_model.py
+
+Expected:
+✅ "Number of Dense layers: 0"
+✅ "Output layer: output (Activation)"
+✅ "PASS: No Dense layer degrading RF predictions"
+
+Report: PASS/FAIL, layer analysis
+
+================================================================================
+TEST 5: COMPARISON (<1 min)
+================================================================================
+
+Analysis only (no commands):
+
+Current (TEST 1): 0.254
+Previous broken: 0.109
+Improvement: +0.145 (+133%) ✅
+Target (≥0.19): EXCEEDED ✅
+Test scripts (0.205): EXCEEDED (+24%) ✅
+
+Report: Comparison summary
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+MANDATORY:
+✅ TEST 1: Kappa ≥ 0.19 (DONE: 0.254)
+⏳ TEST 4: Architecture passes
+⏳ No crashes in TEST 2, 3
+
+HIGHLY RECOMMENDED:
+⏳ TEST 2: Kappa > 0.20
+✅ Improvement ≥ 70% (DONE: +133%)
+
+If all pass → ✅ PRODUCTION READY
+
+================================================================================
+FULL DETAILS
+================================================================================
+
+See: agent_communication/rf_improvement/HANDOFF_TO_GPU_AGENT.md
+     agent_communication/rf_improvement/VALIDATION_STATUS_SUMMARY.md
+
+================================================================================
