@@ -844,7 +844,28 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                     # Compute MI on training data
                     X_train_fs = source_df[columns_to_impute].values
-                    y_train_fs = source_df['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2}).values
+
+                    # Handle labels: might be strings ('I', 'P', 'R') or numeric (0, 1, 2) after oversampling
+                    y_train_raw = source_df['Healing Phase Abs']
+
+                    # Convert to numeric if needed
+                    if y_train_raw.dtype == object or y_train_raw.dtype.name == 'string':
+                        # String labels: map to numeric
+                        y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
+                    else:
+                        # Already numeric
+                        y_train_fs = y_train_raw.values
+
+                    # CRITICAL: Validate no NaN - crash if found (don't hide errors!)
+                    if np.isnan(y_train_fs).any():
+                        nan_count = np.isnan(y_train_fs).sum()
+                        unique_vals = source_df['Healing Phase Abs'].unique()
+                        raise ValueError(
+                            f"Feature selection failed: {nan_count} NaN values in labels!\n"
+                            f"Unique label values: {unique_vals}\n"
+                            f"Label dtype: {source_df['Healing Phase Abs'].dtype}\n"
+                            f"This indicates a data preprocessing bug that must be fixed."
+                        )
 
                     mi_scores = mutual_info_classif(X_train_fs, y_train_fs, random_state=42)
 
