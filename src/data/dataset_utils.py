@@ -26,6 +26,9 @@ directory, result_dir, root = get_project_paths()
 data_paths = get_data_paths(root)
 output_paths = get_output_paths(result_dir)
 
+# Module-level cache for selected features (stores features per run for train/valid consistency)
+_selected_features_cache = {}
+
 
 def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     """
@@ -842,8 +845,13 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 if is_training:
                     from sklearn.feature_selection import mutual_info_classif
 
-                    # Compute MI on training data
-                    X_train_fs = source_df[columns_to_impute].values
+                    # CRITICAL: Exclude identifiers before feature selection (prevent data leakage)
+                    # These columns are needed for tracking but should NOT be used as ML features
+                    exclude_from_selection = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                    feature_candidates = [col for col in columns_to_impute if col not in exclude_from_selection]
+
+                    # Compute MI on training data (using only valid feature candidates)
+                    X_train_fs = source_df[feature_candidates].values
 
                     # Handle labels: might be strings ('I', 'P', 'R') or numeric (0, 1, 2) after oversampling
                     y_train_raw = source_df['Healing Phase Abs']
@@ -872,16 +880,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     # Select top 40 features (validated in Phase 2)
                     k_features = 40
                     top_k_indices = np.argsort(mi_scores)[-k_features:]
-                    selected_features = [columns_to_impute[i] for i in top_k_indices]
+                    selected_features = [feature_candidates[i] for i in top_k_indices]
 
-                    vprint(f"Feature selection: {len(columns_to_impute)} → {k_features} features", level=2)
-                    vprint(f"Top 5 features: {[columns_to_impute[i] for i in np.argsort(mi_scores)[-5:][::-1]]}", level=2)
+                    vprint(f"Feature selection: {len(feature_candidates)} → {k_features} features", level=2)
+                    vprint(f"Top 5 features: {[feature_candidates[i] for i in np.argsort(mi_scores)[-5:][::-1]]}", level=2)
 
-                    # Store selected features for validation split
-                    self.selected_metadata_features_ = selected_features
+                    # Store selected features in module-level cache for validation split
+                    _selected_features_cache[run] = selected_features
                 else:
                     # Use same features selected from training
-                    selected_features = self.selected_metadata_features_
+                    selected_features = _selected_features_cache[run]
                     vprint(f"Using {len(selected_features)} features from training selection", level=2)
 
                 # Apply feature selection to both source and metadata dataframes
