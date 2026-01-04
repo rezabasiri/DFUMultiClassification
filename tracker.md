@@ -2,6 +2,34 @@
 
 Tracks major repository changes and refactors.
 
+## 2026-01-04 — Implement validated RF hyperparameter tuning
+
+### Tuned RF parameters for metadata classifier
+**Files**: `src/data/dataset_utils.py` (lines 845-861, 907-925)
+- **IMPROVEMENT**: Implemented tuned RF hyperparameters validated through patient-level 5-fold CV
+- **VALIDATION**: Patient-level 5-fold CV with strict leakage prevention:
+  - Kappa: 0.220 ± 0.088 (4/5 folds >0.2, target met)
+  - Accuracy: 55.9% ± 4.2%
+  - All classes functional (no zero F1 scores)
+- **HYPERPARAMETERS TUNED**:
+  - `n_estimators`: 300 → 500 (increased stability)
+  - `max_depth`: None → 10 (prevent overfitting)
+  - `min_samples_split`: 2 → 10 (require sufficient samples)
+  - `max_features`: None → 'sqrt' (reduce variance)
+- **TESTING METHODOLOGY**: `agent_communication/rf_improvement/`
+  - Tested 5 approaches: baseline, SMOTE, tuned RF, feature selection, ensemble
+  - Tuned RF achieved best cross-validated performance
+  - Strict patient-level CV: patients split (not samples), imputer/scaler fit on train only
+- **APPLIED TO**: Both TensorFlow Decision Forests (TFDF) and sklearn fallback paths
+
+**Root Cause Analysis**: Original RF parameters (300 trees, unlimited depth, no min_samples constraints) were prone to overfitting on small patient cohorts. Limited regularization caused high variance across different patient distributions.
+
+**Impact**: Metadata RF classifier improved from Kappa ~0.10 to 0.220 (validated, robust). Expected production performance: ~56% accuracy with all three classes functional. Eliminates zero F1 scores for minority class (R).
+
+**Validation Details**: See `agent_communication/rf_improvement/cv_validation.csv` and `validate_cv.py` for full implementation.
+
+---
+
 ## 2026-01-04 — Fix catastrophic metadata classifier failure
 
 ### Fixed RF probability normalization bug
