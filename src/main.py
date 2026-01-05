@@ -1846,7 +1846,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thres
             from src.evaluation.metrics import filter_frequent_misclassifications
             data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
         if data_percentage < 100:
-            data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
+            data = data.sample(frac=data_percentage / 100, random_state=789).reset_index(drop=True)  # Phase 7a: seed 789
         vprint(f"Using {data_percentage}% of the data: {len(data)} samples")
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
