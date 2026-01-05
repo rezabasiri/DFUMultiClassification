@@ -25,9 +25,9 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-# IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-IMAGE_SIZE = 32  # Image dimensions (32x32 pixels for quick fusion testing)
-GLOBAL_BATCH_SIZE = 323  # Total batch size across all GPU replicas
+IMAGE_SIZE = 128  # Image dimensions (128x128 pixels)
+# IMAGE_SIZE = 32  # Image dimensions (32x32 pixels for quick fusion testing)
+GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
 # Early stopping and learning rate
@@ -209,8 +209,8 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'thermal_map'),  # TEST 2: Fusion (metadata+thermal_map) with normalization fix
-]
+    ('metadata','thermal_map',),  
+] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
 RESULTS_CSV_FILENAME = 'modality_combination_results.csv'  # Output CSV filename
