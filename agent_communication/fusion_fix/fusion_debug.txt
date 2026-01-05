@@ -1,0 +1,83 @@
+2026-01-04 22:15:28.525872: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-04 22:15:28.525935: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-04 22:15:28.527702: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-04 22:15:28.538884: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-01-04 22:15:29.629467: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+TEST 1: Check RF predictions for thermal_map-only
+================================================================================
+2026-01-04 22:15:36.575571: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 22149 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:1a:00.0, compute capability: 8.9
+2026-01-04 22:15:36.578079: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 22149 MB memory:  -> device: 1, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:1b:00.0, compute capability: 8.9
+2026-01-04 22:15:36.580327: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:2 with 22149 MB memory:  -> device: 2, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:3d:00.0, compute capability: 8.9
+2026-01-04 22:15:36.582562: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:3 with 22149 MB memory:  -> device: 3, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:3e:00.0, compute capability: 8.9
+2026-01-04 22:15:36.584787: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:4 with 22149 MB memory:  -> device: 4, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:88:00.0, compute capability: 8.9
+2026-01-04 22:15:36.587099: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:5 with 22149 MB memory:  -> device: 5, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:89:00.0, compute capability: 8.9
+2026-01-04 22:15:36.589336: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:6 with 22149 MB memory:  -> device: 6, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:b1:00.0, compute capability: 8.9
+2026-01-04 22:15:36.591572: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1929] Created device /job:localhost/replica:0/task:0/device:GPU:7 with 22149 MB memory:  -> device: 7, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:b2:00.0, compute capability: 8.9
+2026-01-04 22:15:48.934446: I tensorflow/core/kernels/data/shuffle_dataset_op.cc:422] fused(ShuffleDatasetV3:4,RepeatDataset:5): Filling up shuffle buffer (this may take a while): 712 of 1000
+2026-01-04 22:15:53.669462: I tensorflow/core/kernels/data/shuffle_dataset_op.cc:452] Shuffle buffer filled.
+thermal_map-only inputs: dict_keys(['thermal_map_input', 'sample_id'])
+Labels shape: (32, 3), sample: [[1. 0. 0.]
+ [1. 0. 0.]
+ [1. 0. 0.]
+ [0. 1. 0.]
+ [0. 1. 0.]]
+✓ No metadata_input (correct)
+2026-01-04 22:15:55.246130: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+
+================================================================================
+TEST 2: Check RF predictions for fusion (metadata+thermal_map)
+================================================================================
+2026-01-04 22:16:10.983820: I tensorflow/core/kernels/data/shuffle_dataset_op.cc:422] fused(ShuffleDatasetV3:20,RepeatDataset:21): Filling up shuffle buffer (this may take a while): 959 of 1000
+2026-01-04 22:16:11.500754: I tensorflow/core/kernels/data/shuffle_dataset_op.cc:452] Shuffle buffer filled.
+Fusion inputs: dict_keys(['thermal_map_input', 'metadata_input', 'sample_id'])
+Labels shape: (32, 3), sample: [[1. 0. 0.]
+ [1. 0. 0.]
+ [1. 0. 0.]
+ [0. 1. 0.]
+ [0. 1. 0.]]
+
+✓ RF predictions exist
+  Shape: (32, 3)
+  First 3 samples:
+[[0.85349154 0.12985663 0.11365781]
+ [0.623455   0.35167858 0.06603844]
+ [0.80871546 0.17966245 0.06075803]]
+  Sum to 1.0? [1.097006, 1.041172, 1.0491359, 1.008123, 1.0700004]
+  All zeros? False
+  Any NaN/Inf? False
+
+  Checking label alignment:
+    Sample 0: RF predicts 0, true label [1. 0. 0.], probs [0.85349154 0.12985663 0.11365781]
+    Sample 1: RF predicts 0, true label [1. 0. 0.], probs [0.623455   0.35167858 0.06603844]
+    Sample 2: RF predicts 0, true label [1. 0. 0.], probs [0.80871546 0.17966245 0.06075803]
+    Sample 3: RF predicts 1, true label [0. 1. 0.], probs [0.09116564 0.82785517 0.08910225]
+    Sample 4: RF predicts 1, true label [0. 1. 0.], probs [0.39580545 0.4973394  0.17685555]
+2026-01-04 22:16:11.885909: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+
+================================================================================
+TEST 3: Train thermal_map-only baseline
+================================================================================
+Edit production_config.py: INCLUDED_COMBINATIONS = [('thermal_map',)]
+Run: python src/main.py --mode search --cv_folds 1 --verbosity 2 --resume_mode fresh
+
+================================================================================
+TEST 4: Train fusion and compare
+================================================================================
+Edit production_config.py: INCLUDED_COMBINATIONS = [('metadata', 'thermal_map')]
+Run: python src/main.py --mode search --cv_folds 1 --verbosity 2 --resume_mode fresh
+
+================================================================================
+TEST 5: Manual fusion check
+================================================================================
+If RF and Image predictions look good individually, manually compute:
+  fusion_pred = 0.7 * rf_pred + 0.3 * image_pred
+Check if manual fusion gives reasonable Kappa

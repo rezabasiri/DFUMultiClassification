@@ -1,0 +1,364 @@
+2026-01-04 22:48:39.945027: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-04 22:48:39.945073: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-04 22:48:39.946629: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-04 22:48:40.811661: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 8 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 2: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 3: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 4: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 5: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 6: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 7: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 8 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 2: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 3: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 4: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 5: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 6: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 7: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 8 GPU(s)
+
+Using MirroredStrategy (8 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 8× global batch size
+================================================================================
+
+
+Batch size per replica: 40 (global batch size: 323, replicas: 8)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 2 (DETAILED)
+Device: GPUs [0, 1, 2, 3, 4, 5, 6, 7] (multi-GPU mode, MirroredStrategy)
+  Replicas: 8× batch size distribution
+Train/validation split: 67% train / 33% val
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 32x32
+Batch size: 323
+  Per-GPU batch: 40 (323 / 8 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 2 files deleted
+  Predictions: 12 files deleted
+  Csv Results: 7 files deleted
+  Patient Splits: 1 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: single split
+Iterations per combination: 1
+Total training sessions: 1
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata, thermal_map
+Number of samples for each selected modality:
+  thermal_map: 3107
+  thermal_bb: 3107
+  metadata: 3107
+Using 100.0% of the data: 3107 samples
+Using strategy from main: MirroredStrategy
+
+================================================================================
+MULTI-GPU TRAINING: 8 GPUs
+Global batch size: 323 (per-GPU: 40)
+Strategy: MirroredStrategy
+================================================================================
+
+
+Run 1/1
+Processing metadata shape...
+
+Unique cases: 517 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    352
+0    165
+Name: count, dtype: int64
+Binary2: label_bin2
+0    456
+1     61
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.712, 0.349, 1.939]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+
+After oversampling (ordered):
+Class 0: 1485
+Class 1: 1485
+Class 2: 1485
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (4455,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (628,)
+2026-01-04 22:49:04.196223: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Setting image shapes to 32x32...
+
+Preparing datasets for Run 1/1 with all modalities: ['metadata', 'thermal_map']
+Generating new patient split for run 1 (will be reused for all combinations)
+Found valid split after 1 attempts
+
+Final class distributions:
+Training: {0: 0.292, 1: 0.602, 2: 0.107}
+Validation: {0: 0.278, 1: 0.612, 2: 0.11}
+Saved patient split for run 1 to /workspace/DFUMultiClassification/results/checkpoints/patient_split_run1.npz
+  Train patients: 156, Valid patients: 77
+
+Unique cases: 437 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    297
+0    140
+Name: count, dtype: int64
+Binary2: label_bin2
+0    387
+1     50
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 610
+Class 1: 1258
+Class 2: 223
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.711, 0.345, 1.944]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 610
+Class 1: 1258
+Class 2: 223
+
+After oversampling (ordered):
+Class 0: 1258
+Class 1: 1258
+Class 2: 1258
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Wound Centre Temperature Normalized (°C)', 'Peri-Ulcer Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+thermal_map type: <class 'numpy.ndarray'> shape: (3774,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (3774,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1016,)
+thermal_map type: <class 'numpy.ndarray'> shape: (1016,)
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], run 1/1
+2026-01-04 22:52:20.064801: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Alpha values (ordered) [I, P, R]: [1.0, 1.0, 1.0]
+Class weights: {0: 1, 1: 1, 2: 1} or [1, 1, 1]
+
+Debug create_image_branch
+Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image
+  Fusion weights: RF=0.70, Image=0.30
+================================================================================
+AUTOMATIC PRE-TRAINING: thermal_map weights not found
+  Training thermal_map-only model first (same data split)...
+================================================================================
+
+Debug create_image_branch
+  Pre-training thermal_map-only on same data split (prevents data leakage)
+Epoch 1/300
+/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py:642: UserWarning: Input dict contained keys ['metadata_input'] which did not match any model input. They will be ignored by the model.
+  inputs = self._flatten_to_reference_inputs(inputs)
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767567179.396604  287055 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+2026-01-04 22:53:55.236312: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+12/12 - 93s - loss: 2.0722 - accuracy: 0.3751 - weighted_f1_score: 0.3685 - weighted_accuracy: 0.3751 - macro_f1: 0.3685 - cohen_kappa: 0.0622 - val_loss: 2.0187 - val_accuracy: 0.6122 - val_weighted_f1_score: 0.2532 - val_weighted_accuracy: 0.6122 - val_macro_f1: 0.2532 - val_cohen_kappa: 0.0000e+00 - lr: 1.0000e-04 - 93s/epoch - 8s/step
+Epoch 2/300
+12/12 - 2s - loss: 2.0458 - accuracy: 0.4082 - weighted_f1_score: 0.4036 - weighted_accuracy: 0.4082 - macro_f1: 0.4036 - cohen_kappa: 0.1120 - val_loss: 2.0325 - val_accuracy: 0.3898 - val_weighted_f1_score: 0.2671 - val_weighted_accuracy: 0.3898 - val_macro_f1: 0.2671 - val_cohen_kappa: 0.0447 - lr: 1.0000e-04 - 2s/epoch - 168ms/step
+Epoch 3/300
+12/12 - 2s - loss: 2.0221 - accuracy: 0.4208 - weighted_f1_score: 0.4155 - weighted_accuracy: 0.4208 - macro_f1: 0.4155 - cohen_kappa: 0.1314 - val_loss: 1.9957 - val_accuracy: 0.5177 - val_weighted_f1_score: 0.3029 - val_weighted_accuracy: 0.5177 - val_macro_f1: 0.3029 - val_cohen_kappa: 0.0565 - lr: 1.0000e-04 - 2s/epoch - 173ms/step
+Epoch 4/300
+12/12 - 2s - loss: 2.0011 - accuracy: 0.4200 - weighted_f1_score: 0.4137 - weighted_accuracy: 0.4200 - macro_f1: 0.4137 - cohen_kappa: 0.1317 - val_loss: 1.9807 - val_accuracy: 0.4843 - val_weighted_f1_score: 0.3163 - val_weighted_accuracy: 0.4843 - val_macro_f1: 0.3163 - val_cohen_kappa: 0.0826 - lr: 1.0000e-04 - 2s/epoch - 168ms/step
+Epoch 5/300
+12/12 - 2s - loss: 1.9816 - accuracy: 0.4198 - weighted_f1_score: 0.4100 - weighted_accuracy: 0.4198 - macro_f1: 0.4100 - cohen_kappa: 0.1299 - val_loss: 1.9689 - val_accuracy: 0.4104 - val_weighted_f1_score: 0.3347 - val_weighted_accuracy: 0.4104 - val_macro_f1: 0.3347 - val_cohen_kappa: 0.0581 - lr: 1.0000e-04 - 2s/epoch - 170ms/step
+Epoch 6/300
+12/12 - 2s - loss: 1.9594 - accuracy: 0.4247 - weighted_f1_score: 0.4132 - weighted_accuracy: 0.4247 - macro_f1: 0.4132 - cohen_kappa: 0.1384 - val_loss: 1.9427 - val_accuracy: 0.4331 - val_weighted_f1_score: 0.3784 - val_weighted_accuracy: 0.4331 - val_macro_f1: 0.3784 - val_cohen_kappa: 0.0735 - lr: 1.0000e-04 - 2s/epoch - 168ms/step
+Epoch 7/300
+12/12 - 2s - loss: 1.9395 - accuracy: 0.4265 - weighted_f1_score: 0.4148 - weighted_accuracy: 0.4265 - macro_f1: 0.4148 - cohen_kappa: 0.1400 - val_loss: 1.9230 - val_accuracy: 0.4262 - val_weighted_f1_score: 0.3630 - val_weighted_accuracy: 0.4262 - val_macro_f1: 0.3630 - val_cohen_kappa: 0.0547 - lr: 1.0000e-04 - 2s/epoch - 139ms/step
+Epoch 8/300
+12/12 - 2s - loss: 1.9193 - accuracy: 0.4321 - weighted_f1_score: 0.4232 - weighted_accuracy: 0.4321 - macro_f1: 0.4232 - cohen_kappa: 0.1515 - val_loss: 1.9025 - val_accuracy: 0.4449 - val_weighted_f1_score: 0.3921 - val_weighted_accuracy: 0.4449 - val_macro_f1: 0.3921 - val_cohen_kappa: 0.0938 - lr: 1.0000e-04 - 2s/epoch - 168ms/step
+Epoch 9/300
+12/12 - 2s - loss: 1.8990 - accuracy: 0.4435 - weighted_f1_score: 0.4309 - weighted_accuracy: 0.4435 - macro_f1: 0.4309 - cohen_kappa: 0.1654 - val_loss: 1.8859 - val_accuracy: 0.4183 - val_weighted_f1_score: 0.3629 - val_weighted_accuracy: 0.4183 - val_macro_f1: 0.3629 - val_cohen_kappa: 0.0712 - lr: 1.0000e-04 - 2s/epoch - 145ms/step
+Epoch 10/300
+12/12 - 2s - loss: 1.8829 - accuracy: 0.4316 - weighted_f1_score: 0.4189 - weighted_accuracy: 0.4316 - macro_f1: 0.4189 - cohen_kappa: 0.1491 - val_loss: 1.8723 - val_accuracy: 0.3848 - val_weighted_f1_score: 0.3504 - val_weighted_accuracy: 0.3848 - val_macro_f1: 0.3504 - val_cohen_kappa: 0.0721 - lr: 1.0000e-04 - 2s/epoch - 143ms/step
+Epoch 11/300
+12/12 - 2s - loss: 1.8632 - accuracy: 0.4347 - weighted_f1_score: 0.4240 - weighted_accuracy: 0.4347 - macro_f1: 0.4240 - cohen_kappa: 0.1530 - val_loss: 1.8509 - val_accuracy: 0.4075 - val_weighted_f1_score: 0.3669 - val_weighted_accuracy: 0.4075 - val_macro_f1: 0.3669 - val_cohen_kappa: 0.0729 - lr: 1.0000e-04 - 2s/epoch - 148ms/step
+Epoch 12/300
+12/12 - 2s - loss: 1.8442 - accuracy: 0.4404 - weighted_f1_score: 0.4285 - weighted_accuracy: 0.4404 - macro_f1: 0.4285 - cohen_kappa: 0.1614 - val_loss: 1.8371 - val_accuracy: 0.3730 - val_weighted_f1_score: 0.3366 - val_weighted_accuracy: 0.3730 - val_macro_f1: 0.3366 - val_cohen_kappa: 0.0725 - lr: 1.0000e-04 - 2s/epoch - 146ms/step
+Epoch 13/300
+12/12 - 2s - loss: 1.8249 - accuracy: 0.4448 - weighted_f1_score: 0.4291 - weighted_accuracy: 0.4448 - macro_f1: 0.4291 - cohen_kappa: 0.1685 - val_loss: 1.8249 - val_accuracy: 0.3435 - val_weighted_f1_score: 0.3107 - val_weighted_accuracy: 0.3435 - val_macro_f1: 0.3107 - val_cohen_kappa: 0.0531 - lr: 1.0000e-04 - 2s/epoch - 146ms/step
+Epoch 14/300
+12/12 - 2s - loss: 1.8103 - accuracy: 0.4582 - weighted_f1_score: 0.4403 - weighted_accuracy: 0.4582 - macro_f1: 0.4403 - cohen_kappa: 0.1874 - val_loss: 1.8193 - val_accuracy: 0.3199 - val_weighted_f1_score: 0.2907 - val_weighted_accuracy: 0.3199 - val_macro_f1: 0.2907 - val_cohen_kappa: 0.0395 - lr: 5.0000e-05 - 2s/epoch - 148ms/step
+Epoch 15/300
+12/12 - 2s - loss: 1.8001 - accuracy: 0.4623 - weighted_f1_score: 0.4472 - weighted_accuracy: 0.4623 - macro_f1: 0.4472 - cohen_kappa: 0.1940 - val_loss: 1.8000 - val_accuracy: 0.3848 - val_weighted_f1_score: 0.3459 - val_weighted_accuracy: 0.3848 - val_macro_f1: 0.3459 - val_cohen_kappa: 0.0842 - lr: 5.0000e-05 - 2s/epoch - 143ms/step
+Epoch 16/300
+12/12 - 2s - loss: 1.7942 - accuracy: 0.4440 - weighted_f1_score: 0.4282 - weighted_accuracy: 0.4440 - macro_f1: 0.4282 - cohen_kappa: 0.1656 - val_loss: 1.8036 - val_accuracy: 0.2992 - val_weighted_f1_score: 0.2615 - val_weighted_accuracy: 0.2992 - val_macro_f1: 0.2615 - val_cohen_kappa: 0.0273 - lr: 5.0000e-05 - 2s/epoch - 149ms/step
+Epoch 17/300
+12/12 - 2s - loss: 1.7850 - accuracy: 0.4523 - weighted_f1_score: 0.4363 - weighted_accuracy: 0.4523 - macro_f1: 0.4363 - cohen_kappa: 0.1779 - val_loss: 1.7903 - val_accuracy: 0.3317 - val_weighted_f1_score: 0.3012 - val_weighted_accuracy: 0.3317 - val_macro_f1: 0.3012 - val_cohen_kappa: 0.0482 - lr: 5.0000e-05 - 2s/epoch - 148ms/step
+Epoch 18/300
+12/12 - 2s - loss: 1.7754 - accuracy: 0.4574 - weighted_f1_score: 0.4407 - weighted_accuracy: 0.4574 - macro_f1: 0.4407 - cohen_kappa: 0.1850 - val_loss: 1.7854 - val_accuracy: 0.3140 - val_weighted_f1_score: 0.2772 - val_weighted_accuracy: 0.3140 - val_macro_f1: 0.2772 - val_cohen_kappa: 0.0395 - lr: 5.0000e-05 - 2s/epoch - 149ms/step
+Epoch 19/300
+12/12 - 2s - loss: 1.7680 - accuracy: 0.4587 - weighted_f1_score: 0.4418 - weighted_accuracy: 0.4587 - macro_f1: 0.4418 - cohen_kappa: 0.1885 - val_loss: 1.7710 - val_accuracy: 0.3730 - val_weighted_f1_score: 0.3345 - val_weighted_accuracy: 0.3730 - val_macro_f1: 0.3345 - val_cohen_kappa: 0.0777 - lr: 2.5000e-05 - 2s/epoch - 141ms/step
+Epoch 20/300
+12/12 - 2s - loss: 1.7626 - accuracy: 0.4659 - weighted_f1_score: 0.4470 - weighted_accuracy: 0.4659 - macro_f1: 0.4470 - cohen_kappa: 0.1977 - val_loss: 1.7763 - val_accuracy: 0.3159 - val_weighted_f1_score: 0.2874 - val_weighted_accuracy: 0.3159 - val_macro_f1: 0.2874 - val_cohen_kappa: 0.0402 - lr: 2.5000e-05 - 2s/epoch - 140ms/step
+Epoch 21/300
+12/12 - 2s - loss: 1.7582 - accuracy: 0.4634 - weighted_f1_score: 0.4476 - weighted_accuracy: 0.4634 - macro_f1: 0.4476 - cohen_kappa: 0.1932 - val_loss: 1.7640 - val_accuracy: 0.3720 - val_weighted_f1_score: 0.3337 - val_weighted_accuracy: 0.3720 - val_macro_f1: 0.3337 - val_cohen_kappa: 0.0765 - lr: 2.5000e-05 - 2s/epoch - 136ms/step
+Epoch 22/300
+12/12 - 2s - loss: 1.7555 - accuracy: 0.4582 - weighted_f1_score: 0.4385 - weighted_accuracy: 0.4582 - macro_f1: 0.4385 - cohen_kappa: 0.1861 - val_loss: 1.7709 - val_accuracy: 0.3120 - val_weighted_f1_score: 0.2858 - val_weighted_accuracy: 0.3120 - val_macro_f1: 0.2858 - val_cohen_kappa: 0.0418 - lr: 2.5000e-05 - 2s/epoch - 149ms/step
+Epoch 23/300
+12/12 - 2s - loss: 1.7501 - accuracy: 0.4742 - weighted_f1_score: 0.4512 - weighted_accuracy: 0.4742 - macro_f1: 0.4512 - cohen_kappa: 0.2096 - val_loss: 1.7591 - val_accuracy: 0.3356 - val_weighted_f1_score: 0.3083 - val_weighted_accuracy: 0.3356 - val_macro_f1: 0.3083 - val_cohen_kappa: 0.0554 - lr: 2.5000e-05 - 2s/epoch - 140ms/step
+Epoch 24/300
+12/12 - 2s - loss: 1.7472 - accuracy: 0.4657 - weighted_f1_score: 0.4453 - weighted_accuracy: 0.4657 - macro_f1: 0.4453 - cohen_kappa: 0.1987 - val_loss: 1.7584 - val_accuracy: 0.3386 - val_weighted_f1_score: 0.3095 - val_weighted_accuracy: 0.3386 - val_macro_f1: 0.3095 - val_cohen_kappa: 0.0587 - lr: 1.2500e-05 - 2s/epoch - 146ms/step
+Epoch 25/300
+12/12 - 2s - loss: 1.7441 - accuracy: 0.4683 - weighted_f1_score: 0.4478 - weighted_accuracy: 0.4683 - macro_f1: 0.4478 - cohen_kappa: 0.2005 - val_loss: 1.7597 - val_accuracy: 0.3209 - val_weighted_f1_score: 0.2921 - val_weighted_accuracy: 0.3209 - val_macro_f1: 0.2921 - val_cohen_kappa: 0.0445 - lr: 1.2500e-05 - 2s/epoch - 138ms/step
+Epoch 26/300
+12/12 - 2s - loss: 1.7428 - accuracy: 0.4719 - weighted_f1_score: 0.4525 - weighted_accuracy: 0.4719 - macro_f1: 0.4525 - cohen_kappa: 0.2059 - val_loss: 1.7565 - val_accuracy: 0.3356 - val_weighted_f1_score: 0.3082 - val_weighted_accuracy: 0.3356 - val_macro_f1: 0.3082 - val_cohen_kappa: 0.0561 - lr: 1.2500e-05 - 2s/epoch - 149ms/step
+Epoch 27/300
+12/12 - 2s - loss: 1.7416 - accuracy: 0.4678 - weighted_f1_score: 0.4482 - weighted_accuracy: 0.4678 - macro_f1: 0.4482 - cohen_kappa: 0.2001 - val_loss: 1.7484 - val_accuracy: 0.3671 - val_weighted_f1_score: 0.3369 - val_weighted_accuracy: 0.3671 - val_macro_f1: 0.3369 - val_cohen_kappa: 0.0779 - lr: 1.2500e-05 - 2s/epoch - 139ms/step
+Epoch 28/300
+Restoring model weights from the end of the best epoch: 8.
+12/12 - 2s - loss: 1.7401 - accuracy: 0.4626 - weighted_f1_score: 0.4437 - weighted_accuracy: 0.4626 - macro_f1: 0.4437 - cohen_kappa: 0.1934 - val_loss: 1.7479 - val_accuracy: 0.3612 - val_weighted_f1_score: 0.3311 - val_weighted_accuracy: 0.3612 - val_macro_f1: 0.3311 - val_cohen_kappa: 0.0753 - lr: 1.2500e-05 - 2s/epoch - 168ms/step
+Epoch 28: early stopping
+  Pre-training completed! Best val kappa: 0.0938
+  Checkpoint saved to: /workspace/DFUMultiClassification/results/models/thermal_map_1_thermal_map.ckpt
+  Transferring pre-trained weights to fusion model...
+  STAGE 1: Freezing thermal_map branch (will unfreeze for Stage 2)...
+  Successfully loaded and frozen 17 layers!
+  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)
+  DEBUG: Checking RF metadata predictions...
+    Sample RF predictions (first 5): [[0.45733473 0.51299417 0.02967109]
+ [0.09276918 0.3741146  0.5331162 ]
+ [0.09500325 0.8796848  0.02531194]
+ [0.0132997  0.7291706  0.2575297 ]
+ [0.02586229 0.9598901  0.01424761]]
+    RF predictions sum to 1.0: [1.0, 1.0, 1.0]
+    Sample labels (first 5): [[0. 1. 0.]
+ [0. 1. 0.]
+ [0. 1. 0.]
+ [0. 1. 0.]
+ [0. 1. 0.]]
+================================================================================
+No existing pretrained weights found
+Total model trainable weights: 0
+================================================================================
+STAGE 1: Training with FROZEN image branch (30 epochs)
+  Goal: Stabilize fusion layer before fine-tuning image
+================================================================================
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+  Stage 1 completed. Best val kappa: 0.1602
+================================================================================
+STAGE 2: Fine-tuning with UNFROZEN image branch
+  Learning rate: 1e-6 (very low to prevent overfitting)
+  Unfreezing image layers...
+================================================================================
+  Model recompiled with LR=1e-6
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+================================================================================
+Two-stage training completed!
+  Stage 1 (frozen):    Kappa 0.1602
+  Stage 2 (fine-tune): Kappa 0.1602
+  No improvement from fine-tuning (kept Stage 1 weights)
+================================================================================
+
+Run 1 Results for metadata+thermal_map:
+Cohen's Kappa: 0.3158
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:  116  151   15
+Actual Prolif:  179  380   63
+Actual Remodl:    3   58   51
+
+Training gating network for run 1...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (3774, 3)
+Shape of true labels: (3774,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.5384
+F1 Macro: 0.4836
+Kappa: 0.3158
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_valid.npy
+Results for metadata, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+thermal_map
+  Accuracy: 0.5384 ± 0.0000
+  F1 Macro: 0.4836
+  Kappa: 0.3158
+
+Total combinations tested: 1
+================================================================================
+

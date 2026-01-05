@@ -531,11 +531,19 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     prob1 = rf_model1.predict_proba(dataset)[:, 1]
                     prob2 = rf_model2.predict_proba(dataset)[:, 1]
                 
-                # Calculate final probabilities
-                prob_I = 1 - prob1
-                prob_P = prob1 * (1 - prob2)
-                prob_R = prob2
-                
+                # Calculate final probabilities (unnormalized)
+                prob_I_unnorm = 1 - prob1
+                prob_P_unnorm = prob1 * (1 - prob2)
+                prob_R_unnorm = prob2
+
+                # CRITICAL FIX: Normalize probabilities to sum to 1.0
+                # Bug: prob_I + prob_P + prob_R = 1 + prob2(1 - prob1) != 1.0
+                # Without normalization, fusion gets Kappa=-0.007 (worse than random!)
+                total = prob_I_unnorm + prob_P_unnorm + prob_R_unnorm
+                prob_I = prob_I_unnorm / total
+                prob_P = prob_P_unnorm / total
+                prob_R = prob_R_unnorm / total
+
                 # Store RF probabilities in the DataFrame
                 split_data['rf_prob_I'] = prob_I
                 split_data['rf_prob_P'] = prob_P
