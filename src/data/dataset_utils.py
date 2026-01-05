@@ -742,16 +742,55 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                 # Step 2: SMOTE minority class (R) to match others
                 vprint("Applying SMOTE to minority class...", level=2)
+
+                # SMOTE requires numeric-only data with no NaN
+                # Select only numeric columns
+                numeric_cols = X_under.select_dtypes(include=[np.number]).columns.tolist()
+                non_numeric_cols = [col for col in X_under.columns if col not in numeric_cols]
+                X_under_numeric = X_under[numeric_cols].copy()
+
+                # Fill NaN with column median (SMOTE can't handle NaN)
+                X_under_numeric = X_under_numeric.fillna(X_under_numeric.median())
+
                 oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
-                X_resampled, y_resampled = oversampler.fit_resample(X_under, y_under)
+                X_resampled_numeric, y_resampled = oversampler.fit_resample(X_under_numeric, y_under)
+
+                # Reconstruct X_resampled with synthetic values for new samples
+                X_resampled = pd.DataFrame(X_resampled_numeric, columns=numeric_cols)
+                n_original = len(X_under)
+                n_synthetic = len(X_resampled) - n_original
+                for col in non_numeric_cols:
+                    original_vals = X_under[col].values.tolist()
+                    synthetic_vals = [f'SYN_{i}' for i in range(n_synthetic)]
+                    X_resampled[col] = original_vals + synthetic_vals
 
             elif SAMPLING_STRATEGY == 'smote':
                 # SMOTE: Synthetic Minority Over-sampling Technique
                 # Generates synthetic samples instead of duplicating existing ones
                 # Fixes RF overfitting issue with 100% data (RF Kappa 0.09 → 0.15-0.20 expected)
                 vprint("Using SMOTE (synthetic oversampling)...", level=2)
+
+                # SMOTE requires numeric-only data with no NaN
+                # Select only numeric columns
+                numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()
+                non_numeric_cols = [col for col in X.columns if col not in numeric_cols]
+                X_numeric = X[numeric_cols].copy()
+
+                # Fill NaN with column median (SMOTE can't handle NaN)
+                X_numeric = X_numeric.fillna(X_numeric.median())
+
                 oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
-                X_resampled, y_resampled = oversampler.fit_resample(X, y)
+                X_resampled_numeric, y_resampled = oversampler.fit_resample(X_numeric, y)
+
+                # Reconstruct X_resampled with synthetic IDs for new samples
+                X_resampled = pd.DataFrame(X_resampled_numeric, columns=numeric_cols)
+                # Add non-numeric columns with synthetic values for new samples
+                n_original = len(X)
+                n_synthetic = len(X_resampled) - n_original
+                for col in non_numeric_cols:
+                    original_vals = X[col].values.tolist()
+                    synthetic_vals = [f'SYN_{i}' for i in range(n_synthetic)]
+                    X_resampled[col] = original_vals + synthetic_vals
 
             else:  # 'random' or default
                 # Simple random duplication (original baseline method)
