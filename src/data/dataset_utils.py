@@ -764,6 +764,72 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     synthetic_vals = [f'SYN_{i}' for i in range(n_synthetic)]
                     X_resampled[col] = original_vals + synthetic_vals
 
+            elif SAMPLING_STRATEGY == 'reduced_combined':
+                # REDUCED_COMBINED: Reduce oversampling to minimize duplicates
+                # Strategy:
+                # 1. Find target = midpoint between R and MIDDLE class
+                # 2. Undersample P and I to target
+                # 3. Oversample R to target (creates fewer duplicates)
+                # Example: I=276, P=496, R=118
+                # - Target = (276 + 118) / 2 = 197
+                # - Result: I=197, P=197, R=197
+                # - R duplicates: 79 (vs 158 with 'combined')
+                vprint("Using reduced_combined sampling (fewer duplicates, better RF generalization)...", level=2)
+
+                # Get class counts
+                class_counts = Counter(y)
+                count_I = class_counts[0]
+                count_P = class_counts[1]
+                count_R = class_counts[2]
+
+                # Find middle count (I is typically middle)
+                sorted_counts = sorted([count_I, count_P, count_R])
+                middle_count = sorted_counts[1]  # Middle value
+                min_count = sorted_counts[0]     # Smallest (R)
+
+                # Target: midpoint between R and MIDDLE
+                target_count = (middle_count + min_count) // 2
+
+                vprint(f"  Original: I={count_I}, P={count_P}, R={count_R}", level=2)
+                vprint(f"  Target count: {target_count} (reduces duplicates by ~50%)", level=2)
+
+                # Undersample I and P to target, oversample R to target
+                sampling_strategy_under = {}
+                sampling_strategy_over = {}
+
+                # For each class, decide whether to under or over sample
+                for cls, count in class_counts.items():
+                    if count > target_count:
+                        sampling_strategy_under[cls] = target_count
+                    else:
+                        sampling_strategy_over[cls] = target_count
+
+                # Step 1: Undersample larger classes
+                if sampling_strategy_under:
+                    undersampler = RandomUnderSampler(
+                        sampling_strategy=sampling_strategy_under,
+                        random_state=42 + run * (run + 3)
+                    )
+                    X_temp, y_temp = undersampler.fit_resample(X, y)
+                else:
+                    X_temp, y_temp = X, y
+
+                # Step 2: Oversample smaller classes
+                if sampling_strategy_over:
+                    oversampler = RandomOverSampler(
+                        sampling_strategy=sampling_strategy_over,
+                        random_state=42 + run * (run + 3)
+                    )
+                    X_resampled, y_resampled = oversampler.fit_resample(X_temp, y_temp)
+                else:
+                    X_resampled, y_resampled = X_temp, y_temp
+
+                # Count duplicates created
+                final_counts = Counter(y_resampled)
+                duplicates_created = target_count - min_count
+                vprint(f"  After sampling: I={final_counts[0]}, P={final_counts[1]}, R={final_counts[2]}", level=2)
+                vprint(f"  R duplicates: {duplicates_created} ({duplicates_created/target_count*100:.1f}% of R samples)", level=2)
+
             elif SAMPLING_STRATEGY == 'smote':
                 # SMOTE: Synthetic Minority Over-sampling Technique
                 # Generates synthetic samples instead of duplicating existing ones
