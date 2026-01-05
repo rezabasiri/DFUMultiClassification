@@ -25,10 +25,15 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (128x128 pixels)
+IMAGE_SIZE = 128  # Image dimensions (128x128 pixels for fusion testing)
 # IMAGE_SIZE = 32  # Image dimensions (32x32 pixels for quick fusion testing)
+# IMAGE_SIZE = 128  # Image dimensions (128x128 pixels)
 GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
+
+# Fusion-specific training parameters
+STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
+DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing - NOTE: Not yet implemented in prepare_cached_datasets)
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
@@ -209,7 +214,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata',),  
+    ('metadata', 'thermal_map'),  # Fusion test
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
