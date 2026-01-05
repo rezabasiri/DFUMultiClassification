@@ -946,10 +946,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         aug_config.generative_settings['output_size']['width'] = image_size
         aug_config.generative_settings['output_size']['height'] = image_size
 
-        gen_manager = GenerativeAugmentationManager(
-            base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
-            config=aug_config
-        )
+        # DISABLED FOR FUSION TESTING - All augmentations (generative + regular) disabled for fair comparison
+        gen_manager = None  # Was: GenerativeAugmentationManager(...)
+        # gen_manager = GenerativeAugmentationManager(
+        #     base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
+        #     config=aug_config
+        # )
 
         # Get all unique modalities from all configs
         all_modalities = set()
