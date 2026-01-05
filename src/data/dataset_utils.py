@@ -13,7 +13,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, classification_report
-from imblearn.over_sampling import RandomOverSampler
+from imblearn.over_sampling import RandomOverSampler, SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
@@ -654,8 +654,15 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
         # Choose sampling strategy
         if not mix:
-            # Simple oversampling strategy (default with mix=False)
-            vprint("Using simple random oversampling...", level=2)
+            # Import USE_SMOTE config parameter
+            from src.utils.production_config import USE_SMOTE
+
+            # Select oversampling strategy
+            if USE_SMOTE:
+                vprint("Using SMOTE (synthetic oversampling)...", level=2)
+            else:
+                vprint("Using simple random oversampling...", level=2)
+
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
             vprint("Original class distribution (ordered):", level=2)
@@ -673,8 +680,17 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Normalize to sum=3.0 (as recommended)
             alpha_sum = sum(alpha_values)
             alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
-            
-            oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
+
+            # Apply oversampling strategy
+            if USE_SMOTE:
+                # SMOTE: Synthetic Minority Over-sampling Technique
+                # Generates synthetic samples instead of duplicating existing ones
+                # Fixes RF overfitting issue with 100% data (RF Kappa 0.09 → 0.15-0.20 expected)
+                oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
+            else:
+                # Simple random duplication (original method)
+                oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
+
             X_resampled, y_resampled = oversampler.fit_resample(X, y)
 
             resampled_df = pd.DataFrame(X_resampled, columns=X.columns)

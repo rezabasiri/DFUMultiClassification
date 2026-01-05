@@ -35,6 +35,9 @@ N_EPOCHS = 300  # Full training epochs
 STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing - NOTE: Not yet implemented in prepare_cached_datasets)
 
+# Class imbalance handling
+USE_SMOTE = True  # Use SMOTE (synthetic oversampling) instead of random duplication (fixes RF overfitting with 100% data)
+
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
 REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR (increased for longer training)
