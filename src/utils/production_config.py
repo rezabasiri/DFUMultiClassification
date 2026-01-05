@@ -41,7 +41,7 @@ DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = h
 #   'smote': SMOTE synthetic oversampling to MAX class
 #   'combined': Undersample majority + oversample minority to MIDDLE class
 #   'combined_smote': Undersample majority + SMOTE minority to MIDDLE class (best of both!)
-SAMPLING_STRATEGY = 'reduced_combined'  # Phase 5: Reduce oversampling to minimize RF overfitting
+SAMPLING_STRATEGY = 'random'  # Phase 6: Use original strategy for 50% data validation
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
