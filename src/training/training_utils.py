@@ -1322,8 +1322,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 mode='max',
                                 save_weights_only=True
                             ),
-                            EpochMemoryCallback(strategy), #ACTIVATE THIS WHEN GENERATIVE NOT USED
-                            GenerativeAugmentationCallback(gen_manager),
+                            EpochMemoryCallback(strategy),
+                            # GenerativeAugmentationCallback(gen_manager),  # DISABLED for uniform testing
                             NaNMonitorCallback()
                         ]
 
