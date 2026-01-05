@@ -28,7 +28,8 @@ from src.utils.production_config import (
     GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
     EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE, EPOCH_PRINT_INTERVAL,
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
-    GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT
+    GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT,
+    STAGE1_EPOCHS, DATA_PERCENTAGE
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
@@ -1197,11 +1198,21 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         )
                                     ]
 
+                                    # Add periodic print callback for pre-training if using interval
+                                    if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                        pretrain_callbacks.append(PeriodicEpochPrintCallback(
+                                            print_interval=EPOCH_PRINT_INTERVAL,
+                                            total_epochs=max_epochs
+                                        ))
+
                                     # Determine verbosity for pre-training
-                                    if get_verbosity() >= 2:
-                                        pretrain_verbose = 2
+                                    # If using periodic callback, use verbose=0 and let callback handle printing
+                                    if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                        pretrain_verbose = 0  # Callback will handle printing
+                                    elif get_verbosity() >= 2:
+                                        pretrain_verbose = 2  # Print every epoch
                                     else:
-                                        pretrain_verbose = 0
+                                        pretrain_verbose = 0  # Silent
 
                                     vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
 
@@ -1244,7 +1255,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     del pretrain_model  # Free memory
                                     fusion_use_pretrained = True
                                     vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
-                                    vprint(f"  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+                                    vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+
+                                    # DEBUG: Show trainable weights breakdown
+                                    vprint("  DEBUG: Trainable weights breakdown after freezing:", level=2)
+                                    trainable_layers = []
+                                    for layer in model.layers:
+                                        if layer.trainable_weights:
+                                            trainable_layers.append(f"{layer.name}: {len(layer.trainable_weights)} weights")
+                                            vprint(f"    {layer.name}: {len(layer.trainable_weights)} trainable weights", level=2)
+                                    total_trainable = sum([len(l.trainable_weights) for l in model.layers])
+                                    vprint(f"  Total trainable parameters across all layers: {total_trainable}", level=2)
+                                    if total_trainable == 0:
+                                        vprint("  WARNING: 0 trainable parameters! This will prevent learning!", level=0)
 
                                     # DEBUG: Check RF predictions from metadata input
                                     vprint("  DEBUG: Checking RF metadata predictions...", level=2)
@@ -1384,12 +1407,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             # TWO-STAGE TRAINING for fusion with pre-trained weights
                             if is_fusion and fusion_use_pretrained:
                                 vprint("=" * 80, level=2)
-                                vprint("STAGE 1: Training with FROZEN image branch (30 epochs)", level=2)
+                                vprint(f"STAGE 1: Training with FROZEN image branch ({STAGE1_EPOCHS} epochs)", level=2)
                                 vprint("  Goal: Stabilize fusion layer before fine-tuning image", level=2)
                                 vprint("=" * 80, level=2)
 
                                 # Stage 1: Train with frozen image branch
-                                stage1_epochs = 30
+                                stage1_epochs = STAGE1_EPOCHS
                                 stage1_callbacks = [
                                     EarlyStopping(
                                         patience=10,  # More patient for stage 1
