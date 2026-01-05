@@ -278,3 +278,151 @@ The 128x128 baseline failure is NOT caused by image size. Possible causes:
 3. Is the fixed 70/30 fusion weight optimal?
 4. Should Stage 2 LR be increased?
 5. Is the two-stage training approach fundamentally flawed?
+
+---
+
+# PHASE 2: Uniform Testing (No Generative Augmentation)
+**Date:** 2026-01-05 10:00-11:30 UTC
+
+Cloud agent disabled GenerativeAugmentation to ensure deterministic training.
+
+## Test 4: metadata-only @ 50% - COMPLETED
+**Settings:** DATA_PERCENTAGE=50%, CV=3, metadata-only (no images)
+**Log:** `run_metadata_only_50pct.txt`
+
+**Results:**
+| Fold | Kappa |
+|------|-------|
+| 1    | 0.2867 |
+| 2    | 0.1818 |
+| 3    | 0.1918 |
+| **Avg** | **0.2201** |
+
+**Comparison:**
+- metadata @ 100%: Kappa 0.09 ± 0.07
+- metadata @ 50%: Kappa **0.2201**
+- **RF quality MORE THAN DOUBLES with 50% data!**
+
+**Conclusion:** Confirms oversampling or data quality issues with 100% data.
+
+---
+
+## Test 5: Fusion @ 100% (uniform, no augmentation) - COMPLETED
+**Settings:** IMAGE_SIZE=128, DATA_PERCENTAGE=100%, CV=3, no generative augmentation
+**Log:** `run_fusion_128x128_100pct_uniform.txt`
+
+**Results:**
+| Fold | Pre-train | Stage 1 | Final |
+|------|-----------|---------|-------|
+| 1    | 0.0853    | **-0.0202** | 0.0206 |
+| 2    | 0.0901    | +0.0882 | 0.0766 |
+| 3    | 0.0735    | **-0.0478** | 0.1753 |
+| **Avg** | **0.0830** | **0.0067** | **0.0908** |
+
+**Key Finding:** Stage 1 produces NEGATIVE kappa in 2/3 folds with 100% data!
+
+**Comparison:**
+- Original baseline @ 100%: Kappa 0.029 (with augmentation)
+- Uniform @ 100%: Kappa **0.0908** (no augmentation)
+- **Failure partially reproduced but less severe than original**
+
+**Conclusion:** 100% data causes Stage 1 failure - NOT due to augmentation lottery.
+
+---
+
+## Test 6: Fusion @ 50% (uniform, no augmentation) - COMPLETED
+**Settings:** IMAGE_SIZE=128, DATA_PERCENTAGE=50%, CV=3, no generative augmentation
+**Log:** `run_fusion_128x128_50pct_uniform.txt`
+
+**Results:**
+| Fold | Pre-train | Stage 1 | Final |
+|------|-----------|---------|-------|
+| 1    | 0.0256    | 0.1927  | 0.2867 |
+| 2    | 0.0410    | 0.1178  | 0.1783 |
+| 3    | 0.0395    | 0.1207  | 0.1931 |
+| **Avg** | **0.0354** | **0.1437** | **0.2194** |
+
+**Comparison:**
+- Previous @ 50% (with augmentation): Kappa 0.2189
+- Uniform @ 50% (no augmentation): Kappa **0.2194**
+- **Difference: +0.0005 (negligible)**
+
+**Conclusion:** Augmentation had NO effect - results are identical.
+
+---
+
+## Bonus: 32x32 @ 50% (uniform) - COMPLETED
+**Settings:** IMAGE_SIZE=32, DATA_PERCENTAGE=50%, CV=3, no generative augmentation
+**Log:** `run_fusion_32x32_50pct_uniform.txt`
+
+**Results:**
+| Fold | Pre-train | Stage 1 | Final |
+|------|-----------|---------|-------|
+| 1    | 0.1521    | 0.1927  | 0.2867 |
+| 2    | 0.0052    | 0.1151  | 0.1783 |
+| 3    | 0.0336    | 0.1359  | 0.2038 |
+| **Avg** | **0.0636** | **0.1479** | **0.2229** |
+
+**Comparison:**
+- Previous 32x32 @ 50%: Kappa 0.223
+- Uniform 32x32 @ 50%: Kappa **0.2229**
+- **Identical - confirms augmentation wasn't doing anything**
+
+---
+
+## Phase 2 Key Findings
+
+### Finding 1: Augmentation Had NO Effect
+- 50% data with augmentation: 0.2189
+- 50% data without augmentation: 0.2194
+- **Conclusion:** Generative augmentation wasn't actually running or had no impact
+
+### Finding 2: Stage 1 Still "Improves" Without Augmentation
+- Despite "0 trainable params", Stage 1 consistently improves over pre-training
+- This happens with AND without augmentation
+- **Mystery remains unsolved**
+
+### Finding 3: RF Quality Doubles with 50% Data
+- metadata @ 100%: Kappa 0.09
+- metadata @ 50%: Kappa 0.22
+- **The RF model performs WORSE with more data!**
+- This is likely due to oversampling artifacts
+
+### Finding 4: 100% Data Causes Negative Stage 1 Kappa
+- 100% data: Stage 1 produces negative kappa in 2/3 folds
+- 50% data: Stage 1 consistently positive (~0.14)
+- **This explains the baseline failure!**
+
+### Finding 5: Image Size Doesn't Matter (at 50% data)
+- 32x32: Kappa 0.2229
+- 128x128: Kappa 0.2194
+- **All sizes perform identically at 50% data**
+
+---
+
+## Phase 2 Summary Table
+
+| Test | Image Size | Data % | Augmentation | Final Kappa |
+|------|------------|--------|--------------|-------------|
+| Task 1 | N/A | 50% | None | **0.2201** (metadata-only) |
+| Task 2 | 128x128 | 100% | None | **0.0908** (failure) |
+| Task 3 | 128x128 | 50% | None | **0.2194** (success) |
+| Bonus | 32x32 | 50% | None | **0.2229** (success) |
+
+---
+
+## Root Cause Update
+
+**Original hypothesis:** "Augmentation lottery causes variance"
+**New finding:** Augmentation has NO effect
+
+**Updated root cause:** The failure at 100% data is due to:
+1. **RF overfitting with oversampled data** - RF performs worse with more data
+2. **Stage 1 negative kappa** - Fixed 70/30 weights combine good RF with bad image model
+3. **Class imbalance interaction** - Oversampling may create artifacts
+
+**The fusion architecture is fundamentally broken:**
+- Stage 1 has 0 trainable params (can't learn)
+- Fixed 70/30 weights can't adapt
+- RF gets WORSE with more data (oversampling issue)
+- Image model at 128x128 is too weak to contribute meaningfully
