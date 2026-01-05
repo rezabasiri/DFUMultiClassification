@@ -166,3 +166,123 @@ AUTOMATIC PRE-TRAINING: thermal_map weights not found
 ================================================================================
 /venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py:642: UserWarning: Input dict contained keys ['metadata_input'] which did not match any model input. They will be ignored by the model.
   inputs = self._flatten_to_reference_inputs(inputs)
+2026-01-05 19:41:51.547131: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+2026-01-05 19:42:39.530088: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Restoring model weights from the end of the best epoch: 14.
+Epoch 34: early stopping
+  Pre-training completed! Best val kappa: 0.0638
+  WARNING: 0 trainable parameters! This will prevent learning!
+================================================================================
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+
+Run 2 Results for metadata+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.38      0.32      0.35       345
+           P       0.62      0.71      0.66       579
+           R       0.50      0.24      0.33        62
+
+    accuracy                           0.54       986
+   macro avg       0.50      0.42      0.44       986
+weighted avg       0.53      0.54      0.53       986
+
+Cohen's Kappa: 0.0733
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.5436
+F1 Macro: 0.4448
+Kappa: 0.0733
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+2026-01-05 19:43:39.599076: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+Using Scikit-learn RandomForestClassifier
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 3/3
+2026-01-05 19:47:22.521336: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+================================================================================
+AUTOMATIC PRE-TRAINING: thermal_map weights not found
+  Training thermal_map-only model first (same data split)...
+================================================================================
+/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py:642: UserWarning: Input dict contained keys ['metadata_input'] which did not match any model input. They will be ignored by the model.
+  inputs = self._flatten_to_reference_inputs(inputs)
+2026-01-05 19:47:28.641252: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+2026-01-05 19:48:13.468228: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Restoring model weights from the end of the best epoch: 11.
+Epoch 31: early stopping
+  Pre-training completed! Best val kappa: 0.0632
+  WARNING: 0 trainable parameters! This will prevent learning!
+================================================================================
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+
+Run 3 Results for metadata+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.29      0.30      0.29       254
+           P       0.56      0.51      0.54       585
+           R       0.18      0.25      0.21        96
+
+    accuracy                           0.43       935
+   macro avg       0.34      0.35      0.34       935
+weighted avg       0.45      0.43      0.44       935
+
+Cohen's Kappa: 0.1797
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.4278
+F1 Macro: 0.3450
+Kappa: 0.1797
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_valid.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_valid.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run3_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run3_valid.npy
+Results for metadata, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+thermal_map
+  Accuracy: 0.5615 ± 0.0233
+  F1 Macro: 0.4319
+  Kappa: 0.1978
+
+Best by F1 Macro:
+  Modalities: metadata+thermal_map
+  Accuracy: 0.5149
+  F1 Macro: 0.4389 ± 0.0201
+  Kappa: 0.2786
+
+Total combinations tested: 6
+================================================================================
+
