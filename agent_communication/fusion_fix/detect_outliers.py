@@ -21,17 +21,18 @@ import sys
 # Add project root to path
 sys.path.insert(0, '/workspace/DFUMultiClassification')
 
-from src.data.caching import load_preprocessed_data
-from src.utils.verbosity import vprint
+from src.utils.config import get_data_paths, get_project_paths
 
 print("=" * 80)
 print("Phase 7: Explicit Outlier Detection using Isolation Forest")
 print("=" * 80)
 print()
 
-# Load full dataset
-print("Loading 100% preprocessed data...")
-metadata_df, image_dict, label_encoder = load_preprocessed_data()
+# Load full dataset from CSV
+print("Loading 100% data from CSV...")
+_, _, root = get_project_paths()
+data_paths = get_data_paths(root)
+metadata_df = pd.read_csv(data_paths['csv_file'])
 print(f"Loaded {len(metadata_df)} samples")
 print()
 
@@ -44,11 +45,15 @@ for cls in ['I', 'P', 'R']:
     print(f"  {cls}: {count:3d} ({pct:5.1f}%)")
 print()
 
-# Prepare features for outlier detection
+# Prepare features for outlier detection (numeric only)
 print("Preparing features for outlier detection...")
-feature_cols = [col for col in metadata_df.columns
-                if col not in ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']]
-X = metadata_df[feature_cols].values
+exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs', 'Healing Phase',
+                'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
+feature_cols = [col for col in metadata_df.select_dtypes(include=[np.number]).columns
+                if col not in exclude_cols]
+X = metadata_df[feature_cols].fillna(metadata_df[feature_cols].median()).values
 y = metadata_df['Healing Phase Abs'].values
 patient_ids = metadata_df['Patient#'].values
 print(f"Using {len(feature_cols)} features")

@@ -1,0 +1,139 @@
+================================================================================
+Phase 7: Explicit Outlier Detection using Isolation Forest
+================================================================================
+
+Loading 100% data from CSV...
+Loaded 890 samples
+
+Original class distribution:
+  I: 276 ( 31.0%)
+  P: 496 ( 55.7%)
+  R: 118 ( 13.3%)
+
+Preparing features for outlier detection...
+Using 53 features
+
+================================================================================
+Testing contamination rate: 5%
+================================================================================
+
+Class I:
+  Original: 276 samples
+  Outliers detected: 14 (5.1%)
+  Remaining: 262
+
+Class P:
+  Original: 496 samples
+  Outliers detected: 25 (5.0%)
+  Remaining: 471
+
+Class R:
+  Original: 118 samples
+  Outliers detected: 6 (5.1%)
+  Remaining: 112
+
+Total outliers detected: 45 (5.1%)
+Cleaned dataset size: 845 samples
+
+Cleaned class distribution:
+  I: 262 (removed 14, 5.1%)
+  P: 471 (removed 25, 5.0%)
+  R: 112 (removed 6, 5.1%)
+
+Saved to: /workspace/DFUMultiClassification/data/cleaned/metadata_cleaned_05pct.csv
+
+Outlier list saved to: /workspace/DFUMultiClassification/data/cleaned/outliers_05pct.csv
+
+================================================================================
+Testing contamination rate: 10%
+================================================================================
+
+Class I:
+  Original: 276 samples
+  Outliers detected: 28 (10.1%)
+  Remaining: 248
+
+Class P:
+  Original: 496 samples
+  Outliers detected: 50 (10.1%)
+  Remaining: 446
+
+Class R:
+  Original: 118 samples
+  Outliers detected: 12 (10.2%)
+  Remaining: 106
+
+Total outliers detected: 90 (10.1%)
+Cleaned dataset size: 800 samples
+
+Cleaned class distribution:
+  I: 248 (removed 28, 10.1%)
+  P: 446 (removed 50, 10.1%)
+  R: 106 (removed 12, 10.2%)
+
+Saved to: /workspace/DFUMultiClassification/data/cleaned/metadata_cleaned_10pct.csv
+
+Outlier list saved to: /workspace/DFUMultiClassification/data/cleaned/outliers_10pct.csv
+
+================================================================================
+Testing contamination rate: 15%
+================================================================================
+
+Class I:
+  Original: 276 samples
+  Outliers detected: 42 (15.2%)
+  Remaining: 234
+
+Class P:
+  Original: 496 samples
+  Outliers detected: 75 (15.1%)
+  Remaining: 421
+
+Class R:
+  ⚠️  Reducing contamination for minority class: 15% → 10%
+  Original: 118 samples
+  Outliers detected: 12 (10.2%)
+  Remaining: 106
+
+Total outliers detected: 129 (14.5%)
+Cleaned dataset size: 761 samples
+
+Cleaned class distribution:
+  I: 234 (removed 42, 15.2%)
+  P: 421 (removed 75, 15.1%)
+  R: 106 (removed 12, 10.2%)
+
+Saved to: /workspace/DFUMultiClassification/data/cleaned/metadata_cleaned_15pct.csv
+
+Outlier list saved to: /workspace/DFUMultiClassification/data/cleaned/outliers_15pct.csv
+
+================================================================================
+SUMMARY
+================================================================================
+
+Cleaned datasets created:
+  5% contamination: 845 samples
+    Outliers removed: I=14, P=25, R=6
+    File: /workspace/DFUMultiClassification/data/cleaned/metadata_cleaned_05pct.csv
+
+  10% contamination: 800 samples
+    Outliers removed: I=28, P=50, R=12
+    File: /workspace/DFUMultiClassification/data/cleaned/metadata_cleaned_10pct.csv
+
+  15% contamination: 761 samples
+    Outliers removed: I=42, P=75, R=12
+    File: /workspace/DFUMultiClassification/data/cleaned/metadata_cleaned_15pct.csv
+
+================================================================================
+Next Steps:
+================================================================================
+1. Train fusion model on each cleaned dataset
+2. Compare performance with 50% data (Kappa 0.279)
+3. If cleaned 100% ≈ 50% → Implicit outlier removal hypothesis CONFIRMED
+4. Use best contamination rate for production
+
+Expected results:
+  5% contamination:  Moderate improvement (Kappa 0.19-0.21)
+  10% contamination: Good improvement (Kappa 0.22-0.24)
+  15% contamination: Best improvement (Kappa 0.25-0.27, matching 50%)
+================================================================================
