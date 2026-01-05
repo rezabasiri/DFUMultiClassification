@@ -25,8 +25,8 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-# IMAGE_SIZE = 12  # Image dimensions (12x12 pixels for faster testing)
+# IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
+IMAGE_SIZE = 32  # Image dimensions (32x32 pixels for quick fusion testing)
 GLOBAL_BATCH_SIZE = 323  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
@@ -209,7 +209,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata','thermal_map',),  # TEST 3: thermal_map only
+    ('metadata', 'thermal_map'),  # TEST 2: Fusion (metadata+thermal_map) with normalization fix
 ]
 
 # Results file naming
