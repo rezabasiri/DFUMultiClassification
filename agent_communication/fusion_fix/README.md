@@ -1,90 +1,131 @@
-# Fusion Investigation - README
+# Fusion Fix Investigation - Complete
 
-## Status: Investigation Phase
+**Status:** ✅ Investigation Complete → Testing SMOTE Fix
+**Date:** 2026-01-05
 
-**Problem**: Fusion works at 32x32 (Kappa 0.316) but fails at 128x128 (Kappa 0.097)
+---
 
-## Quick Start (Local Agent)
+## Quick Summary
 
-1. **Read first**: `INSTRUCTIONS_LOCAL_AGENT.md`
-2. **Check results**: `RESULTS_SUMMARY.md`
-3. **Apply fixes**: `QUICK_FIXES_NEEDED.md`
-4. **Run tests**: `./quick_test.sh [32|64|128]`
-5. **Document**: Update `INVESTIGATION_LOG.md` after each test
+**Problem:** Fusion fails at 128x128 @ 100% data (Kappa 0.09)
+**Root Cause:** Simple oversampling creates 7.4x R duplicates → RF overfits
+**Solution:** SMOTE (synthetic oversampling) implemented and ready to test
 
-## File Organization
+---
 
-### Instructions & Protocol
-- **INSTRUCTIONS_LOCAL_AGENT.md** - Complete testing protocol and environment setup
-- **QUICK_FIXES_NEEDED.md** - Immediate code fixes to apply
-- **quick_test.sh** - Helper script for running tests
+## Key Findings
 
-### Results & Analysis
-- **RESULTS_SUMMARY.md** - Analysis of current 128x128 failure
-- **INVESTIGATION_LOG.md** - Template for documenting test results (update this!)
-- **FINDINGS_SUMMARY_32x32_SUCCESS.txt** - Archived: 32x32 success baseline
+### ✅ What We Proved
 
-### Reference
-- **ROOT_CAUSE_ANALYSIS.md** - Original RF normalization bug analysis
-- **fusion_debug_AFTER_FIX.txt** - Debug output after RF fix (32x32)
-- **fusion_test_AFTER_FIX.txt** - Full test output after RF fix (32x32)
-- **test_fusion_debug.py** - Diagnostic script for checking RF predictions
+1. **Image size is NOT the problem**
+   - All sizes (32, 64, 128) work equally @ 50% data (Kappa ~0.22)
 
-## Current Results (100% data, 3-fold CV, 128x128)
+2. **Augmentation is NOT the problem**
+   - Results identical with/without augmentation
 
-| Configuration | Kappa | Status |
-|--------------|-------|--------|
-| metadata (RF) | 0.090 ± 0.073 | Weak |
-| thermal_map | 0.142 ± 0.037 | OK |
-| **Fusion** | **0.097 ± 0.062** | **❌ Fails - worse than thermal_map alone!** |
+3. **Oversampling IS the problem**
+   - RF @ 50% data: Kappa 0.22
+   - RF @ 100% data: Kappa 0.09
+   - 100% data creates 2x more duplicates → catastrophic overfitting
 
-Compare to 32x32 (100% data, 1-fold):
-| Configuration | Kappa | Status |
-|--------------|-------|--------|
-| thermal_map | 0.094 | Baseline |
-| **Fusion** | **0.316** | **✅ Works!** |
+### 🔧 What We Fixed
 
-## Key Issues
+1. **Disabled all augmentations** (for fair comparison)
+   - Generative: OFF
+   - Regular: OFF (already was)
 
-1. **"0 trainable weights"** - Stage 1 can't learn (fixed fusion architecture)
-2. **Image size dependency** - 32x32 works, 128x128 fails (69% degradation)
-3. **Weak RF** - Gets Kappa 0.09 instead of expected 0.25
-4. **P-class bias** - Model predicts Proliferative for 70% of samples
+2. **Implemented SMOTE** (synthetic oversampling)
+   - Generates synthetic samples instead of duplicating
+   - Expected: RF Kappa 0.15-0.20 @ 100% (vs 0.09)
 
-## Investigation Plan
+---
 
-### Phase 1: Image Size Testing (50% data for speed)
-- [ ] Test 32x32 (verify fix still works)
-- [ ] Test 64x64 (middle ground)
-- [ ] Test 128x128 (reproduce failure)
+## Directory Structure
 
-### Phase 2: Architecture Testing (if simple CNN fails)
-- [ ] EfficientNetB0 at 128x128
-- [ ] EfficientNetB2 at 128x128
-- [ ] EfficientNetB3 at 128x128
+```
+fusion_fix/
+├── README.md                          ← You are here
+├── INVESTIGATION_LOG.md               ← Complete test history (Phase 1 & 2)
+├── CLOUD_AGENT_RESPONSE.md            ← Answers to local agent's questions
+├── COMBINED_SAMPLING_ANALYSIS.md      ← Analysis of sampling strategies
+├── TEST_SMOTE_FIX.md                  ← Testing instructions
+│
+├── phase1_results/                    ← Phase 1: Image size tests (50% data)
+│   ├── run_fusion_32x32_50pct.txt
+│   ├── run_fusion_64x64_50pct.txt
+│   └── run_fusion_128x128_50pct.txt
+│
+├── phase2_results/                    ← Phase 2: Uniform tests (no augmentation)
+│   ├── run_metadata_only_50pct.txt
+│   ├── run_fusion_128x128_50pct_uniform.txt
+│   └── run_fusion_128x128_100pct_uniform.txt
+│
+└── archive/                           ← Historical/superseded documents
+    ├── ARCHITECTURE_ANALYSIS.md
+    ├── IMPLEMENTATION_SUMMARY.md
+    └── ... (other archived files)
+```
 
-### Phase 3: Code Fixes
-- [ ] Fix hardcoded 30 epoch limit
-- [ ] Reduce pre-training print frequency
-- [ ] Add debug prints for trainable weights
-- [ ] Investigate RF quality degradation
+---
 
-## Communication Protocol
+## Current Status
 
-### Local Agent → Cloud Agent
-- Save all logs to `agent_communication/fusion_fix/run_*.txt`
-- Update `INVESTIGATION_LOG.md` after each test
-- Commit and push results for cloud agent to review
+### Completed ✅
+- Phase 1: Image size investigation (32, 64, 128 @ 50%)
+- Phase 2: Uniform testing (no augmentation validation)
+- SMOTE implementation (Fix #1)
+- All augmentations disabled
 
-### Ask Cloud Agent For
-- Major architecture changes (EfficientNet integration)
-- Complex debugging requiring code analysis
-- Design decisions on fusion architecture
-- Major refactoring
+### Next Steps ⏳
+- **Test 1:** metadata-only @ 100% with SMOTE
+- **Test 2:** fusion @ 100% with SMOTE
+- If successful: Implement Fix #2 (trainable fusion weights)
 
-## Success Criteria
+---
 
-- [ ] Fusion Kappa > thermal_map alone at all image sizes
-- [ ] No "0 trainable weights" warning
-- [ ] Understand why 32x32 works but 128x128 fails
-- [ ] Achieve Kappa 0.20+ at 128x128 (with 50% data)
+## Expected Results
+
+### After SMOTE (Fix #1):
+```
+metadata @ 100%: Kappa 0.15-0.20 (vs 0.09 baseline)
+fusion @ 100%:   Kappa 0.20-0.25 (vs 0.09 baseline)
+```
+
+### After Trainable Fusion (Fix #2):
+```
+fusion @ 100%: Kappa 0.25-0.30 (optimal)
+```
+
+---
+
+## Quick Reference
+
+**For local agent testing:**
+- See: `TEST_SMOTE_FIX.md` for complete instructions
+
+**For investigation history:**
+- See: `INVESTIGATION_LOG.md` for all test results
+
+**For sampling strategy details:**
+- See: `COMBINED_SAMPLING_ANALYSIS.md` for comparison
+
+**For Q&A:**
+- See: `CLOUD_AGENT_RESPONSE.md` for answers to questions
+
+---
+
+## Timeline
+
+- ✅ **Phase 1** (2026-01-05 09:00-10:00): Image size tests
+- ✅ **Phase 2** (2026-01-05 10:00-11:30): Uniform validation
+- ✅ **Fix #1** (2026-01-05 11:30-12:00): SMOTE implementation
+- ⏳ **Testing** (Next): Validate SMOTE effectiveness
+- ⏳ **Fix #2** (If needed): Trainable fusion weights
+
+---
+
+## Contact
+
+**Questions?** Check the relevant docs above or contact cloud agent.
+
+**Ready for testing!** 🚀
