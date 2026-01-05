@@ -36,7 +36,12 @@ STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing - NOTE: Not yet implemented in prepare_cached_datasets)
 
 # Class imbalance handling
-USE_SMOTE = True  # Use SMOTE (synthetic oversampling) instead of random duplication (fixes RF overfitting with 100% data)
+# Options: 'random', 'smote', 'combined', 'combined_smote'
+#   'random': Simple oversampling to MAX class
+#   'smote': SMOTE synthetic oversampling to MAX class
+#   'combined': Undersample majority + oversample minority to MIDDLE class
+#   'combined_smote': Undersample majority + SMOTE minority to MIDDLE class (best of both!)
+SAMPLING_STRATEGY = 'smote'  # Local agent will test all 4 to find best for metadata
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)

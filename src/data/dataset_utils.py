@@ -654,14 +654,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
         # Choose sampling strategy
         if not mix:
-            # Import USE_SMOTE config parameter
-            from src.utils.production_config import USE_SMOTE
-
-            # Select oversampling strategy
-            if USE_SMOTE:
-                vprint("Using SMOTE (synthetic oversampling)...", level=2)
-            else:
-                vprint("Using simple random oversampling...", level=2)
+            # Import SAMPLING_STRATEGY config parameter
+            from src.utils.production_config import SAMPLING_STRATEGY
 
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
@@ -669,6 +663,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             if get_verbosity() == 2:
                 for class_idx in [0, 1, 2]:  # Explicit ordering
                     print(f"Class {class_idx}: {counts[class_idx]}")
+
             # Calculate alpha values from original distribution
             # Use inverse of frequency (uncapped) normalized to sum to 3
             total_samples = sum(counts.values())
@@ -681,17 +676,88 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             alpha_sum = sum(alpha_values)
             alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
-            # Apply oversampling strategy
-            if USE_SMOTE:
+            # Apply selected sampling strategy
+            if SAMPLING_STRATEGY == 'combined':
+                # Combined sampling: undersample majority, then oversample minority
+                # Balances to MIDDLE class count (fewer duplicates than pure oversampling)
+                vprint("Using combined sampling (under + over)...", level=2)
+
+                # Step 1: Undersample majority class (P) to match middle class (I)
+                intermediate_target = {
+                    count_items[1][1]: count_items[1][0],  # I stays same
+                    count_items[2][1]: count_items[1][0],  # P reduced to match I
+                    count_items[0][1]: counts[count_items[0][1]]  # R stays same (smallest)
+                }
+
+                undersampler = RandomUnderSampler(
+                    sampling_strategy=intermediate_target,
+                    random_state=42 + run * (run + 3)
+                )
+                X_under, y_under = undersampler.fit_resample(X, y)
+
+                # Print after undersampling
+                under_counts = Counter(y_under)
+                vprint("\nAfter undersampling (ordered):", level=2)
+                if get_verbosity() == 2:
+                    for class_idx in [0, 1, 2]:
+                        print(f"Class {class_idx}: {under_counts[class_idx]}")
+
+                # Step 2: Oversample minority class (R) to match others
+                final_target = {
+                    count_items[1][1]: count_items[1][0],  # I stays same
+                    count_items[2][1]: count_items[1][0],  # P stays reduced
+                    count_items[0][1]: count_items[1][0]   # R boosted to match
+                }
+
+                oversampler = RandomOverSampler(
+                    sampling_strategy=final_target,
+                    random_state=42 + run * (run + 3)
+                )
+                X_resampled, y_resampled = oversampler.fit_resample(X_under, y_under)
+
+            elif SAMPLING_STRATEGY == 'combined_smote':
+                # Combined + SMOTE: Best of both worlds!
+                # Undersample majority, then SMOTE minority (balances to MIDDLE class with synthetic samples)
+                vprint("Using combined + SMOTE (under + synthetic over)...", level=2)
+
+                # Step 1: Undersample majority class (P) to match middle class (I)
+                intermediate_target = {
+                    count_items[1][1]: count_items[1][0],  # I stays same
+                    count_items[2][1]: count_items[1][0],  # P reduced to match I
+                    count_items[0][1]: counts[count_items[0][1]]  # R stays same (smallest)
+                }
+
+                undersampler = RandomUnderSampler(
+                    sampling_strategy=intermediate_target,
+                    random_state=42 + run * (run + 3)
+                )
+                X_under, y_under = undersampler.fit_resample(X, y)
+
+                # Print after undersampling
+                under_counts = Counter(y_under)
+                vprint("\nAfter undersampling (ordered):", level=2)
+                if get_verbosity() == 2:
+                    for class_idx in [0, 1, 2]:
+                        print(f"Class {class_idx}: {under_counts[class_idx]}")
+
+                # Step 2: SMOTE minority class (R) to match others
+                vprint("Applying SMOTE to minority class...", level=2)
+                oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
+                X_resampled, y_resampled = oversampler.fit_resample(X_under, y_under)
+
+            elif SAMPLING_STRATEGY == 'smote':
                 # SMOTE: Synthetic Minority Over-sampling Technique
                 # Generates synthetic samples instead of duplicating existing ones
                 # Fixes RF overfitting issue with 100% data (RF Kappa 0.09 → 0.15-0.20 expected)
+                vprint("Using SMOTE (synthetic oversampling)...", level=2)
                 oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
-            else:
-                # Simple random duplication (original method)
-                oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
+                X_resampled, y_resampled = oversampler.fit_resample(X, y)
 
-            X_resampled, y_resampled = oversampler.fit_resample(X, y)
+            else:  # 'random' or default
+                # Simple random duplication (original baseline method)
+                vprint("Using simple random oversampling...", level=2)
+                oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
+                X_resampled, y_resampled = oversampler.fit_resample(X, y)
 
             resampled_df = pd.DataFrame(X_resampled, columns=X.columns)
             resampled_df['Healing Phase Abs'] = y_resampled
