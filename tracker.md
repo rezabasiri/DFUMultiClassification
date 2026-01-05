@@ -1016,6 +1016,17 @@ from sklearn.preprocessing import StandardScaler
 - Proceeds with two-stage fusion training
 - **Single command execution** - no manual two-step workflow required!
 
+**CRITICAL BUG FIX** (2026-01-04): RF probability normalization
+- **Bug**: Ordinal RF probabilities didn't sum to 1.0 (summed to ~1.04-1.10)
+- **Formula**: `prob_I + prob_P + prob_R = 1 + prob2(1-prob1)` ≠ 1.0
+- **Impact**: Fusion catastrophically failed (Kappa -0.007, worse than random!)
+- **Fix**: Added normalization step: divide each probability by total sum
+- **Files**: `src/data/dataset_utils.py:1031-1037`, `src/data/caching.py:539-545`
+- **Results** (32x32, 1-fold):
+  - Before fix: Kappa -0.007 ❌
+  - After fix: Kappa 0.3158 ✅ (441% better than thermal_map baseline 0.0584)
+- **Details**: See `agent_communication/fusion_fix/ROOT_CAUSE_ANALYSIS.md`
+
 **Testing protocol**: Just run fusion training - automatic pre-training handles everything!
 ```bash
 # In production_config.py:
