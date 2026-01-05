@@ -1650,7 +1650,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 
                 finally:
                     # Clean up
-                    gen_manager.cleanup()
+                    if gen_manager is not None:
+                        gen_manager.cleanup()
                     gc.collect()
 
             # Check if training succeeded

@@ -426,3 +426,122 @@ Cloud agent disabled GenerativeAugmentation to ensure deterministic training.
 - Fixed 70/30 weights can't adapt
 - RF gets WORSE with more data (oversampling issue)
 - Image model at 128x128 is too weak to contribute meaningfully
+
+---
+
+# PHASE 3: Sampling Strategy Optimization
+**Date:** 2026-01-05 11:30-12:45 UTC
+
+## Goal
+Find optimal sampling strategy to fix RF performance degradation at 100% data.
+
+## Sampling Strategy Comparison (metadata @ 100%)
+
+| Strategy | Fold 1 | Fold 2 | Fold 3 | **Avg Kappa** | vs Baseline |
+|----------|--------|--------|--------|---------------|-------------|
+| random   | 0.0136 | 0.0670 | 0.1884 | **0.0897**    | baseline    |
+| smote    | 0.0255 | 0.1450 | 0.2095 | **0.1267**    | +41%        |
+| combined | 0.1868 | 0.1151 | 0.1913 | **0.1644**    | +83%        |
+| combined_smote | 0.1701 | 0.1308 | 0.1944 | **0.1651** | **+84%**    |
+
+### Winner: `combined_smote`
+
+**Why it works:**
+1. Undersamples majority class (P) to match middle class (I) - prevents overfitting
+2. Uses SMOTE for minority class (R) - synthetic samples, no duplicates
+3. Balanced dataset with fewer samples = better generalization
+
+---
+
+## Test 7: Fusion @ 100% with combined_smote - COMPLETED
+**Date:** 2026-01-05 12:30-12:45 UTC
+**Settings:** IMAGE_SIZE=32, DATA_PERCENTAGE=100%, SAMPLING_STRATEGY=combined_smote
+**Log:** `run_fusion_32x32_100pct.txt`
+
+**Results:**
+| Fold | Pre-train Kappa | Stage 1 Kappa | Final Kappa |
+|------|-----------------|---------------|-------------|
+| 1    | 0.0741          | 0.0266        | **0.1373**  |
+| 2    | 0.0221          | 0.1671        | **0.1878**  |
+| 3    | 0.1002          | 0.0214        | **0.1687**  |
+| **Avg** | **0.0655**   | **0.0717**    | **0.1646**  |
+
+**Comparison:**
+- Baseline (100%, random sampling): Kappa 0.029
+- With combined_smote (100%): Kappa **0.1646**
+- **Improvement: +467%!**
+
+### Key Observations
+
+1. **Stage 1 NOW produces positive kappa in all folds!**
+   - Previously with random sampling: 2/3 folds had NEGATIVE Stage 1 kappa
+   - With combined_smote: All folds positive (0.0214 to 0.1671)
+
+2. **Still lower than 50% data results**
+   - 50% data: Kappa 0.22
+   - 100% data with combined_smote: Kappa 0.16
+   - But massive improvement over baseline 0.029!
+
+3. **SMOTE synthetic samples can't match images**
+   - Warning: ~399 "SYN_*" file not found errors per fold
+   - Synthetic metadata rows have no corresponding images
+   - Training continues by skipping these samples
+
+---
+
+## Phase 3 Key Findings
+
+### Finding 1: Sampling Strategy is Critical
+- Random oversampling KILLS RF performance at 100% data
+- combined_smote provides +84% improvement over random
+- Undersampling majority class is the key insight
+
+### Finding 2: SMOTE Incompatible with Multimodal
+- SMOTE creates synthetic metadata rows
+- No corresponding images exist for synthetic samples
+- Works for metadata-only, but suboptimal for fusion
+
+### Finding 3: 100% Data Can Work with Right Strategy
+- Baseline: 0.029 (failure)
+- combined_smote: 0.1646 (workable)
+- Still not as good as 50% data (0.22), but usable
+
+---
+
+## Final Summary Table
+
+| Test | Data % | Sampling | Augment | Image Size | Final Kappa |
+|------|--------|----------|---------|------------|-------------|
+| Phase 1 Test 1 | 50% | random | Yes | 32x32 | **0.223** |
+| Phase 1 Test 2 | 50% | random | Yes | 64x64 | **0.219** |
+| Phase 1 Test 3 | 50% | random | Yes | 128x128 | **0.219** |
+| Phase 2 Task 1 | 50% | random | No | N/A | **0.220** (metadata) |
+| Phase 2 Task 2 | 100% | random | No | 128x128 | **0.091** (failure) |
+| Phase 2 Task 3 | 50% | random | No | 128x128 | **0.219** |
+| **Phase 3** | **100%** | **combined_smote** | No | 32x32 | **0.165** |
+
+---
+
+## Conclusions
+
+### Root Cause Confirmed
+The 100% data failure is caused by **random oversampling artifacts**, NOT image size.
+- Random oversampling duplicates minority class samples 7.4x
+- RF overfits to duplicated samples
+- Stage 1 produces negative kappa with corrupted RF predictions
+
+### Solution Found
+Use `combined_smote` sampling strategy:
+- Undersample majority (P) to match middle class (I)
+- SMOTE oversample minority (R) with synthetic samples
+- Result: +467% improvement over baseline at 100% data
+
+### Remaining Issues
+1. **SMOTE + multimodal incompatibility** - Synthetic metadata has no images
+2. **Stage 1 still has 0 trainable params** - Architecture issue unresolved
+3. **50% data still outperforms 100%** - More investigation needed
+
+### Recommendations for Cloud Agent
+1. Consider using `combined` instead of `combined_smote` for fusion (avoids image mismatch)
+2. Investigate why 50% data outperforms 100% even with proper sampling
+3. Consider making fusion weights trainable to adapt to data quality
