@@ -2,86 +2,97 @@
 
 **Date:** 2026-01-06
 **Branch:** claude/run-dataset-polishing-X1NHe
-**Status:** EXPERIMENT INVALID - Bug discovered
+**Status:** COMPLETED - Augmentation working, minimal impact
 
 ## Summary
 
-This experiment intended to test whether general augmentation (brightness, contrast, saturation, Gaussian noise) improves model performance. **However, a bug caused the augmentation to fail for all images**, making the results equivalent to baseline.
+This experiment tested whether general augmentation (brightness, contrast, saturation, Gaussian noise) improves model performance. After fixing two bugs, the augmentation runs correctly but provides **negligible improvement** over baseline.
 
-## Bug Description
+## Bugs Fixed
 
-**Root Cause:** Shape mismatch between config and actual image size.
+### Bug 1: Image Size Mismatch
+**Root Cause:** Hardcoded 64x64 in `AugmentationConfig` instead of using `IMAGE_SIZE` from production_config.
 
-| Component | Value |
-|-----------|-------|
-| Expected size (config) | 64x64 |
-| Actual image size | 32x32 |
+**Fix Applied:**
+```python
+# In generative_augmentation_v2.py
+from src.utils.production_config import IMAGE_SIZE
 
-**Technical Details:**
-- `src/data/image_processing.py:26` creates a global `_augmentation_config = AugmentationConfig()` with default 64x64 output size
-- `src/training/training_utils.py:946-947` updates a **local** `aug_config` to 32x32, but this never updates the global config used by `image_processing.py`
-- When `augment_image()` is called, `tf.ensure_shape()` at `generative_augmentation_v2.py:171-176` fails because it expects `[None, 64, 64, 3]` but gets `[1, 32, 32, 3]`
-- Exceptions are caught and images fall back to non-augmented versions
-
-**Error Messages Observed:**
-```
-Error in augment_image: Dimension 1 in both shapes must be equal, but are 64 and 32.
-A deterministic GPU implementation of AdjustContrastv2 is not currently available.
+# Changed from:
+'output_size': {'height': 64, 'width': 64}
+# To:
+'output_size': {'height': IMAGE_SIZE, 'width': IMAGE_SIZE}
 ```
 
-## Results (Invalid - No Augmentation Applied)
+### Bug 2: GPU Determinism Error
+**Root Cause:** `tf.image.random_contrast` doesn't have a deterministic GPU implementation, causing failures when `TF_DETERMINISTIC_OPS=1`.
+
+**Fix Applied:**
+```python
+# In augment_image() - wrap augmentation in CPU context:
+with tf.device('/CPU:0'):
+    # ... augmentation operations ...
+```
+
+## Results (Valid - Augmentation Applied)
 
 | Metric | With Augmentation | Baseline | Change | % Change |
 |--------|------------------|----------|--------|----------|
-| Cohen's Kappa | 0.2977 | 0.2976 | +0.0001 | +0.03% |
-| Accuracy | 0.5616 | 0.5561 | +0.0055 | +0.99% |
-| Macro F1 | 0.4951 | 0.4937 | +0.0014 | +0.28% |
-| Weighted F1 | 0.5629 | 0.5568 | +0.0061 | +1.10% |
-
-**Note:** Results are virtually identical because augmentation failed silently.
+| Cohen's Kappa | 0.2991 | 0.2976 | +0.0015 | +0.50% |
+| Accuracy | 0.5587 | 0.5561 | +0.0026 | +0.47% |
+| Macro F1 | 0.4930 | 0.4937 | -0.0007 | -0.14% |
+| Weighted F1 | 0.5610 | 0.5568 | +0.0042 | +0.75% |
 
 ## Per-Class F1 Scores
 
-| Class | With Augmentation | Baseline |
-|-------|------------------|----------|
-| I (Infection) | 0.4668 | - |
-| P (Peripheral) | 0.6420 | - |
-| R (Registered) | 0.3766 | - |
+| Class | With Augmentation | Baseline | Change |
+|-------|------------------|----------|--------|
+| I (Infection) | 0.4719 | 0.4668 | +0.51% |
+| P (Peripheral) | 0.6375 | 0.6420 | -0.70% |
+| R (Registered) | 0.3697 | 0.3766 | -1.83% |
 
-## Required Fix
+## Per-Fold Kappa
 
-To enable augmentation, update `image_processing.py` to pass the correct image size to `AugmentationConfig`, or expose a function to update the global config:
+| Fold | Kappa |
+|------|-------|
+| 1 | 0.3672 |
+| 2 | 0.3225 |
+| 3 | 0.2077 |
+| **Mean** | **0.2991** |
+| Std | 0.0672 |
 
-**Option 1:** Update global config during initialization
-```python
-# In image_processing.py, add a function:
-def set_augmentation_config(image_size):
-    global _augmentation_config
-    _augmentation_config.generative_settings['output_size']['width'] = image_size
-    _augmentation_config.generative_settings['output_size']['height'] = image_size
-```
+## Analysis
 
-**Option 2:** Remove the hardcoded `tf.ensure_shape()` check in `augment_image()` that assumes 64x64
+1. **Overall Impact:** Negligible - changes are within noise range
+2. **Per-Class Impact:**
+   - Slight improvement for Infection class (+0.51%)
+   - Slight degradation for Peripheral (-0.70%) and Registered (-1.83%)
+3. **Variance:** High variance between folds (Kappa: 0.21 to 0.37)
 
 ## Recommendation
 
-1. **Fix the bug** before re-running the augmentation experiment
-2. Do not merge augmentation changes until the fix is verified
-3. Re-run the experiment after the fix to get valid results
+**Keep augmentation:** NO - disable `USE_GENERAL_AUGMENTATION`
 
-## Warnings and Other Issues (Non-Critical)
+The augmentation adds computational overhead (CPU-based to avoid GPU determinism issues) without meaningful improvement. The ~0.5% Kappa improvement is within the noise range given the high variance (std = 0.067).
+
+## Configuration for Disabling
+
+To disable augmentation, set in `production_config.py`:
+```python
+USE_GENERAL_AUGMENTATION = False
+```
+
+## Warnings (Non-Critical)
 
 | Warning | Severity | Notes |
 |---------|----------|-------|
 | sklearn FutureWarning | Low | BaseEstimator deprecation, cosmetic |
 | TensorFlow cache warning | Low | Dataset caching optimization |
-| cuDNN/cuBLAS registration | Low | Normal TensorFlow startup |
-| GPU determinism (AdjustContrastv2) | Medium | Related to augmentation failure |
+| NodeDef attribute warning | Low | TensorFlow version compatibility |
+| Keras input structure warning | Low | Multi-input model structure |
 
 ## Conclusion
 
-**Experiment Status:** INVALID
+**Experiment Status:** COMPLETED
 
-The augmentation was not applied due to a configuration bug. Results are baseline equivalent. The bug must be fixed before a valid comparison can be made.
-
-**Keep augmentation:** UNDETERMINED - retest required after bug fix
+General augmentation (brightness, contrast, saturation, Gaussian noise) does not meaningfully improve performance for this dataset. The high variance between folds suggests the model is sensitive to data splits, not augmentation. Consider focusing on other improvements like model architecture or feature engineering.
