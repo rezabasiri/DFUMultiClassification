@@ -222,11 +222,11 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
                 
                 img_path = os.path.join(base_folders[modality_str], filename_str)
                 img_tensor = load_and_preprocess_image(
-                    img_path, 
+                    img_path,
                     bb_coords_float,
                     modality_str,
                     target_size=(image_size, image_size),
-                    augment=False
+                    augment=is_training  # Enable augmentation for training data only
                 )
                 
                 # Convert TensorFlow tensor to numpy array
