@@ -11,6 +11,8 @@ import traceback
 import numpy as np
 import threading
 
+from src.utils.production_config import IMAGE_SIZE
+
 class AugmentationConfig:
     def __init__(self):
         # Per-modality settings
@@ -71,7 +73,7 @@ class AugmentationConfig:
         
         # Global generative settings
         self.generative_settings = {
-            'output_size': {'height': 64, 'width': 64},
+            'output_size': {'height': IMAGE_SIZE, 'width': IMAGE_SIZE},
             'prob': 0.50,
             'mix_ratio_range': (0.01, 0.05),
             'inference_steps': 10, #200,
@@ -143,39 +145,40 @@ def augment_image(image, modality, seed, config):
     # Early returns
     if not config.modality_settings[modality]['regular_augmentations']['enabled']:
         return image
-    
+
     if len(tf.shape(image)) != 4 or tf.shape(image)[-1] != 3:
         return image
-    
+
     # Get seed value
     seed_val = tf.get_static_value(seed)
     if seed_val is None:
         seed_val = 42
-    
-    # Try augmentation
+
+    # Try augmentation - run on CPU to avoid deterministic GPU issues with AdjustContrastv2
     try:
         settings = config.modality_settings[modality]['regular_augmentations']
-        if modality in ['depth_rgb', 'thermal_rgb']:
-            augmented = tf.map_fn(
-                lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
-                image,
-                fn_output_signature=tf.float32
-            )
-        else:
-            augmented = tf.map_fn(
-                lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
-                image,
-                fn_output_signature=tf.float32
-            )
-        
+        with tf.device('/CPU:0'):
+            if modality in ['depth_rgb', 'thermal_rgb']:
+                augmented = tf.map_fn(
+                    lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
+                    image,
+                    fn_output_signature=tf.float32
+                )
+            else:
+                augmented = tf.map_fn(
+                    lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
+                    image,
+                    fn_output_signature=tf.float32
+                )
+
         augmented = tf.ensure_shape(augmented, [
-            None, 
+            None,
             config.generative_settings['output_size']['height'],
-            config.generative_settings['output_size']['width'], 
+            config.generative_settings['output_size']['width'],
             3
         ])
         return augmented  # Return the augmented image if successful
-        
+
     except Exception as e:
         print(f"Error in augment_image: {str(e)}")
         return image
