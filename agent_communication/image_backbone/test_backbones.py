@@ -67,8 +67,8 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
         'python', 'src/main.py',
         '--mode', 'search',
         '--device-mode', DEVICE_MODE,
-        '--resume-mode', RESUME_MODE,
-        '--data-percentage', str(DATA_PERCENTAGE)
+        '--resume_mode', RESUME_MODE,
+        '--data_percentage', str(DATA_PERCENTAGE)
     ]
 
     start_time = time.time()
@@ -251,8 +251,6 @@ def main():
     total_tests = len(test_combinations)
     print(f"Total tests to run: {total_tests}")
     print(f"Estimated time: {total_tests * 10} - {total_tests * 15} minutes\n")
-
-    input("Press Enter to start tests...")
 
     # Run all tests
     all_results = []
