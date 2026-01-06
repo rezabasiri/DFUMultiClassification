@@ -1038,9 +1038,9 @@ python src/main.py --mode search --cv_folds 3 --verbosity 3 --resume_mode fresh
 
 ---
 
-## 2026-01-06 — Fusion optimization complete: 15% outlier removal + production setup
+## 2026-01-06 — Fusion optimization + integrated outlier removal pipeline
 
-### Phase 1-7 investigation resolves "50% beats 100%" mystery
+### Phase 1-7 investigation resolves "50% beats 100%" mystery + production integration
 
 **Investigation scope**: 7 phases, 25+ test configurations spanning image size, sampling strategies, outlier removal
 **Root cause**: Oversampling strategy (not image size) + noisy training samples
@@ -1052,33 +1052,52 @@ python src/main.py --mode search --cv_folds 3 --verbosity 3 --resume_mode fresh
 - Phase 6: 50% data performance seed-dependent (seed 789: 0.2786, seed 123: 0.207, -25%)
 - Phase 7: Explicit 15% outlier removal matches seed 789 (0.2714 vs 0.2786, gap 2.6%)
 
-**Files modified**:
+**Files created/modified**:
+- `src/utils/outlier_detection.py`: **NEW** - Core outlier detection utilities (Isolation Forest, per-class, metadata-only)
+- `src/main.py`: **Integrated outlier removal** with CLI flags (`--outlier-removal`, `--outlier-contamination`)
+  - Auto-detects if metadata in modality combinations
+  - Transparent application (uses cache if exists)
+  - Backup/restore mechanism
 - `src/utils/production_config.py`: Updated IMAGE_SIZE, SAMPLING_STRATEGY comments with production guidance
-- `agent_communication/fusion_fix/FUSION_FIX_GUIDE.md`: **Unified documentation** (concise, all 7 phases, file references, stats)
-- `run_production_fusion.py`: **End-to-end production script** (outlier detection + dataset swap + training + results)
+- `agent_communication/fusion_fix/FUSION_FIX_GUIDE.md`: **Enhanced documentation**
+  - Added two-stage training section (freeze/unfreeze strategy to prevent overfitting)
+  - Updated Quick Start with integrated CLI commands
+  - Documented auto-detection behavior
 - `agent_communication/fusion_fix/`: Organized into `scripts_production/`, `results_final/`, `archived_intermediate_files/`
 
 **Production configuration** (validated Kappa 0.27 ± 0.08):
 ```python
 IMAGE_SIZE = 32  # Optimal for fusion
 SAMPLING_STRATEGY = 'combined'  # Undersample P + oversample R to middle
-# Run outlier detection once: 15% contamination
+# Outlier removal: Enabled by default in main.py (--outlier-removal, 15% contamination)
 ```
 
 **Cleanup**:
 - Archived 60+ intermediate files (instructions, old tests, invalid results)
 - Retained 13 final result files + 2 production scripts
+- Removed `run_production_fusion.py` (functionality integrated into main.py)
 - Created single unified guide replacing multiple scattered docs
 
-**To run production**:
+**To run production** (single command, outlier removal enabled by default):
 ```bash
-python run_production_fusion.py  # End-to-end: detect outliers → apply → train → report
+python src/main.py --mode search --cv_folds 3 --verbosity 2 --resume_mode fresh
+# Automatic: outlier detection (15%) → apply cleaned → two-stage training → results
 # Expected: Kappa 0.27 ± 0.08, ~30 min on 8x RTX 4090
+
+# Disable outlier removal (test baseline):
+python src/main.py --mode search --no-outlier-removal
 ```
 
 **Performance summary**:
 - Original (128x128, random): Kappa 0.029 ❌
 - Fixed (32x32, combined): Kappa 0.1664 ✅ (+467%)
 - Production (32x32, 15% cleaned): Kappa 0.2714 ✅ (+834% vs original, +63% vs fixed)
+
+**Key integration features**:
+- Modality-aware: Only runs outlier detection if metadata in tested combinations
+- Cache-aware: Reuses existing cleaned datasets (fast)
+- Safe: Backs up original data before modification
+- Transparent: Clear logging of outlier removal process
+- Configurable: `--outlier-contamination` flag (default 0.15, range 0.05-0.20)
 
 ---

@@ -264,6 +264,48 @@ RANDOM_SEED = 789
 
 **Script:** `scripts_production/detect_outliers.py`
 
+### Two-Stage Training: Freeze/Unfreeze Strategy
+
+**Problem:** Fusion models can overfit when image and metadata branches train together from scratch
+- Image branch learns to overfit training data when optimizing with strong RF signal
+- Result: Train Kappa 0.96, Val Kappa 0.02 (catastrophic overfitting)
+
+**Solution:** Two-stage training with frozen→unfrozen image branch
+
+**Stage 1 - Establish Stable Baseline (30 epochs):**
+1. Load pre-trained image-only weights (thermal_map, depth_rgb, etc.)
+2. **Freeze entire image branch** (set trainable=False)
+3. Train fusion with fixed 70/30 weights (RF 70%, Image 30%)
+4. Only fusion layer and metadata adjustments learn
+5. Expected: Kappa ~0.22 (stable, no overfitting)
+
+**Stage 2 - Gentle Fine-Tuning (up to 100 epochs):**
+1. **Unfreeze image branch** (set trainable=True)
+2. Recompile with very low LR (1e-6, 100x lower than Stage 1)
+3. Fine-tune entire model gently
+4. Aggressive early stopping (patience=10) prevents overfitting
+5. Expected: Kappa 0.22-0.28 (potential synergy improvement)
+
+**Implementation:**
+- `src/training/training_utils.py`: Two-stage training in `cross_validation_manual_split()`
+- Automatic pre-training: If image checkpoint missing, trains image-only on same data split first
+- Single command execution: No manual two-step workflow required
+
+**Key Settings:**
+```python
+STAGE1_EPOCHS = 30  # Frozen baseline establishment
+N_EPOCHS = 300  # Max for Stage 2 fine-tuning
+EARLY_STOP_PATIENCE = 20  # Prevents catastrophic overfitting
+```
+
+**Why This Works:**
+1. Pre-trained image weights already learned useful features
+2. Freezing prevents image branch from adapting to training noise
+3. Low LR in Stage 2 prevents large destructive updates
+4. Early stopping catches overfitting before it becomes catastrophic
+
+**Reference:** See tracker.md "Multi-modal fusion catastrophic failure fix (V5: Two-stage fine-tuning)"
+
 ---
 
 ## Performance Summary
@@ -325,40 +367,55 @@ agent_communication/fusion_fix/
 
 ## Quick Start (Production)
 
-### Step 1: Detect and Remove Outliers (One-time)
+**Now integrated directly into main.py!** No separate scripts needed.
+
+### Single Command Training with Outlier Removal
+
 ```bash
-python agent_communication/fusion_fix/scripts_production/detect_outliers.py \
-  --contamination 0.15 \
-  --output data/cleaned \
-  --seed 42
-```
-
-Expected output:
-- `data/cleaned/metadata_cleaned_15pct.csv` (~2645 samples, -15% outliers)
-- `data/cleaned/outliers_15pct.csv` (list of removed samples)
-
-### Step 2: Apply Cleaned Dataset
-```bash
-python agent_communication/fusion_fix/scripts_production/test_cleaned_data.py 15pct
-```
-
-This swaps the cache file with the cleaned version.
-
-### Step 3: Run Training
-```bash
+# Production training with 15% outlier removal (default, enabled automatically)
 python src/main.py --mode search --cv_folds 3 --verbosity 2 \
   --resume_mode fresh --device-mode multi
 ```
+
+**What happens:**
+1. ✅ Automatic outlier detection (15% contamination, metadata only)
+2. ✅ Cleaned dataset applied transparently
+3. ✅ Two-stage fusion training (freeze → unfreeze)
+4. ✅ 3-fold cross-validation
+5. ✅ Results saved to `results/csv/`
 
 **Expected Results:**
 - Per-fold Kappa: 0.21-0.36 (average ~0.27)
 - Training time: ~30 min on 8x RTX 4090
 - Final average Kappa: **0.27 ± 0.08**
 
-### Step 4: Restore Original (if needed)
+### Advanced Options
+
 ```bash
-python agent_communication/fusion_fix/scripts_production/test_cleaned_data.py restore
+# Disable outlier removal (test with all data including outliers)
+python src/main.py --mode search --no-outlier-removal
+
+# Use different contamination rate (more/less aggressive)
+python src/main.py --mode search --outlier-contamination 0.10  # 10% removal (conservative)
+python src/main.py --mode search --outlier-contamination 0.20  # 20% removal (aggressive)
+
+# Quick test with subset of data
+python src/main.py --mode search --cv_folds 1 --data_percentage 10
+
+# Custom modalities (edit production_config.py first)
+# INCLUDED_COMBINATIONS = [('metadata', 'thermal_map')]
+python src/main.py --mode search --cv_folds 3
 ```
+
+### CLI Flags for Outlier Removal
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--outlier-removal` | True | Enable outlier detection (metadata only) |
+| `--no-outlier-removal` | - | Disable outlier removal completely |
+| `--outlier-contamination` | 0.15 | Proportion of outliers (0.05-0.20) |
+
+**Auto-detection:** Only runs if metadata is in modality combinations being tested
 
 ---
 
