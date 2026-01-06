@@ -1,0 +1,117 @@
+================================================================================
+LOCAL AGENT: Enable General Augmentation Experiment
+================================================================================
+
+TASK: Enable general (non-generative) augmentation and compare with baseline
+
+BASELINE: Kappa 0.2976 (no augmentation, already completed)
+TARGET: Test if augmentation improves performance
+
+GUIDE: See ENABLE_AUGMENTATION_TASK.md for details
+
+================================================================================
+CODE CHANGES (4 fixes required)
+================================================================================
+
+FIX 1: src/data/image_processing.py - Add import after line 13
+  Add:
+    from src.data.generative_augmentation_v2 import augment_image, AugmentationConfig
+
+FIX 2: src/data/image_processing.py - Add config after line 22
+  Add:
+    # Create augmentation config for general augmentation
+    _augmentation_config = AugmentationConfig()
+
+FIX 3: src/data/image_processing.py - Fix lines 397-398
+  Change from:
+    img_tensor = augment_image(img_tensor, modality,
+                            tf.random.uniform([], maxval=1000000, dtype=tf.int32))
+
+  Change to:
+    # Add batch dimension for augmentation (expects 4D: [batch, height, width, channels])
+    img_tensor_batched = tf.expand_dims(img_tensor, 0)
+    img_tensor_batched = augment_image(img_tensor_batched, modality,
+                                      tf.random.uniform([], maxval=1000000, dtype=tf.int32),
+                                      _augmentation_config)
+    # Remove batch dimension
+    img_tensor = tf.squeeze(img_tensor_batched, 0)
+
+FIX 4: src/data/dataset_utils.py - Line 229
+  Change from:
+    augment=False
+
+  Change to:
+    augment=is_training
+
+  Note: is_training should be defined earlier in function (around line 187)
+  If not found, investigate where training vs validation datasets are created
+
+================================================================================
+OPTIONAL: Add config flag (recommended)
+================================================================================
+
+File: src/utils/production_config.py
+After line 56 (after OUTLIER_BATCH_SIZE), add:
+
+  # General augmentation (brightness, contrast, saturation for RGB; brightness, contrast for maps)
+  USE_GENERAL_AUGMENTATION = True  # Enable/disable general augmentation
+
+================================================================================
+RUN TRAINING
+================================================================================
+
+Command:
+  python src/main.py --mode search --device-mode single --resume_mode fresh
+
+Expected:
+  - No errors about undefined augment_image
+  - Training completes (3 folds, ~15 min)
+  - Final Kappa: 0.28-0.32 (expect similar or slight improvement)
+
+================================================================================
+REPORT RESULTS
+================================================================================
+
+Create: agent_communication/outlier_detection/AUGMENTATION_RESULTS.md
+
+Include:
+  - Baseline: Kappa 0.2976, Acc 0.5561, F1 0.4937
+  - With Augmentation: Kappa [X], Acc [Y], F1 [Z]
+  - Per-fold results
+  - Comparison table (% change)
+  - Brief conclusion
+
+Then: git add, commit, push to claude/run-dataset-polishing-X1NHe
+
+================================================================================
+TIMELINE: ~35 minutes
+================================================================================
+
+10 min: Code changes
+5 min: Test run (verify no errors)
+15 min: Full training
+5 min: Results writeup
+
+================================================================================
+AUGMENTATION DETAILS
+================================================================================
+
+What's being enabled:
+  - RGB images (depth_rgb, thermal_rgb):
+    * Brightness: ±60% (max_delta=0.6)
+    * Contrast: 0.6-1.4x
+    * Saturation: 0.6-1.4x
+    * Gaussian noise: σ=0.15
+    * Applied with 60% probability
+
+  - Map images (depth_map, thermal_map):
+    * Brightness: ±40% (max_delta=0.4)
+    * Contrast: 0.6-1.4x
+    * Gaussian noise: σ=0.1 (lower than RGB)
+    * NO saturation (maps are single-channel visualized)
+    * Applied with 60% probability
+
+  - Applied to TRAINING data only (not validation)
+  - Generative augmentation stays DISABLED
+
+================================================================================

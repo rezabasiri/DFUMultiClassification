@@ -55,6 +55,12 @@ OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
 OUTLIER_CONTAMINATION = 0.15  # Expected proportion of outliers (0.0-1.0)
 OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
 
+# General augmentation (applied during training only, not validation)
+# RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15
+# Map images: brightness ±40%, contrast 0.6-1.4x, gaussian noise σ=0.1 (no saturation)
+# Applied with 60% probability, different settings for RGB vs maps
+USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augmentation
+
 # Misclassification tracking (for iterative data polishing)
 # Options: 'none', 'both', 'valid', 'train'
 #   'none': Disable tracking (fastest, default for production)
