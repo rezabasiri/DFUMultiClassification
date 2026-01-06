@@ -46,8 +46,32 @@ SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion per
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
 REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR (increased for longer training)
 
-# Outlier detection parameters
-OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction during outlier detection
+# =============================================================================
+# Data Cleaning and Outlier Detection
+# =============================================================================
+
+# Multimodal outlier detection (Isolation Forest on joint feature space)
+OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
+OUTLIER_CONTAMINATION = 0.15  # Expected proportion of outliers (0.0-1.0)
+OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
+
+# Misclassification tracking (for iterative data polishing)
+# Options: 'none', 'both', 'valid', 'train'
+#   'none': Disable tracking (fastest, default for production)
+#   'both': Track from both train and validation sets
+#   'valid': Track only from validation set
+#   'train': Track only from training set (not recommended)
+TRACK_MISCLASS = 'none'  # Misclassification tracking mode
+
+# Misclassification filtering thresholds (for core-data mode)
+# Lower threshold = exclude more misclassified samples
+# Set to None to use auto-optimized values from bayesian_optimization_results.json
+THRESHOLD_I = None  # Inflammatory class threshold
+THRESHOLD_P = None  # Proliferative class threshold
+THRESHOLD_R = None  # Remodeling class threshold (typically higher to protect minority)
+
+# Core dataset mode (uses optimized thresholds from auto_polish_dataset_v2.py)
+USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
 
 # =============================================================================
 # Verbosity and Progress Tracking
