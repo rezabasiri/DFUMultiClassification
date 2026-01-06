@@ -328,7 +328,7 @@ def load_cached_features(modality, cache_dir=None, image_size=None):
         return None
 
 
-def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size=32):
+def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size=32, batch_size=32):
     """
     Extract features on-the-fly if cache is not available.
     Uses training pipeline architecture with ImageNet weights for image modalities.
@@ -338,6 +338,7 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
         best_matching_df: DataFrame with image paths and metadata
         data_paths: Dictionary of data paths
         image_size: Image size for feature extraction
+        batch_size: Batch size for feature extraction (default: 32)
 
     Returns:
         numpy array: Extracted features
@@ -392,7 +393,6 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
         feature_dim = gap_layer.output.shape[-1]
         all_features = np.zeros((n_samples, feature_dim), dtype=np.float32)
 
-        batch_size = 32
         for start_idx in range(0, n_samples, batch_size):
             end_idx = min(start_idx + batch_size, n_samples)
             batch_images = []
@@ -425,7 +425,7 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
 
 def detect_outliers_combination(combination, contamination=0.15, random_state=42,
                                  force_recompute=False, cache_dir=None,
-                                 use_cache=True, image_size=32):
+                                 use_cache=True, image_size=32, batch_size=32):
     """
     Detect outliers for a specific modality combination using joint feature space.
 
@@ -443,6 +443,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
         cache_dir: Cache directory for pre-computed features
         use_cache: If True, try cache first; if False, always extract on-the-fly
         image_size: Image size for on-the-fly extraction (must match cache if using cache)
+        batch_size: Batch size for on-the-fly extraction (default: 32)
 
     Returns:
         tuple: (cleaned_df, outlier_df, output_file)
