@@ -26,7 +26,7 @@ Categories:
 
 # Core training hyperparameters
 IMAGE_SIZE = 32  # Image dimensions (32x32 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
+GLOBAL_BATCH_SIZE = 32  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
 # Fusion-specific training parameters
@@ -248,7 +248,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'thermal_map'),  # Test fusion with winning sampling strategy (combined_smote)
+    ('metadata', 'thermal_map',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
