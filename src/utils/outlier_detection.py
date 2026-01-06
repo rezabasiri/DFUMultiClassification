@@ -39,8 +39,9 @@ def detect_outliers(contamination=0.15, random_state=42, force_recompute=False):
     """
     # Check if already computed
     _, _, root = get_project_paths()
-    output_file = root / f"data/cleaned/metadata_cleaned_{int(contamination*100):02d}pct.csv"
-    outlier_file = root / f"data/cleaned/outliers_{int(contamination*100):02d}pct.csv"
+    root = Path(root)  # root is data directory (<project>/data)
+    output_file = root / f"cleaned/metadata_cleaned_{int(contamination*100):02d}pct.csv"
+    outlier_file = root / f"cleaned/outliers_{int(contamination*100):02d}pct.csv"
 
     if output_file.exists() and not force_recompute:
         vprint(f"Using existing cleaned dataset: {output_file}", level=1)
@@ -170,11 +171,13 @@ def apply_cleaned_dataset(contamination=0.15, backup=True):
         bool: True if successful, False otherwise
     """
     _, _, root = get_project_paths()
+    root = Path(root)  # root is data directory (<project>/data)
+    project_root = root.parent
 
     # Paths
-    best_matching_file = root / "results/best_matching.csv"
-    best_matching_backup = root / "results/best_matching_original.csv"
-    cleaned_file = root / f"data/cleaned/metadata_cleaned_{int(contamination*100):02d}pct.csv"
+    best_matching_file = project_root / "results/best_matching.csv"
+    best_matching_backup = project_root / "results/best_matching_original.csv"
+    cleaned_file = root / f"cleaned/metadata_cleaned_{int(contamination*100):02d}pct.csv"
 
     if not cleaned_file.exists():
         vprint(f"Cleaned dataset not found: {cleaned_file}", level=0)
@@ -230,9 +233,11 @@ def restore_original_dataset():
         bool: True if restored, False if no backup exists
     """
     _, _, root = get_project_paths()
+    root = Path(root)  # root is data directory (<project>/data)
+    project_root = root.parent
 
-    best_matching_file = root / "results/best_matching.csv"
-    best_matching_backup = root / "results/best_matching_original.csv"
+    best_matching_file = project_root / "results/best_matching.csv"
+    best_matching_backup = project_root / "results/best_matching_original.csv"
 
     if not best_matching_backup.exists():
         vprint("No backup found, dataset may already be original", level=1)
@@ -303,6 +308,7 @@ def load_cached_features(modality, cache_dir=None, image_size=None):
     from src.utils.production_config import IMAGE_SIZE as DEFAULT_IMAGE_SIZE
 
     _, _, root = get_project_paths()
+    root = Path(root)
 
     if cache_dir is None:
         cache_dir = root.parent / 'cache_outlier'
@@ -454,6 +460,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     from src.utils.production_config import IMAGE_SIZE as DEFAULT_IMAGE_SIZE
 
     _, _, root = get_project_paths()
+    root = Path(root)  # root is data directory (<project>/data)
     data_paths = get_data_paths(root)
 
     # Use default image size if not specified
@@ -464,8 +471,8 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     combo_name = get_combination_name(combination)
 
     # Check if already computed
-    output_file = root / f"data/cleaned/{combo_name}_{int(contamination*100):02d}pct.csv"
-    outlier_file = root / f"data/cleaned/outliers_{combo_name}_{int(contamination*100):02d}pct.csv"
+    output_file = root / f"cleaned/{combo_name}_{int(contamination*100):02d}pct.csv"
+    outlier_file = root / f"cleaned/outliers_{combo_name}_{int(contamination*100):02d}pct.csv"
 
     if output_file.exists() and not force_recompute:
         vprint(f"Using existing cleaned dataset for {combo_name}: {output_file.name}", level=1)
@@ -624,14 +631,16 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
         bool: True if successful, False otherwise
     """
     _, _, root = get_project_paths()
+    root = Path(root)  # root is data directory (<project>/data)
+    project_root = root.parent
 
     # Generate combination name
     combo_name = get_combination_name(combination)
 
     # Paths
-    best_matching_file = root / "results/best_matching.csv"
-    best_matching_backup = root / "results/best_matching_original.csv"
-    cleaned_file = root / f"data/cleaned/{combo_name}_{int(contamination*100):02d}pct.csv"
+    best_matching_file = project_root / "results/best_matching.csv"
+    best_matching_backup = project_root / "results/best_matching_original.csv"
+    cleaned_file = root / f"cleaned/{combo_name}_{int(contamination*100):02d}pct.csv"
 
     if not cleaned_file.exists():
         vprint(f"Cleaned dataset not found for {combo_name}: {cleaned_file}", level=0)
