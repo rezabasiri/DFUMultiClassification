@@ -46,6 +46,9 @@ SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion per
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
 REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR (increased for longer training)
 
+# Outlier detection parameters
+OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction during outlier detection
+
 # =============================================================================
 # Verbosity and Progress Tracking
 # =============================================================================
