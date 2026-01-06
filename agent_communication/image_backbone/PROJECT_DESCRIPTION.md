@@ -126,7 +126,7 @@ def create_image_branch(input_shape, modality):
 ```
 
 ### 3. Automated Test Script
-Create `scripts/test_backbones.py` that:
+`agent_communication/image_backbone/test_backbones.py`:
 - Loops through all backbone combinations
 - Updates production_config.py
 - Runs training with `--data-percentage 30`
@@ -150,17 +150,22 @@ Create `scripts/test_backbones.py` that:
 
 ---
 
-## Code Locations
+## Files in This Folder
 
-### Files to Modify
-- `src/utils/production_config.py` - Add backbone config flags
-- `src/models/builders.py` - Implement backbone selection logic
+### Documentation
+- `PROJECT_DESCRIPTION.md` - This file, experiment overview
+- `RUN_BACKBONE_TESTS.txt` - Step-by-step instructions for local agent
 
 ### Test Script
-- `scripts/test_backbones.py` - Automated test runner
+- `test_backbones.py` - Automated test runner (run all 12 combinations)
 
 ### Results
-- `agent_communication/image_backbone/BACKBONE_RESULTS.txt` - Test results
+- `BACKBONE_RESULTS.txt` - Test results (generated after running tests)
+
+## Code Modified in Project
+
+- `src/utils/production_config.py` - Added RGB_BACKBONE and MAP_BACKBONE flags
+- `src/models/builders.py` - Refactored to support configurable backbones
 
 ---
 

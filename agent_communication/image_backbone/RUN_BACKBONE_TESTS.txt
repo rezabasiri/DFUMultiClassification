@@ -31,7 +31,7 @@ This runs all 12 tests automatically and generates a report.
    git pull origin claude/run-dataset-polishing-X1NHe
 
 2. Run automated test script:
-   python scripts/test_backbones.py
+   python agent_communication/image_backbone/test_backbones.py
 
 3. Wait for completion (~3 hours)
 

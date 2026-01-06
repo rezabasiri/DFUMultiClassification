@@ -4,7 +4,7 @@ Automated backbone comparison script for DFU classification.
 Tests different CNN backbones for RGB and map image branches.
 
 Usage:
-    python scripts/test_backbones.py
+    python agent_communication/image_backbone/test_backbones.py
 
 Results saved to: agent_communication/image_backbone/BACKBONE_RESULTS.txt
 """
@@ -17,8 +17,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
+# Add project root to path (we're in agent_communication/image_backbone/)
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # Configuration
