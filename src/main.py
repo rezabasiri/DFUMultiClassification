@@ -2122,7 +2122,8 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
                         random_state=RANDOM_SEED,
                         force_recompute=False,
                         use_cache=True,  # Enable hybrid mode
-                        image_size=IMAGE_SIZE
+                        image_size=IMAGE_SIZE,
+                        batch_size=OUTLIER_BATCH_SIZE
                     )
 
                     if cleaned_df is not None:

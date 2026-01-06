@@ -497,7 +497,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
         if features is None:
             if use_cache:
                 vprint(f"  Cache not found for {modality} (image_size={image_size}), extracting on-the-fly...", level=2)
-            features = extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size)
+            features = extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size, batch_size)
 
         if features is None:
             vprint(f"  Error: Failed to extract features for {modality}", level=0)
