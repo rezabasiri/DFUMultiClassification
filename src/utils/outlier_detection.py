@@ -317,13 +317,112 @@ def load_cached_features(modality, cache_dir=None):
         return None
 
 
+def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size=32):
+    """
+    Extract features on-the-fly if cache is not available.
+    Uses training pipeline architecture with ImageNet weights for image modalities.
+
+    Args:
+        modality: Modality name
+        best_matching_df: DataFrame with image paths and metadata
+        data_paths: Dictionary of data paths
+        image_size: Image size for feature extraction
+
+    Returns:
+        numpy array: Extracted features
+    """
+    import tensorflow as tf
+    from src.models.builders import create_image_branch
+    from src.data.image_processing import load_and_preprocess_image
+
+    vprint(f"  Extracting {modality} features on-the-fly (cache not found)...", level=2)
+
+    if modality == 'metadata':
+        # Extract metadata features directly
+        exclude_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs', 'Healing Phase',
+                        'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                        'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                        'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
+        feature_cols = [col for col in best_matching_df.select_dtypes(include=[np.number]).columns
+                        if col not in exclude_cols]
+        X = best_matching_df[feature_cols].fillna(best_matching_df[feature_cols].median()).values
+        return X.astype(np.float32)
+
+    else:
+        # Extract image features using training architecture
+        # Create feature extractor
+        input_shape = (image_size, image_size, 3)
+        image_input, branch_output = create_image_branch(input_shape, modality)
+        temp_model = tf.keras.Model(inputs=image_input, outputs=branch_output)
+
+        # Find GlobalAveragePooling2D layer
+        gap_layer = None
+        for layer in temp_model.layers:
+            if isinstance(layer, tf.keras.layers.GlobalAveragePooling2D):
+                gap_layer = layer
+                break
+
+        if gap_layer is None:
+            vprint(f"  Error: Could not find GlobalAveragePooling2D layer for {modality}", level=0)
+            return None
+
+        feature_extractor = tf.keras.Model(inputs=image_input, outputs=gap_layer.output)
+
+        # Determine folder and bounding box columns
+        if modality in ['depth_rgb', 'depth_map']:
+            folder = data_paths['image_folder'] if modality == 'depth_rgb' else data_paths['depth_folder']
+            bb_cols = ['depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax']
+        elif modality in ['thermal_rgb', 'thermal_map']:
+            folder = data_paths['thermal_rgb_folder'] if modality == 'thermal_rgb' else data_paths['thermal_folder']
+            bb_cols = ['thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
+
+        # Extract features
+        n_samples = len(best_matching_df)
+        feature_dim = gap_layer.output.shape[-1]
+        all_features = np.zeros((n_samples, feature_dim), dtype=np.float32)
+
+        batch_size = 32
+        for start_idx in range(0, n_samples, batch_size):
+            end_idx = min(start_idx + batch_size, n_samples)
+            batch_images = []
+
+            for idx in range(start_idx, end_idx):
+                row = best_matching_df.iloc[idx]
+                image_filename = row[modality]
+                image_path = os.path.join(folder, image_filename)
+                bb_coords = row[bb_cols].values
+
+                try:
+                    img_tensor = load_and_preprocess_image(
+                        filepath=image_path,
+                        bb_data=bb_coords,
+                        modality=modality,
+                        target_size=(image_size, image_size),
+                        augment=False
+                    )
+                    batch_images.append(img_tensor.numpy())
+                except Exception:
+                    batch_images.append(np.zeros((image_size, image_size, 3), dtype=np.float32))
+
+            batch_array = np.array(batch_images)
+            batch_features = feature_extractor.predict(batch_array, verbose=0)
+            all_features[start_idx:end_idx] = batch_features
+
+        vprint(f"  Extracted {modality}: {all_features.shape[0]} × {all_features.shape[1]} features", level=2)
+        return all_features
+
+
 def detect_outliers_combination(combination, contamination=0.15, random_state=42,
-                                 force_recompute=False, cache_dir=None):
+                                 force_recompute=False, cache_dir=None,
+                                 use_cache=True, image_size=32):
     """
     Detect outliers for a specific modality combination using joint feature space.
 
     This function combines features from all modalities in the combination and runs
     per-class Isolation Forest on the joint feature space.
+
+    HYBRID MODE: Tries to load from cache first. If cache doesn't exist and use_cache=True,
+    extracts features on-the-fly using training pipeline architecture (with ImageNet weights).
 
     Args:
         combination: Tuple/list of modality names (e.g., ('metadata', 'thermal_map'))
@@ -331,6 +430,8 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
         random_state: Random seed for reproducibility
         force_recompute: If True, recompute even if cleaned dataset exists
         cache_dir: Cache directory for pre-computed features
+        use_cache: If True, try cache first; if False, always extract on-the-fly
+        image_size: Image size for on-the-fly extraction (must match cache if using cache)
 
     Returns:
         tuple: (cleaned_df, outlier_df, output_file)
@@ -338,8 +439,14 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
             - outlier_df: DataFrame of detected outliers
             - output_file: Path to saved cleaned dataset
     """
+    from src.utils.production_config import IMAGE_SIZE as DEFAULT_IMAGE_SIZE
+
     _, _, root = get_project_paths()
     data_paths = get_data_paths(root)
+
+    # Use default image size if not specified
+    if image_size is None:
+        image_size = DEFAULT_IMAGE_SIZE
 
     # Generate combination name
     combo_name = get_combination_name(combination)
@@ -366,12 +473,19 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     feature_dims = []
 
     for modality in combination:
-        # Load cached features
-        features = load_cached_features(modality, cache_dir)
+        # Try to load cached features first
+        features = None
+        if use_cache:
+            features = load_cached_features(modality, cache_dir)
+
+        # Fall back to on-the-fly extraction if cache not available
+        if features is None:
+            if use_cache:
+                vprint(f"  Cache not found for {modality}, extracting on-the-fly...", level=2)
+            features = extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size)
 
         if features is None:
-            vprint(f"  Error: Cache not found for {modality}", level=0)
-            vprint(f"  Please run: python scripts/precompute_outlier_features.py --modalities {modality}", level=0)
+            vprint(f"  Error: Failed to extract features for {modality}", level=0)
             return None, None, None
 
         if len(features) != n_samples:
@@ -380,7 +494,8 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
 
         all_features.append(features)
         feature_dims.append(features.shape[1])
-        vprint(f"  Loaded {modality}: {features.shape[1]} features", level=2)
+        if use_cache and load_cached_features(modality, cache_dir) is not None:
+            vprint(f"  Loaded {modality} from cache: {features.shape[1]} features", level=2)
 
     # Concatenate all features
     X = np.concatenate(all_features, axis=1)

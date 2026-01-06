@@ -71,7 +71,8 @@ from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
 from src.utils.verbosity import set_verbosity, vprint, get_verbosity, init_progress_bar, update_progress, close_progress
 from src.utils.gpu_config import setup_device_strategy, get_effective_batch_size, print_gpu_memory_usage
 from src.utils.outlier_detection import (
-    detect_outliers, apply_cleaned_dataset, restore_original_dataset, check_metadata_in_modalities
+    detect_outliers, apply_cleaned_dataset, restore_original_dataset, check_metadata_in_modalities,
+    detect_outliers_combination, apply_cleaned_dataset_combination
 )
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
@@ -1759,7 +1760,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_fo
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='none'):
     """
     Test all modality combinations and save results to CSV.
 
@@ -2065,7 +2066,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thres
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both',
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='none',
          outlier_removal=True, outlier_contamination=0.15):
     """
     Combined main function that can run either modality search or specialized evaluation.
@@ -2080,64 +2081,75 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         outlier_removal (bool): Enable outlier detection and removal (default: True)
         outlier_contamination (float): Expected proportion of outliers (0.0-1.0, default: 0.15)
     """
-    # Outlier detection and removal (metadata only, if enabled and metadata is present)
+    # Outlier detection and removal (combination-specific, if enabled)
     if outlier_removal:
         # Determine which modalities will be tested
         modalities_to_test = []
         if mode.lower() == 'search':
             if MODALITY_SEARCH_MODE == 'all':
-                # All 31 combinations - metadata is in many of them
-                modalities_to_test = INCLUDED_COMBINATIONS if INCLUDED_COMBINATIONS else []
-                # For 'all' mode, check if metadata is used at all (it's in most combinations)
-                has_metadata = True  # Safe assumption for 'all' mode
+                # Generate all 31 combinations
+                from itertools import chain, combinations
+                all_modalities = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+                modalities_to_test = list(chain.from_iterable(
+                    combinations(all_modalities, r) for r in range(1, len(all_modalities) + 1)
+                ))
             else:  # custom
                 modalities_to_test = INCLUDED_COMBINATIONS
         elif mode.lower() == 'specialized':
             # Specialized mode typically tests specific combinations
             modalities_to_test = INCLUDED_COMBINATIONS if INCLUDED_COMBINATIONS else []
 
-        # Check if metadata is in any combination
         if modalities_to_test:
-            has_metadata = check_metadata_in_modalities(modalities_to_test)
-        else:
-            has_metadata = True  # Safe default
-
-        if has_metadata:
             vprint("\n" + "="*80, level=1)
-            vprint("OUTLIER DETECTION AND REMOVAL", level=1)
+            vprint("OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)", level=1)
             vprint("="*80, level=1)
             vprint(f"Contamination rate: {outlier_contamination*100:.0f}%", level=1)
-            vprint("Applying to metadata features only", level=1)
+            vprint(f"Processing {len(modalities_to_test)} modality combination(s)", level=1)
+            vprint(f"Image size: {IMAGE_SIZE} (must match cache if using cache)", level=2)
+            vprint("Hybrid mode: Uses cache if available, else extracts on-the-fly with ImageNet weights", level=2)
+            vprint("", level=1)
 
-            # Detect outliers (uses cache if already computed)
-            try:
-                cleaned_df, outlier_df, output_file = detect_outliers(
-                    contamination=outlier_contamination,
-                    random_state=RANDOM_SEED,
-                    force_recompute=False
-                )
+            # Process each combination
+            for i, combination in enumerate(modalities_to_test, 1):
+                combo_name = '_'.join(sorted(combination))
+                vprint(f"[{i}/{len(modalities_to_test)}] {combo_name}", level=1)
 
-                # Apply cleaned dataset
-                success = apply_cleaned_dataset(
-                    contamination=outlier_contamination,
-                    backup=True
-                )
+                try:
+                    # Detect outliers for this combination (hybrid mode: cache or on-the-fly)
+                    cleaned_df, outlier_df, output_file = detect_outliers_combination(
+                        combination=combination,
+                        contamination=outlier_contamination,
+                        random_state=RANDOM_SEED,
+                        force_recompute=False,
+                        use_cache=True,  # Enable hybrid mode
+                        image_size=IMAGE_SIZE
+                    )
 
-                if success:
-                    vprint("✓ Outlier removal applied successfully", level=1)
-                    vprint(f"  Cleaned dataset: {len(cleaned_df)} samples", level=1)
-                    if outlier_df is not None:
-                        vprint(f"  Outliers removed: {len(outlier_df)} samples", level=2)
-                else:
-                    vprint("⚠ Could not apply cleaned dataset, using original", level=1)
+                    if cleaned_df is not None:
+                        # Apply cleaned dataset
+                        success = apply_cleaned_dataset_combination(
+                            combination=combination,
+                            contamination=outlier_contamination,
+                            backup=True
+                        )
 
-            except Exception as e:
-                vprint(f"⚠ Outlier detection failed: {str(e)}", level=1)
-                vprint("  Continuing with original dataset", level=1)
+                        if success:
+                            vprint(f"  ✓ Applied for {combo_name}: {len(cleaned_df)} samples", level=1)
+                            if outlier_df is not None:
+                                vprint(f"    Removed {len(outlier_df)} outliers", level=2)
+                        else:
+                            vprint(f"  ⚠ Could not apply for {combo_name}, using original", level=1)
+                    else:
+                        vprint(f"  ⚠ Detection failed for {combo_name}, using original", level=1)
 
+                except Exception as e:
+                    vprint(f"  ⚠ Error for {combo_name}: {str(e)}", level=1)
+                    vprint(f"    Continuing with original dataset", level=2)
+
+            vprint("", level=1)
             vprint("="*80 + "\n", level=1)
         else:
-            vprint("Outlier removal skipped (no metadata in modality combinations)", level=2)
+            vprint("Outlier removal skipped (no modality combinations specified)", level=2)
     else:
         vprint("Outlier removal disabled", level=2)
     # Clear any existing cache files to ensure fresh tf_records for each run
@@ -2337,11 +2349,14 @@ Configuration:
         "--outlier-removal",
         action='store_true',
         default=True,
-        help="""Enable outlier detection and removal using Isolation Forest (metadata only).
-        Detects and removes noisy/outlier samples from metadata using per-class Isolation Forest.
-        Only applies when metadata is included in modality combinations being tested.
+        help="""Enable multimodal outlier detection and removal using Isolation Forest.
+        Detects and removes noisy/outlier samples using per-class Isolation Forest on
+        combination-specific joint feature space (e.g., metadata+thermal_map as combined features).
+        HYBRID MODE: Uses pre-computed cache if available (cache_outlier/), otherwise extracts
+        features on-the-fly using training pipeline architecture with ImageNet weights.
+        Works with any modality combination (image-only, metadata-only, or mixed).
         Based on Phase 7 investigation: 15%% outlier removal achieves Kappa 0.27 (+63%% vs baseline).
-        See: agent_communication/fusion_fix/FUSION_FIX_GUIDE.md
+        See: agent_communication/outlier_detection/PROJECT_DESCRIPTION.md
         (default: True - enabled for production)"""
     )
 
@@ -2366,14 +2381,15 @@ Configuration:
     parser.add_argument(
         "--track-misclass",
         type=str,
-        choices=['both', 'valid', 'train'],
-        default='both',
+        choices=['none', 'both', 'valid', 'train'],
+        default='none',
         help="""Which dataset to track misclassifications from:
-        'both': Track from both train and validation sets (default)
-        'valid': Track only from validation set (recommended - faster, more meaningful)
+        'none': Disable misclassification tracking (default - fastest)
+        'both': Track from both train and validation sets
+        'valid': Track only from validation set (faster, more meaningful)
         'train': Track only from training set (not recommended)
         Validation-only tracking skips inference on training data, saving computation.
-        (default: both)"""
+        (default: none)"""
     )
 
     parser.add_argument(
