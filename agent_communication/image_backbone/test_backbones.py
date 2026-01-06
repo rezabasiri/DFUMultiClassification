@@ -86,10 +86,27 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
 
         # Parse results from output
         output = result.stdout + result.stderr
-        kappa = extract_metric(output, r'Kappa.*?(\d+\.\d+)')
-        accuracy = extract_metric(output, r'Accuracy.*?(\d+\.\d+)')
-        f1_macro = extract_metric(output, r'Macro F1.*?(\d+\.\d+)')
-        f1_weighted = extract_metric(output, r'Weighted F1.*?(\d+\.\d+)')
+
+        # Save raw output for debugging
+        log_file = project_root / f"agent_communication/image_backbone/test_{test_num:02d}_{rgb_backbone}_{map_backbone}.log"
+        with open(log_file, 'w') as f:
+            f.write(output)
+
+        # Try multiple patterns for each metric
+        kappa = (extract_metric(output, r"Kappa[:\s]+(\d+\.\d+)") or
+                extract_metric(output, r"Cohen'?s?\s+Kappa[:\s]+(\d+\.\d+)") or
+                extract_metric(output, r"kappa[:\s]+(\d+\.\d+)"))
+
+        accuracy = (extract_metric(output, r"Accuracy[:\s]+(\d+\.\d+)") or
+                   extract_metric(output, r"accuracy[:\s]+(\d+\.\d+)"))
+
+        f1_macro = (extract_metric(output, r"Macro\s+F1[:\s]+(\d+\.\d+)") or
+                   extract_metric(output, r"F1\s+Macro[:\s]+(\d+\.\d+)") or
+                   extract_metric(output, r"f1_macro[:\s]+(\d+\.\d+)"))
+
+        f1_weighted = (extract_metric(output, r"Weighted\s+F1[:\s]+(\d+\.\d+)") or
+                      extract_metric(output, r"F1\s+Weighted[:\s]+(\d+\.\d+)") or
+                      extract_metric(output, r"f1_weighted[:\s]+(\d+\.\d+)"))
 
         return {
             'rgb_backbone': rgb_backbone,
@@ -100,7 +117,8 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
             'f1_weighted': f1_weighted,
             'runtime_min': runtime / 60,
             'success': True,
-            'error': None
+            'error': None,
+            'log_file': str(log_file)
         }
 
     except subprocess.TimeoutExpired:
@@ -249,7 +267,10 @@ def main():
 
         # Print immediate result
         if result['success']:
-            print(f"✓ Result: Kappa={result['kappa']:.4f}, Time={result['runtime_min']:.1f} min")
+            if result['kappa'] is not None:
+                print(f"✓ Result: Kappa={result['kappa']:.4f}, Time={result['runtime_min']:.1f} min")
+            else:
+                print(f"⚠ Completed but metrics not found. Check output manually. Time={result['runtime_min']:.1f} min")
         else:
             print(f"✗ FAILED: {result['error']}")
 
