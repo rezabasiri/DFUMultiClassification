@@ -5,12 +5,17 @@ Pre-computes and caches deep features for each modality to enable fast
 combination-specific outlier detection. Uses the same architecture and
 preprocessing as the main training pipeline.
 
+Supports CPU, single-GPU, and multi-GPU modes for efficient processing.
+
 Usage:
-    # Pre-compute all features (recommended)
+    # Pre-compute all features with multi-GPU (default)
     python scripts/precompute_outlier_features.py --image-size 32 --modalities all
 
-    # Pre-compute specific modalities
-    python scripts/precompute_outlier_features.py --modalities metadata thermal_map
+    # Pre-compute with single GPU
+    python scripts/precompute_outlier_features.py --modalities all --device-mode single
+
+    # Pre-compute specific modalities with CPU only
+    python scripts/precompute_outlier_features.py --modalities metadata thermal_map --device-mode cpu
 
     # Force recompute existing cache
     python scripts/precompute_outlier_features.py --modalities all --force
@@ -33,9 +38,10 @@ from src.utils.config import get_project_paths, get_data_paths
 from src.utils.production_config import IMAGE_SIZE as DEFAULT_IMAGE_SIZE
 from src.models.builders import create_image_branch
 from src.data.image_processing import load_and_preprocess_image
+from src.utils.gpu_config import setup_device_strategy
 
 
-def create_feature_extractor(modality, image_size=32):
+def create_feature_extractor(modality, image_size=32, strategy=None):
     """
     Create feature extractor using same architecture as training pipeline.
 
@@ -45,39 +51,44 @@ def create_feature_extractor(modality, image_size=32):
     Args:
         modality: Image modality name ('thermal_map', 'depth_rgb', etc.)
         image_size: Input image size (must match training IMAGE_SIZE)
+        strategy: TensorFlow distribution strategy for multi-GPU (optional)
 
     Returns:
         tuple: (feature_extractor_model, feature_dimension)
     """
-    # Create full image branch using training architecture
-    input_shape = (image_size, image_size, 3)
-    image_input, branch_output = create_image_branch(input_shape, modality)
+    # Use strategy scope if provided (multi-GPU), otherwise default scope
+    scope = strategy.scope() if strategy else tf.keras.utils.custom_object_scope({})
 
-    # Find GlobalAveragePooling2D layer
-    # Build a temporary model to access layers
-    temp_model = tf.keras.Model(inputs=image_input, outputs=branch_output)
+    with scope:
+        # Create full image branch using training architecture
+        input_shape = (image_size, image_size, 3)
+        image_input, branch_output = create_image_branch(input_shape, modality)
 
-    gap_layer = None
-    for layer in temp_model.layers:
-        if isinstance(layer, tf.keras.layers.GlobalAveragePooling2D):
-            gap_layer = layer
-            break
+        # Find GlobalAveragePooling2D layer
+        # Build a temporary model to access layers
+        temp_model = tf.keras.Model(inputs=image_input, outputs=branch_output)
 
-    if gap_layer is None:
-        raise ValueError(f"Could not find GlobalAveragePooling2D layer for modality {modality}")
+        gap_layer = None
+        for layer in temp_model.layers:
+            if isinstance(layer, tf.keras.layers.GlobalAveragePooling2D):
+                gap_layer = layer
+                break
 
-    # Create feature extractor that outputs from GAP layer
-    feature_extractor = tf.keras.Model(
-        inputs=image_input,
-        outputs=gap_layer.output
-    )
+        if gap_layer is None:
+            raise ValueError(f"Could not find GlobalAveragePooling2D layer for modality {modality}")
 
-    # Get feature dimension
-    feature_dim = gap_layer.output.shape[-1]
+        # Create feature extractor that outputs from GAP layer
+        feature_extractor = tf.keras.Model(
+            inputs=image_input,
+            outputs=gap_layer.output
+        )
 
-    print(f"  Created feature extractor for {modality}: {feature_dim} dims from {gap_layer.name}")
+        # Get feature dimension
+        feature_dim = gap_layer.output.shape[-1]
 
-    return feature_extractor, feature_dim
+        print(f"  Created feature extractor for {modality}: {feature_dim} dims from {gap_layer.name}")
+
+        return feature_extractor, feature_dim
 
 
 def extract_metadata_features(metadata_df):
@@ -107,7 +118,7 @@ def extract_metadata_features(metadata_df):
     return X.astype(np.float32)
 
 
-def extract_image_features(modality, metadata_df, data_paths, image_size=32, batch_size=32):
+def extract_image_features(modality, metadata_df, data_paths, image_size=32, batch_size=32, strategy=None):
     """
     Extract image features using training pipeline architecture and preprocessing.
 
@@ -117,12 +128,13 @@ def extract_image_features(modality, metadata_df, data_paths, image_size=32, bat
         data_paths: Dictionary of data paths
         image_size: Target image size (must match training)
         batch_size: Batch size for feature extraction
+        strategy: TensorFlow distribution strategy for multi-GPU (optional)
 
     Returns:
         numpy array: (n_samples, feature_dim) image features
     """
     # Create feature extractor
-    feature_extractor, feature_dim = create_feature_extractor(modality, image_size)
+    feature_extractor, feature_dim = create_feature_extractor(modality, image_size, strategy)
 
     # Determine image folder and bounding box columns based on modality
     if modality in ['depth_rgb', 'depth_map']:
@@ -192,11 +204,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Pre-compute all features (recommended)
-  python scripts/precompute_outlier_features.py --modalities all
+  # Pre-compute all features with multi-GPU (recommended)
+  python scripts/precompute_outlier_features.py --modalities all --device-mode multi
 
-  # Pre-compute specific modalities
-  python scripts/precompute_outlier_features.py --modalities metadata thermal_map
+  # Pre-compute specific modalities with single GPU
+  python scripts/precompute_outlier_features.py --modalities metadata thermal_map --device-mode single
 
   # Custom image size
   python scripts/precompute_outlier_features.py --image-size 64 --modalities all
@@ -229,6 +241,14 @@ Examples:
     )
 
     parser.add_argument(
+        '--device-mode',
+        type=str,
+        choices=['cpu', 'single', 'multi'],
+        default='multi',
+        help='Device mode: cpu (CPU only), single (1 GPU), multi (all GPUs, default)'
+    )
+
+    parser.add_argument(
         '--force',
         action='store_true',
         help='Force recompute even if cache exists'
@@ -236,15 +256,25 @@ Examples:
 
     args = parser.parse_args()
 
+    # Setup GPU strategy
+    print("="*80)
+    print("Multimodal Outlier Detection - Feature Cache Builder")
+    print("="*80)
+    print(f"Device mode: {args.device_mode}")
+
+    strategy = setup_device_strategy(args.device_mode)
+
+    if strategy:
+        print(f"Running on {strategy.num_replicas_in_sync} device(s)")
+    else:
+        print("Running on CPU")
+
     # Setup paths
     _, _, root = get_project_paths()
     data_paths = get_data_paths(root)
     cache_dir = root.parent / 'cache_outlier'
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    print("="*80)
-    print("Multimodal Outlier Detection - Feature Cache Builder")
-    print("="*80)
     print(f"Image size: {args.image_size}")
     print(f"Cache directory: {cache_dir}")
     print(f"Batch size: {args.batch_size}")
@@ -273,12 +303,19 @@ Examples:
 
     # Extract and cache features for each modality
     for modality in modalities_to_cache:
-        cache_file = cache_dir / f'{modality}_features.npy'
+        # Cache filename includes image size for image modalities
+        if modality == 'metadata':
+            cache_file = cache_dir / f'{modality}_features.npy'
+            cache_name = f'{modality}_features.npy'
+        else:
+            cache_file = cache_dir / f'{modality}_features_{args.image_size}.npy'
+            cache_name = f'{modality}_features_{args.image_size}.npy'
 
         # Check if cache exists
         if cache_file.exists() and not args.force:
             print(f"✓ {modality}: Cache exists, skipping (use --force to recompute)")
             cached = np.load(cache_file)
+            print(f"  File: {cache_name}")
             print(f"  Shape: {cached.shape}, Size: {cached.nbytes / 1024 / 1024:.1f} MB")
             print()
             continue
@@ -287,19 +324,22 @@ Examples:
 
         # Extract features
         if modality == 'metadata':
+            # Metadata extraction is CPU-only (NumPy operations)
             features = extract_metadata_features(metadata_df)
         else:
+            # Image extraction can use GPU strategy
             features = extract_image_features(
                 modality,
                 metadata_df,
                 data_paths,
                 image_size=args.image_size,
-                batch_size=args.batch_size
+                batch_size=args.batch_size,
+                strategy=strategy
             )
 
         # Save to cache
         np.save(cache_file, features)
-        print(f"  ✓ Saved to: {cache_file}")
+        print(f"  ✓ Saved to: {cache_name}")
         print(f"  Shape: {features.shape}, Size: {features.nbytes / 1024 / 1024:.1f} MB")
         print()
 
@@ -307,12 +347,20 @@ Examples:
     print("Feature cache building complete!")
     print("="*80)
     print(f"\nCache location: {cache_dir}")
+    print(f"Image size: {args.image_size}")
     print("\nCached files:")
     for modality in modalities_to_cache:
-        cache_file = cache_dir / f'{modality}_features.npy'
+        # Use correct filename based on modality type
+        if modality == 'metadata':
+            cache_file = cache_dir / f'{modality}_features.npy'
+            cache_name = f'{modality}_features.npy'
+        else:
+            cache_file = cache_dir / f'{modality}_features_{args.image_size}.npy'
+            cache_name = f'{modality}_features_{args.image_size}.npy'
+
         if cache_file.exists():
             size_mb = cache_file.stat().st_size / 1024 / 1024
-            print(f"  ✓ {modality}_features.npy ({size_mb:.1f} MB)")
+            print(f"  ✓ {cache_name} ({size_mb:.1f} MB)")
     print()
 
     return 0

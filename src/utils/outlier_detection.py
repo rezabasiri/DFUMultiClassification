@@ -288,23 +288,34 @@ def get_combination_name(combination):
     return '_'.join(sorted(combination))
 
 
-def load_cached_features(modality, cache_dir=None):
+def load_cached_features(modality, cache_dir=None, image_size=None):
     """
     Load pre-computed features from cache.
 
     Args:
         modality: Modality name ('metadata', 'thermal_map', etc.)
         cache_dir: Cache directory path (default: cache_outlier/)
+        image_size: Image size used for cache (for image modalities only)
 
     Returns:
         numpy array: Cached features or None if not found
     """
+    from src.utils.production_config import IMAGE_SIZE as DEFAULT_IMAGE_SIZE
+
     _, _, root = get_project_paths()
 
     if cache_dir is None:
         cache_dir = root.parent / 'cache_outlier'
 
-    cache_file = cache_dir / f'{modality}_features.npy'
+    # Use default image size if not specified
+    if image_size is None:
+        image_size = DEFAULT_IMAGE_SIZE
+
+    # Cache filename includes image size for image modalities
+    if modality == 'metadata':
+        cache_file = cache_dir / f'{modality}_features.npy'
+    else:
+        cache_file = cache_dir / f'{modality}_features_{image_size}.npy'
 
     if not cache_file.exists():
         return None
@@ -475,13 +486,16 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     for modality in combination:
         # Try to load cached features first
         features = None
+        from_cache = False
         if use_cache:
-            features = load_cached_features(modality, cache_dir)
+            features = load_cached_features(modality, cache_dir, image_size)
+            if features is not None:
+                from_cache = True
 
         # Fall back to on-the-fly extraction if cache not available
         if features is None:
             if use_cache:
-                vprint(f"  Cache not found for {modality}, extracting on-the-fly...", level=2)
+                vprint(f"  Cache not found for {modality} (image_size={image_size}), extracting on-the-fly...", level=2)
             features = extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size)
 
         if features is None:
@@ -494,7 +508,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
 
         all_features.append(features)
         feature_dims.append(features.shape[1])
-        if use_cache and load_cached_features(modality, cache_dir) is not None:
+        if from_cache:
             vprint(f"  Loaded {modality} from cache: {features.shape[1]} features", level=2)
 
     # Concatenate all features
