@@ -262,7 +262,7 @@ Examples:
     print("="*80)
     print(f"Device mode: {args.device_mode}")
 
-    strategy = setup_device_strategy(args.device_mode)
+    strategy, gpu_ids = setup_device_strategy(args.device_mode)
 
     if strategy:
         print(f"Running on {strategy.num_replicas_in_sync} device(s)")
@@ -271,6 +271,7 @@ Examples:
 
     # Setup paths
     _, _, root = get_project_paths()
+    root = Path(root)
     data_paths = get_data_paths(root)
     cache_dir = root.parent / 'cache_outlier'
     cache_dir.mkdir(parents=True, exist_ok=True)
