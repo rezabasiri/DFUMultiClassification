@@ -19,56 +19,84 @@ from src.utils.verbosity import vprint
 # Get paths
 directory, result_dir, root = get_project_paths()
 
-# Import IMAGE_SIZE from production config
-from src.utils.production_config import IMAGE_SIZE
+# Import IMAGE_SIZE and backbone configs from production config
+from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE
+
+def create_simple_cnn_rgb(image_input, modality):
+    """Simple CNN for RGB images (4 conv layers)"""
+    x = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_0')(image_input)
+    x = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_1')(x)
+    x = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_2')(x)
+    x = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_3')(x)
+    x = GlobalAveragePooling2D(name=f'{modality}_GAP2D')(x)
+    return x
+
+def create_simple_cnn_map(image_input, modality):
+    """Simple CNN for map images (3 conv layers)"""
+    x = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_1')(image_input)
+    x = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_2')(x)
+    x = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_3')(x)
+    x = GlobalAveragePooling2D(name=f'{modality}_GAP2D')(x)
+    return x
+
+def create_efficientnet_branch(image_input, modality, backbone_name):
+    """Create EfficientNet branch with specified variant"""
+    # Map backbone name to Keras application
+    backbone_map = {
+        'EfficientNetB0': tf.keras.applications.EfficientNetB0,
+        'EfficientNetB1': tf.keras.applications.EfficientNetB1,
+        'EfficientNetB3': tf.keras.applications.EfficientNetB3,
+    }
+
+    EfficientNetClass = backbone_map[backbone_name]
+
+    # Try to load local weights, fall back to ImageNet
+    local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
+    if os.path.exists(local_weights_path):
+        vprint(f"Loading {backbone_name} from local weights", level=2)
+        base_model = EfficientNetClass(weights=None, include_top=False, input_tensor=image_input, pooling='avg')
+        base_model.load_weights(local_weights_path)
+    else:
+        vprint(f"Loading {backbone_name} from ImageNet", level=2)
+        base_model = EfficientNetClass(weights='imagenet', include_top=False, input_tensor=image_input, pooling='avg')
+
+    base_model.trainable = True
+
+    # Rename layers to avoid conflicts
+    for layer in base_model.layers:
+        layer._name = f'{modality}_{layer.name}'
+
+    vprint(f"{modality} using {backbone_name}: {len(base_model.trainable_weights)} trainable weights", level=2)
+
+    return base_model.output
 
 def create_image_branch(input_shape, modality):
-    vprint("\nDebug create_image_branch", level=2)
+    """Create image branch with configurable backbone"""
+    vprint(f"\nCreating image branch for {modality}", level=2)
 
-    # Use the input_shape parameter or fall back to production config IMAGE_SIZE
     image_input = Input(shape=input_shape, name=f'{modality}_input')
+
+    # Select backbone based on modality type and config
     if modality in ['depth_rgb', 'thermal_rgb']:
-    # # if True:
-    #     if os.path.exists(os.path.join(directory, "local_weights/efficientnetb3_notop.h5")):
-    #         base_model = tf.keras.applications.EfficientNetB3(weights=None, include_top=False, input_tensor=image_input, pooling='avg', drop_connect_rate=0.1, classes=500)
-    #         base_model.load_weights(os.path.join(directory, "local_weights/efficientnetb3_notop.h5"))
-    #     else: 
-    #         base_model = tf.keras.applications.EfficientNetB3(weights='imagenet', include_top=False, input_tensor=image_input, pooling='avg', drop_connect_rate=0.1, classes=500)
-    #     base_model.trainable = True
-    #     print("\nRGB Branch Configuration:")
-    #     print(f"Input shape: {input_shape}")
-    #     print(f"EfficientNetB3 trainable status: {base_model.trainable}")
-    #     print(f"Number of trainable weights for EfficentNetB3: {len(base_model.trainable_weights)}")
-    #     for layer in base_model.layers:
-    #         layer._name = f'{modality}_{layer.name}'
-    #     x = base_model.output
-        
-        x = Conv2D(256, (3, 3), activation='relu',  kernel_initializer='he_normal', name=f'{modality}_Conv2D_0')(image_input)
-        x = Conv2D(128, (3, 3), activation='relu',  kernel_initializer='he_normal', name=f'{modality}_Conv2D_1')(x)
-        x = Conv2D(64, (3, 3), activation='relu',  kernel_initializer='he_normal', name=f'{modality}_Conv2D_2')(x)
-        x = Conv2D(32, (3, 3), activation='relu',  kernel_initializer='he_normal', name=f'{modality}_Conv2D_3')(x)
+        backbone = RGB_BACKBONE
+        is_rgb = True
+    else:  # depth_map, thermal_map
+        backbone = MAP_BACKBONE
+        is_rgb = False
+
+    vprint(f"{modality} using backbone: {backbone}", level=2)
+
+    # Create feature extractor based on backbone
+    if backbone == 'SimpleCNN':
+        if is_rgb:
+            x = create_simple_cnn_rgb(image_input, modality)
+        else:
+            x = create_simple_cnn_map(image_input, modality)
+    elif backbone.startswith('EfficientNet'):
+        x = create_efficientnet_branch(image_input, modality, backbone)
     else:
-        # if os.path.exists(os.path.join(directory, "local_weights/efficientnetb0_notop.h5")):
-        #     base_model = tf.keras.applications.EfficientNetB0(weights=None, include_top=False, input_tensor=image_input, pooling='avg', drop_connect_rate=0.1, classes=100)
-        #     base_model.load_weights(os.path.join(directory, "local_weights/efficientnetb0_notop.h5"))
-        # else: 
-        #     base_model = tf.keras.applications.EfficientNetB0(weights='imagenet', include_top=False, input_tensor=image_input, pooling='avg', drop_connect_rate=0.1, classes=100)
-        # base_model.trainable = True
-        # print("\nSpatial Branch Configuration:")
-        # print(f"Input shape: {input_shape}")
-        # print(f"EfficientNetB0 trainable status: {base_model.trainable}")
-        # print(f"Number of trainable weights for EfficentNetB0: {len(base_model.trainable_weights)}")
-        # for layer in base_model.layers:
-        #     layer._name = f'{modality}_{layer.name}'
-        # x = base_model.output
-        
-        x = Conv2D(128, (3, 3), activation='relu',  kernel_initializer='he_normal', name=f'{modality}_Conv2D_1')(image_input)
-        x = Conv2D(64, (3, 3), activation='relu',  kernel_initializer='he_normal', name=f'{modality}_Conv2D_2')(x)
-        x = Conv2D(32, (3, 3), activation='relu',  kernel_initializer='he_normal', name=f'{modality}_Conv2D_3')(x)
-        
-    # x = Conv2D(128, (3, 3), activation='relu', name=f'{modality}_Conv2D_1')(image_input)
-    # x = Conv2D(64, (3, 3), activation='relu', name=f'{modality}_Conv2D_2')(x)
-    x = GlobalAveragePooling2D(name=f'{modality}_GAP2D')(x)
+        raise ValueError(f"Unknown backbone: {backbone}")
+
     # x = Dense(64, activation='relu', name=f'{modality}_projection3')(x)
         
     # # Projection layer to ensure consistent dimensionality across modalities
