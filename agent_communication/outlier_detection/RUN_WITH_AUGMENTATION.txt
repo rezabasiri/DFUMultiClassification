@@ -1,0 +1,147 @@
+================================================================================
+LOCAL AGENT: Run Training with General Augmentation
+================================================================================
+
+STATUS: Code changes DONE by cloud agent
+TASK: Run training and compare with baseline
+
+BASELINE (no augmentation): Kappa 0.2976, Acc 0.5561, F1 0.4937
+TARGET: Test if general augmentation improves performance
+
+================================================================================
+WHAT WAS CHANGED
+================================================================================
+
+✓ src/data/image_processing.py - Added augmentation imports and config
+✓ src/data/dataset_utils.py - Enabled augmentation for training data
+✓ src/utils/production_config.py - Added USE_GENERAL_AUGMENTATION = True
+
+General augmentation is NOW ENABLED:
+  - RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, noise
+  - Map images: brightness ±40%, contrast 0.6-1.4x, noise (no saturation)
+  - Applied to TRAINING data only (not validation)
+  - Generative augmentation stays DISABLED
+
+================================================================================
+YOUR TASK: RUN AND REPORT
+================================================================================
+
+STEP 1: Git pull
+  git pull origin claude/run-dataset-polishing-X1NHe
+
+STEP 2: Verify configuration
+  Check src/utils/production_config.py:
+    OUTLIER_REMOVAL = True
+    OUTLIER_CONTAMINATION = 0.15
+    USE_GENERAL_AUGMENTATION = True  # NEW
+    INCLUDED_COMBINATIONS = [('metadata', 'thermal_map')]
+
+STEP 3: Run training
+  python src/main.py --mode search --device-mode single --resume_mode fresh
+
+  Expected:
+    - No errors about augment_image
+    - Training completes (3 folds, ~15 min)
+    - Watch for "Applying augmentations..." or similar
+
+STEP 4: Report results
+
+Create: agent_communication/outlier_detection/AUGMENTATION_RESULTS.md
+
+```markdown
+# General Augmentation Experiment Results
+
+**Date:** [YYYY-MM-DD]
+**Runtime:** [X minutes]
+
+## Configuration
+- Outlier Removal: True (15% contamination)
+- General Augmentation: **ENABLED** (baseline: disabled)
+- Combination: metadata + thermal_map
+- Image Size: 32x32
+
+## Results Comparison
+
+### Baseline (No Augmentation)
+| Fold | Kappa  | Accuracy | F1 Macro |
+|------|--------|----------|----------|
+| 1    | 0.3667 | 0.5466   | 0.5131   |
+| 2    | 0.3196 | 0.5818   | 0.5013   |
+| 3    | 0.2066 | 0.5399   | 0.4668   |
+| **Avg** | **0.2976** | **0.5561** | **0.4937** |
+
+### With General Augmentation
+| Fold | Kappa | Accuracy | F1 Macro |
+|------|-------|----------|----------|
+| 1    | [X]   | [Y]      | [Z]      |
+| 2    | [X]   | [Y]      | [Z]      |
+| 3    | [X]   | [Y]      | [Z]      |
+| **Avg** | **[X]** | **[Y]** | **[Z]** |
+
+## Change Analysis
+
+| Metric | Baseline | With Aug | Absolute Δ | Relative Δ |
+|--------|----------|----------|------------|------------|
+| Kappa | 0.2976 | [X] | [±Y] | [±Z%] |
+| Accuracy | 0.5561 | [X] | [±Y] | [±Z%] |
+| F1 Macro | 0.4937 | [X] | [±Y] | [±Z%] |
+
+## Observations
+
+[Note any observations during training:]
+- Training time: [same/longer/shorter]
+- Convergence: [faster/slower/similar]
+- Fold consistency: [more/less/similar variance]
+
+## Conclusion
+
+✅ / ❌ Augmentation [helped/hurt/had no effect]
+
+[Brief analysis of whether general augmentation is beneficial for this task]
+
+## Recommendation
+
+- Keep augmentation: [Yes/No]
+- Reason: [1-2 sentence explanation]
+```
+
+STEP 5: Commit and push
+  git add agent_communication/outlier_detection/AUGMENTATION_RESULTS.md
+  git commit -m "docs: Report general augmentation experiment results"
+  git push -u origin claude/run-dataset-polishing-X1NHe
+
+================================================================================
+EXPECTED PERFORMANCE
+================================================================================
+
+Typical with augmentation:
+  - Kappa: 0.28-0.32 (similar or slight improvement)
+  - May reduce overfitting
+  - Should see more stable fold performance
+
+If Kappa drops >5% (below 0.28), flag as issue
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Error: "NameError: name 'augment_image' is not defined"
+  → git pull again, code changes may not have been pulled
+
+Error: "Invalid input shape"
+  → Report as bug, batch dimension handling issue
+
+Training crashes or hangs:
+  → Report as bug with full error trace
+
+================================================================================
+TIMELINE: ~20 minutes
+================================================================================
+
+1 min: Git pull and verify
+15 min: Training (3 folds)
+4 min: Results writeup and commit
+
+Total: ~20 minutes
+
+================================================================================
