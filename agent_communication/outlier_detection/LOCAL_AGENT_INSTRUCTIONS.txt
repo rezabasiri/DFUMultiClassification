@@ -1,0 +1,66 @@
+================================================================================
+LOCAL AGENT: Run Multimodal Outlier Detection Pipeline
+================================================================================
+
+GUIDE: See agent_communication/outlier_detection/LOCAL_AGENT_GUIDE.md
+
+TASK: Test combination-specific outlier detection for metadata+thermal_map
+
+TARGET PERFORMANCE: Kappa 0.2714 ± 0.08 (reproducing Phase 7 result)
+
+================================================================================
+STEP 1: FIX BUGS (Required)
+================================================================================
+
+File: src/utils/outlier_detection.py
+Lines: 41, 172, 232, 305, 456, 626
+Action: After each line "_, _, root = get_project_paths()", add:
+    root = Path(root)
+
+File: src/training/training_utils.py
+Line: 161
+Change: checkpoint_name = f'{modality_str}_{run}_{config_name}.ckpt'
+To:     checkpoint_name = f'{modality_str}_{run}_{config_name}.weights.h5'
+
+================================================================================
+STEP 2: BUILD FEATURE CACHE
+================================================================================
+
+Command:
+  python scripts/precompute_outlier_features.py --image-size 32 --modalities all --device-mode single
+
+Expected:
+  - Runtime: ~8 minutes
+  - Output: 5 .npy files in cache_outlier/
+  - Total size: ~1.8 MB
+
+================================================================================
+STEP 3: RUN TRAINING PIPELINE
+================================================================================
+
+Command:
+  python src/main.py --mode search --device-mode single --resume_mode fresh
+
+Expected:
+  - Outlier detection: removes ~465 samples (15%)
+  - Training: 3 folds, ~5 min per fold
+  - Final Kappa: 0.26-0.28 (success) or <0.26 (report bug)
+
+================================================================================
+STEP 4: REPORT RESULTS
+================================================================================
+
+SUCCESS → Report:
+  Final Kappa: [value]
+  Status: Matches target / Below target
+
+MAJOR BUG → Create:
+  agent_communication/outlier_detection/BUG_REPORT_YYYYMMDD.md
+  (See guide for template)
+  Then: git add, commit, push to claude/run-dataset-polishing-X1NHe
+
+SMALL BUGS → Fix immediately and continue
+
+================================================================================
+TIMELINE: ~30 minutes total
+================================================================================
