@@ -29,6 +29,11 @@ IMAGE_SIZE = 32  # Image dimensions (32x32 optimal for fusion - see agent_commun
 GLOBAL_BATCH_SIZE = 32  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
+# Image backbone selection (for backbone comparison experiments)
+# Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3'
+RGB_BACKBONE = 'SimpleCNN'  # Backbone for RGB images (depth_rgb, thermal_rgb)
+MAP_BACKBONE = 'SimpleCNN'  # Backbone for map images (depth_map, thermal_map)
+
 # Fusion-specific training parameters
 STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
