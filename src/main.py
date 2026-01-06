@@ -70,6 +70,9 @@ from src.utils.production_config import *  # Import all production configuration
 from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
 from src.utils.verbosity import set_verbosity, vprint, get_verbosity, init_progress_bar, update_progress, close_progress
 from src.utils.gpu_config import setup_device_strategy, get_effective_batch_size, print_gpu_memory_usage
+from src.utils.outlier_detection import (
+    detect_outliers, apply_cleaned_dataset, restore_original_dataset, check_metadata_in_modalities
+)
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
     create_best_matching_dataset, prepare_dataset, preprocess_image_data,
@@ -2062,7 +2065,8 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thres
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both',
+         outlier_removal=True, outlier_contamination=0.15):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2073,7 +2077,69 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
         thresholds (dict): Misclassification filtering thresholds {'I': x, 'P': y, 'R': z}
         track_misclass (str): Which dataset to track misclassifications from ('both', 'valid', 'train')
+        outlier_removal (bool): Enable outlier detection and removal (default: True)
+        outlier_contamination (float): Expected proportion of outliers (0.0-1.0, default: 0.15)
     """
+    # Outlier detection and removal (metadata only, if enabled and metadata is present)
+    if outlier_removal:
+        # Determine which modalities will be tested
+        modalities_to_test = []
+        if mode.lower() == 'search':
+            if MODALITY_SEARCH_MODE == 'all':
+                # All 31 combinations - metadata is in many of them
+                modalities_to_test = INCLUDED_COMBINATIONS if INCLUDED_COMBINATIONS else []
+                # For 'all' mode, check if metadata is used at all (it's in most combinations)
+                has_metadata = True  # Safe assumption for 'all' mode
+            else:  # custom
+                modalities_to_test = INCLUDED_COMBINATIONS
+        elif mode.lower() == 'specialized':
+            # Specialized mode typically tests specific combinations
+            modalities_to_test = INCLUDED_COMBINATIONS if INCLUDED_COMBINATIONS else []
+
+        # Check if metadata is in any combination
+        if modalities_to_test:
+            has_metadata = check_metadata_in_modalities(modalities_to_test)
+        else:
+            has_metadata = True  # Safe default
+
+        if has_metadata:
+            vprint("\n" + "="*80, level=1)
+            vprint("OUTLIER DETECTION AND REMOVAL", level=1)
+            vprint("="*80, level=1)
+            vprint(f"Contamination rate: {outlier_contamination*100:.0f}%", level=1)
+            vprint("Applying to metadata features only", level=1)
+
+            # Detect outliers (uses cache if already computed)
+            try:
+                cleaned_df, outlier_df, output_file = detect_outliers(
+                    contamination=outlier_contamination,
+                    random_state=RANDOM_SEED,
+                    force_recompute=False
+                )
+
+                # Apply cleaned dataset
+                success = apply_cleaned_dataset(
+                    contamination=outlier_contamination,
+                    backup=True
+                )
+
+                if success:
+                    vprint("✓ Outlier removal applied successfully", level=1)
+                    vprint(f"  Cleaned dataset: {len(cleaned_df)} samples", level=1)
+                    if outlier_df is not None:
+                        vprint(f"  Outliers removed: {len(outlier_df)} samples", level=2)
+                else:
+                    vprint("⚠ Could not apply cleaned dataset, using original", level=1)
+
+            except Exception as e:
+                vprint(f"⚠ Outlier detection failed: {str(e)}", level=1)
+                vprint("  Continuing with original dataset", level=1)
+
+            vprint("="*80 + "\n", level=1)
+        else:
+            vprint("Outlier removal skipped (no metadata in modality combinations)", level=2)
+    else:
+        vprint("Outlier removal disabled", level=2)
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
     cache_patterns = [
@@ -2265,6 +2331,36 @@ Configuration:
         This improves model performance by training on high-quality core data only.
         Manual threshold arguments (--threshold_I/P/R) override these if specified.
         (default: False - uses all available data)"""
+    )
+
+    parser.add_argument(
+        "--outlier-removal",
+        action='store_true',
+        default=True,
+        help="""Enable outlier detection and removal using Isolation Forest (metadata only).
+        Detects and removes noisy/outlier samples from metadata using per-class Isolation Forest.
+        Only applies when metadata is included in modality combinations being tested.
+        Based on Phase 7 investigation: 15%% outlier removal achieves Kappa 0.27 (+63%% vs baseline).
+        See: agent_communication/fusion_fix/FUSION_FIX_GUIDE.md
+        (default: True - enabled for production)"""
+    )
+
+    parser.add_argument(
+        "--no-outlier-removal",
+        dest='outlier_removal',
+        action='store_false',
+        help="Disable outlier removal (use all data including outliers)"
+    )
+
+    parser.add_argument(
+        "--outlier-contamination",
+        type=float,
+        default=0.15,
+        help="""Expected proportion of outliers for Isolation Forest (0.0-1.0).
+        Controls aggressiveness of outlier removal. Higher = more outliers removed.
+        Recommended: 0.15 (15%%) based on Phase 7 investigation.
+        Range: 0.05 (conservative) to 0.20 (aggressive)
+        (default: 0.15)"""
     )
 
     parser.add_argument(
@@ -2474,7 +2570,8 @@ Configuration:
         vprint(f"Misclassification filtering thresholds: {thresholds}", level=0)
 
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, thresholds, args.track_misclass)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, thresholds, args.track_misclass,
+         args.outlier_removal, args.outlier_contamination)
 
     # Clear memory after completion
     clear_gpu_memory()
