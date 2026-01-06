@@ -25,23 +25,22 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 32  # Image dimensions (32x32 pixels for fusion testing)
-# IMAGE_SIZE = 32  # Image dimensions (32x32 pixels for quick fusion testing)
-# IMAGE_SIZE = 128  # Image dimensions (128x128 pixels)
+IMAGE_SIZE = 32  # Image dimensions (32x32 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
 GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
 # Fusion-specific training parameters
 STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
-DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing - NOTE: Not yet implemented in prepare_cached_datasets)
+DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
-# Class imbalance handling
+# Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
 # Options: 'random', 'smote', 'combined', 'combined_smote'
-#   'random': Simple oversampling to MAX class
-#   'smote': SMOTE synthetic oversampling to MAX class
-#   'combined': Undersample majority + oversample minority to MIDDLE class
-#   'combined_smote': Undersample majority + SMOTE minority to MIDDLE class (best of both!)
-SAMPLING_STRATEGY = 'combined'  # Phase 7 Retest: MUST use combined for proper comparison
+#   'random': Simple oversampling to MAX class (Kappa ~0.10) - NOT RECOMMENDED
+#   'smote': SMOTE synthetic oversampling to MAX class (Kappa ~0.14)
+#   'combined': Undersample majority + oversample minority to MIDDLE class (Kappa ~0.17) - RECOMMENDED
+#   'combined_smote': Undersample majority + SMOTE minority to MIDDLE class - NOT for fusion (creates synthetic samples without images)
+# For production with 15% outlier removal: Expected Kappa 0.27 ± 0.08
+SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
 
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)

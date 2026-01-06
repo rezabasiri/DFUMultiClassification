@@ -1037,3 +1037,48 @@ python src/main.py --mode search --cv_folds 3 --verbosity 3 --resume_mode fresh
 ```
 
 ---
+
+## 2026-01-06 — Fusion optimization complete: 15% outlier removal + production setup
+
+### Phase 1-7 investigation resolves "50% beats 100%" mystery
+
+**Investigation scope**: 7 phases, 25+ test configurations spanning image size, sampling strategies, outlier removal
+**Root cause**: Oversampling strategy (not image size) + noisy training samples
+**Solution**: 15% explicit outlier removal + 'combined' sampling → **Kappa 0.27** (+63% vs baseline, 97% of lucky seed performance)
+
+**Key findings**:
+- Phase 3: 'combined' sampling (undersample P, oversample R to middle) beats 'random' by 67% (Kappa 0.1664 vs 0.0996)
+- Phase 5: Reduced oversampling hypothesis FAILED - data quantity > quality (-18.6% performance)
+- Phase 6: 50% data performance seed-dependent (seed 789: 0.2786, seed 123: 0.207, -25%)
+- Phase 7: Explicit 15% outlier removal matches seed 789 (0.2714 vs 0.2786, gap 2.6%)
+
+**Files modified**:
+- `src/utils/production_config.py`: Updated IMAGE_SIZE, SAMPLING_STRATEGY comments with production guidance
+- `agent_communication/fusion_fix/FUSION_FIX_GUIDE.md`: **Unified documentation** (concise, all 7 phases, file references, stats)
+- `run_production_fusion.py`: **End-to-end production script** (outlier detection + dataset swap + training + results)
+- `agent_communication/fusion_fix/`: Organized into `scripts_production/`, `results_final/`, `archived_intermediate_files/`
+
+**Production configuration** (validated Kappa 0.27 ± 0.08):
+```python
+IMAGE_SIZE = 32  # Optimal for fusion
+SAMPLING_STRATEGY = 'combined'  # Undersample P + oversample R to middle
+# Run outlier detection once: 15% contamination
+```
+
+**Cleanup**:
+- Archived 60+ intermediate files (instructions, old tests, invalid results)
+- Retained 13 final result files + 2 production scripts
+- Created single unified guide replacing multiple scattered docs
+
+**To run production**:
+```bash
+python run_production_fusion.py  # End-to-end: detect outliers → apply → train → report
+# Expected: Kappa 0.27 ± 0.08, ~30 min on 8x RTX 4090
+```
+
+**Performance summary**:
+- Original (128x128, random): Kappa 0.029 ❌
+- Fixed (32x32, combined): Kappa 0.1664 ✅ (+467%)
+- Production (32x32, 15% cleaned): Kappa 0.2714 ✅ (+834% vs original, +63% vs fixed)
+
+---
