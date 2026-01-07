@@ -1435,7 +1435,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         verbose=1
                                     ),
                                     tf.keras.callbacks.ModelCheckpoint(
-                                        checkpoint_path + '_stage1',
+                                        checkpoint_path.replace('.weights.h5', '_stage1.weights.h5'),
                                         monitor='val_weighted_f1_score',
                                         save_best_only=True,
                                         mode='max',
@@ -1453,7 +1453,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 )
 
                                 # Load best Stage 1 weights
-                                model.load_weights(checkpoint_path + '_stage1')
+                                model.load_weights(checkpoint_path.replace('.weights.h5', '_stage1.weights.h5'))
                                 stage1_best_kappa = max(history_stage1.history.get('val_cohen_kappa', [0]))
                                 vprint(f"  Stage 1 completed. Best val kappa: {stage1_best_kappa:.4f}", level=2)
 
