@@ -7,6 +7,12 @@ Multimodal deep learning for Diabetic Foot Ulcer healing phase classification.
 #%% Import Libraries and Configure Environment
 import os
 import sys
+import warnings
+
+# Suppress sklearn FutureWarnings about deprecated internal methods (sklearn 1.6.x issue)
+# These are sklearn's internal deprecation warnings, not issues with our code
+warnings.filterwarnings('ignore', message='.*BaseEstimator._check_n_features.*')
+warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.*')
 
 # Suppress TensorFlow C++ logging (must be set before importing TensorFlow)
 # This will be overridden later based on verbosity level, but default to minimal logging
