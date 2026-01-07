@@ -40,7 +40,7 @@ def create_simple_cnn_map(image_input, modality):
     return x
 
 def create_efficientnet_branch(image_input, modality, backbone_name):
-    """Create EfficientNet branch with specified variant"""
+    """Create EfficientNet branch with specified variant and unique layer names"""
     # Map backbone name to Keras application
     backbone_map = {
         'EfficientNetB0': tf.keras.applications.EfficientNetB0,
@@ -54,21 +54,27 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
     local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
     if os.path.exists(local_weights_path):
         vprint(f"Loading {backbone_name} from local weights", level=2)
-        base_model = EfficientNetClass(weights=None, include_top=False, input_tensor=image_input, pooling='avg')
+        # Create base model WITHOUT input_tensor to avoid layer name conflicts
+        base_model = EfficientNetClass(weights=None, include_top=False, pooling='avg')
         base_model.load_weights(local_weights_path)
     else:
         vprint(f"Loading {backbone_name} from ImageNet", level=2)
-        base_model = EfficientNetClass(weights='imagenet', include_top=False, input_tensor=image_input, pooling='avg')
+        # Create base model WITHOUT input_tensor to avoid layer name conflicts
+        base_model = EfficientNetClass(weights='imagenet', include_top=False, pooling='avg')
 
     base_model.trainable = True
 
-    # Rename layers to avoid conflicts
+    # Rename ALL layers (including nested ones) to avoid conflicts between modalities
+    # This is critical when using same backbone for multiple modalities
     for layer in base_model.layers:
         layer._name = f'{modality}_{layer.name}'
 
+    # Connect the input manually
+    x = base_model(image_input)
+
     vprint(f"{modality} using {backbone_name}: {len(base_model.trainable_weights)} trainable weights", level=2)
 
-    return base_model.output
+    return x
 
 def create_image_branch(input_shape, modality):
     """Create image branch with configurable backbone"""
