@@ -1169,9 +1169,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
                                     )
 
-                                    # Create distributed dataset for pre-training (same data as fusion will use!)
-                                    pretrain_train_dis = strategy.experimental_distribute_dataset(train_dataset)
-                                    pretrain_valid_dis = strategy.experimental_distribute_dataset(valid_dataset)
+                                    # Create filtered dataset for pre-training (only image modality, not metadata)
+                                    # Must filter from master datasets to get only the image modality input
+                                    pretrain_train_dataset = filter_dataset_modalities(master_train_dataset, [image_modality])
+                                    pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
+
+                                    # Remove sample_id for training (Keras 3 compatibility)
+                                    pretrain_train_dataset = pretrain_train_dataset.map(
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                                    pretrain_valid_dataset = pretrain_valid_dataset.map(
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+
+                                    pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
+                                    pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
 
                                     # Pre-training callbacks
                                     pretrain_callbacks = [
