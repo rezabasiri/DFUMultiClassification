@@ -162,3 +162,5 @@ Using Scikit-learn RandomForestClassifier
 No existing data found for metadata+thermal_map, starting fresh
 
 Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/3
+2026-01-07 02:35:56.467051: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
+W0000 00:00:1767771379.665084   27784 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
