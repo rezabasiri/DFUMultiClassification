@@ -45,10 +45,21 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(mes
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
+# Patterns to filter out from log file (noisy but harmless warnings)
+FILTER_PATTERNS = [
+    'cache_dataset_ops.cc',
+    'The calling iterator did not fully read the dataset',
+]
+
+def should_filter_line(line):
+    """Check if line should be filtered from log"""
+    return any(pattern in line for pattern in FILTER_PATTERNS)
+
 def log_to_file_only(message):
     """Write detailed output to log file only, not to console"""
-    with open(LOG_FILE, 'a') as f:
-        f.write(message + '\n')
+    if not should_filter_line(message):
+        with open(LOG_FILE, 'a') as f:
+            f.write(message + '\n')
 
 # Configuration
 RGB_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']

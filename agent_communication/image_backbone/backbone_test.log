@@ -1,27 +1,27 @@
-2026-01-07 02:58:03,564 - INFO - ================================================================================
-2026-01-07 02:58:03,564 - INFO - AUTOMATED BACKBONE COMPARISON
-2026-01-07 02:58:03,565 - INFO - ================================================================================
-2026-01-07 02:58:03,565 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
-2026-01-07 02:58:03,565 - INFO - Configuration:
-2026-01-07 02:58:03,565 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
-2026-01-07 02:58:03,565 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
-2026-01-07 02:58:03,565 - INFO -   Data: 50%
-2026-01-07 02:58:03,565 - INFO -   Image Size: 32x32
-2026-01-07 02:58:03,565 - INFO -   Device: single
-2026-01-07 02:58:03,565 - INFO - Total tests to run: 12
-2026-01-07 02:58:03,565 - INFO - Estimated time: 120 - 180 minutes
-2026-01-07 02:58:03,566 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN
-2026-01-07 02:58:03,566 - INFO - ================================================================================
-2026-01-07 02:58:03,566 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
-2026-01-07 02:58:03,566 - INFO - ================================================================================
+2026-01-07 03:12:44,425 - INFO - ================================================================================
+2026-01-07 03:12:44,425 - INFO - AUTOMATED BACKBONE COMPARISON
+2026-01-07 03:12:44,425 - INFO - ================================================================================
+2026-01-07 03:12:44,425 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
+2026-01-07 03:12:44,425 - INFO - Configuration:
+2026-01-07 03:12:44,425 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
+2026-01-07 03:12:44,425 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
+2026-01-07 03:12:44,425 - INFO -   Data: 50%
+2026-01-07 03:12:44,425 - INFO -   Image Size: 32x32
+2026-01-07 03:12:44,425 - INFO -   Device: single
+2026-01-07 03:12:44,425 - INFO - Total tests to run: 12
+2026-01-07 03:12:44,426 - INFO - Estimated time: 120 - 180 minutes
+2026-01-07 03:12:44,426 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN
+2026-01-07 03:12:44,426 - INFO - ================================================================================
+2026-01-07 03:12:44,426 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
+2026-01-07 03:12:44,426 - INFO - ================================================================================
 
 ================================================================================
 SUBPROCESS OUTPUT - TEST 1: RGB=SimpleCNN, MAP=SimpleCNN
 ================================================================================
-2026-01-07 02:58:04.520462: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-07 03:12:45.406987: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
 WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1767772684.550242   33979 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1767772684.559133   33979 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+E0000 00:00:1767773565.436599   45552 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1767773565.444317   45552 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
   if not hasattr(np, "object"):
 
@@ -35,7 +35,7 @@ Detected 2 GPU(s):
   GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
 
 Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
-I0000 00:00:1767772694.143798   33979 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767773575.389043   45552 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
 Enabled memory growth for 1 GPU(s)
 
 Using default strategy (single GPU)
@@ -67,11 +67,13 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
+  Models: 1 files deleted
   Csv Results: 1 files deleted
+  Tf Cache: 2 files deleted
 ================================================================================
 
-I0000 00:00:1767772695.646541   33979 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767772695.683734   33979 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+I0000 00:00:1767773576.865688   45552 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767773576.900305   45552 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: True
@@ -133,41 +135,23 @@ All data will be validated exactly once across all folds
 
 Fold 1/3
 Using pre-computed fold 1 patient split
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
-  warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
-  warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
-  warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
-  warnings.warn(
 Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767772702.863287   33979 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
-2026-01-07 02:58:27.514208: W tensorflow/core/kernels/data/cache_dataset_ops.cc:332] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+I0000 00:00:1767773583.887678   45552 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
-Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'metadata']
+Preparing datasets for Fold 1/3 with all modalities: ['metadata', 'thermal_map']
 Using consistent patient split across all modality combinations for run 1
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
-  warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
-  warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
-  warnings.warn(
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
-  warnings.warn(
 Using Scikit-learn RandomForestClassifier
 
 No existing data found for metadata+thermal_map, starting fresh
 
 Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/3
-2026-01-07 02:58:34.853359: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-W0000 00:00:1767772715.403966   34425 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
-2026-01-07 02:59:05.883664: W tensorflow/core/kernels/data/cache_dataset_ops.cc:332] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+2026-01-07 03:13:14.989991: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
+W0000 00:00:1767773595.547465   45978 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
 ================================================================================
 AUTOMATIC PRE-TRAINING: thermal_map weights not found
   Training thermal_map-only model first (same data split)...
 ================================================================================
-2026-01-07 02:59:06.751369: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
+2026-01-07 03:13:46.193921: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
 Expected: {'thermal_map_input': 'thermal_map_input'}
 Received: inputs={'metadata_input': 'Tensor(shape=(None, 3))', 'thermal_map_input': 'Tensor(shape=(None, 32, 32, 3))'}
@@ -183,7 +167,5 @@ Arguments received by Functional.call():
   • kwargs=<class 'inspect._empty'>
   Continuing with random init (will likely overfit)...
 No existing pretrained weights found
-I0000 00:00:1767772752.242980   34231 cuda_dnn.cc:529] Loaded cuDNN version 91002
-2026-01-07 02:59:23.458365: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-2026-01-07 02:59:41.776583: W tensorflow/core/kernels/data/cache_dataset_ops.cc:332] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
-2026-01-07 02:59:51.384403: W tensorflow/core/kernels/data/cache_dataset_ops.cc:332] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+I0000 00:00:1767773631.676101   45783 cuda_dnn.cc:529] Loaded cuDNN version 91002
+2026-01-07 03:14:01.276984: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
