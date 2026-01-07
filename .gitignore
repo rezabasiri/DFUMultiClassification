@@ -48,7 +48,6 @@ results/frequent_*.csv
 results/modality_*.csv
 *.log
 !agent_communication/image_backbone/*.log
-agent_communication/image_backbone/BACKBONE_PROGRESS.json
 device*
 
 # raw data
