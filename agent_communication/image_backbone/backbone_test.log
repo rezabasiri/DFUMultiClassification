@@ -152,3 +152,5 @@ Using consistent patient split across all modality combinations for run 1
 No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+No existing pretrained weights found
+I0000 00:00:1767813190.257304  367886 cuda_dnn.cc:529] Loaded cuDNN version 91002
