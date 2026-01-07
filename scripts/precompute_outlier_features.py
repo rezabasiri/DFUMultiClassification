@@ -302,15 +302,31 @@ Examples:
     print(f"Processing {len(modalities_to_cache)} modalities: {', '.join(modalities_to_cache)}")
     print()
 
+    # Get current backbone configuration
+    from src.utils.production_config import RGB_BACKBONE, MAP_BACKBONE
+
+    print(f"Backbone configuration:")
+    print(f"  RGB: {RGB_BACKBONE}")
+    print(f"  MAP: {MAP_BACKBONE}")
+    print()
+
     # Extract and cache features for each modality
     for modality in modalities_to_cache:
-        # Cache filename includes image size for image modalities
+        # Determine backbone based on modality type
+        if modality in ['depth_rgb', 'thermal_rgb']:
+            backbone = RGB_BACKBONE
+        elif modality in ['depth_map', 'thermal_map']:
+            backbone = MAP_BACKBONE
+        else:
+            backbone = None  # metadata
+
+        # Cache filename includes image size and backbone for image modalities
         if modality == 'metadata':
             cache_file = cache_dir / f'{modality}_features.npy'
             cache_name = f'{modality}_features.npy'
         else:
-            cache_file = cache_dir / f'{modality}_features_{args.image_size}.npy'
-            cache_name = f'{modality}_features_{args.image_size}.npy'
+            cache_file = cache_dir / f'{modality}_features_{args.image_size}_{backbone}.npy'
+            cache_name = f'{modality}_features_{args.image_size}_{backbone}.npy'
 
         # Check if cache exists
         if cache_file.exists() and not args.force:
@@ -351,13 +367,21 @@ Examples:
     print(f"Image size: {args.image_size}")
     print("\nCached files:")
     for modality in modalities_to_cache:
+        # Determine backbone
+        if modality in ['depth_rgb', 'thermal_rgb']:
+            backbone = RGB_BACKBONE
+        elif modality in ['depth_map', 'thermal_map']:
+            backbone = MAP_BACKBONE
+        else:
+            backbone = None
+
         # Use correct filename based on modality type
         if modality == 'metadata':
             cache_file = cache_dir / f'{modality}_features.npy'
             cache_name = f'{modality}_features.npy'
         else:
-            cache_file = cache_dir / f'{modality}_features_{args.image_size}.npy'
-            cache_name = f'{modality}_features_{args.image_size}.npy'
+            cache_file = cache_dir / f'{modality}_features_{args.image_size}_{backbone}.npy'
+            cache_name = f'{modality}_features_{args.image_size}_{backbone}.npy'
 
         if cache_file.exists():
             size_mb = cache_file.stat().st_size / 1024 / 1024
