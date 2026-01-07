@@ -93,8 +93,8 @@ RGB_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB
 MAP_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
 
 # Test parameters
-DATA_PERCENTAGE = 50
-IMAGE_SIZE = 32
+DATA_PERCENTAGE = 100
+IMAGE_SIZE = 64
 DEVICE_MODE = 'single'
 RESUME_MODE = 'fresh'
 
