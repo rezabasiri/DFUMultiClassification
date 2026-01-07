@@ -1,0 +1,164 @@
+2026-01-07 02:22:43,519 - INFO - ================================================================================
+2026-01-07 02:22:43,519 - INFO - AUTOMATED BACKBONE COMPARISON
+2026-01-07 02:22:43,519 - INFO - ================================================================================
+2026-01-07 02:22:43,519 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
+2026-01-07 02:22:43,519 - INFO - Configuration:
+2026-01-07 02:22:43,519 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
+2026-01-07 02:22:43,519 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
+2026-01-07 02:22:43,519 - INFO -   Data: 30%
+2026-01-07 02:22:43,520 - INFO -   Image Size: 32x32
+2026-01-07 02:22:43,520 - INFO -   Device: single
+2026-01-07 02:22:43,520 - INFO - Total tests to run: 12
+2026-01-07 02:22:43,520 - INFO - Estimated time: 120 - 180 minutes
+2026-01-07 02:22:43,521 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN
+2026-01-07 02:22:43,521 - INFO - ================================================================================
+2026-01-07 02:22:43,521 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
+2026-01-07 02:22:43,521 - INFO - ================================================================================
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 1: RGB=SimpleCNN, MAP=SimpleCNN
+================================================================================
+2026-01-07 02:22:44.349500: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1767770564.375412   24972 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1767770564.384299   24972 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, "object"):
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA TITAN Xp - 12.0GB (compute 6.1)
+  GPU 1: Quadro P400 - 2.0GB (compute 6.1)
+  GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
+
+Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
+I0000 00:00:1767770574.515007   24972 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 4 (global batch size: 4, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 30.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 32x32
+Batch size: 4
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 1 files deleted
+  Csv Results: 1 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+I0000 00:00:1767770579.110818   24972 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767770579.148245   24972 gpu_device.cc:2022] Created device /device:GPU:0 with 10631 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] metadata_thermal_map
+Using existing cleaned dataset for metadata_thermal_map: metadata_thermal_map_15pct.csv
+Applying cleaned dataset for metadata_thermal_map (15% outlier removal)...
+  Filtered: 2941 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for metadata_thermal_map: 2640 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata, thermal_map
+Number of samples for each selected modality:
+  thermal_map: 2941
+  thermal_bb: 2941
+  metadata: 2941
+Using 30.0% of the data: 882 samples
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 129 train patients, 66 valid patients
+  Train dist: {0: 0.314, 1: 0.570, 2: 0.116}
+  Valid dist: {0: 0.285, 1: 0.614, 2: 0.101}
+Fold 2/3: 130 train patients, 65 valid patients
+  Train dist: {0: 0.291, 1: 0.605, 2: 0.104}
+  Valid dist: {0: 0.329, 1: 0.549, 2: 0.123}
+Fold 3/3: 131 train patients, 64 valid patients
+  Train dist: {0: 0.304, 1: 0.585, 2: 0.111}
+  Valid dist: {0: 0.298, 1: 0.593, 2: 0.109}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Using Scikit-learn RandomForestClassifier
+I0000 00:00:1767770586.310731   24972 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10631 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+2026-01-07 02:31:16.053564: W tensorflow/core/kernels/data/cache_dataset_ops.cc:332] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 1
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:484: FutureWarning: `BaseEstimator._check_n_features` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_n_features` instead.
+  warnings.warn(
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/sklearn/base.py:493: FutureWarning: `BaseEstimator._check_feature_names` is deprecated in 1.6 and will be removed in 1.7. Use `sklearn.utils.validation._check_feature_names` instead.
+  warnings.warn(
+Using Scikit-learn RandomForestClassifier
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/3
