@@ -54,11 +54,30 @@ FILTER_PATTERNS = [
     'node_def_util.cc',
     'use_unbounded_threadpool which is not in the op definition',
     'Unknown attributes will be ignored',
+    '/step',  # Filter download progress bars (e.g., "27018416/27018416 ... 21us/step")
+    '━',      # Filter lines with progress bar characters
 ]
+
+# Track last non-filtered line for download progress condensing
+last_download_line = None
 
 def should_filter_line(line):
     """Check if line should be filtered from log"""
-    return any(pattern in line for pattern in FILTER_PATTERNS)
+    global last_download_line
+
+    # Filter out lines matching patterns
+    if any(pattern in line for pattern in FILTER_PATTERNS):
+        # Keep track of last download progress line
+        if '/step' in line or '━' in line:
+            last_download_line = line
+        return True
+
+    # After filtering progress bars, log a summary if we had progress
+    if last_download_line and not any(pattern in line for pattern in FILTER_PATTERNS):
+        # Reset and allow this non-progress line through
+        last_download_line = None
+
+    return False
 
 def log_to_file_only(message):
     """Write detailed output to log file only, not to console"""
