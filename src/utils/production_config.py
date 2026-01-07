@@ -32,7 +32,7 @@ N_EPOCHS = 300  # Full training epochs
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3'
 RGB_BACKBONE = 'SimpleCNN'  # Backbone for RGB images (depth_rgb, thermal_rgb)
-MAP_BACKBONE = 'EfficientNetB0'  # Backbone for map images (depth_map, thermal_map)
+MAP_BACKBONE = 'SimpleCNN'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
 STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
@@ -259,7 +259,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'thermal_map',),
+    ('depth_rgb', 'thermal_map',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming

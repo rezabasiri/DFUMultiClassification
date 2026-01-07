@@ -49,6 +49,11 @@ logger.addHandler(file_handler)
 FILTER_PATTERNS = [
     'cache_dataset_ops.cc',
     'The calling iterator did not fully read the dataset',
+    'loop_optimizer.cc',
+    'Skipping loop optimization for Merge node',
+    'node_def_util.cc',
+    'use_unbounded_threadpool which is not in the op definition',
+    'Unknown attributes will be ignored',
 ]
 
 def should_filter_line(line):
