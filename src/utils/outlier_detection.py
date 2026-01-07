@@ -297,6 +297,9 @@ def load_cached_features(modality, cache_dir=None, image_size=None):
     """
     Load pre-computed features from cache.
 
+    Cache filename includes backbone type to ensure correct features are loaded.
+    Format: {modality}_features_{image_size}_{backbone}.npy
+
     Args:
         modality: Modality name ('metadata', 'thermal_map', etc.)
         cache_dir: Cache directory path (default: cache_outlier/)
@@ -305,7 +308,11 @@ def load_cached_features(modality, cache_dir=None, image_size=None):
     Returns:
         numpy array: Cached features or None if not found
     """
-    from src.utils.production_config import IMAGE_SIZE as DEFAULT_IMAGE_SIZE
+    from src.utils.production_config import (
+        IMAGE_SIZE as DEFAULT_IMAGE_SIZE,
+        RGB_BACKBONE,
+        MAP_BACKBONE
+    )
 
     _, _, root = get_project_paths()
     root = Path(root)
@@ -317,11 +324,19 @@ def load_cached_features(modality, cache_dir=None, image_size=None):
     if image_size is None:
         image_size = DEFAULT_IMAGE_SIZE
 
-    # Cache filename includes image size for image modalities
+    # Determine backbone based on modality type
+    if modality in ['depth_rgb', 'thermal_rgb']:
+        backbone = RGB_BACKBONE
+    elif modality in ['depth_map', 'thermal_map']:
+        backbone = MAP_BACKBONE
+    else:
+        backbone = None  # metadata has no backbone
+
+    # Cache filename includes image size and backbone for image modalities
     if modality == 'metadata':
         cache_file = cache_dir / f'{modality}_features.npy'
     else:
-        cache_file = cache_dir / f'{modality}_features_{image_size}.npy'
+        cache_file = cache_dir / f'{modality}_features_{image_size}_{backbone}.npy'
 
     if not cache_file.exists():
         return None
@@ -334,10 +349,10 @@ def load_cached_features(modality, cache_dir=None, image_size=None):
         return None
 
 
-def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size=32, batch_size=32):
+def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size=32, batch_size=32, save_cache=True):
     """
     Extract features on-the-fly if cache is not available.
-    Uses training pipeline architecture with ImageNet weights for image modalities.
+    Uses training pipeline architecture with current backbone configuration.
 
     Args:
         modality: Modality name
@@ -345,6 +360,7 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
         data_paths: Dictionary of data paths
         image_size: Image size for feature extraction
         batch_size: Batch size for feature extraction (default: 32)
+        save_cache: If True, save extracted features to cache for reuse (default: True)
 
     Returns:
         numpy array: Extracted features
@@ -426,6 +442,31 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
             all_features[start_idx:end_idx] = batch_features
 
         vprint(f"  Extracted {modality}: {all_features.shape[0]} × {all_features.shape[1]} features", level=2)
+
+        # Save to cache for reuse if requested
+        if save_cache:
+            from src.utils.production_config import RGB_BACKBONE, MAP_BACKBONE
+            _, _, root = get_project_paths()
+            root = Path(root)
+            cache_dir = root.parent / 'cache_outlier'
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Determine backbone based on modality type
+            if modality in ['depth_rgb', 'thermal_rgb']:
+                backbone = RGB_BACKBONE
+            elif modality in ['depth_map', 'thermal_map']:
+                backbone = MAP_BACKBONE
+            else:
+                backbone = None
+
+            if backbone:
+                cache_file = cache_dir / f'{modality}_features_{image_size}_{backbone}.npy'
+                try:
+                    np.save(cache_file, all_features)
+                    vprint(f"  Saved to cache: {cache_file.name}", level=2)
+                except Exception as e:
+                    vprint(f"  Warning: Could not save cache: {e}", level=2)
+
         return all_features
 
 
