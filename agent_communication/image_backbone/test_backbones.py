@@ -207,20 +207,23 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
         output = '\n'.join(output_lines)
 
         # Try multiple patterns for each metric
-        kappa = (extract_metric(output, r"Kappa[:\s]+(\d+\.\d+)") or
-                extract_metric(output, r"Cohen'?s?\s+Kappa[:\s]+(\d+\.\d+)") or
-                extract_metric(output, r"kappa[:\s]+(\d+\.\d+)"))
+        # First try FINAL SUMMARY format (averaged across folds), then fallback to single run format
+        kappa = (extract_metric(output, r"Kappa:\s+(\d+\.\d+)\s*±") or  # FINAL SUMMARY: "Kappa: 0.2166 ±"
+                extract_metric(output, r"Kappa:\s+(\d+\.\d+)") or         # Single run: "Kappa: 0.2166"
+                extract_metric(output, r"Cohen'?s?\s+Kappa:\s+(\d+\.\d+)") or
+                extract_metric(output, r"kappa:\s+(\d+\.\d+)"))
 
-        accuracy = (extract_metric(output, r"Accuracy[:\s]+(\d+\.\d+)") or
-                   extract_metric(output, r"accuracy[:\s]+(\d+\.\d+)"))
+        accuracy = (extract_metric(output, r"Accuracy:\s+(\d+\.\d+)\s*±") or  # FINAL SUMMARY
+                   extract_metric(output, r"Accuracy:\s+(\d+\.\d+)") or         # Single run
+                   extract_metric(output, r"accuracy:\s+(\d+\.\d+)"))
 
-        f1_macro = (extract_metric(output, r"Macro\s+F1[:\s]+(\d+\.\d+)") or
-                   extract_metric(output, r"F1\s+Macro[:\s]+(\d+\.\d+)") or
-                   extract_metric(output, r"f1_macro[:\s]+(\d+\.\d+)"))
+        f1_macro = (extract_metric(output, r"F1\s+Macro:\s+(\d+\.\d+)") or  # "F1 Macro: 0.4269"
+                   extract_metric(output, r"Macro\s+F1:\s+(\d+\.\d+)") or
+                   extract_metric(output, r"f1_macro:\s+(\d+\.\d+)"))
 
-        f1_weighted = (extract_metric(output, r"Weighted\s+F1[:\s]+(\d+\.\d+)") or
-                      extract_metric(output, r"F1\s+Weighted[:\s]+(\d+\.\d+)") or
-                      extract_metric(output, r"f1_weighted[:\s]+(\d+\.\d+)"))
+        f1_weighted = (extract_metric(output, r"F1\s+Weighted:\s+(\d+\.\d+)") or
+                      extract_metric(output, r"Weighted\s+F1:\s+(\d+\.\d+)") or
+                      extract_metric(output, r"f1_weighted:\s+(\d+\.\d+)"))
 
         return {
             'rgb_backbone': rgb_backbone,
