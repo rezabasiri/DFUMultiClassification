@@ -498,11 +498,17 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
         if use_cache:
             features = load_cached_features(modality, cache_dir, image_size)
             if features is not None:
-                from_cache = True
+                # Validate cached features match current dataset
+                if len(features) != n_samples:
+                    vprint(f"  Cache invalid for {modality}: {len(features)} samples vs {n_samples} expected (likely due to data_percentage or backbone change)", level=2)
+                    vprint(f"  Discarding cache and extracting features on-the-fly...", level=2)
+                    features = None  # Discard invalid cache
+                else:
+                    from_cache = True
 
-        # Fall back to on-the-fly extraction if cache not available
+        # Fall back to on-the-fly extraction if cache not available or invalid
         if features is None:
-            if use_cache:
+            if use_cache and not from_cache:
                 vprint(f"  Cache not found for {modality} (image_size={image_size}), extracting on-the-fly...", level=2)
             features = extract_features_on_the_fly(modality, best_matching_df, data_paths, image_size, batch_size)
 
@@ -511,7 +517,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
             return None, None, None
 
         if len(features) != n_samples:
-            vprint(f"  Error: Feature count mismatch for {modality}: {len(features)} vs {n_samples}", level=0)
+            vprint(f"  Error: Feature count mismatch for {modality}: {len(features)} vs {n_samples} (this should not happen after cache validation)", level=0)
             return None, None, None
 
         all_features.append(features)
