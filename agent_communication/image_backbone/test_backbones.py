@@ -6,7 +6,11 @@ Tests different CNN backbones for RGB and map image branches.
 Usage:
     python agent_communication/image_backbone/test_backbones.py
 
-Results saved to: agent_communication/image_backbone/BACKBONE_RESULTS.txt
+Output:
+    - Real-time output to console and log files
+    - Master log: agent_communication/image_backbone/MASTER_LOG_<timestamp>.txt
+    - Test logs: agent_communication/image_backbone/test_XX_<backbone>_<backbone>.txt
+    - Results: agent_communication/image_backbone/BACKBONE_RESULTS.txt
 """
 
 import os
@@ -57,11 +61,12 @@ def update_backbone_config(rgb_backbone, map_backbone):
 
     print(f"✓ Updated config: RGB={rgb_backbone}, MAP={map_backbone}")
 
-def run_training(rgb_backbone, map_backbone, test_num, total_tests):
+def run_training(rgb_backbone, map_backbone, test_num, total_tests, master_log):
     """Run training with specified backbones"""
-    print(f"\n{'='*80}")
-    print(f"TEST {test_num}/{total_tests}: RGB={rgb_backbone}, MAP={map_backbone}")
-    print(f"{'='*80}\n")
+    header = f"\n{'='*80}\nTEST {test_num}/{total_tests}: RGB={rgb_backbone}, MAP={map_backbone}\n{'='*80}\n"
+    print(header)
+    master_log.write(header)
+    master_log.flush()
 
     cmd = [
         'python', 'src/main.py',
@@ -73,24 +78,42 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
 
     start_time = time.time()
 
+    # Create test-specific log file
+    test_log_file = project_root / f"agent_communication/image_backbone/test_{test_num:02d}_{rgb_backbone}_{map_backbone}.txt"
+
     try:
-        result = subprocess.run(
+        # Use Popen to capture output in real-time
+        process = subprocess.Popen(
             cmd,
             cwd=project_root,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            timeout=3600  # 60 minute timeout
+            bufsize=1
         )
 
+        output_lines = []
+
+        # Read output line by line and write to both console and files
+        with open(test_log_file, 'w') as test_log:
+            for line in process.stdout:
+                # Write to console
+                print(line, end='')
+                # Write to master log
+                master_log.write(line)
+                master_log.flush()
+                # Write to test-specific log
+                test_log.write(line)
+                test_log.flush()
+                # Store for parsing
+                output_lines.append(line)
+
+        # Wait for process to complete
+        return_code = process.wait(timeout=3600)
         runtime = time.time() - start_time
 
-        # Parse results from output
-        output = result.stdout + result.stderr
-
-        # Save raw output for debugging
-        log_file = project_root / f"agent_communication/image_backbone/test_{test_num:02d}_{rgb_backbone}_{map_backbone}.log"
-        with open(log_file, 'w') as f:
-            f.write(output)
+        # Combine output for parsing
+        output = ''.join(output_lines)
 
         # Try multiple patterns for each metric
         kappa = (extract_metric(output, r"Kappa[:\s]+(\d+\.\d+)") or
@@ -108,6 +131,9 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
                       extract_metric(output, r"F1\s+Weighted[:\s]+(\d+\.\d+)") or
                       extract_metric(output, r"f1_weighted[:\s]+(\d+\.\d+)"))
 
+        success = return_code == 0
+        error = None if success else f"Process exited with code {return_code}"
+
         return {
             'rgb_backbone': rgb_backbone,
             'map_backbone': map_backbone,
@@ -116,20 +142,29 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
             'f1_macro': f1_macro,
             'f1_weighted': f1_weighted,
             'runtime_min': runtime / 60,
-            'success': True,
-            'error': None,
-            'log_file': str(log_file)
+            'success': success,
+            'error': error,
+            'log_file': str(test_log_file)
         }
 
     except subprocess.TimeoutExpired:
+        process.kill()
+        error_msg = "TIMEOUT (60 min)\n"
+        print(error_msg)
+        master_log.write(error_msg)
+        master_log.flush()
         return {
             'rgb_backbone': rgb_backbone,
             'map_backbone': map_backbone,
             'success': False,
-            'error': 'TIMEOUT (30 min)',
-            'runtime_min': 30.0
+            'error': 'TIMEOUT (60 min)',
+            'runtime_min': 60.0
         }
     except Exception as e:
+        error_msg = f"ERROR: {str(e)}\n"
+        print(error_msg)
+        master_log.write(error_msg)
+        master_log.flush()
         return {
             'rgb_backbone': rgb_backbone,
             'map_backbone': map_backbone,
@@ -230,65 +265,82 @@ def format_results(all_results):
     return "\n".join(lines)
 
 def main():
-    print("\n" + "="*80)
-    print("AUTOMATED BACKBONE COMPARISON")
-    print("="*80)
-    print(f"\nConfiguration:")
-    print(f"  RGB Backbones: {RGB_BACKBONES}")
-    print(f"  MAP Backbones: {MAP_BACKBONES}")
-    print(f"  Data: {DATA_PERCENTAGE}%")
-    print(f"  Image Size: {IMAGE_SIZE}x{IMAGE_SIZE}")
-    print(f"  Device: {DEVICE_MODE}")
-    print(f"")
+    # Create master log file
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    master_log_file = project_root / f"agent_communication/image_backbone/MASTER_LOG_{timestamp}.txt"
 
-    # Generate test combinations
-    test_combinations = [
-        (rgb, map_b)
-        for rgb in RGB_BACKBONES
-        for map_b in MAP_BACKBONES
-    ]
+    with open(master_log_file, 'w') as master_log:
+        header = "\n" + "="*80 + "\n" + "AUTOMATED BACKBONE COMPARISON\n" + "="*80 + "\n"
+        print(header)
+        master_log.write(header)
 
-    total_tests = len(test_combinations)
-    print(f"Total tests to run: {total_tests}")
-    print(f"Estimated time: {total_tests * 10} - {total_tests * 15} minutes\n")
+        config_info = f"\nConfiguration:\n  RGB Backbones: {RGB_BACKBONES}\n  MAP Backbones: {MAP_BACKBONES}\n  Data: {DATA_PERCENTAGE}%\n  Image Size: {IMAGE_SIZE}x{IMAGE_SIZE}\n  Device: {DEVICE_MODE}\n\n"
+        print(config_info)
+        master_log.write(config_info)
 
-    # Run all tests
-    all_results = []
+        # Generate test combinations
+        test_combinations = [
+            (rgb, map_b)
+            for rgb in RGB_BACKBONES
+            for map_b in MAP_BACKBONES
+        ]
 
-    for i, (rgb_backbone, map_backbone) in enumerate(test_combinations, 1):
-        # Update configuration
-        update_backbone_config(rgb_backbone, map_backbone)
+        total_tests = len(test_combinations)
+        test_info = f"Total tests to run: {total_tests}\nEstimated time: {total_tests * 10} - {total_tests * 15} minutes\n\n"
+        print(test_info)
+        master_log.write(test_info)
+        master_log.write(f"Master log file: {master_log_file}\n\n")
+        master_log.flush()
 
-        # Run training
-        result = run_training(rgb_backbone, map_backbone, i, total_tests)
-        all_results.append(result)
+        # Run all tests
+        all_results = []
 
-        # Print immediate result
-        if result['success']:
-            if result['kappa'] is not None:
-                print(f"✓ Result: Kappa={result['kappa']:.4f}, Time={result['runtime_min']:.1f} min")
+        for i, (rgb_backbone, map_backbone) in enumerate(test_combinations, 1):
+            # Update configuration
+            update_backbone_config(rgb_backbone, map_backbone)
+
+            # Run training
+            result = run_training(rgb_backbone, map_backbone, i, total_tests, master_log)
+            all_results.append(result)
+
+            # Print immediate result
+            result_msg = ""
+            if result['success']:
+                if result['kappa'] is not None:
+                    result_msg = f"✓ Result: Kappa={result['kappa']:.4f}, Time={result['runtime_min']:.1f} min\n"
+                else:
+                    result_msg = f"⚠ Completed but metrics not found. Check log file: {result['log_file']}\n"
             else:
-                print(f"⚠ Completed but metrics not found. Check output manually. Time={result['runtime_min']:.1f} min")
-        else:
-            print(f"✗ FAILED: {result['error']}")
+                result_msg = f"✗ FAILED: {result['error']}\n"
 
-    # Generate report
-    print("\n\nGenerating report...")
-    report = format_results(all_results)
+            print(result_msg)
+            master_log.write(result_msg + "\n")
+            master_log.flush()
 
-    # Save results
-    RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(RESULTS_FILE, 'w') as f:
-        f.write(report)
+        # Generate report
+        report_msg = "\n\nGenerating report...\n"
+        print(report_msg)
+        master_log.write(report_msg)
+        report = format_results(all_results)
 
-    print(f"\n✓ Results saved to: {RESULTS_FILE}")
-    print("\n" + report)
+        # Save results
+        RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(RESULTS_FILE, 'w') as f:
+            f.write(report)
 
-    # Restore baseline configuration
-    print("\nRestoring baseline configuration (SimpleCNN/SimpleCNN)...")
-    update_backbone_config('SimpleCNN', 'SimpleCNN')
+        final_msg = f"\n✓ Results saved to: {RESULTS_FILE}\n✓ Master log saved to: {master_log_file}\n\n{report}\n"
+        print(final_msg)
+        master_log.write(final_msg)
 
-    print("\n✓ Backbone comparison complete!")
+        # Restore baseline configuration
+        restore_msg = "\nRestoring baseline configuration (SimpleCNN/SimpleCNN)...\n"
+        print(restore_msg)
+        master_log.write(restore_msg)
+        update_backbone_config('SimpleCNN', 'SimpleCNN')
+
+        complete_msg = "\n✓ Backbone comparison complete!\n"
+        print(complete_msg)
+        master_log.write(complete_msg)
 
 if __name__ == '__main__':
     main()
