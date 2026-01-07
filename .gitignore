@@ -47,6 +47,7 @@ results/*.csv
 results/frequent_*.csv
 results/modality_*.csv
 *.log
+!agent_communication/image_backbone/*.log
 device*
 
 # raw data
