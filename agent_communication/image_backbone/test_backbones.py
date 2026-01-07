@@ -324,15 +324,22 @@ def format_results(all_results_dict):
 
     for i, result in enumerate(all_results, 1):
         if result.get('success') and result.get('kappa') is not None:
+            # Handle None values explicitly (get() returns None if key exists with None value)
+            kappa = result.get('kappa') or 0
+            accuracy = result.get('accuracy') or 0
+            f1_macro = result.get('f1_macro') or 0
+            f1_weighted = result.get('f1_weighted') or 0
+            runtime = result.get('runtime_min') or 0
+
             lines.append(
                 f"{i:<4} {result['rgb_backbone']:<18} {result['map_backbone']:<18} "
-                f"{result['kappa']:<10.4f} {result.get('accuracy', 0):<10.4f} {result.get('f1_macro', 0):<10.4f} "
-                f"{result.get('f1_weighted', 0):<10.4f} {result['runtime_min']:<10.1f} {'✓ Complete':<15}"
+                f"{kappa:<10.4f} {accuracy:<10.4f} {f1_macro:<10.4f} "
+                f"{f1_weighted:<10.4f} {runtime:<10.1f} {'✓ Complete':<15}"
             )
         elif result.get('success'):
             lines.append(
                 f"{i:<4} {result['rgb_backbone']:<18} {result['map_backbone']:<18} "
-                f"{'N/A':<10} {'N/A':<10} {'N/A':<10} {'N/A':<10} {result['runtime_min']:<10.1f} {'⚠ No metrics':<15}"
+                f"{'N/A':<10} {'N/A':<10} {'N/A':<10} {'N/A':<10} {result.get('runtime_min', 0):<10.1f} {'⚠ No metrics':<15}"
             )
         else:
             lines.append(
