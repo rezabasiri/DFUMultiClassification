@@ -2,11 +2,11 @@
   "SimpleCNN_SimpleCNN": {
     "rgb_backbone": "SimpleCNN",
     "map_backbone": "SimpleCNN",
-    "kappa": 0.2337,
-    "accuracy": 0.5279,
-    "f1_macro": 0.4623,
+    "kappa": 0.0343,
+    "accuracy": 0.4747,
+    "f1_macro": 0.3175,
     "f1_weighted": null,
-    "runtime_min": 97.49114434719085,
+    "runtime_min": 17.732711668809255,
     "success": true,
     "error": null
   }
