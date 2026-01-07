@@ -451,21 +451,22 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
             cache_dir = root.parent / 'cache_outlier'
             cache_dir.mkdir(parents=True, exist_ok=True)
 
-            # Determine backbone based on modality type
+            # Determine cache filename based on modality type
             if modality in ['depth_rgb', 'thermal_rgb']:
                 backbone = RGB_BACKBONE
+                cache_file = cache_dir / f'{modality}_features_{image_size}_{backbone}.npy'
             elif modality in ['depth_map', 'thermal_map']:
                 backbone = MAP_BACKBONE
-            else:
-                backbone = None
-
-            if backbone:
                 cache_file = cache_dir / f'{modality}_features_{image_size}_{backbone}.npy'
-                try:
-                    np.save(cache_file, all_features)
-                    vprint(f"  Saved to cache: {cache_file.name}", level=2)
-                except Exception as e:
-                    vprint(f"  Warning: Could not save cache: {e}", level=2)
+            else:
+                # Metadata - no backbone or image size needed
+                cache_file = cache_dir / f'{modality}_features.npy'
+
+            try:
+                np.save(cache_file, all_features)
+                vprint(f"  Saved to cache: {cache_file.name}", level=2)
+            except Exception as e:
+                vprint(f"  Warning: Could not save cache: {e}", level=2)
 
         return all_features
 
