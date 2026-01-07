@@ -1,27 +1,29 @@
-2026-01-07 03:16:46,712 - INFO - ================================================================================
-2026-01-07 03:16:46,712 - INFO - AUTOMATED BACKBONE COMPARISON
-2026-01-07 03:16:46,712 - INFO - ================================================================================
-2026-01-07 03:16:46,712 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
-2026-01-07 03:16:46,712 - INFO - Configuration:
-2026-01-07 03:16:46,713 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
-2026-01-07 03:16:46,713 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
-2026-01-07 03:16:46,713 - INFO -   Data: 50%
-2026-01-07 03:16:46,713 - INFO -   Image Size: 32x32
-2026-01-07 03:16:46,713 - INFO -   Device: single
-2026-01-07 03:16:46,713 - INFO - Total tests to run: 12
-2026-01-07 03:16:46,713 - INFO - Estimated time: 120 - 180 minutes
-2026-01-07 03:16:46,714 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN
-2026-01-07 03:16:46,714 - INFO - ================================================================================
-2026-01-07 03:16:46,714 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
-2026-01-07 03:16:46,714 - INFO - ================================================================================
-2026-01-07 03:45:38,312 - INFO - Result: Kappa=0.0664, Time=28.9 min
-2026-01-07 03:45:38,313 - INFO - Updated config: RGB=SimpleCNN, MAP=EfficientNetB0
-2026-01-07 03:45:38,313 - INFO - ================================================================================
-2026-01-07 03:45:38,313 - INFO - TEST 2/12: RGB=SimpleCNN, MAP=EfficientNetB0
-2026-01-07 03:45:38,313 - INFO - ================================================================================
-fore absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1767773807.556402   47407 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1767773807.562736   47407 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-07 05:44:44,091 - INFO - ================================================================================
+2026-01-07 05:44:44,091 - INFO - AUTOMATED BACKBONE COMPARISON
+2026-01-07 05:44:44,092 - INFO - ================================================================================
+2026-01-07 05:44:44,092 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
+2026-01-07 05:44:44,092 - INFO - Saved original INCLUDED_COMBINATIONS
+2026-01-07 05:44:44,092 - INFO - Configuration:
+2026-01-07 05:44:44,093 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
+2026-01-07 05:44:44,093 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
+2026-01-07 05:44:44,093 - INFO -   Data: 50%
+2026-01-07 05:44:44,093 - INFO -   Image Size: 32x32
+2026-01-07 05:44:44,093 - INFO -   Device: single
+2026-01-07 05:44:44,093 - INFO -   Test modalities: depth_rgb + thermal_map
+2026-01-07 05:44:44,093 - INFO - Total tests to run: 12
+2026-01-07 05:44:44,093 - INFO - Estimated time: 120 - 180 minutes
+2026-01-07 05:44:44,094 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
+2026-01-07 05:44:44,094 - INFO - ================================================================================
+2026-01-07 05:44:44,094 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
+2026-01-07 05:44:44,094 - INFO - ================================================================================
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 1: RGB=SimpleCNN, MAP=SimpleCNN
+================================================================================
+2026-01-07 05:44:44.909870: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1767782684.938382  116041 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1767782684.945256  116041 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
 /home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
   if not hasattr(np, "object"):
 
@@ -35,7 +37,7 @@ Detected 2 GPU(s):
   GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
 
 Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
-I0000 00:00:1767773816.574896   47407 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767782693.954951  116041 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
 Enabled memory growth for 1 GPU(s)
 
 Using default strategy (single GPU)
@@ -67,13 +69,12 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
-  Models: 1 files deleted
   Csv Results: 1 files deleted
   Tf Cache: 2 files deleted
 ================================================================================
 
-I0000 00:00:1767773818.067476   47407 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767773818.092581   47407 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+I0000 00:00:1767782695.456414  116041 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767782695.484540  116041 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: True
@@ -87,12 +88,10 @@ OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
 Contamination rate: 15%
 Processing 1 modality combination(s)
 
-[1/1] metadata_thermal_map
-Using existing cleaned dataset for metadata_thermal_map: metadata_thermal_map_15pct.csv
-Applying cleaned dataset for metadata_thermal_map (15% outlier removal)...
-  Filtered: 2941 samples
-  Applied cleaned dataset to: best_matching.csv
-  ✓ Applied for metadata_thermal_map: 2640 samples
+[1/1] depth_rgb_thermal_map
+Detecting outliers for combination: depth_rgb_thermal_map (contamination=15%)...
+  Error: Feature count mismatch for depth_rgb: 3107 vs 2941
+  ⚠ Detection failed for depth_rgb_thermal_map, using original
 
 ================================================================================
 
@@ -109,11 +108,12 @@ Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/cs
 ================================================================================
 
 
-Testing modalities: metadata, thermal_map
+Testing modalities: depth_rgb, thermal_map
 Number of samples for each selected modality:
+  depth_rgb: 2941
+  depth_bb: 2941
   thermal_map: 2941
   thermal_bb: 2941
-  metadata: 2941
 Using 50.0% of the data: 1470 samples
 
 ================================================================================
@@ -136,392 +136,42 @@ All data will be validated exactly once across all folds
 Fold 1/3
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767773825.005431   47407 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+I0000 00:00:1767782702.200592  116041 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
-Preparing datasets for Fold 1/3 with all modalities: ['metadata', 'thermal_map']
+Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
 Using consistent patient split across all modality combinations for run 1
-Using Scikit-learn RandomForestClassifier
 
-No existing data found for metadata+thermal_map, starting fresh
+No existing data found for depth_rgb+thermal_map, starting fresh
 
-Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/3
-2026-01-07 03:17:16.209801: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-W0000 00:00:1767773836.782356   47823 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
-================================================================================
-AUTOMATIC PRE-TRAINING: thermal_map weights not found
-  Training thermal_map-only model first (same data split)...
-================================================================================
-2026-01-07 03:17:48.051927: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-I0000 00:00:1767773873.040015   47630 cuda_dnn.cc:529] Loaded cuDNN version 91002
-2026-01-07 03:18:03.157833: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-Epoch 33: early stopping
-Restoring model weights from the end of the best epoch: 13.
-  Pre-training completed! Best val kappa: 0.0664
-  WARNING: 0 trainable parameters! This will prevent learning!
-2026-01-07 03:32:40.153277: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-================================================================================
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
 No existing pretrained weights found
-Error during training (attempt 1/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
+I0000 00:00:1767782776.887333  116264 cuda_dnn.cc:529] Loaded cuDNN version 91002
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
 
-No existing pretrained weights found
-Error during training (attempt 2/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
+Run 1 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
 
-No existing pretrained weights found
-Error during training (attempt 3/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
+           I       0.31      0.28      0.30       127
+           P       0.65      0.69      0.67       332
+           R       0.18      0.15      0.16        61
 
-ERROR: Training failed for metadata+thermal_map after 3 attempts. Skipping this configuration.
-Warning: No predictions to save for run 1 (train). Skipping...
-Warning: No predictions to save for run 1 (valid). Skipping...
+    accuracy                           0.53       520
+   macro avg       0.38      0.37      0.38       520
+weighted avg       0.51      0.53      0.52       520
+
+Cohen's Kappa: 0.1035
+
+Training gating network for run 1...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.5269
+F1 Macro: 0.3753
+Kappa: 0.1035
 
 Fold 2/3
 Using pre-computed fold 2 patient split
 Using Scikit-learn RandomForestClassifier
-
-Preparing datasets for Fold 2/3 with all modalities: ['metadata', 'thermal_map']
-Using consistent patient split across all modality combinations for run 2
-Using Scikit-learn RandomForestClassifier
-
-No existing data found for metadata+thermal_map, starting fresh
-
-Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 2/3
-2026-01-07 03:32:58.326060: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-W0000 00:00:1767774778.431496   52341 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
-================================================================================
-AUTOMATIC PRE-TRAINING: thermal_map weights not found
-  Training thermal_map-only model first (same data split)...
-================================================================================
-2026-01-07 03:33:24.645056: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-2026-01-07 03:33:37.094951: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-Epoch 34: early stopping
-Restoring model weights from the end of the best epoch: 14.
-  Pre-training completed! Best val kappa: 0.0528
-  WARNING: 0 trainable parameters! This will prevent learning!
-2026-01-07 03:39:19.176773: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-================================================================================
-No existing pretrained weights found
-Error during training (attempt 1/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_2_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_2_metadata+thermal_map.weights.h5_stage1
-
-No existing pretrained weights found
-Error during training (attempt 2/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_2_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_2_metadata+thermal_map.weights.h5_stage1
-
-No existing pretrained weights found
-Error during training (attempt 3/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_2_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_2_metadata+thermal_map.weights.h5_stage1
-
-ERROR: Training failed for metadata+thermal_map after 3 attempts. Skipping this configuration.
-Warning: No predictions to save for run 2 (train). Skipping...
-Warning: No predictions to save for run 2 (valid). Skipping...
-
-Fold 3/3
-Using pre-computed fold 3 patient split
-Using Scikit-learn RandomForestClassifier
-
-Preparing datasets for Fold 3/3 with all modalities: ['metadata', 'thermal_map']
-Using consistent patient split across all modality combinations for run 3
-Using Scikit-learn RandomForestClassifier
-
-No existing data found for metadata+thermal_map, starting fresh
-
-Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 3/3
-2026-01-07 03:39:37.735682: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-W0000 00:00:1767775177.824833   54514 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
-================================================================================
-AUTOMATIC PRE-TRAINING: thermal_map weights not found
-  Training thermal_map-only model first (same data split)...
-================================================================================
-2026-01-07 03:40:08.841516: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-2026-01-07 03:40:23.091425: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-Epoch 27: early stopping
-Restoring model weights from the end of the best epoch: 7.
-  Pre-training completed! Best val kappa: 0.0869
-  WARNING: 0 trainable parameters! This will prevent learning!
-2026-01-07 03:45:24.968728: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-================================================================================
-No existing pretrained weights found
-Error during training (attempt 1/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_3_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_3_metadata+thermal_map.weights.h5_stage1
-
-No existing pretrained weights found
-Error during training (attempt 2/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_3_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_3_metadata+thermal_map.weights.h5_stage1
-
-No existing pretrained weights found
-Error during training (attempt 3/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_3_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_3_metadata+thermal_map.weights.h5_stage1
-
-ERROR: Training failed for metadata+thermal_map after 3 attempts. Skipping this configuration.
-Warning: No predictions to save for run 3 (train). Skipping...
-Warning: No predictions to save for run 3 (valid). Skipping...
-Results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, thermal_map appended to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
-
-All results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
-
-================================================================================
-FINAL SUMMARY - BEST MODALITY COMBINATIONS
-================================================================================
-/home/rezab/projects/DFUMultiClassification/src/main.py:2042: FutureWarning: The behavior of Series.idxmax with all-NA values, or any-NA and skipna=False, is deprecated. In a future version this will raise ValueError
-  best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
-Could not generate summary: nan
-================================================================================
-
-I0000 00:00:1767775533.772943   47407 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767775533.773550   47407 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
-================================================================================
-
-
-================================================================================
-SUBPROCESS OUTPUT - TEST 2: RGB=SimpleCNN, MAP=EfficientNetB0
-================================================================================
-2026-01-07 03:45:39.086824: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1767775539.109487   56213 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1767775539.116368   56213 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
-  if not hasattr(np, "object"):
-
-================================================================================
-DEVICE CONFIGURATION (mode: single)
-================================================================================
-
-Detected 2 GPU(s):
-  GPU 0: NVIDIA TITAN Xp - 12.0GB (compute 6.1)
-  GPU 1: Quadro P400 - 2.0GB (compute 6.1)
-  GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
-
-Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
-I0000 00:00:1767775548.075735   56213 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-Enabled memory growth for 1 GPU(s)
-
-Using default strategy (single GPU)
-================================================================================
-
-
-Batch size per replica: 4 (global batch size: 4, replicas: 1)
-
-================================================================================
-DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
-================================================================================
-Mode: search
-Resume mode: fresh
-Data percentage: 50.0%
-Verbosity: 1 (NORMAL)
-Device: GPU 0 (single GPU mode)
-Cross-validation: 3-fold CV (patient-level)
-
-Configuration loaded from: src/utils/production_config.py
-Image size: 32x32
-Batch size: 4
-Max epochs: 300 (with early stopping)
-Modality search mode: custom
-Will test 1 custom combinations
-================================================================================
-
-
-🧹 FRESH START MODE: Deleting all checkpoints...
-================================================================================
-
-Cleanup Statistics:
-  Models: 3 files deleted
-  Csv Results: 2 files deleted
-  Tf Cache: 4 files deleted
-================================================================================
-
-I0000 00:00:1767775549.617109   56213 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767775549.641815   56213 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
-
-Data Cleaning Configuration (from production_config.py):
-  Outlier removal: True
-  Outlier contamination: 15%
-  Outlier batch size: 32
-  Misclassification tracking: none
-
-================================================================================
-OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
-================================================================================
-Contamination rate: 15%
-Processing 1 modality combination(s)
-
-[1/1] metadata_thermal_map
-Using existing cleaned dataset for metadata_thermal_map: metadata_thermal_map_15pct.csv
-Applying cleaned dataset for metadata_thermal_map (15% outlier removal)...
-  Filtered: 2941 samples
-  Applied cleaned dataset to: best_matching.csv
-  ✓ Applied for metadata_thermal_map: 2640 samples
-
-================================================================================
-
-
-================================================================================
-MODALITY SEARCH MODE: CUSTOM (1 combinations)
-================================================================================
-Testing only specified combinations from production_config.py
-Total combinations to test: 1
-Cross-validation mode: 3-fold CV
-Iterations per combination: 3
-Total training sessions: 3
-Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
-================================================================================
-
-
-Testing modalities: metadata, thermal_map
-Number of samples for each selected modality:
-  thermal_map: 2941
-  thermal_bb: 2941
-  metadata: 2941
-Using 50.0% of the data: 1470 samples
-
-================================================================================
-GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
-================================================================================
-Fold 1/3: 143 train patients, 74 valid patients
-  Train dist: {0: 0.319, 1: 0.568, 2: 0.113}
-  Valid dist: {0: 0.244, 1: 0.638, 2: 0.117}
-Fold 2/3: 145 train patients, 72 valid patients
-  Train dist: {0: 0.267, 1: 0.613, 2: 0.120}
-  Valid dist: {0: 0.340, 1: 0.557, 2: 0.103}
-Fold 3/3: 146 train patients, 71 valid patients
-  Train dist: {0: 0.292, 1: 0.598, 2: 0.110}
-  Valid dist: {0: 0.294, 1: 0.582, 2: 0.124}
-Generated 3 folds
-All data will be validated exactly once across all folds
-================================================================================
-
-
-Fold 1/3
-Using pre-computed fold 1 patient split
-Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767775556.574578   56213 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
-
-Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-Using Scikit-learn RandomForestClassifier
-
-No existing data found for metadata+thermal_map, starting fresh
-
-Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/3
-2026-01-07 03:46:08.658611: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-W0000 00:00:1767775569.212393   56631 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
-================================================================================
-AUTOMATIC PRE-TRAINING: thermal_map weights not found
-  Training thermal_map-only model first (same data split)...
-================================================================================
-2026-01-07 03:46:42.313141: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-I0000 00:00:1767775651.140946   56430 cuda_dnn.cc:529] Loaded cuDNN version 91002
-2026-01-07 03:48:22.886677: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-Epoch 33: early stopping
-Restoring model weights from the end of the best epoch: 13.
-  Pre-training completed! Best val kappa: 0.0423
-2026-01-07 04:27:11.605039: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-================================================================================
-No existing pretrained weights found
-Error during training (attempt 1/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-
-No existing pretrained weights found
-Error during training (attempt 2/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-
-2026-01-07 04:27:20.599114: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-No existing pretrained weights found
-Error during training (attempt 3/3): When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-Traceback: Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/src/training/training_utils.py", line 1437, in cross_validation_manual_split
-    tf.keras.callbacks.ModelCheckpoint(
-  File "/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/callbacks/model_checkpoint.py", line 155, in __init__
-    raise ValueError(
-ValueError: When using `save_weights_only=True` in `ModelCheckpoint`, the filepath provided must end in `.weights.h5` (Keras weights format). Received: filepath=/home/rezab/projects/DFUMultiClassification/results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5_stage1
-
-ERROR: Training failed for metadata+thermal_map after 3 attempts. Skipping this configuration.
-Warning: No predictions to save for run 1 (train). Skipping...
-Warning: No predictions to save for run 1 (valid). Skipping...
-
-Fold 2/3
-Using pre-computed fold 2 patient split
-Using Scikit-learn RandomForestClassifier
-
-Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'metadata']
-Using consistent patient split across all modality combinations for run 2
-Using Scikit-learn RandomForestClassifier
-
-No existing data found for metadata+thermal_map, starting fresh
-
-Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 2/3
-2026-01-07 04:27:43.594841: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-W0000 00:00:1767778063.699395   64903 loop_optimizer.cc:933] Skipping loop optimization for Merge node with control input: cond/branch_executed/_8
-================================================================================
-AUTOMATIC PRE-TRAINING: thermal_map weights not found
-  Training thermal_map-only model first (same data split)...
-================================================================================
-2026-01-07 04:28:13.431214: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
-2026-01-07 04:29:56.827102: E tensorflow/core/framework/node_def_util.cc:676] NodeDef mentions attribute use_unbounded_threadpool which is not in the op definition: Op<name=MapDataset; signature=input_dataset:variant, other_arguments: -> handle:variant; attr=f:func; attr=Targuments:list(type),min=0; attr=output_types:list(type),min=1; attr=output_shapes:list(shape),min=1; attr=use_inter_op_parallelism:bool,default=true; attr=preserve_cardinality:bool,default=false; attr=force_synchronous:bool,default=false; attr=metadata:string,default=""> This may be expected if your graph generating binary is newer  than this binary. Unknown attributes will be ignored. NodeDef: {{node ParallelMapDatasetV2/_14}}
