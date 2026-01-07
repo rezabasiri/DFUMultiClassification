@@ -79,7 +79,7 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
             cwd=project_root,
             capture_output=True,
             text=True,
-            timeout=1800  # 30 minute timeout
+            timeout=3600  # 60 minute timeout
         )
 
         runtime = time.time() - start_time
