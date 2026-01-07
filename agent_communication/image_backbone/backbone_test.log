@@ -1,38 +1,33 @@
-2026-01-07 14:25:10,895 - INFO - ================================================================================
-2026-01-07 14:25:10,896 - INFO - AUTOMATED BACKBONE COMPARISON
-2026-01-07 14:25:10,896 - INFO - ================================================================================
-2026-01-07 14:25:10,896 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
-2026-01-07 14:25:10,896 - INFO - RESUME mode: Loading previous results...
-2026-01-07 14:25:10,896 - INFO - No previous results found, starting fresh
-2026-01-07 14:25:10,897 - INFO - Saved original INCLUDED_COMBINATIONS
-2026-01-07 14:25:10,897 - INFO - Configuration:
-2026-01-07 14:25:10,897 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
-2026-01-07 14:25:10,897 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
-2026-01-07 14:25:10,897 - INFO -   Data: 100%
-2026-01-07 14:25:10,897 - INFO -   Image Size: 64x64
-2026-01-07 14:25:10,897 - INFO -   Device: single
-2026-01-07 14:25:10,897 - INFO -   Test modalities: depth_rgb + thermal_map
-2026-01-07 14:25:10,897 - INFO - Total tests: 12
-2026-01-07 14:25:10,897 - INFO - Tests to run: 12 (skipping 0 completed)
-2026-01-07 14:25:10,897 - INFO - Estimated time: 120 - 180 minutes
-2026-01-07 14:25:10,897 - INFO - [1/12] Running SimpleCNN/SimpleCNN...
-2026-01-07 14:25:10,898 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
-2026-01-07 14:25:10,898 - INFO - ================================================================================
-2026-01-07 14:25:10,898 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
-2026-01-07 14:25:10,898 - INFO - ================================================================================
-2026-01-07 16:02:40,406 - INFO - ✓ Result: Kappa=0.2337, Time=97.5 min
-2026-01-07 16:02:40,419 - ERROR - Fatal error in backbone test: unsupported format string passed to NoneType.__format__
-Traceback (most recent call last):
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/test_backbones.py", line 509, in <module>
-    main()
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/test_backbones.py", line 480, in main
-    report = format_results(all_results)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/test_backbones.py", line 330, in format_results
-    f"{result.get('f1_weighted', 0):<10.4f} {result['runtime_min']:<10.1f} {'✓ Complete':<15}"
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: unsupported format string passed to NoneType.__format__
-python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+2026-01-07 17:02:47,461 - INFO - ================================================================================
+2026-01-07 17:02:47,462 - INFO - AUTOMATED BACKBONE COMPARISON
+2026-01-07 17:02:47,462 - INFO - ================================================================================
+2026-01-07 17:02:47,462 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
+2026-01-07 17:02:47,462 - INFO - Starting FRESH run (previous results will be overwritten)
+2026-01-07 17:02:47,462 - INFO - Saved original INCLUDED_COMBINATIONS
+2026-01-07 17:02:47,462 - INFO - Configuration:
+2026-01-07 17:02:47,462 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
+2026-01-07 17:02:47,463 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
+2026-01-07 17:02:47,463 - INFO -   Data: 20%
+2026-01-07 17:02:47,463 - INFO -   Image Size: 12x12
+2026-01-07 17:02:47,463 - INFO -   Device: single
+2026-01-07 17:02:47,463 - INFO -   Test modalities: depth_rgb + thermal_map
+2026-01-07 17:02:47,463 - INFO - Total tests: 12
+2026-01-07 17:02:47,463 - INFO - Tests to run: 12 (skipping 0 completed)
+2026-01-07 17:02:47,463 - INFO - Estimated time: 120 - 180 minutes
+2026-01-07 17:02:47,463 - INFO - [1/12] Running SimpleCNN/SimpleCNN...
+2026-01-07 17:02:47,464 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
+2026-01-07 17:02:47,464 - INFO - ================================================================================
+2026-01-07 17:02:47,464 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
+2026-01-07 17:02:47,464 - INFO - ================================================================================
+2026-01-07 17:20:31,432 - INFO - ✓ Result: Kappa=0.0343, Time=17.7 min
+2026-01-07 17:20:31,433 - INFO - [2/12] Running SimpleCNN/EfficientNetB0...
+2026-01-07 17:20:31,434 - INFO - Updated config: RGB=SimpleCNN, MAP=EfficientNetB0, modalities=depth_rgb+thermal_map
+2026-01-07 17:20:31,434 - INFO - ================================================================================
+2026-01-07 17:20:31,434 - INFO - TEST 2/12: RGB=SimpleCNN, MAP=EfficientNetB0
+2026-01-07 17:20:31,434 - INFO - ================================================================================
+ Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1767823368.635778  464641 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
   if not hasattr(np, "object"):
 
 ================================================================================
@@ -45,7 +40,7 @@ Detected 2 GPU(s):
   GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
 
 Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
-I0000 00:00:1767813923.363452  370918 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767823378.291686  464641 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
 Enabled memory growth for 1 GPU(s)
 
 Using default strategy (single GPU)
@@ -59,10 +54,10 @@ DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
 ================================================================================
 Mode: search
 Resume mode: fresh
-Data percentage: 100.0%
+Data percentage: 20.0%
 Verbosity: 1 (NORMAL)
 Device: GPU 0 (single GPU mode)
-Cross-validation: 3-fold CV (patient-level)
+Cross-validation: 2-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
 Image size: 32x32
@@ -79,11 +74,11 @@ Will test 1 custom combinations
 Cleanup Statistics:
   Models: 1 files deleted
   Csv Results: 1 files deleted
-  Tf Cache: 4 files deleted
+  Tf Cache: 2 files deleted
 ================================================================================
 
-I0000 00:00:1767813924.982416  370918 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767813925.023741  370918 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+I0000 00:00:1767823379.808775  464641 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767823379.845199  464641 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: True
@@ -112,9 +107,9 @@ MODALITY SEARCH MODE: CUSTOM (1 combinations)
 ================================================================================
 Testing only specified combinations from production_config.py
 Total combinations to test: 1
-Cross-validation mode: 3-fold CV
-Iterations per combination: 3
-Total training sessions: 3
+Cross-validation mode: 2-fold CV
+Iterations per combination: 2
+Total training sessions: 2
 Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
 ================================================================================
 
@@ -125,53 +120,50 @@ Number of samples for each selected modality:
   depth_bb: 2852
   thermal_map: 2852
   thermal_bb: 2852
-Using 100.0% of the data: 2852 samples
+Using 20.0% of the data: 570 samples
 
 ================================================================================
-GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+GENERATING 2-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
 ================================================================================
-Fold 1/3: 144 train patients, 73 valid patients
-  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
-  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
-Fold 2/3: 145 train patients, 72 valid patients
-  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
-  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
-Fold 3/3: 145 train patients, 72 valid patients
-  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
-  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
-Generated 3 folds
+Fold 1/2: 86 train patients, 88 valid patients
+  Train dist: {0: 0.261, 1: 0.638, 2: 0.101}
+  Valid dist: {0: 0.296, 1: 0.609, 2: 0.095}
+Fold 2/2: 88 train patients, 86 valid patients
+  Train dist: {0: 0.296, 1: 0.609, 2: 0.095}
+  Valid dist: {0: 0.261, 1: 0.638, 2: 0.101}
+Generated 2 folds
 All data will be validated exactly once across all folds
 ================================================================================
 
 
-Fold 1/3
+Fold 1/2
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767813932.861323  370918 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+I0000 00:00:1767823386.152106  464641 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
-Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
+Preparing datasets for Fold 1/2 with all modalities: ['depth_rgb', 'thermal_map']
 Using consistent patient split across all modality combinations for run 1
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
-Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/2
 No existing pretrained weights found
-I0000 00:00:1767814132.274881  371158 cuda_dnn.cc:529] Loaded cuDNN version 91002
-Epoch 32: early stopping
-Restoring model weights from the end of the best epoch: 12.
+I0000 00:00:1767823430.630051  464866 cuda_dnn.cc:529] Loaded cuDNN version 91002
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 5.
 
 Run 1 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.35      0.49      0.41       274
-           P       0.69      0.57      0.62       650
-           R       0.34      0.37      0.35        99
+           I       0.27      0.44      0.33        87
+           P       0.60      0.51      0.55       179
+           R       1.00      0.04      0.07        28
 
-    accuracy                           0.53      1023
-   macro avg       0.46      0.48      0.46      1023
-weighted avg       0.56      0.53      0.54      1023
+    accuracy                           0.44       294
+   macro avg       0.62      0.33      0.32       294
+weighted avg       0.54      0.44      0.44       294
 
-Cohen's Kappa: 0.2337
+Cohen's Kappa: -0.0526
 
 Training gating network for run 1...
 
@@ -179,36 +171,36 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.5279
-F1 Macro: 0.4623
-Kappa: 0.2337
+Accuracy: 0.4422
+F1 Macro: 0.3175
+Kappa: -0.0526
 
-Fold 2/3
+Fold 2/2
 Using pre-computed fold 2 patient split
 Using Scikit-learn RandomForestClassifier
 
-Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'depth_rgb']
+Preparing datasets for Fold 2/2 with all modalities: ['depth_rgb', 'thermal_map']
 Using consistent patient split across all modality combinations for run 2
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
-Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/2
 No existing pretrained weights found
-Epoch 79: early stopping
-Restoring model weights from the end of the best epoch: 59.
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 10.
 
 Run 2 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.35      0.59      0.44       263
-           P       0.67      0.29      0.41       574
-           R       0.29      0.64      0.40       118
+           I       0.30      0.38      0.33        72
+           P       0.68      0.62      0.65       176
+           R       0.17      0.14      0.15        28
 
-    accuracy                           0.42       955
-   macro avg       0.44      0.51      0.42       955
-weighted avg       0.53      0.42      0.42       955
+    accuracy                           0.51       276
+   macro avg       0.38      0.38      0.38       276
+weighted avg       0.53      0.51      0.51       276
 
-Cohen's Kappa: 0.2693
+Cohen's Kappa: 0.0343
 
 Training gating network for run 2...
 
@@ -216,53 +208,14 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 2:
-Accuracy: 0.4188
-F1 Macro: 0.4170
-Kappa: 0.2693
-
-Fold 3/3
-Using pre-computed fold 3 patient split
-Using Scikit-learn RandomForestClassifier
-
-Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 3
-
-No existing data found for depth_rgb+thermal_map, starting fresh
-
-Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
-No existing pretrained weights found
-Epoch 22: early stopping
-Restoring model weights from the end of the best epoch: 2.
-
-Run 3 Results for depth_rgb+thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.40      0.45      0.42       277
-           P       0.63      0.52      0.57       510
-           R       0.17      0.28      0.21        87
-
-    accuracy                           0.47       874
-   macro avg       0.40      0.42      0.40       874
-weighted avg       0.51      0.47      0.49       874
-
-Cohen's Kappa: 0.1466
-
-Training gating network for run 3...
-
-Initializing gating network training...
-Skipping gating network: only 1 model(s), need at least 2 to combine
-
-Gating Network Results for Run 3:
-Accuracy: 0.4725
-F1 Macro: 0.4013
-Kappa: 0.1466
+Accuracy: 0.5072
+F1 Macro: 0.3773
+Kappa: 0.0343
 Results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
 Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
 Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
 Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
 Results for depth_rgb, thermal_map appended to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 All results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
@@ -273,14 +226,145 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: depth_rgb+thermal_map
-  Accuracy: 0.4731 ± 0.0445
-  F1 Macro: 0.4269
-  Kappa: 0.2166
+  Accuracy: 0.4747 ± 0.0325
+  F1 Macro: 0.3474
+  Kappa: -0.0092
 
 Total combinations tested: 1
 ================================================================================
 
-I0000 00:00:1767819749.428546  370918 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767819749.441348  370918 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+I0000 00:00:1767824425.388138  464641 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767824425.388740  464641 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 ================================================================================
 
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 2: RGB=SimpleCNN, MAP=EfficientNetB0
+================================================================================
+2026-01-07 17:20:32.273853: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1767824432.298744  478571 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1767824432.305933  478571 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, "object"):
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA TITAN Xp - 12.0GB (compute 6.1)
+  GPU 1: Quadro P400 - 2.0GB (compute 6.1)
+  GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
+
+Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
+I0000 00:00:1767824441.846840  478571 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 4 (global batch size: 4, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 20.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 2-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 32x32
+Batch size: 4
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 2 files deleted
+  Predictions: 24 files deleted
+  Csv Results: 11 files deleted
+  Tf Cache: 2 files deleted
+================================================================================
+
+I0000 00:00:1767824443.309894  478571 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
+I0000 00:00:1767824443.338687  478571 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 2-fold CV
+Iterations per combination: 2
+Total training sessions: 2
+Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 20.0% of the data: 570 samples
+
+================================================================================
+GENERATING 2-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/2: 86 train patients, 88 valid patients
+  Train dist: {0: 0.261, 1: 0.638, 2: 0.101}
+  Valid dist: {0: 0.296, 1: 0.609, 2: 0.095}
+Fold 2/2: 88 train patients, 86 valid patients
+  Train dist: {0: 0.296, 1: 0.609, 2: 0.095}
+  Valid dist: {0: 0.261, 1: 0.638, 2: 0.101}
+Generated 2 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/2
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+I0000 00:00:1767824448.575359  478571 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+
+Preparing datasets for Fold 1/2 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/2
+No existing pretrained weights found
+I0000 00:00:1767824537.872605  478790 cuda_dnn.cc:529] Loaded cuDNN version 91002

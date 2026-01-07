@@ -93,8 +93,8 @@ RGB_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB
 MAP_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
 
 # Test parameters
-DATA_PERCENTAGE = 100
-IMAGE_SIZE = 64
+DATA_PERCENTAGE = 20
+IMAGE_SIZE = 12
 DEVICE_MODE = 'single'
 RESUME_MODE = 'fresh'
 
@@ -171,7 +171,8 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
         '--mode', 'search',
         '--device-mode', DEVICE_MODE,
         '--resume_mode', RESUME_MODE,
-        '--data_percentage', str(DATA_PERCENTAGE)
+        '--data_percentage', str(DATA_PERCENTAGE),
+        '--cv_folds', '2',
     ]
 
     start_time = time.time()
