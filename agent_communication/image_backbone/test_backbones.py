@@ -75,8 +75,35 @@ RESUME_MODE = 'fresh'
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
 RESULTS_FILE = project_root / 'agent_communication/image_backbone/BACKBONE_RESULTS.txt'
 
+# Store original config to restore later
+ORIGINAL_COMBINATIONS = None
+
+def save_original_combinations():
+    """Save original INCLUDED_COMBINATIONS before tests"""
+    global ORIGINAL_COMBINATIONS
+    with open(PRODUCTION_CONFIG, 'r') as f:
+        content = f.read()
+    match = re.search(r"INCLUDED_COMBINATIONS = \[([\s\S]*?)\n\]", content)
+    if match:
+        ORIGINAL_COMBINATIONS = match.group(0)
+    logger.info(f"Saved original INCLUDED_COMBINATIONS")
+
+def restore_original_combinations():
+    """Restore original INCLUDED_COMBINATIONS after tests"""
+    if ORIGINAL_COMBINATIONS:
+        with open(PRODUCTION_CONFIG, 'r') as f:
+            content = f.read()
+        content = re.sub(
+            r"INCLUDED_COMBINATIONS = \[[\s\S]*?\n\]",
+            ORIGINAL_COMBINATIONS,
+            content
+        )
+        with open(PRODUCTION_CONFIG, 'w') as f:
+            f.write(content)
+        logger.info("Restored original INCLUDED_COMBINATIONS")
+
 def update_backbone_config(rgb_backbone, map_backbone):
-    """Update RGB_BACKBONE and MAP_BACKBONE in production_config.py"""
+    """Update RGB_BACKBONE, MAP_BACKBONE, and INCLUDED_COMBINATIONS in production_config.py"""
     with open(PRODUCTION_CONFIG, 'r') as f:
         content = f.read()
 
@@ -92,10 +119,18 @@ def update_backbone_config(rgb_backbone, map_backbone):
         content
     )
 
+    # Set INCLUDED_COMBINATIONS to use both RGB and MAP modalities
+    # Use depth_rgb (RGB modality) + thermal_map (MAP modality) to test both backbones
+    content = re.sub(
+        r"INCLUDED_COMBINATIONS = \[[\s\S]*?\n\]",
+        "INCLUDED_COMBINATIONS = [\n    ('depth_rgb', 'thermal_map',),\n]",
+        content
+    )
+
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
 
-    logger.info(f"Updated config: RGB={rgb_backbone}, MAP={map_backbone}")
+    logger.info(f"Updated config: RGB={rgb_backbone}, MAP={map_backbone}, modalities=depth_rgb+thermal_map")
 
 def run_training(rgb_backbone, map_backbone, test_num, total_tests):
     """Run training with specified backbones - streams output live to log file"""
@@ -289,12 +324,17 @@ def main():
     logger.info("AUTOMATED BACKBONE COMPARISON")
     logger.info("="*80)
     logger.info(f"Log file: {LOG_FILE}")
+
+    # Save original configuration
+    save_original_combinations()
+
     logger.info(f"Configuration:")
     logger.info(f"  RGB Backbones: {RGB_BACKBONES}")
     logger.info(f"  MAP Backbones: {MAP_BACKBONES}")
     logger.info(f"  Data: {DATA_PERCENTAGE}%")
     logger.info(f"  Image Size: {IMAGE_SIZE}x{IMAGE_SIZE}")
     logger.info(f"  Device: {DEVICE_MODE}")
+    logger.info(f"  Test modalities: depth_rgb + thermal_map")
 
     # Generate test combinations
     test_combinations = [
@@ -340,8 +380,9 @@ def main():
     logger.info(report)
 
     # Restore baseline configuration
-    logger.info("Restoring baseline configuration (SimpleCNN/SimpleCNN)...")
+    logger.info("Restoring baseline configuration...")
     update_backbone_config('SimpleCNN', 'SimpleCNN')
+    restore_original_combinations()
 
     logger.info("Backbone comparison complete!")
 
