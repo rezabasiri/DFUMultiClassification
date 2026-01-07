@@ -222,9 +222,9 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
                    extract_metric(output, r"Macro\s+F1:\s+(\d+\.\d+)") or
                    extract_metric(output, r"f1_macro:\s+(\d+\.\d+)"))
 
-        f1_weighted = (extract_metric(output, r"F1\s+Weighted:\s+(\d+\.\d+)") or
-                      extract_metric(output, r"Weighted\s+F1:\s+(\d+\.\d+)") or
-                      extract_metric(output, r"f1_weighted:\s+(\d+\.\d+)"))
+        # F1 Weighted is in classification report: "weighted avg  0.54  0.44  0.44  294"
+        # The third column is the f1-score (F1 Weighted)
+        f1_weighted = extract_metric(output, r"weighted avg\s+\d+\.\d+\s+\d+\.\d+\s+(\d+\.\d+)")
 
         return {
             'rgb_backbone': rgb_backbone,
