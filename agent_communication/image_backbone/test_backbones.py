@@ -4,12 +4,13 @@ Automated backbone comparison script for DFU classification.
 Tests different CNN backbones for RGB and map image branches.
 
 Usage:
-    python agent_communication/image_backbone/test_backbones.py
+    python agent_communication/image_backbone/test_backbones.py          # Resume previous run
+    python agent_communication/image_backbone/test_backbones.py --fresh  # Start from scratch
 
 Output:
     - Clean status updates to console
     - Live detailed log: agent_communication/image_backbone/backbone_test.log
-    - Results: agent_communication/image_backbone/BACKBONE_RESULTS.txt
+    - Results (updated live): agent_communication/image_backbone/BACKBONE_RESULTS.txt
 """
 
 import os
@@ -18,6 +19,8 @@ import subprocess
 import time
 import re
 import logging
+import json
+import argparse
 from datetime import datetime
 from pathlib import Path
 
@@ -98,6 +101,7 @@ RESUME_MODE = 'fresh'
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
 RESULTS_FILE = project_root / 'agent_communication/image_backbone/BACKBONE_RESULTS.txt'
+PROGRESS_FILE = project_root / 'agent_communication/image_backbone/BACKBONE_PROGRESS.json'
 
 # Store original config to restore later
 ORIGINAL_COMBINATIONS = None
@@ -259,8 +263,51 @@ def extract_metric(text, pattern):
         return float(match.group(1))
     return None
 
-def format_results(all_results):
+def load_previous_results():
+    """Load previous test results from progress file"""
+    if not PROGRESS_FILE.exists():
+        return {}
+
+    try:
+        with open(PROGRESS_FILE, 'r') as f:
+            data = json.load(f)
+        logger.info(f"Loaded {len(data)} previous test results")
+        return data
+    except Exception as e:
+        logger.warning(f"Could not load previous results: {e}")
+        return {}
+
+def save_result(rgb_backbone, map_backbone, result):
+    """Save a single test result to progress file (incremental save)"""
+    # Load existing results
+    results = load_previous_results()
+
+    # Add/update this result
+    key = f"{rgb_backbone}_{map_backbone}"
+    results[key] = result
+
+    # Save back to file
+    try:
+        with open(PROGRESS_FILE, 'w') as f:
+            json.dump(results, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Could not save progress: {e}")
+
+def is_test_complete(rgb_backbone, map_backbone, previous_results):
+    """Check if a test already completed successfully (has kappa value)"""
+    key = f"{rgb_backbone}_{map_backbone}"
+    if key in previous_results:
+        result = previous_results[key]
+        # Test is complete if it has a kappa value
+        if result.get('success') and result.get('kappa') is not None:
+            return True
+    return False
+
+def format_results(all_results_dict):
     """Format results into a readable report"""
+    # Convert dict to list for easier processing
+    all_results = list(all_results_dict.values())
+
     lines = []
     lines.append("="*100)
     lines.append("BACKBONE COMPARISON RESULTS")
@@ -272,27 +319,33 @@ def format_results(all_results):
     # Summary table
     lines.append("RESULTS SUMMARY")
     lines.append("-"*100)
-    lines.append(f"{'#':<4} {'RGB Backbone':<18} {'MAP Backbone':<18} {'Kappa':<8} {'Accuracy':<10} {'F1 Macro':<10} {'F1 Wtd':<10} {'Time (min)':<10}")
+    lines.append(f"{'#':<4} {'RGB Backbone':<18} {'MAP Backbone':<18} {'Kappa':<10} {'Accuracy':<10} {'F1 Macro':<10} {'F1 Wtd':<10} {'Time (min)':<10} {'Status':<15}")
     lines.append("-"*100)
 
     for i, result in enumerate(all_results, 1):
-        if result['success']:
+        if result.get('success') and result.get('kappa') is not None:
             lines.append(
                 f"{i:<4} {result['rgb_backbone']:<18} {result['map_backbone']:<18} "
-                f"{result['kappa']:<8.4f} {result['accuracy']:<10.4f} {result['f1_macro']:<10.4f} "
-                f"{result['f1_weighted']:<10.4f} {result['runtime_min']:<10.1f}"
+                f"{result['kappa']:<10.4f} {result.get('accuracy', 0):<10.4f} {result.get('f1_macro', 0):<10.4f} "
+                f"{result.get('f1_weighted', 0):<10.4f} {result['runtime_min']:<10.1f} {'✓ Complete':<15}"
+            )
+        elif result.get('success'):
+            lines.append(
+                f"{i:<4} {result['rgb_backbone']:<18} {result['map_backbone']:<18} "
+                f"{'N/A':<10} {'N/A':<10} {'N/A':<10} {'N/A':<10} {result['runtime_min']:<10.1f} {'⚠ No metrics':<15}"
             )
         else:
             lines.append(
                 f"{i:<4} {result['rgb_backbone']:<18} {result['map_backbone']:<18} "
-                f"FAILED: {result['error']}"
+                f"{'N/A':<10} {'N/A':<10} {'N/A':<10} {'N/A':<10} {result.get('runtime_min', 0):<10.1f} "
+                f"{'✗ ' + str(result.get('error', 'Unknown'))[:10]:<15}"
             )
 
     lines.append("-"*100)
     lines.append("")
 
     # Best performers
-    successful_results = [r for r in all_results if r['success'] and r['kappa'] is not None]
+    successful_results = [r for r in all_results if r.get('success') and r.get('kappa') is not None]
 
     if successful_results:
         lines.append("BEST PERFORMERS")
@@ -344,10 +397,30 @@ def format_results(all_results):
     return "\n".join(lines)
 
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Automated backbone comparison with resume support')
+    parser.add_argument('--fresh', action='store_true', help='Start fresh (ignore previous results)')
+    args = parser.parse_args()
+
     logger.info("="*80)
     logger.info("AUTOMATED BACKBONE COMPARISON")
     logger.info("="*80)
     logger.info(f"Log file: {LOG_FILE}")
+
+    # Load or clear previous results
+    if args.fresh:
+        logger.info("Starting FRESH run (previous results will be overwritten)")
+        if PROGRESS_FILE.exists():
+            PROGRESS_FILE.unlink()
+        all_results = {}
+    else:
+        logger.info("RESUME mode: Loading previous results...")
+        all_results = load_previous_results()
+        if all_results:
+            completed = sum(1 for r in all_results.values() if r.get('success') and r.get('kappa') is not None)
+            logger.info(f"Found {completed}/{len(all_results)} completed tests")
+        else:
+            logger.info("No previous results found, starting fresh")
 
     # Save original configuration
     save_original_combinations()
@@ -368,35 +441,54 @@ def main():
     ]
 
     total_tests = len(test_combinations)
-    logger.info(f"Total tests to run: {total_tests}")
-    logger.info(f"Estimated time: {total_tests * 10} - {total_tests * 15} minutes")
+    tests_to_run = sum(1 for rgb, map_b in test_combinations if not is_test_complete(rgb, map_b, all_results))
 
-    # Run all tests
-    all_results = []
+    logger.info(f"Total tests: {total_tests}")
+    logger.info(f"Tests to run: {tests_to_run} (skipping {total_tests - tests_to_run} completed)")
+    if tests_to_run > 0:
+        logger.info(f"Estimated time: {tests_to_run * 10} - {tests_to_run * 15} minutes")
 
+    # Run tests (skip completed ones)
     for i, (rgb_backbone, map_backbone) in enumerate(test_combinations, 1):
+        # Skip if already completed successfully
+        if is_test_complete(rgb_backbone, map_backbone, all_results):
+            logger.info(f"[{i}/{total_tests}] Skipping {rgb_backbone}/{map_backbone} - already completed")
+            continue
+
+        logger.info(f"[{i}/{total_tests}] Running {rgb_backbone}/{map_backbone}...")
+
         # Update configuration
         update_backbone_config(rgb_backbone, map_backbone)
 
         # Run training
         result = run_training(rgb_backbone, map_backbone, i, total_tests)
-        all_results.append(result)
+
+        # Save result immediately (incremental save)
+        save_result(rgb_backbone, map_backbone, result)
+        all_results[f"{rgb_backbone}_{map_backbone}"] = result
 
         # Log immediate result
         if result['success']:
             if result['kappa'] is not None:
-                logger.info(f"Result: Kappa={result['kappa']:.4f}, Time={result['runtime_min']:.1f} min")
+                logger.info(f"✓ Result: Kappa={result['kappa']:.4f}, Time={result['runtime_min']:.1f} min")
             else:
-                logger.warning(f"Completed but metrics not found. Check output manually. Time={result['runtime_min']:.1f} min")
+                logger.warning(f"⚠ Completed but metrics not found. Time={result['runtime_min']:.1f} min")
         else:
-            logger.error(f"FAILED: {result['error']}")
+            logger.error(f"✗ FAILED: {result['error']}")
 
-    # Generate report
-    logger.info("Generating report...")
+        # Update report file immediately
+        report = format_results(all_results)
+        RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(RESULTS_FILE, 'w') as f:
+            f.write(report)
+
+    # Final report
+    logger.info("")
+    logger.info("="*80)
+    logger.info("FINAL RESULTS")
+    logger.info("="*80)
     report = format_results(all_results)
 
-    # Save results
-    RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(RESULTS_FILE, 'w') as f:
         f.write(report)
 
@@ -404,11 +496,13 @@ def main():
     logger.info(report)
 
     # Restore baseline configuration
+    logger.info("")
     logger.info("Restoring baseline configuration...")
     update_backbone_config('SimpleCNN', 'SimpleCNN')
     restore_original_combinations()
 
-    logger.info("Backbone comparison complete!")
+    completed = sum(1 for r in all_results.values() if r.get('success') and r.get('kappa') is not None)
+    logger.info(f"Backbone comparison complete! ({completed}/{total_tests} tests successful)")
 
 if __name__ == '__main__':
     try:
