@@ -20,5 +20,16 @@
     "runtime_min": 269.9434014558792,
     "success": true,
     "error": null
+  },
+  "SimpleCNN_EfficientNetB1": {
+    "rgb_backbone": "SimpleCNN",
+    "map_backbone": "EfficientNetB1",
+    "kappa": 0.1807,
+    "accuracy": 0.4316,
+    "f1_macro": 0.415,
+    "f1_weighted": 0.53,
+    "runtime_min": 352.4866130987803,
+    "success": true,
+    "error": null
   }
 }
