@@ -1,0 +1,24 @@
+{
+  "SimpleCNN_SimpleCNN": {
+    "rgb_backbone": "SimpleCNN",
+    "map_backbone": "SimpleCNN",
+    "kappa": 0.2337,
+    "accuracy": 0.4731,
+    "f1_macro": 0.4623,
+    "f1_weighted": 0.54,
+    "runtime_min": 97.58578325907389,
+    "success": true,
+    "error": null
+  },
+  "SimpleCNN_EfficientNetB0": {
+    "rgb_backbone": "SimpleCNN",
+    "map_backbone": "EfficientNetB0",
+    "kappa": 0.1648,
+    "accuracy": 0.3955,
+    "f1_macro": 0.305,
+    "f1_weighted": 0.28,
+    "runtime_min": 269.9434014558792,
+    "success": true,
+    "error": null
+  }
+}
