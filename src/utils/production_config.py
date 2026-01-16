@@ -25,13 +25,13 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 32  # Image dimensions (32x32 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 4  # Total batch size across all GPU replicas
+IMAGE_SIZE = 128  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3'
-RGB_BACKBONE = 'EfficientNetB0'  # Backbone for RGB images (depth_rgb, thermal_rgb)
+RGB_BACKBONE = 'SimpleCNN'  # Backbone for RGB images (depth_rgb, thermal_rgb)
 MAP_BACKBONE = 'SimpleCNN'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters

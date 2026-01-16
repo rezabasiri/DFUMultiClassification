@@ -1,6 +1,6 @@
 ====================================================================================================
 BACKBONE COMPARISON RESULTS
-Date: 2026-01-08 05:59:50
+Date: 2026-01-08 20:08:01
 Configuration: 100% data, 64x64 images, single GPU
 ====================================================================================================
 
@@ -8,28 +8,43 @@ RESULTS SUMMARY
 ----------------------------------------------------------------------------------------------------
 #    RGB Backbone       MAP Backbone       Kappa      Accuracy   F1 Macro   F1 Wtd     Time (min) Status         
 ----------------------------------------------------------------------------------------------------
-1    SimpleCNN          SimpleCNN          0.2337     0.4731     0.4623     0.5400     97.6       ✓ Complete     
-2    SimpleCNN          EfficientNetB0     0.1648     0.3955     0.3050     0.2800     269.9      ✓ Complete     
-3    SimpleCNN          EfficientNetB1     0.1807     0.4316     0.4150     0.5300     352.5      ✓ Complete     
+1    SimpleCNN          SimpleCNN          0.1834     0.4368     0.4187     0.5000     16.5       ✓ Complete     
+2    SimpleCNN          EfficientNetB0     0.2441     0.4634     0.4578     0.5500     34.0       ✓ Complete     
+3    SimpleCNN          EfficientNetB1     0.2331     0.4314     0.3540     0.3400     38.2       ✓ Complete     
+4    EfficientNetB0     SimpleCNN          0.2724     0.4646     0.4654     0.5400     30.2       ✓ Complete     
+5    EfficientNetB0     EfficientNetB0     N/A        N/A        N/A        N/A        6.6        ⚠ No metrics   
+6    EfficientNetB0     EfficientNetB1     N/A        N/A        N/A        N/A        31.1       ⚠ No metrics   
+7    EfficientNetB1     SimpleCNN          0.2499     0.4555     0.4116     0.4500     33.6       ✓ Complete     
+8    EfficientNetB1     EfficientNetB0     0.2847     0.4763     0.4215     0.4800     50.7       ✓ Complete     
+9    EfficientNetB1     EfficientNetB1     N/A        N/A        N/A        N/A        6.0        ⚠ No metrics   
+10   EfficientNetB3     SimpleCNN          0.2672     0.4481     0.4273     0.4700     34.2       ✓ Complete     
+11   EfficientNetB3     EfficientNetB0     0.2796     0.4822     0.4404     0.5100     66.1       ✓ Complete     
+12   EfficientNetB3     EfficientNetB1     0.3295     0.5155     0.4734     0.5500     62.1       ✓ Complete     
 ----------------------------------------------------------------------------------------------------
 
 BEST PERFORMERS
 ----------------------------------------------------------------------------------------------------
-Best Kappa: 0.2337 - RGB=SimpleCNN, MAP=SimpleCNN
-Best Accuracy: 0.4731 - RGB=SimpleCNN, MAP=SimpleCNN
-Fastest: 97.6 min - RGB=SimpleCNN, MAP=SimpleCNN
+Best Kappa: 0.3295 - RGB=EfficientNetB3, MAP=EfficientNetB1
+Best Accuracy: 0.5155 - RGB=EfficientNetB3, MAP=EfficientNetB1
+Fastest: 16.5 min - RGB=SimpleCNN, MAP=SimpleCNN
 ----------------------------------------------------------------------------------------------------
 
 ANALYSIS
 ----------------------------------------------------------------------------------------------------
-Baseline (SimpleCNN/SimpleCNN): Kappa 0.2337
+Baseline (SimpleCNN/SimpleCNN): Kappa 0.1834
 
-  SimpleCNN/EfficientNetB0: Kappa 0.1648 (-0.0689, -29.5%)
-  SimpleCNN/EfficientNetB1: Kappa 0.1807 (-0.0530, -22.7%)
+  SimpleCNN/EfficientNetB0: Kappa 0.2441 (+0.0607, +33.1%)
+  SimpleCNN/EfficientNetB1: Kappa 0.2331 (+0.0497, +27.1%)
+  EfficientNetB0/SimpleCNN: Kappa 0.2724 (+0.0890, +48.5%)
+  EfficientNetB1/SimpleCNN: Kappa 0.2499 (+0.0665, +36.3%)
+  EfficientNetB1/EfficientNetB0: Kappa 0.2847 (+0.1013, +55.2%)
+  EfficientNetB3/SimpleCNN: Kappa 0.2672 (+0.0838, +45.7%)
+  EfficientNetB3/EfficientNetB0: Kappa 0.2796 (+0.0962, +52.5%)
+  EfficientNetB3/EfficientNetB1: Kappa 0.3295 (+0.1461, +79.7%)
 ----------------------------------------------------------------------------------------------------
 
-Total tests: 3
-Successful: 3
-Failed: 0
+Total tests: 12
+Successful: 9
+Failed: 3
 
 ====================================================================================================
