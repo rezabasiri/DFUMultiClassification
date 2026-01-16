@@ -3687,3 +3687,145 @@ Using consistent patient split across all modality combinations for run 1
 No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+Error during training (attempt 1/3): EfficientNet() got an unexpected keyword argument 'name'
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 336, in create_multimodal_model
+    image_input, branch_output = create_image_branch(input_shapes[modality], f'{modality}')
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 114, in create_image_branch
+    x = create_efficientnet_branch(image_input, modality, backbone)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 70, in create_efficientnet_branch
+    base_model = EfficientNetClass(
+                 ^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/efficientnet.py", line 600, in EfficientNetB0
+    return EfficientNet(
+           ^^^^^^^^^^^^^
+TypeError: EfficientNet() got an unexpected keyword argument 'name'
+
+Error during training (attempt 2/3): EfficientNet() got an unexpected keyword argument 'name'
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 336, in create_multimodal_model
+    image_input, branch_output = create_image_branch(input_shapes[modality], f'{modality}')
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 114, in create_image_branch
+    x = create_efficientnet_branch(image_input, modality, backbone)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 70, in create_efficientnet_branch
+    base_model = EfficientNetClass(
+                 ^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/efficientnet.py", line 600, in EfficientNetB0
+    return EfficientNet(
+           ^^^^^^^^^^^^^
+TypeError: EfficientNet() got an unexpected keyword argument 'name'
+
+Error during training (attempt 3/3): EfficientNet() got an unexpected keyword argument 'name'
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 336, in create_multimodal_model
+    image_input, branch_output = create_image_branch(input_shapes[modality], f'{modality}')
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 114, in create_image_branch
+    x = create_efficientnet_branch(image_input, modality, backbone)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 70, in create_efficientnet_branch
+    base_model = EfficientNetClass(
+                 ^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/efficientnet.py", line 600, in EfficientNetB0
+    return EfficientNet(
+           ^^^^^^^^^^^^^
+TypeError: EfficientNet() got an unexpected keyword argument 'name'
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 1 (train). Skipping...
+Warning: No predictions to save for run 1 (valid). Skipping...
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+Error during training (attempt 1/3): EfficientNet() got an unexpected keyword argument 'name'
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 336, in create_multimodal_model
+    image_input, branch_output = create_image_branch(input_shapes[modality], f'{modality}')
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 114, in create_image_branch
+    x = create_efficientnet_branch(image_input, modality, backbone)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 70, in create_efficientnet_branch
+    base_model = EfficientNetClass(
+                 ^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/efficientnet.py", line 600, in EfficientNetB0
+    return EfficientNet(
+           ^^^^^^^^^^^^^
+TypeError: EfficientNet() got an unexpected keyword argument 'name'
+
+Error during training (attempt 2/3): EfficientNet() got an unexpected keyword argument 'name'
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 336, in create_multimodal_model
+    image_input, branch_output = create_image_branch(input_shapes[modality], f'{modality}')
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 114, in create_image_branch
+    x = create_efficientnet_branch(image_input, modality, backbone)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 70, in create_efficientnet_branch
+    base_model = EfficientNetClass(
+                 ^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/efficientnet.py", line 600, in EfficientNetB0
+    return EfficientNet(
+           ^^^^^^^^^^^^^
+TypeError: EfficientNet() got an unexpected keyword argument 'name'
+
+Error during training (attempt 3/3): EfficientNet() got an unexpected keyword argument 'name'
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 336, in create_multimodal_model
+    image_input, branch_output = create_image_branch(input_shapes[modality], f'{modality}')
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 114, in create_image_branch
+    x = create_efficientnet_branch(image_input, modality, backbone)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 70, in create_efficientnet_branch
+    base_model = EfficientNetClass(
+                 ^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/efficientnet.py", line 600, in EfficientNetB0
+    return EfficientNet(
+           ^^^^^^^^^^^^^
+TypeError: EfficientNet() got an unexpected keyword argument 'name'
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 2 (train). Skipping...
+Warning: No predictions to save for run 2 (valid). Skipping...
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
