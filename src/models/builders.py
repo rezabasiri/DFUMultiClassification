@@ -55,26 +55,29 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
     if os.path.exists(local_weights_path):
         vprint(f"Loading {backbone_name} from local weights", level=2)
         # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        # Give it a unique name to prevent conflicts when same backbone is used for RGB and MAP
+        # Note: EfficientNet wrappers don't support 'name' parameter
+        # We'll rename layers after creation instead
         base_model = EfficientNetClass(
             weights=None,
             include_top=False,
-            pooling='avg',
-            name=f'{modality}_{backbone_name.lower()}'
+            pooling='avg'
         )
         base_model.load_weights(local_weights_path)
     else:
         vprint(f"Loading {backbone_name} from ImageNet", level=2)
         # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        # Give it a unique name to prevent conflicts when same backbone is used for RGB and MAP
+        # Note: EfficientNet wrappers don't support 'name' parameter
+        # We'll rename layers after creation instead
         base_model = EfficientNetClass(
             weights='imagenet',
             include_top=False,
-            pooling='avg',
-            name=f'{modality}_{backbone_name.lower()}'
+            pooling='avg'
         )
 
     base_model.trainable = True
+
+    # Rename the base model itself to avoid conflicts when same backbone is used for multiple modalities
+    base_model._name = f'{modality}_{backbone_name.lower()}'
 
     # Rename ALL layers (including nested ones) to avoid conflicts between modalities
     # This is critical when using same backbone for multiple modalities
