@@ -1,49 +1,211 @@
-2026-01-07 17:59:49,825 - INFO - ================================================================================
-2026-01-07 17:59:49,825 - INFO - AUTOMATED BACKBONE COMPARISON
-2026-01-07 17:59:49,825 - INFO - ================================================================================
-2026-01-07 17:59:49,825 - INFO - Log file: /home/rezab/projects/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
-2026-01-07 17:59:49,825 - INFO - Starting FRESH run (previous results will be overwritten)
-2026-01-07 17:59:49,825 - INFO - Saved original INCLUDED_COMBINATIONS
-2026-01-07 17:59:49,826 - INFO - Configuration:
-2026-01-07 17:59:49,826 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
-2026-01-07 17:59:49,826 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
-2026-01-07 17:59:49,826 - INFO -   Data: 100%
-2026-01-07 17:59:49,826 - INFO -   Image Size: 64x64
-2026-01-07 17:59:49,826 - INFO -   Device: single
-2026-01-07 17:59:49,826 - INFO -   Test modalities: depth_rgb + thermal_map
-2026-01-07 17:59:49,826 - INFO - Total tests: 12
-2026-01-07 17:59:49,826 - INFO - Tests to run: 12 (skipping 0 completed)
-2026-01-07 17:59:49,826 - INFO - Estimated time: 120 - 180 minutes
-2026-01-07 17:59:49,826 - INFO - [1/12] Running SimpleCNN/SimpleCNN...
-2026-01-07 17:59:49,827 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
-2026-01-07 17:59:49,827 - INFO - ================================================================================
-2026-01-07 17:59:49,827 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
-2026-01-07 17:59:49,827 - INFO - ================================================================================
-2026-01-07 19:37:25,020 - INFO - ✓ Result: Kappa=0.2337, Time=97.6 min
-2026-01-07 19:37:25,042 - INFO - [2/12] Running SimpleCNN/EfficientNetB0...
-2026-01-07 19:37:25,045 - INFO - Updated config: RGB=SimpleCNN, MAP=EfficientNetB0, modalities=depth_rgb+thermal_map
-2026-01-07 19:37:25,046 - INFO - ================================================================================
-2026-01-07 19:37:25,046 - INFO - TEST 2/12: RGB=SimpleCNN, MAP=EfficientNetB0
-2026-01-07 19:37:25,046 - INFO - ================================================================================
-2026-01-08 00:07:21,677 - INFO - Loaded 1 previous test results
-2026-01-08 00:07:21,687 - INFO - ✓ Result: Kappa=0.1648, Time=269.9 min
-2026-01-08 00:07:21,694 - INFO - [3/12] Running SimpleCNN/EfficientNetB1...
-2026-01-08 00:07:21,696 - INFO - Updated config: RGB=SimpleCNN, MAP=EfficientNetB1, modalities=depth_rgb+thermal_map
-2026-01-08 00:07:21,696 - INFO - ================================================================================
-2026-01-08 00:07:21,696 - INFO - TEST 3/12: RGB=SimpleCNN, MAP=EfficientNetB1
-2026-01-08 00:07:21,696 - INFO - ================================================================================
-2026-01-08 05:59:50,933 - INFO - Loaded 2 previous test results
-2026-01-08 05:59:50,943 - INFO - ✓ Result: Kappa=0.1807, Time=352.5 min
-2026-01-08 05:59:50,950 - INFO - [4/12] Running EfficientNetB0/SimpleCNN...
-2026-01-08 05:59:50,952 - INFO - Updated config: RGB=EfficientNetB0, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
-2026-01-08 05:59:50,952 - INFO - ================================================================================
-2026-01-08 05:59:50,952 - INFO - TEST 4/12: RGB=EfficientNetB0, MAP=SimpleCNN
-2026-01-08 05:59:50,952 - INFO - ================================================================================
-g default strategy (single GPU)
+2026-01-08 13:18:35,946 - INFO - ================================================================================
+2026-01-08 13:18:35,946 - INFO - AUTOMATED BACKBONE COMPARISON
+2026-01-08 13:18:35,946 - INFO - ================================================================================
+2026-01-08 13:18:35,946 - INFO - Log file: /workspace/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
+2026-01-08 13:18:35,946 - INFO - Starting FRESH run (previous results will be overwritten)
+2026-01-08 13:18:35,947 - INFO - Saved original INCLUDED_COMBINATIONS
+2026-01-08 13:18:35,947 - INFO - Configuration:
+2026-01-08 13:18:35,947 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
+2026-01-08 13:18:35,947 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
+2026-01-08 13:18:35,947 - INFO -   Data: 100%
+2026-01-08 13:18:35,947 - INFO -   Image Size: 64x64
+2026-01-08 13:18:35,947 - INFO -   Device: multi
+2026-01-08 13:18:35,947 - INFO -   Test modalities: depth_rgb + thermal_map
+2026-01-08 13:18:35,947 - INFO - Total tests: 12
+2026-01-08 13:18:35,947 - INFO - Tests to run: 12 (skipping 0 completed)
+2026-01-08 13:18:35,947 - INFO - Estimated time: 120 - 180 minutes
+2026-01-08 13:18:35,947 - INFO - [1/12] Running SimpleCNN/SimpleCNN...
+2026-01-08 13:18:35,948 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
+2026-01-08 13:18:35,948 - INFO - ================================================================================
+2026-01-08 13:18:35,948 - INFO - TEST 1/12: RGB=SimpleCNN, MAP=SimpleCNN
+2026-01-08 13:18:35,948 - INFO - ================================================================================
+2026-01-08 13:35:03,874 - INFO - ✓ Result: Kappa=0.1834, Time=16.5 min
+2026-01-08 13:35:03,875 - INFO - [2/12] Running SimpleCNN/EfficientNetB0...
+2026-01-08 13:35:03,875 - INFO - Updated config: RGB=SimpleCNN, MAP=EfficientNetB0, modalities=depth_rgb+thermal_map
+2026-01-08 13:35:03,876 - INFO - ================================================================================
+2026-01-08 13:35:03,876 - INFO - TEST 2/12: RGB=SimpleCNN, MAP=EfficientNetB0
+2026-01-08 13:35:03,876 - INFO - ================================================================================
+2026-01-08 14:09:04,830 - INFO - Loaded 1 previous test results
+2026-01-08 14:09:04,831 - INFO - ✓ Result: Kappa=0.2441, Time=34.0 min
+2026-01-08 14:09:04,832 - INFO - [3/12] Running SimpleCNN/EfficientNetB1...
+2026-01-08 14:09:04,832 - INFO - Updated config: RGB=SimpleCNN, MAP=EfficientNetB1, modalities=depth_rgb+thermal_map
+2026-01-08 14:09:04,832 - INFO - ================================================================================
+2026-01-08 14:09:04,832 - INFO - TEST 3/12: RGB=SimpleCNN, MAP=EfficientNetB1
+2026-01-08 14:09:04,832 - INFO - ================================================================================
+2026-01-08 14:47:18,560 - INFO - Loaded 2 previous test results
+2026-01-08 14:47:18,561 - INFO - ✓ Result: Kappa=0.2331, Time=38.2 min
+2026-01-08 14:47:18,561 - INFO - [4/12] Running EfficientNetB0/SimpleCNN...
+2026-01-08 14:47:18,562 - INFO - Updated config: RGB=EfficientNetB0, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
+2026-01-08 14:47:18,562 - INFO - ================================================================================
+2026-01-08 14:47:18,562 - INFO - TEST 4/12: RGB=EfficientNetB0, MAP=SimpleCNN
+2026-01-08 14:47:18,562 - INFO - ================================================================================
+2026-01-08 15:17:29,587 - INFO - Loaded 3 previous test results
+2026-01-08 15:17:29,588 - INFO - ✓ Result: Kappa=0.2724, Time=30.2 min
+2026-01-08 15:17:29,588 - INFO - [5/12] Running EfficientNetB0/EfficientNetB0...
+2026-01-08 15:17:29,589 - INFO - Updated config: RGB=EfficientNetB0, MAP=EfficientNetB0, modalities=depth_rgb+thermal_map
+2026-01-08 15:17:29,589 - INFO - ================================================================================
+2026-01-08 15:17:29,589 - INFO - TEST 5/12: RGB=EfficientNetB0, MAP=EfficientNetB0
+2026-01-08 15:17:29,589 - INFO - ================================================================================
+2026-01-08 15:24:08,267 - INFO - Loaded 4 previous test results
+2026-01-08 15:24:08,267 - WARNING - ⚠ Completed but metrics not found. Time=6.6 min
+2026-01-08 15:24:08,267 - INFO - [6/12] Running EfficientNetB0/EfficientNetB1...
+2026-01-08 15:24:08,268 - INFO - Updated config: RGB=EfficientNetB0, MAP=EfficientNetB1, modalities=depth_rgb+thermal_map
+2026-01-08 15:24:08,268 - INFO - ================================================================================
+2026-01-08 15:24:08,268 - INFO - TEST 6/12: RGB=EfficientNetB0, MAP=EfficientNetB1
+2026-01-08 15:24:08,268 - INFO - ================================================================================
+2026-01-08 15:55:15,733 - INFO - Loaded 5 previous test results
+2026-01-08 15:55:15,734 - WARNING - ⚠ Completed but metrics not found. Time=31.1 min
+2026-01-08 15:55:15,734 - INFO - [7/12] Running EfficientNetB1/SimpleCNN...
+2026-01-08 15:55:15,735 - INFO - Updated config: RGB=EfficientNetB1, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
+2026-01-08 15:55:15,735 - INFO - ================================================================================
+2026-01-08 15:55:15,735 - INFO - TEST 7/12: RGB=EfficientNetB1, MAP=SimpleCNN
+2026-01-08 15:55:15,736 - INFO - ================================================================================
+2026-01-08 16:28:52,372 - INFO - Loaded 6 previous test results
+2026-01-08 16:28:52,373 - INFO - ✓ Result: Kappa=0.2499, Time=33.6 min
+2026-01-08 16:28:52,373 - INFO - [8/12] Running EfficientNetB1/EfficientNetB0...
+2026-01-08 16:28:52,374 - INFO - Updated config: RGB=EfficientNetB1, MAP=EfficientNetB0, modalities=depth_rgb+thermal_map
+2026-01-08 16:28:52,374 - INFO - ================================================================================
+2026-01-08 16:28:52,374 - INFO - TEST 8/12: RGB=EfficientNetB1, MAP=EfficientNetB0
+2026-01-08 16:28:52,374 - INFO - ================================================================================
+2026-01-08 17:19:36,336 - INFO - Loaded 7 previous test results
+2026-01-08 17:19:36,337 - INFO - ✓ Result: Kappa=0.2847, Time=50.7 min
+2026-01-08 17:19:36,338 - INFO - [9/12] Running EfficientNetB1/EfficientNetB1...
+2026-01-08 17:19:36,338 - INFO - Updated config: RGB=EfficientNetB1, MAP=EfficientNetB1, modalities=depth_rgb+thermal_map
+2026-01-08 17:19:36,339 - INFO - ================================================================================
+2026-01-08 17:19:36,339 - INFO - TEST 9/12: RGB=EfficientNetB1, MAP=EfficientNetB1
+2026-01-08 17:19:36,339 - INFO - ================================================================================
+2026-01-08 17:25:34,336 - INFO - Loaded 8 previous test results
+2026-01-08 17:25:34,336 - WARNING - ⚠ Completed but metrics not found. Time=6.0 min
+2026-01-08 17:25:34,336 - INFO - [10/12] Running EfficientNetB3/SimpleCNN...
+2026-01-08 17:25:34,337 - INFO - Updated config: RGB=EfficientNetB3, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
+2026-01-08 17:25:34,337 - INFO - ================================================================================
+2026-01-08 17:25:34,337 - INFO - TEST 10/12: RGB=EfficientNetB3, MAP=SimpleCNN
+2026-01-08 17:25:34,337 - INFO - ================================================================================
+2026-01-08 17:59:46,963 - INFO - Loaded 9 previous test results
+2026-01-08 17:59:46,964 - INFO - ✓ Result: Kappa=0.2672, Time=34.2 min
+2026-01-08 17:59:46,965 - INFO - [11/12] Running EfficientNetB3/EfficientNetB0...
+2026-01-08 17:59:46,966 - INFO - Updated config: RGB=EfficientNetB3, MAP=EfficientNetB0, modalities=depth_rgb+thermal_map
+2026-01-08 17:59:46,966 - INFO - ================================================================================
+2026-01-08 17:59:46,966 - INFO - TEST 11/12: RGB=EfficientNetB3, MAP=EfficientNetB0
+2026-01-08 17:59:46,966 - INFO - ================================================================================
+2026-01-08 19:05:53,547 - INFO - Loaded 10 previous test results
+2026-01-08 19:05:53,547 - INFO - ✓ Result: Kappa=0.2796, Time=66.1 min
+2026-01-08 19:05:53,548 - INFO - [12/12] Running EfficientNetB3/EfficientNetB1...
+2026-01-08 19:05:53,549 - INFO - Updated config: RGB=EfficientNetB3, MAP=EfficientNetB1, modalities=depth_rgb+thermal_map
+2026-01-08 19:05:53,549 - INFO - ================================================================================
+2026-01-08 19:05:53,549 - INFO - TEST 12/12: RGB=EfficientNetB3, MAP=EfficientNetB1
+2026-01-08 19:05:53,549 - INFO - ================================================================================
+2026-01-08 20:08:01,980 - INFO - Loaded 11 previous test results
+2026-01-08 20:08:01,980 - INFO - ✓ Result: Kappa=0.3295, Time=62.1 min
+2026-01-08 20:08:01,981 - INFO - 
+2026-01-08 20:08:01,981 - INFO - ================================================================================
+2026-01-08 20:08:01,981 - INFO - FINAL RESULTS
+2026-01-08 20:08:01,981 - INFO - ================================================================================
+2026-01-08 20:08:01,982 - INFO - Results saved to: /workspace/DFUMultiClassification/agent_communication/image_backbone/BACKBONE_RESULTS.txt
+2026-01-08 20:08:01,982 - INFO - ====================================================================================================
+BACKBONE COMPARISON RESULTS
+Date: 2026-01-08 20:08:01
+Configuration: 100% data, 64x64 images, single GPU
+====================================================================================================
+
+RESULTS SUMMARY
+----------------------------------------------------------------------------------------------------
+#    RGB Backbone       MAP Backbone       Kappa      Accuracy   F1 Macro   F1 Wtd     Time (min) Status         
+----------------------------------------------------------------------------------------------------
+1    SimpleCNN          SimpleCNN          0.1834     0.4368     0.4187     0.5000     16.5       ✓ Complete     
+2    SimpleCNN          EfficientNetB0     0.2441     0.4634     0.4578     0.5500     34.0       ✓ Complete     
+3    SimpleCNN          EfficientNetB1     0.2331     0.4314     0.3540     0.3400     38.2       ✓ Complete     
+4    EfficientNetB0     SimpleCNN          0.2724     0.4646     0.4654     0.5400     30.2       ✓ Complete     
+5    EfficientNetB0     EfficientNetB0     N/A        N/A        N/A        N/A        6.6        ⚠ No metrics   
+6    EfficientNetB0     EfficientNetB1     N/A        N/A        N/A        N/A        31.1       ⚠ No metrics   
+7    EfficientNetB1     SimpleCNN          0.2499     0.4555     0.4116     0.4500     33.6       ✓ Complete     
+8    EfficientNetB1     EfficientNetB0     0.2847     0.4763     0.4215     0.4800     50.7       ✓ Complete     
+9    EfficientNetB1     EfficientNetB1     N/A        N/A        N/A        N/A        6.0        ⚠ No metrics   
+10   EfficientNetB3     SimpleCNN          0.2672     0.4481     0.4273     0.4700     34.2       ✓ Complete     
+11   EfficientNetB3     EfficientNetB0     0.2796     0.4822     0.4404     0.5100     66.1       ✓ Complete     
+12   EfficientNetB3     EfficientNetB1     0.3295     0.5155     0.4734     0.5500     62.1       ✓ Complete     
+----------------------------------------------------------------------------------------------------
+
+BEST PERFORMERS
+----------------------------------------------------------------------------------------------------
+Best Kappa: 0.3295 - RGB=EfficientNetB3, MAP=EfficientNetB1
+Best Accuracy: 0.5155 - RGB=EfficientNetB3, MAP=EfficientNetB1
+Fastest: 16.5 min - RGB=SimpleCNN, MAP=SimpleCNN
+----------------------------------------------------------------------------------------------------
+
+ANALYSIS
+----------------------------------------------------------------------------------------------------
+Baseline (SimpleCNN/SimpleCNN): Kappa 0.1834
+
+  SimpleCNN/EfficientNetB0: Kappa 0.2441 (+0.0607, +33.1%)
+  SimpleCNN/EfficientNetB1: Kappa 0.2331 (+0.0497, +27.1%)
+  EfficientNetB0/SimpleCNN: Kappa 0.2724 (+0.0890, +48.5%)
+  EfficientNetB1/SimpleCNN: Kappa 0.2499 (+0.0665, +36.3%)
+  EfficientNetB1/EfficientNetB0: Kappa 0.2847 (+0.1013, +55.2%)
+  EfficientNetB3/SimpleCNN: Kappa 0.2672 (+0.0838, +45.7%)
+  EfficientNetB3/EfficientNetB0: Kappa 0.2796 (+0.0962, +52.5%)
+  EfficientNetB3/EfficientNetB1: Kappa 0.3295 (+0.1461, +79.7%)
+----------------------------------------------------------------------------------------------------
+
+Total tests: 12
+Successful: 9
+Failed: 3
+
+====================================================================================================
+2026-01-08 20:08:01,982 - INFO - 
+2026-01-08 20:08:01,982 - INFO - Restoring baseline configuration...
+2026-01-08 20:08:01,983 - INFO - Updated config: RGB=SimpleCNN, MAP=SimpleCNN, modalities=depth_rgb+thermal_map
+2026-01-08 20:08:01,984 - INFO - Restored original INCLUDED_COMBINATIONS
+2026-01-08 20:08:01,984 - INFO - Backbone comparison complete! (9/12 tests successful)
+==============
+
+Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.4368 ± 0.0252
+  F1 Macro: 0.3975
+  Kappa: 0.1969
+
+Total combinations tested: 1
+================================================================================
+
 ================================================================================
 
 
-Batch size per replica: 4 (global batch size: 4, replicas: 1)
+================================================================================
+SUBPROCESS OUTPUT - TEST 2: RGB=SimpleCNN, MAP=EfficientNetB0
+================================================================================
+2026-01-08 13:35:04.440642: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 13:35:04.440692: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 13:35:04.441644: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 13:35:05.134406: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
@@ -52,12 +214,14 @@ Mode: search
 Resume mode: fresh
 Data percentage: 100.0%
 Verbosity: 1 (NORMAL)
-Device: GPU 0 (single GPU mode)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
 Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 32x32
-Batch size: 4
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
 Max epochs: 300 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
@@ -68,14 +232,12 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
-  Models: 2 files deleted
-  Predictions: 8 files deleted
-  Csv Results: 5 files deleted
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
   Tf Cache: 4 files deleted
 ================================================================================
 
-I0000 00:00:1767826801.947889  499123 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767826801.983195  499123 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: True
@@ -107,7 +269,7 @@ Total combinations to test: 1
 Cross-validation mode: 3-fold CV
 Iterations per combination: 3
 Total training sessions: 3
-Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 ================================================================================
 
 
@@ -118,6 +280,13 @@ Number of samples for each selected modality:
   thermal_map: 2852
   thermal_bb: 2852
 Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
 
 ================================================================================
 GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
@@ -139,7 +308,582 @@ All data will be validated exactly once across all folds
 Fold 1/3
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767826809.549349  499123 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+
+Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+No existing pretrained weights found
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767879472.668530  206184 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 34.
+Epoch 54: early stopping
+
+Run 1 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.39      0.30      0.34       274
+           P       0.69      0.64      0.66       650
+           R       0.28      0.60      0.38        99
+
+    accuracy                           0.54      1023
+   macro avg       0.45      0.51      0.46      1023
+weighted avg       0.57      0.54      0.55      1023
+
+Cohen's Kappa: 0.2441
+
+Training gating network for run 1...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.5406
+F1 Macro: 0.4578
+Kappa: 0.2441
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 36.
+Epoch 56: early stopping
+
+Run 2 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.31      0.36      0.33       263
+           P       0.62      0.47      0.53       574
+           R       0.26      0.47      0.33       118
+
+    accuracy                           0.44       955
+   macro avg       0.40      0.43      0.40       955
+weighted avg       0.49      0.44      0.45       955
+
+Cohen's Kappa: 0.1700
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.4387
+F1 Macro: 0.3999
+Kappa: 0.1700
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 63.
+Epoch 83: early stopping
+
+Run 3 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.43      0.70      0.54       277
+           P       0.63      0.22      0.33       510
+           R       0.21      0.60      0.31        87
+
+    accuracy                           0.41       874
+   macro avg       0.43      0.51      0.39       874
+weighted avg       0.53      0.41      0.39       874
+
+Cohen's Kappa: 0.3102
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.4108
+F1 Macro: 0.3913
+Kappa: 0.3102
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.4634 ± 0.0558
+  F1 Macro: 0.4164
+  Kappa: 0.2414
+
+Total combinations tested: 1
+================================================================================
+
+================================================================================
+
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 3: RGB=SimpleCNN, MAP=EfficientNetB1
+================================================================================
+2026-01-08 14:09:05.423372: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 14:09:05.423434: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 14:09:05.424373: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 14:09:06.069348: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+Downloading data from https://storage.googleapis.com/keras-applications/efficientnetb1_notop.h5
+
+    8192/27018416 [..............................] - ETA: 0s
+   16384/27018416 [..............................] - ETA: 1:57
+   49152/27018416 [..............................] - ETA: 1:44
+   81920/27018416 [..............................] - ETA: 1:40
+  131072/27018416 [..............................] - ETA: 1:14
+  180224/27018416 [..............................] - ETA: 1:03
+  245760/27018416 [..............................] - ETA: 52s 
+  352256/27018416 [..............................] - ETA: 40s
+  458752/27018416 [..............................] - ETA: 34s
+  647168/27018416 [..............................] - ETA: 26s
+  868352/27018416 [..............................] - ETA: 20s
+ 1196032/27018416 [>.............................] - ETA: 16s
+ 1671168/27018416 [>.............................] - ETA: 12s
+ 2334720/27018416 [=>............................] - ETA: 8s 
+ 3219456/27018416 [==>...........................] - ETA: 6s
+ 4505600/27018416 [====>.........................] - ETA: 4s
+ 6275072/27018416 [=====>........................] - ETA: 3s
+ 8421376/27018416 [========>.....................] - ETA: 2s
+10174464/27018416 [==========>...................] - ETA: 1s
+12337152/27018416 [============>.................] - ETA: 1s
+14385152/27018416 [==============>...............] - ETA: 1s
+16252928/27018416 [=================>............] - ETA: 0s
+17342464/27018416 [==================>...........] - ETA: 0s
+18882560/27018416 [===================>..........] - ETA: 0s
+22355968/27018416 [=======================>......] - ETA: 0s
+22757376/27018416 [========================>.....] - ETA: 0s
+26329088/27018416 [============================>.] - ETA: 0s
+26656768/27018416 [============================>.] - ETA: 0s
+No existing pretrained weights found
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767881502.050641  455329 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 40.
+Epoch 60: early stopping
+
+Run 1 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.34      0.68      0.46       274
+           P       0.71      0.19      0.30       650
+           R       0.20      0.63      0.30        99
+
+    accuracy                           0.36      1023
+   macro avg       0.42      0.50      0.35      1023
+weighted avg       0.56      0.36      0.34      1023
+
+Cohen's Kappa: 0.2331
+
+Training gating network for run 1...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.3636
+F1 Macro: 0.3540
+Kappa: 0.2331
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 51.
+Epoch 71: early stopping
+
+Run 2 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.32      0.36      0.34       263
+           P       0.60      0.49      0.54       574
+           R       0.30      0.49      0.37       118
+
+    accuracy                           0.45       955
+   macro avg       0.41      0.45      0.42       955
+weighted avg       0.49      0.45      0.46       955
+
+Cohen's Kappa: 0.2250
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.4545
+F1 Macro: 0.4178
+Kappa: 0.2250
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 42.
+Epoch 62: early stopping
+
+Run 3 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.44      0.59      0.51       277
+           P       0.65      0.42      0.51       510
+           R       0.22      0.46      0.30        87
+
+    accuracy                           0.48       874
+   macro avg       0.44      0.49      0.44       874
+weighted avg       0.54      0.48      0.49       874
+
+Cohen's Kappa: 0.2749
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.4760
+F1 Macro: 0.4382
+Kappa: 0.2749
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.4314 ± 0.0487
+  F1 Macro: 0.4033
+  Kappa: 0.2444
+
+Total combinations tested: 1
+================================================================================
+
+================================================================================
+
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 4: RGB=EfficientNetB0, MAP=SimpleCNN
+================================================================================
+2026-01-08 14:47:19.136531: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 14:47:19.136590: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 14:47:19.137556: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 14:47:19.780291: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
 
 Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 1
@@ -148,22 +892,23 @@ No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
 No existing pretrained weights found
-I0000 00:00:1767827000.803097  499352 cuda_dnn.cc:529] Loaded cuDNN version 91002
-Epoch 32: early stopping
-Restoring model weights from the end of the best epoch: 12.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767883782.077349  772371 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 75.
+Epoch 95: early stopping
 
 Run 1 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.35      0.49      0.41       274
-           P       0.69      0.57      0.62       650
-           R       0.34      0.37      0.35        99
+           I       0.38      0.66      0.49       274
+           P       0.73      0.50      0.60       650
+           R       0.31      0.32      0.32        99
 
     accuracy                           0.53      1023
-   macro avg       0.46      0.48      0.46      1023
-weighted avg       0.56      0.53      0.54      1023
+   macro avg       0.47      0.49      0.47      1023
+weighted avg       0.59      0.53      0.54      1023
 
-Cohen's Kappa: 0.2337
+Cohen's Kappa: 0.2724
 
 Training gating network for run 1...
 
@@ -172,8 +917,8 @@ Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
 Accuracy: 0.5279
-F1 Macro: 0.4623
-Kappa: 0.2337
+F1 Macro: 0.4654
+Kappa: 0.2724
 
 Fold 2/3
 Using pre-computed fold 2 patient split
@@ -186,21 +931,21 @@ No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
 No existing pretrained weights found
-Epoch 79: early stopping
-Restoring model weights from the end of the best epoch: 59.
+Restoring model weights from the end of the best epoch: 33.
+Epoch 53: early stopping
 
 Run 2 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.35      0.59      0.44       263
-           P       0.67      0.29      0.41       574
-           R       0.29      0.64      0.40       118
+           I       0.36      0.69      0.47       263
+           P       0.72      0.29      0.41       574
+           R       0.31      0.58      0.40       118
 
-    accuracy                           0.42       955
-   macro avg       0.44      0.51      0.42       955
-weighted avg       0.53      0.42      0.42       955
+    accuracy                           0.43       955
+   macro avg       0.46      0.52      0.43       955
+weighted avg       0.57      0.43      0.43       955
 
-Cohen's Kappa: 0.2693
+Cohen's Kappa: 0.2673
 
 Training gating network for run 2...
 
@@ -208,9 +953,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 2:
-Accuracy: 0.4188
-F1 Macro: 0.4170
-Kappa: 0.2693
+Accuracy: 0.4346
+F1 Macro: 0.4290
+Kappa: 0.2673
 
 Fold 3/3
 Using pre-computed fold 3 patient split
@@ -223,21 +968,21 @@ No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
 No existing pretrained weights found
-Epoch 22: early stopping
-Restoring model weights from the end of the best epoch: 2.
+Restoring model weights from the end of the best epoch: 35.
+Epoch 55: early stopping
 
 Run 3 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.40      0.45      0.42       277
-           P       0.63      0.52      0.57       510
-           R       0.17      0.28      0.21        87
+           I       0.51      0.48      0.49       277
+           P       0.68      0.36      0.47       510
+           R       0.18      0.72      0.29        87
 
-    accuracy                           0.47       874
-   macro avg       0.40      0.42      0.40       874
-weighted avg       0.51      0.47      0.49       874
+    accuracy                           0.43       874
+   macro avg       0.46      0.52      0.42       874
+weighted avg       0.58      0.43      0.46       874
 
-Cohen's Kappa: 0.1466
+Cohen's Kappa: 0.2582
 
 Training gating network for run 3...
 
@@ -245,19 +990,19 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 3:
-Accuracy: 0.4725
-F1 Macro: 0.4013
-Kappa: 0.1466
-Results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_results_averaged.csv
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
-Results for depth_rgb, thermal_map appended to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+Accuracy: 0.4314
+F1 Macro: 0.4169
+Kappa: 0.2582
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
-All results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 ================================================================================
 FINAL SUMMARY - BEST MODALITY COMBINATIONS
@@ -265,46 +1010,51 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: depth_rgb+thermal_map
-  Accuracy: 0.4731 ± 0.0445
-  F1 Macro: 0.4269
-  Kappa: 0.2166
+  Accuracy: 0.4646 ± 0.0448
+  F1 Macro: 0.4371
+  Kappa: 0.2660
 
 Total combinations tested: 1
 ================================================================================
 
-I0000 00:00:1767832633.045212  499123 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767832633.057967  499123 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 ================================================================================
 
 
 ================================================================================
-SUBPROCESS OUTPUT - TEST 2: RGB=SimpleCNN, MAP=EfficientNetB0
+SUBPROCESS OUTPUT - TEST 5: RGB=EfficientNetB0, MAP=EfficientNetB0
 ================================================================================
-2026-01-07 19:37:27.033638: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1767832647.115970  580341 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1767832647.140273  580341 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
-  if not hasattr(np, "object"):
+2026-01-08 15:17:30.150504: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 15:17:30.150567: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 15:17:30.151540: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 15:17:30.797284: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
 
 ================================================================================
-DEVICE CONFIGURATION (mode: single)
+DEVICE CONFIGURATION (mode: multi)
 ================================================================================
 
 Detected 2 GPU(s):
-  GPU 0: NVIDIA TITAN Xp - 12.0GB (compute 6.1)
-  GPU 1: Quadro P400 - 2.0GB (compute 6.1)
-  GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
 
-Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
-I0000 00:00:1767832667.692158  580341 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-Enabled memory growth for 1 GPU(s)
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
 
-Using default strategy (single GPU)
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
 ================================================================================
 
 
-Batch size per replica: 4 (global batch size: 4, replicas: 1)
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
@@ -313,12 +1063,14 @@ Mode: search
 Resume mode: fresh
 Data percentage: 100.0%
 Verbosity: 1 (NORMAL)
-Device: GPU 0 (single GPU mode)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
 Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 32x32
-Batch size: 4
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
 Max epochs: 300 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
@@ -329,14 +1081,12 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
-  Models: 3 files deleted
+  Models: 6 files deleted
   Predictions: 36 files deleted
   Csv Results: 15 files deleted
   Tf Cache: 4 files deleted
 ================================================================================
 
-I0000 00:00:1767832669.367062  580341 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767832669.401423  580341 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: True
@@ -368,7 +1118,7 @@ Total combinations to test: 1
 Cross-validation mode: 3-fold CV
 Iterations per combination: 3
 Total training sessions: 3
-Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 ================================================================================
 
 
@@ -379,6 +1129,13 @@ Number of samples for each selected modality:
   thermal_map: 2852
   thermal_bb: 2852
 Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
 
 ================================================================================
 GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
@@ -400,7 +1157,412 @@ All data will be validated exactly once across all folds
 Fold 1/3
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767832677.129482  580341 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
+
+Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+Error during training (attempt 1/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 2/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 3/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 1 (train). Skipping...
+Warning: No predictions to save for run 1 (valid). Skipping...
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+Error during training (attempt 1/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 2/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 3/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 2 (train). Skipping...
+Warning: No predictions to save for run 2 (valid). Skipping...
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+Error during training (attempt 1/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 2/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 3/3): The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb0" is used 2 times in the model. All layer names should be unique.
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 3 (train). Skipping...
+Warning: No predictions to save for run 3 (valid). Skipping...
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+/workspace/DFUMultiClassification/src/main.py:2042: FutureWarning: The behavior of Series.idxmax with all-NA values, or any-NA and skipna=False, is deprecated. In a future version this will raise ValueError
+  best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
+Could not generate summary: nan
+================================================================================
+
+================================================================================
+
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 6: RGB=EfficientNetB0, MAP=EfficientNetB1
+================================================================================
+2026-01-08 15:24:08.829937: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 15:24:08.829997: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 15:24:08.830974: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 15:24:09.481402: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Csv Results: 2 files deleted
+  Tf Cache: 2 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
 
 Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
 Using consistent patient split across all modality combinations for run 1
@@ -409,22 +1571,23 @@ No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
 No existing pretrained weights found
-I0000 00:00:1767832914.961119  580594 cuda_dnn.cc:529] Loaded cuDNN version 91002
-Epoch 39: early stopping
-Restoring model weights from the end of the best epoch: 19.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767886050.856799 1024023 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 1.
+Epoch 21: early stopping
 
 Run 1 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.32      0.72      0.45       274
-           P       0.78      0.12      0.21       650
-           R       0.17      0.53      0.26        99
+           I       0.00      0.00      0.00       274
+           P       0.64      1.00      0.78       650
+           R       0.00      0.00      0.00        99
 
-    accuracy                           0.32      1023
-   macro avg       0.42      0.46      0.30      1023
-weighted avg       0.60      0.32      0.28      1023
+    accuracy                           0.64      1023
+   macro avg       0.21      0.33      0.26      1023
+weighted avg       0.40      0.64      0.49      1023
 
-Cohen's Kappa: 0.1648
+Cohen's Kappa: 0.0000
 
 Training gating network for run 1...
 
@@ -432,9 +1595,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.3226
-F1 Macro: 0.3050
-Kappa: 0.1648
+Accuracy: 0.6354
+F1 Macro: 0.2590
+Kappa: 0.0000
 
 Fold 2/3
 Using pre-computed fold 2 patient split
@@ -447,21 +1610,21 @@ No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
 No existing pretrained weights found
-Epoch 53: early stopping
-Restoring model weights from the end of the best epoch: 33.
+Restoring model weights from the end of the best epoch: 1.
+Epoch 21: early stopping
 
 Run 2 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.33      0.59      0.42       263
-           P       0.62      0.25      0.36       574
-           R       0.25      0.55      0.35       118
+           I       0.28      1.00      0.43       263
+           P       0.00      0.00      0.00       574
+           R       0.00      0.00      0.00       118
 
-    accuracy                           0.38       955
-   macro avg       0.40      0.46      0.38       955
-weighted avg       0.50      0.38      0.38       955
+    accuracy                           0.28       955
+   macro avg       0.09      0.33      0.14       955
+weighted avg       0.08      0.28      0.12       955
 
-Cohen's Kappa: 0.2210
+Cohen's Kappa: 0.0000
 
 Training gating network for run 2...
 
@@ -469,9 +1632,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 2:
-Accuracy: 0.3812
-F1 Macro: 0.3763
-Kappa: 0.2210
+Accuracy: 0.2754
+F1 Macro: 0.1440
+Kappa: 0.0000
 
 Fold 3/3
 Using pre-computed fold 3 patient split
@@ -484,21 +1647,294 @@ No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
 No existing pretrained weights found
-Epoch 22: early stopping
-Restoring model weights from the end of the best epoch: 2.
+Restoring model weights from the end of the best epoch: 1.
+Epoch 21: early stopping
 
 Run 3 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.36      0.50      0.42       277
-           P       0.61      0.55      0.58       510
-           R       0.13      0.06      0.08        87
+           I       0.32      1.00      0.48       277
+           P       0.00      0.00      0.00       510
+           R       0.00      0.00      0.00        87
+
+    accuracy                           0.32       874
+   macro avg       0.11      0.33      0.16       874
+weighted avg       0.10      0.32      0.15       874
+
+Cohen's Kappa: 0.0000
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.3169
+F1 Macro: 0.1604
+Kappa: 0.0000
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.4092 ± 0.1608
+  F1 Macro: 0.1878
+  Kappa: 0.0000
+
+Total combinations tested: 1
+================================================================================
+
+================================================================================
+
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 7: RGB=EfficientNetB1, MAP=SimpleCNN
+================================================================================
+2026-01-08 15:55:16.319967: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 15:55:16.320027: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 15:55:16.321003: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 15:55:17.024425: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+No existing pretrained weights found
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767887873.143184 1477049 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 47.
+Epoch 67: early stopping
+
+Run 1 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.36      0.65      0.47       274
+           P       0.71      0.35      0.47       650
+           R       0.22      0.46      0.30        99
+
+    accuracy                           0.44      1023
+   macro avg       0.43      0.49      0.41      1023
+weighted avg       0.57      0.44      0.45      1023
+
+Cohen's Kappa: 0.2499
+
+Training gating network for run 1...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.4428
+F1 Macro: 0.4116
+Kappa: 0.2499
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 18.
+Epoch 38: early stopping
+
+Run 2 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.34      0.62      0.44       263
+           P       0.64      0.39      0.49       574
+           R       0.27      0.30      0.28       118
+
+    accuracy                           0.44       955
+   macro avg       0.42      0.43      0.40       955
+weighted avg       0.51      0.44      0.45       955
+
+Cohen's Kappa: 0.1988
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.4419
+F1 Macro: 0.4032
+Kappa: 0.1988
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 44.
+Epoch 64: early stopping
+
+Run 3 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.50      0.49      0.49       277
+           P       0.68      0.46      0.55       510
+           R       0.19      0.57      0.29        87
 
     accuracy                           0.48       874
-   macro avg       0.37      0.37      0.36       874
-weighted avg       0.49      0.48      0.48       874
+   macro avg       0.46      0.51      0.45       874
+weighted avg       0.58      0.48      0.51       874
 
-Cohen's Kappa: 0.0795
+Cohen's Kappa: 0.2586
 
 Training gating network for run 3...
 
@@ -506,19 +1942,19 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 3:
-Accuracy: 0.4828
-F1 Macro: 0.3595
-Kappa: 0.0795
-Results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_results_averaged.csv
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
-Results for depth_rgb, thermal_map appended to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+Accuracy: 0.4817
+F1 Macro: 0.4450
+Kappa: 0.2586
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
-All results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 ================================================================================
 FINAL SUMMARY - BEST MODALITY COMBINATIONS
@@ -526,46 +1962,51 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: depth_rgb+thermal_map
-  Accuracy: 0.3955 ± 0.0662
-  F1 Macro: 0.3469
-  Kappa: 0.1551
+  Accuracy: 0.4555 ± 0.0186
+  F1 Macro: 0.4200
+  Kappa: 0.2358
 
 Total combinations tested: 1
 ================================================================================
 
-I0000 00:00:1767848821.008407  580341 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767848821.022266  580341 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 ================================================================================
 
 
 ================================================================================
-SUBPROCESS OUTPUT - TEST 3: RGB=SimpleCNN, MAP=EfficientNetB1
+SUBPROCESS OUTPUT - TEST 8: RGB=EfficientNetB1, MAP=EfficientNetB0
 ================================================================================
-2026-01-08 00:07:23.690390: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1767848843.783293  690087 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1767848843.811406  690087 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
-  if not hasattr(np, "object"):
+2026-01-08 16:28:52.948954: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 16:28:52.949010: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 16:28:52.949951: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 16:28:53.583527: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
 
 ================================================================================
-DEVICE CONFIGURATION (mode: single)
+DEVICE CONFIGURATION (mode: multi)
 ================================================================================
 
 Detected 2 GPU(s):
-  GPU 0: NVIDIA TITAN Xp - 12.0GB (compute 6.1)
-  GPU 1: Quadro P400 - 2.0GB (compute 6.1)
-  GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
 
-Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
-I0000 00:00:1767848863.543289  690087 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-Enabled memory growth for 1 GPU(s)
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
 
-Using default strategy (single GPU)
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
 ================================================================================
 
 
-Batch size per replica: 4 (global batch size: 4, replicas: 1)
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
@@ -574,12 +2015,14 @@ Mode: search
 Resume mode: fresh
 Data percentage: 100.0%
 Verbosity: 1 (NORMAL)
-Device: GPU 0 (single GPU mode)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
 Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 32x32
-Batch size: 4
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
 Max epochs: 300 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
@@ -590,14 +2033,12 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
-  Models: 3 files deleted
+  Models: 6 files deleted
   Predictions: 36 files deleted
   Csv Results: 15 files deleted
   Tf Cache: 4 files deleted
 ================================================================================
 
-I0000 00:00:1767848865.278490  690087 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767848865.319917  690087 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: True
@@ -629,7 +2070,7 @@ Total combinations to test: 1
 Cross-validation mode: 3-fold CV
 Iterations per combination: 3
 Total training sessions: 3
-Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 ================================================================================
 
 
@@ -640,6 +2081,13 @@ Number of samples for each selected modality:
   thermal_map: 2852
   thermal_bb: 2852
 Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
 
 ================================================================================
 GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
@@ -661,31 +2109,31 @@ All data will be validated exactly once across all folds
 Fold 1/3
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767848874.296677  690087 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
-Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 1
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
 No existing pretrained weights found
-I0000 00:00:1767849140.326635  690359 cuda_dnn.cc:529] Loaded cuDNN version 91002
-Epoch 32: early stopping
-Restoring model weights from the end of the best epoch: 12.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767889962.957039 1788353 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 47.
+Epoch 67: early stopping
 
 Run 1 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.38      0.45      0.41       274
-           P       0.68      0.61      0.64       650
-           R       0.19      0.21      0.20        99
+           I       0.39      0.65      0.49       274
+           P       0.69      0.41      0.51       650
+           R       0.20      0.37      0.26        99
 
-    accuracy                           0.53      1023
-   macro avg       0.41      0.42      0.42      1023
-weighted avg       0.55      0.53      0.53      1023
+    accuracy                           0.47      1023
+   macro avg       0.43      0.48      0.42      1023
+weighted avg       0.56      0.47      0.48      1023
 
-Cohen's Kappa: 0.1807
+Cohen's Kappa: 0.2847
 
 Training gating network for run 1...
 
@@ -693,36 +2141,36 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.5259
-F1 Macro: 0.4150
-Kappa: 0.1807
+Accuracy: 0.4702
+F1 Macro: 0.4215
+Kappa: 0.2847
 
 Fold 2/3
 Using pre-computed fold 2 patient split
 Using Scikit-learn RandomForestClassifier
 
-Preparing datasets for Fold 2/3 with all modalities: ['depth_rgb', 'thermal_map']
+Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 2
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
 No existing pretrained weights found
-Epoch 22: early stopping
-Restoring model weights from the end of the best epoch: 2.
+Restoring model weights from the end of the best epoch: 47.
+Epoch 67: early stopping
 
 Run 2 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.30      0.41      0.35       263
-           P       0.64      0.27      0.38       574
-           R       0.15      0.44      0.22       118
+           I       0.34      0.53      0.41       263
+           P       0.63      0.44      0.52       574
+           R       0.31      0.38      0.34       118
 
-    accuracy                           0.33       955
-   macro avg       0.36      0.38      0.32       955
-weighted avg       0.49      0.33      0.35       955
+    accuracy                           0.46       955
+   macro avg       0.43      0.45      0.43       955
+weighted avg       0.51      0.46      0.47       955
 
-Cohen's Kappa: 0.0486
+Cohen's Kappa: 0.2158
 
 Training gating network for run 2...
 
@@ -730,36 +2178,36 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 2:
-Accuracy: 0.3319
-F1 Macro: 0.3176
-Kappa: 0.0486
+Accuracy: 0.4576
+F1 Macro: 0.4251
+Kappa: 0.2158
 
 Fold 3/3
 Using pre-computed fold 3 patient split
 Using Scikit-learn RandomForestClassifier
 
-Preparing datasets for Fold 3/3 with all modalities: ['depth_rgb', 'thermal_map']
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 3
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
 No existing pretrained weights found
-Epoch 52: early stopping
-Restoring model weights from the end of the best epoch: 32.
+Restoring model weights from the end of the best epoch: 40.
+Epoch 60: early stopping
 
 Run 3 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.41      0.44      0.42       277
-           P       0.61      0.44      0.51       510
-           R       0.17      0.41      0.24        87
+           I       0.46      0.56      0.51       277
+           P       0.65      0.46      0.54       510
+           R       0.27      0.56      0.37        87
 
-    accuracy                           0.44       874
-   macro avg       0.40      0.43      0.39       874
-weighted avg       0.50      0.44      0.46       874
+    accuracy                           0.50       874
+   macro avg       0.46      0.53      0.47       874
+weighted avg       0.55      0.50      0.51       874
 
-Cohen's Kappa: 0.1787
+Cohen's Kappa: 0.3309
 
 Training gating network for run 3...
 
@@ -767,19 +2215,19 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 3:
-Accuracy: 0.4371
-F1 Macro: 0.3928
-Kappa: 0.1787
-Results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_results_averaged.csv
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
-Saved depth_rgb+thermal_map predictions to /home/rezab/projects/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
-Results for depth_rgb, thermal_map appended to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+Accuracy: 0.5011
+F1 Macro: 0.4705
+Kappa: 0.3309
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
-All results saved to /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 ================================================================================
 FINAL SUMMARY - BEST MODALITY COMBINATIONS
@@ -787,46 +2235,51 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: depth_rgb+thermal_map
-  Accuracy: 0.4316 ± 0.0793
-  F1 Macro: 0.3751
-  Kappa: 0.1360
+  Accuracy: 0.4763 ± 0.0183
+  F1 Macro: 0.4390
+  Kappa: 0.2771
 
 Total combinations tested: 1
 ================================================================================
 
-I0000 00:00:1767869957.337133  690087 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767869957.354838  690087 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 ================================================================================
 
 
 ================================================================================
-SUBPROCESS OUTPUT - TEST 4: RGB=EfficientNetB0, MAP=SimpleCNN
+SUBPROCESS OUTPUT - TEST 9: RGB=EfficientNetB1, MAP=EfficientNetB1
 ================================================================================
-2026-01-08 05:59:53.985436: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1767869994.065992  813364 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1767869994.092525  813364 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-/home/rezab/projects/enviroments/multimodal/lib/python3.12/site-packages/keras/src/export/tf2onnx_lib.py:8: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
-  if not hasattr(np, "object"):
+2026-01-08 17:19:36.956876: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 17:19:36.956931: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 17:19:36.957843: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 17:19:37.603429: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
 
 ================================================================================
-DEVICE CONFIGURATION (mode: single)
+DEVICE CONFIGURATION (mode: multi)
 ================================================================================
 
 Detected 2 GPU(s):
-  GPU 0: NVIDIA TITAN Xp - 12.0GB (compute 6.1)
-  GPU 1: Quadro P400 - 2.0GB (compute 6.1)
-  GPU 1 (Quadro P400, 2.0GB): Excluded (< 8.0GB)
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
 
-Selected GPU 0: NVIDIA TITAN Xp (12.0GB)
-I0000 00:00:1767870017.314418  813364 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-Enabled memory growth for 1 GPU(s)
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
 
-Using default strategy (single GPU)
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
 ================================================================================
 
 
-Batch size per replica: 4 (global batch size: 4, replicas: 1)
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
@@ -835,12 +2288,14 @@ Mode: search
 Resume mode: fresh
 Data percentage: 100.0%
 Verbosity: 1 (NORMAL)
-Device: GPU 0 (single GPU mode)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
 Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 32x32
-Batch size: 4
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
 Max epochs: 300 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
@@ -851,14 +2306,12 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
-  Models: 3 files deleted
+  Models: 6 files deleted
   Predictions: 36 files deleted
   Csv Results: 15 files deleted
   Tf Cache: 4 files deleted
 ================================================================================
 
-I0000 00:00:1767870019.075218  813364 gpu_device.cc:2413] Ignoring visible gpu device (device: 1, name: Quadro P400, pci bus id: 0000:65:00.0, compute capability: 6.1) with core count: 2. The minimum required count is 8. You can adjust this requirement with the env var TF_MIN_GPU_MULTIPROCESSOR_COUNT.
-I0000 00:00:1767870019.166709  813364 gpu_device.cc:2022] Created device /device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: True
@@ -890,7 +2343,7 @@ Total combinations to test: 1
 Cross-validation mode: 3-fold CV
 Iterations per combination: 3
 Total training sessions: 3
-Results will be saved to: /home/rezab/projects/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 ================================================================================
 
 
@@ -901,6 +2354,13 @@ Number of samples for each selected modality:
   thermal_map: 2852
   thermal_bb: 2852
 Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
 
 ================================================================================
 GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
@@ -922,31 +2382,475 @@ All data will be validated exactly once across all folds
 Fold 1/3
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
-I0000 00:00:1767870026.786340  813364 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 10709 MB memory:  -> device: 0, name: NVIDIA TITAN Xp, pci bus id: 0000:17:00.0, compute capability: 6.1
 
-Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 1
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+Error during training (attempt 1/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 2/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 3/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 1 (train). Skipping...
+Warning: No predictions to save for run 1 (valid). Skipping...
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+Error during training (attempt 1/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 2/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 3/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 2 (train). Skipping...
+Warning: No predictions to save for run 2 (valid). Skipping...
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+Error during training (attempt 1/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 2/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+Error during training (attempt 3/3): The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1124, in cross_validation_manual_split
+    model = create_multimodal_model(input_shapes, selected_modalities, None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/DFUMultiClassification/src/models/builders.py", line 508, in create_multimodal_model
+    model = Model(inputs=inputs, outputs=output)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 166, in __init__
+    self._init_graph_network(inputs, outputs)
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/trackable/base.py", line 204, in _method_wrapper
+    result = method(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 265, in _init_graph_network
+    nodes, nodes_by_depth, layers, _ = _map_graph_network(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py", line 1160, in _map_graph_network
+    raise ValueError(
+ValueError: The name "efficientnetb1" is used 2 times in the model. All layer names should be unique.
+
+ERROR: Training failed for depth_rgb+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 3 (train). Skipping...
+Warning: No predictions to save for run 3 (valid). Skipping...
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+/workspace/DFUMultiClassification/src/main.py:2042: FutureWarning: The behavior of Series.idxmax with all-NA values, or any-NA and skipna=False, is deprecated. In a future version this will raise ValueError
+  best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
+Could not generate summary: nan
+================================================================================
+
+================================================================================
+
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 10: RGB=EfficientNetB3, MAP=SimpleCNN
+================================================================================
+2026-01-08 17:25:34.911444: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 17:25:34.911504: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 17:25:34.912380: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 17:25:35.548070: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Csv Results: 2 files deleted
+  Tf Cache: 2 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+Downloading data from https://storage.googleapis.com/keras-applications/efficientnetb3_notop.h5
+
+    8192/43941136 [..............................] - ETA: 0s
+   16384/43941136 [..............................] - ETA: 3:56
+   49152/43941136 [..............................] - ETA: 3:05
+   81920/43941136 [..............................] - ETA: 2:54
+  131072/43941136 [..............................] - ETA: 2:09
+  163840/43941136 [..............................] - ETA: 1:56
+  221184/43941136 [..............................] - ETA: 1:36
+  294912/43941136 [..............................] - ETA: 1:19
+  409600/43941136 [..............................] - ETA: 1:03
+  557056/43941136 [..............................] - ETA: 50s 
+  786432/43941136 [..............................] - ETA: 38s
+ 1064960/43941136 [..............................] - ETA: 30s
+ 1474560/43941136 [>.............................] - ETA: 23s
+ 2080768/43941136 [>.............................] - ETA: 17s
+ 2891776/43941136 [>.............................] - ETA: 12s
+ 4005888/43941136 [=>............................] - ETA: 9s 
+ 5636096/43941136 [==>...........................] - ETA: 6s
+ 7798784/43941136 [====>.........................] - ETA: 4s
+ 9469952/43941136 [=====>........................] - ETA: 4s
+11599872/43941136 [======>.......................] - ETA: 3s
+13246464/43941136 [========>.....................] - ETA: 2s
+15433728/43941136 [=========>....................] - ETA: 2s
+17170432/43941136 [==========>...................] - ETA: 2s
+19349504/43941136 [============>.................] - ETA: 1s
+21078016/43941136 [=============>................] - ETA: 1s
+23240704/43941136 [==============>...............] - ETA: 1s
+24977408/43941136 [================>.............] - ETA: 1s
+27295744/43941136 [=================>............] - ETA: 0s
+28835840/43941136 [==================>...........] - ETA: 0s
+31383552/43941136 [====================>.........] - ETA: 0s
+32669696/43941136 [=====================>........] - ETA: 0s
+35094528/43941136 [======================>.......] - ETA: 0s
+36503552/43941136 [=======================>......] - ETA: 0s
+39018496/43941136 [=========================>....] - ETA: 0s
+40337408/43941136 [==========================>...] - ETA: 0s
+42893312/43941136 [============================>.] - ETA: 0s
 No existing pretrained weights found
-I0000 00:00:1767870294.994267  813628 cuda_dnn.cc:529] Loaded cuDNN version 91002
-Epoch 23: early stopping
-Restoring model weights from the end of the best epoch: 3.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767893299.816713 2262250 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 55.
+Epoch 75: early stopping
 
 Run 1 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.30      0.35      0.33       274
-           P       0.65      0.63      0.64       650
-           R       0.39      0.29      0.34        99
+           I       0.36      0.65      0.47       274
+           P       0.71      0.38      0.49       650
+           R       0.25      0.46      0.33        99
 
-    accuracy                           0.52      1023
-   macro avg       0.45      0.43      0.43      1023
-weighted avg       0.53      0.52      0.53      1023
+    accuracy                           0.46      1023
+   macro avg       0.44      0.50      0.43      1023
+weighted avg       0.57      0.46      0.47      1023
 
-Cohen's Kappa: 0.1638
+Cohen's Kappa: 0.2672
 
 Training gating network for run 1...
 
@@ -954,18 +2858,652 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.5239
-F1 Macro: 0.4343
-Kappa: 0.1638
+Accuracy: 0.4585
+F1 Macro: 0.4273
+Kappa: 0.2672
 
 Fold 2/3
 Using pre-computed fold 2 patient split
 Using Scikit-learn RandomForestClassifier
 
-Preparing datasets for Fold 2/3 with all modalities: ['depth_rgb', 'thermal_map']
+Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 2
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
 Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
 No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 26.
+Epoch 46: early stopping
+
+Run 2 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.35      0.49      0.41       263
+           P       0.62      0.45      0.52       574
+           R       0.34      0.47      0.39       118
+
+    accuracy                           0.46       955
+   macro avg       0.43      0.47      0.44       955
+weighted avg       0.51      0.46      0.47       955
+
+Cohen's Kappa: 0.2752
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.4649
+F1 Macro: 0.4409
+Kappa: 0.2752
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 8.
+Epoch 28: early stopping
+
+Run 3 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.41      0.49      0.45       277
+           P       0.62      0.38      0.47       510
+           R       0.17      0.46      0.25        87
+
+    accuracy                           0.42       874
+   macro avg       0.40      0.44      0.39       874
+weighted avg       0.51      0.42      0.44       874
+
+Cohen's Kappa: 0.1955
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.4211
+F1 Macro: 0.3887
+Kappa: 0.1955
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.4481 ± 0.0193
+  F1 Macro: 0.4189
+  Kappa: 0.2460
+
+Total combinations tested: 1
+================================================================================
+
+================================================================================
+
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 11: RGB=EfficientNetB3, MAP=EfficientNetB0
+================================================================================
+2026-01-08 17:59:47.538023: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 17:59:47.538085: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 17:59:47.539062: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 17:59:48.181256: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+No existing pretrained weights found
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767895399.110436 2598813 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 58.
+Epoch 78: early stopping
+
+Run 1 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.38      0.64      0.48       274
+           P       0.69      0.48      0.57       650
+           R       0.27      0.29      0.28        99
+
+    accuracy                           0.50      1023
+   macro avg       0.45      0.47      0.44      1023
+weighted avg       0.57      0.50      0.51      1023
+
+Cohen's Kappa: 0.2796
+
+Training gating network for run 1...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.5044
+F1 Macro: 0.4404
+Kappa: 0.2796
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 87.
+Epoch 107: early stopping
+
+Run 2 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.34      0.51      0.41       263
+           P       0.63      0.45      0.53       574
+           R       0.30      0.38      0.34       118
+
+    accuracy                           0.46       955
+   macro avg       0.43      0.45      0.43       955
+weighted avg       0.51      0.46      0.47       955
+
+Cohen's Kappa: 0.2242
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.4618
+F1 Macro: 0.4259
+Kappa: 0.2242
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 58.
+Epoch 78: early stopping
+
+Run 3 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.47      0.70      0.56       277
+           P       0.70      0.34      0.45       510
+           R       0.26      0.63      0.37        87
+
+    accuracy                           0.48       874
+   macro avg       0.47      0.56      0.46       874
+weighted avg       0.58      0.48      0.48       874
+
+Cohen's Kappa: 0.3652
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.4805
+F1 Macro: 0.4599
+Kappa: 0.3652
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.4822 ± 0.0174
+  F1 Macro: 0.4421
+  Kappa: 0.2897
+
+Total combinations tested: 1
+================================================================================
+
+================================================================================
+
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 12: RGB=EfficientNetB3, MAP=EfficientNetB1
+================================================================================
+2026-01-08 19:05:54.129161: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-08 19:05:54.129217: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-08 19:05:54.130202: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-08 19:05:54.776516: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
+No existing pretrained weights found
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767899386.021888 3109608 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 61.
+Epoch 81: early stopping
+
+Run 1 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.43      0.65      0.52       274
+           P       0.73      0.51      0.60       650
+           R       0.26      0.38      0.31        99
+
+    accuracy                           0.53      1023
+   macro avg       0.47      0.51      0.47      1023
+weighted avg       0.60      0.53      0.55      1023
+
+Cohen's Kappa: 0.3295
+
+Training gating network for run 1...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.5347
+F1 Macro: 0.4734
+Kappa: 0.3295
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 44.
+Epoch 64: early stopping
+
+Run 2 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.35      0.38      0.36       263
+           P       0.64      0.50      0.56       574
+           R       0.31      0.58      0.40       118
+
+    accuracy                           0.48       955
+   macro avg       0.43      0.48      0.44       955
+weighted avg       0.52      0.48      0.49       955
+
+Cohen's Kappa: 0.2433
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.4764
+F1 Macro: 0.4419
+Kappa: 0.2433
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/3
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 42.
+Epoch 62: early stopping
+
+Run 3 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.46      0.42      0.44       277
+           P       0.63      0.63      0.63       510
+           R       0.27      0.36      0.31        87
+
+    accuracy                           0.54       874
+   macro avg       0.45      0.47      0.46       874
+weighted avg       0.54      0.54      0.54       874
+
+Cohen's Kappa: 0.2662
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.5355
+F1 Macro: 0.4589
+Kappa: 0.2662
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5155 ± 0.0276
+  F1 Macro: 0.4581
+  Kappa: 0.2796
+
+Total combinations tested: 1
+================================================================================
+
+================================================================================
+

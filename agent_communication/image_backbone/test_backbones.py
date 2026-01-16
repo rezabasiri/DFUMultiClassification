@@ -95,7 +95,7 @@ MAP_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
 # Test parameters
 DATA_PERCENTAGE = 100
 IMAGE_SIZE = 64
-DEVICE_MODE = 'single'
+DEVICE_MODE = 'multi'
 RESUME_MODE = 'fresh'
 
 # Paths

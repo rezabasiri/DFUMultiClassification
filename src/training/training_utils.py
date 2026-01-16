@@ -158,8 +158,38 @@ def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     # Use TF checkpoint format (not .weights.h5) for multi-GPU compatibility
     # TF checkpoint format avoids the "unsupported operand type(s) for /: 'Dataset' and 'int'" bug
     # that occurs with HDF5 format on TF 2.15.1 with RTX 5090 multi-GPU
-    checkpoint_name = f'{modality_str}_{run}_{config_name}.weights.h5'
+    # When filepath doesn't end with .h5, ModelCheckpoint uses TF checkpoint format automatically
+    checkpoint_name = f'{modality_str}_{run}_{config_name}.ckpt'
     return os.path.join(models_path, checkpoint_name)
+
+
+def find_checkpoint_for_loading(checkpoint_path):
+    """
+    Find the best available checkpoint file for loading.
+
+    Supports backward compatibility: prefers .ckpt (TF format) but falls back to
+    .weights.h5 (HDF5 format) for older checkpoints.
+
+    Args:
+        checkpoint_path: Path to checkpoint (should end with .ckpt)
+
+    Returns:
+        Path to existing checkpoint file, or original path if none found.
+        Also returns format type ('ckpt', 'h5', or None).
+    """
+    # Try .ckpt format first (TF checkpoint creates .ckpt.index and .ckpt.data-*)
+    ckpt_index = checkpoint_path + '.index'
+    if os.path.exists(ckpt_index) or os.path.exists(checkpoint_path):
+        return checkpoint_path, 'ckpt'
+
+    # Fall back to .weights.h5 format (legacy)
+    h5_path = checkpoint_path.replace('.ckpt', '.weights.h5')
+    if os.path.exists(h5_path):
+        vprint(f"  Note: Loading legacy .weights.h5 checkpoint (will save as .ckpt)", level=2)
+        return h5_path, 'h5'
+
+    # No checkpoint found
+    return checkpoint_path, None
 class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
     def __init__(self, monitor='val_loss', factor=0.5, patience=5, 
                  escape_factor=5.0, min_lr=1e-6, escape_patience=2):
@@ -1001,11 +1031,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 if run_true_labels_v is None:
                     run_true_labels_v = labels_v
                 continue
-            elif os.path.exists(create_checkpoint_filename(config['modalities'], run+1, config_name)):
-                # If not in completed_configs but weights exist, we need to regenerate predictions
-                vprint(f"\nFound weights but no predictions for {config_name}, regenerating predictions", level=1)
             else:
-                vprint(f"\nNo existing data found for {config_name}, starting fresh", level=1)
+                # Check if checkpoint exists (supports both .ckpt and legacy .weights.h5)
+                _, ckpt_exists = find_checkpoint_for_loading(create_checkpoint_filename(config['modalities'], run+1, config_name))
+                if ckpt_exists is not None:
+                    # If not in completed_configs but weights exist, we need to regenerate predictions
+                    vprint(f"\nFound weights but no predictions for {config_name}, regenerating predictions", level=1)
+                else:
+                    vprint(f"\nNo existing data found for {config_name}, starting fresh", level=1)
 
             selected_modalities = config['modalities']
             # Display proper iteration context
@@ -1105,9 +1138,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             # When thermal_map-only trains, it saves as: thermal_map_run1_thermal_map.ckpt
                             # We need to load that same file, not thermal_map_run1_metadata+thermal_map.ckpt
                             image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, image_modality)
+                            image_only_checkpoint, ckpt_format = find_checkpoint_for_loading(image_only_checkpoint)
 
                             # Try to load pre-trained image weights
-                            if os.path.exists(image_only_checkpoint):
+                            if ckpt_format is not None:
                                 vprint(f"  Loading pre-trained {image_modality} weights from standalone training...", level=2)
                                 try:
                                     # Create a temporary model with just the image modality to load weights
@@ -1395,10 +1429,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                         # Train model (check for existing weights)
                         checkpoint_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
-                        if os.path.exists(checkpoint_path):
+                        load_path, ckpt_format = find_checkpoint_for_loading(checkpoint_path)
+                        if ckpt_format is not None:
                             # Load weights must be in strategy scope for distributed training
                             with strategy.scope():
-                                model.load_weights(checkpoint_path)
+                                model.load_weights(load_path)
                             vprint("Loaded existing weights", level=1)
                         else:
                             vprint("No existing pretrained weights found", level=1)
@@ -1435,7 +1470,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         verbose=1
                                     ),
                                     tf.keras.callbacks.ModelCheckpoint(
-                                        checkpoint_path.replace('.weights.h5', '_stage1.weights.h5'),
+                                        checkpoint_path.replace('.ckpt', '_stage1.ckpt'),
                                         monitor='val_weighted_f1_score',
                                         save_best_only=True,
                                         mode='max',
@@ -1453,7 +1488,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 )
 
                                 # Load best Stage 1 weights
-                                model.load_weights(checkpoint_path.replace('.weights.h5', '_stage1.weights.h5'))
+                                stage1_path = checkpoint_path.replace('.ckpt', '_stage1.ckpt')
+                                stage1_load_path, _ = find_checkpoint_for_loading(stage1_path)
+                                model.load_weights(stage1_load_path)
                                 stage1_best_kappa = max(history_stage1.history.get('val_cohen_kappa', [0]))
                                 vprint(f"  Stage 1 completed. Best val kappa: {stage1_best_kappa:.4f}", level=2)
 
@@ -1531,8 +1568,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 )
 
                         # Load best weights (must be in strategy scope for distributed training)
+                        best_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
+                        best_load_path, _ = find_checkpoint_for_loading(best_ckpt_path)
                         with strategy.scope():
-                            model.load_weights(create_checkpoint_filename(selected_modalities, run+1, config_name))
+                            model.load_weights(best_load_path)
 
                         # Evaluate training data
                         y_true_t = []
