@@ -3507,3 +3507,183 @@ Total combinations tested: 1
 
 ================================================================================
 
+2026-01-16 21:13:55,141 - INFO - 
+
+================================================================================
+2026-01-16 21:13:55,141 - INFO - NEW SESSION STARTED: 2026-01-16 21:13:55
+2026-01-16 21:13:55,141 - INFO - ================================================================================
+2026-01-16 21:13:55,141 - INFO - AUTOMATED BACKBONE COMPARISON
+2026-01-16 21:13:55,141 - INFO - ================================================================================
+2026-01-16 21:13:55,141 - INFO - Log file: /workspace/DFUMultiClassification/agent_communication/image_backbone/backbone_test.log
+2026-01-16 21:13:55,141 - INFO - RESUME mode: Loading previous results...
+2026-01-16 21:13:55,141 - INFO - Loaded 12 previous test results
+2026-01-16 21:13:55,142 - INFO - Found 9/12 completed tests
+2026-01-16 21:13:55,142 - INFO - Will re-run 3 tests with failures or N/A metrics:
+2026-01-16 21:13:55,142 - INFO -   - EfficientNetB0_EfficientNetB0
+2026-01-16 21:13:55,142 - INFO -   - EfficientNetB0_EfficientNetB1
+2026-01-16 21:13:55,142 - INFO -   - EfficientNetB1_EfficientNetB1
+2026-01-16 21:13:55,142 - INFO - Saved original INCLUDED_COMBINATIONS
+2026-01-16 21:13:55,142 - INFO - Configuration:
+2026-01-16 21:13:55,142 - INFO -   RGB Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
+2026-01-16 21:13:55,142 - INFO -   MAP Backbones: ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
+2026-01-16 21:13:55,142 - INFO -   Data: 100%
+2026-01-16 21:13:55,142 - INFO -   Image Size: 64x64
+2026-01-16 21:13:55,142 - INFO -   Device: multi
+2026-01-16 21:13:55,142 - INFO -   Test modalities: depth_rgb + thermal_map
+2026-01-16 21:13:55,142 - INFO - Total tests: 12
+2026-01-16 21:13:55,142 - INFO - Tests to run: 3 (skipping 9 completed)
+2026-01-16 21:13:55,142 - INFO - Estimated time: 30 - 45 minutes
+2026-01-16 21:13:55,142 - INFO - [1/12] Skipping SimpleCNN/SimpleCNN - already completed
+2026-01-16 21:13:55,142 - INFO - [2/12] Skipping SimpleCNN/EfficientNetB0 - already completed
+2026-01-16 21:13:55,142 - INFO - [3/12] Skipping SimpleCNN/EfficientNetB1 - already completed
+2026-01-16 21:13:55,142 - INFO - [4/12] Skipping EfficientNetB0/SimpleCNN - already completed
+2026-01-16 21:13:55,143 - INFO - [5/12] Running EfficientNetB0/EfficientNetB0...
+2026-01-16 21:13:55,143 - INFO - Updated config: RGB=EfficientNetB0, MAP=EfficientNetB0, modalities=depth_rgb+thermal_map
+2026-01-16 21:13:55,143 - INFO - ================================================================================
+2026-01-16 21:13:55,143 - INFO - TEST 5/12: RGB=EfficientNetB0, MAP=EfficientNetB0
+2026-01-16 21:13:55,143 - INFO - ================================================================================
+
+================================================================================
+SUBPROCESS OUTPUT - TEST 5: RGB=EfficientNetB0, MAP=EfficientNetB0
+================================================================================
+2026-01-16 21:13:56.020053: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-16 21:13:56.020109: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-16 21:13:56.029019: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-16 21:13:56.939472: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 128x128
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_rgb_thermal_map
+Using existing cleaned dataset for depth_rgb_thermal_map: depth_rgb_thermal_map_15pct.csv
+Applying cleaned dataset for depth_rgb_thermal_map (15% outlier removal)...
+  Filtered: 2852 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_rgb_thermal_map: 2499 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2852
+  depth_bb: 2852
+  thermal_map: 2852
+  thermal_bb: 2852
+Using 100.0% of the data: 2852 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 144 train patients, 73 valid patients
+  Train dist: {0: 0.295, 1: 0.593, 2: 0.112}
+  Valid dist: {0: 0.268, 1: 0.635, 2: 0.097}
+Fold 2/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.290, 1: 0.611, 2: 0.098}
+  Valid dist: {0: 0.275, 1: 0.601, 2: 0.124}
+Fold 3/3: 145 train patients, 72 valid patients
+  Train dist: {0: 0.271, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.317, 1: 0.584, 2: 0.100}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+
+Preparing datasets for Fold 1/3 with all modalities: ['depth_rgb', 'thermal_map']
+Using consistent patient split across all modality combinations for run 1
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/3
