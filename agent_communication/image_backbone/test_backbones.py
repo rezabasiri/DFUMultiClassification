@@ -41,7 +41,8 @@ console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(logging.Formatter('%(message)s'))
 
 # File handler - detailed with timestamps
-file_handler = logging.FileHandler(LOG_FILE, mode='w')
+# Use 'a' (append) mode to preserve previous run logs when resuming
+file_handler = logging.FileHandler(LOG_FILE, mode='a')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
@@ -298,11 +299,23 @@ def save_result(rgb_backbone, map_backbone, result):
         logger.warning(f"Could not save progress: {e}")
 
 def is_test_complete(rgb_backbone, map_backbone, previous_results):
-    """Check if a test already completed successfully (has kappa value)"""
+    """
+    Check if a test already completed successfully (has kappa value).
+
+    A test is considered complete only if:
+    1. It exists in previous results
+    2. It succeeded (success=True)
+    3. It has a valid kappa value (not None)
+
+    Tests with N/A metrics or failures will be re-run.
+    """
     key = f"{rgb_backbone}_{map_backbone}"
     if key in previous_results:
         result = previous_results[key]
-        # Test is complete if it has a kappa value
+        # Test is complete ONLY if it succeeded AND has kappa metrics
+        # This ensures we re-run tests that:
+        # - Failed (success=False)
+        # - Completed but have N/A metrics (kappa=None)
         if result.get('success') and result.get('kappa') is not None:
             return True
     return False
@@ -413,6 +426,9 @@ def main():
     parser.add_argument('--fresh', action='store_true', help='Start fresh (ignore previous results)')
     args = parser.parse_args()
 
+    # Add session separator to log file for resumed runs
+    logger.info("\n\n" + "="*80)
+    logger.info(f"NEW SESSION STARTED: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info("="*80)
     logger.info("AUTOMATED BACKBONE COMPARISON")
     logger.info("="*80)
@@ -429,7 +445,12 @@ def main():
         all_results = load_previous_results()
         if all_results:
             completed = sum(1 for r in all_results.values() if r.get('success') and r.get('kappa') is not None)
+            failed_or_na = [k for k, r in all_results.items() if not (r.get('success') and r.get('kappa') is not None)]
             logger.info(f"Found {completed}/{len(all_results)} completed tests")
+            if failed_or_na:
+                logger.info(f"Will re-run {len(failed_or_na)} tests with failures or N/A metrics:")
+                for key in failed_or_na:
+                    logger.info(f"  - {key}")
         else:
             logger.info("No previous results found, starting fresh")
 

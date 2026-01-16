@@ -55,12 +55,24 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
     if os.path.exists(local_weights_path):
         vprint(f"Loading {backbone_name} from local weights", level=2)
         # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        base_model = EfficientNetClass(weights=None, include_top=False, pooling='avg')
+        # Give it a unique name to prevent conflicts when same backbone is used for RGB and MAP
+        base_model = EfficientNetClass(
+            weights=None,
+            include_top=False,
+            pooling='avg',
+            name=f'{modality}_{backbone_name.lower()}'
+        )
         base_model.load_weights(local_weights_path)
     else:
         vprint(f"Loading {backbone_name} from ImageNet", level=2)
         # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        base_model = EfficientNetClass(weights='imagenet', include_top=False, pooling='avg')
+        # Give it a unique name to prevent conflicts when same backbone is used for RGB and MAP
+        base_model = EfficientNetClass(
+            weights='imagenet',
+            include_top=False,
+            pooling='avg',
+            name=f'{modality}_{backbone_name.lower()}'
+        )
 
     base_model.trainable = True
 
