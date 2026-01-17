@@ -1,6 +1,6 @@
 ====================================================================================================
 BACKBONE COMPARISON RESULTS
-Date: 2026-01-08 20:08:01
+Date: 2026-01-16 23:16:18
 Configuration: 100% data, 64x64 images, single GPU
 ====================================================================================================
 
@@ -12,11 +12,11 @@ RESULTS SUMMARY
 2    SimpleCNN          EfficientNetB0     0.2441     0.4634     0.4578     0.5500     34.0       ✓ Complete     
 3    SimpleCNN          EfficientNetB1     0.2331     0.4314     0.3540     0.3400     38.2       ✓ Complete     
 4    EfficientNetB0     SimpleCNN          0.2724     0.4646     0.4654     0.5400     30.2       ✓ Complete     
-5    EfficientNetB0     EfficientNetB0     N/A        N/A        N/A        N/A        6.6        ⚠ No metrics   
-6    EfficientNetB0     EfficientNetB1     N/A        N/A        N/A        N/A        31.1       ⚠ No metrics   
+5    EfficientNetB0     EfficientNetB0     0.0901     0.5308     0.3298     0.4900     35.8       ✓ Complete     
+6    EfficientNetB0     EfficientNetB1     N/A        N/A        N/A        N/A        29.6       ⚠ No metrics   
 7    EfficientNetB1     SimpleCNN          0.2499     0.4555     0.4116     0.4500     33.6       ✓ Complete     
 8    EfficientNetB1     EfficientNetB0     0.2847     0.4763     0.4215     0.4800     50.7       ✓ Complete     
-9    EfficientNetB1     EfficientNetB1     N/A        N/A        N/A        N/A        6.0        ⚠ No metrics   
+9    EfficientNetB1     EfficientNetB1     0.2208     0.4825     0.4261     0.5200     50.8       ✓ Complete     
 10   EfficientNetB3     SimpleCNN          0.2672     0.4481     0.4273     0.4700     34.2       ✓ Complete     
 11   EfficientNetB3     EfficientNetB0     0.2796     0.4822     0.4404     0.5100     66.1       ✓ Complete     
 12   EfficientNetB3     EfficientNetB1     0.3295     0.5155     0.4734     0.5500     62.1       ✓ Complete     
@@ -25,7 +25,7 @@ RESULTS SUMMARY
 BEST PERFORMERS
 ----------------------------------------------------------------------------------------------------
 Best Kappa: 0.3295 - RGB=EfficientNetB3, MAP=EfficientNetB1
-Best Accuracy: 0.5155 - RGB=EfficientNetB3, MAP=EfficientNetB1
+Best Accuracy: 0.5308 - RGB=EfficientNetB0, MAP=EfficientNetB0
 Fastest: 16.5 min - RGB=SimpleCNN, MAP=SimpleCNN
 ----------------------------------------------------------------------------------------------------
 
@@ -36,15 +36,17 @@ Baseline (SimpleCNN/SimpleCNN): Kappa 0.1834
   SimpleCNN/EfficientNetB0: Kappa 0.2441 (+0.0607, +33.1%)
   SimpleCNN/EfficientNetB1: Kappa 0.2331 (+0.0497, +27.1%)
   EfficientNetB0/SimpleCNN: Kappa 0.2724 (+0.0890, +48.5%)
+  EfficientNetB0/EfficientNetB0: Kappa 0.0901 (-0.0933, -50.9%)
   EfficientNetB1/SimpleCNN: Kappa 0.2499 (+0.0665, +36.3%)
   EfficientNetB1/EfficientNetB0: Kappa 0.2847 (+0.1013, +55.2%)
+  EfficientNetB1/EfficientNetB1: Kappa 0.2208 (+0.0374, +20.4%)
   EfficientNetB3/SimpleCNN: Kappa 0.2672 (+0.0838, +45.7%)
   EfficientNetB3/EfficientNetB0: Kappa 0.2796 (+0.0962, +52.5%)
   EfficientNetB3/EfficientNetB1: Kappa 0.3295 (+0.1461, +79.7%)
 ----------------------------------------------------------------------------------------------------
 
 Total tests: 12
-Successful: 9
-Failed: 3
+Successful: 11
+Failed: 1
 
 ====================================================================================================
