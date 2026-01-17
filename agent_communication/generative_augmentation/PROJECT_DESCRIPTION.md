@@ -14,7 +14,7 @@ Evaluate impact of generative augmentation on DFU classification performance and
 
 ### Architecture
 - **Fine-tuned Stable Diffusion models** trained per modality and healing phase
-- **Model location**: `Codes/MultimodalClassification/ImageGeneration/models_5_7/`
+- **Model location**: `results/GenerativeAug_Models/` (43 GB)
 - **Organization**: `{modality}_{phase}/` subdirectories
   - Modalities: `rgb`, `thermal_map`, `depth_map`
   - Phases: `I` (Inflammatory), `P` (Proliferative), `R` (Remodeling)

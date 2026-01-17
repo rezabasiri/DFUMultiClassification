@@ -26,6 +26,16 @@ ENV/
 *.hdf5
 *.pkl
 *.pickle
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+*.pb
+*.tflite
+*.weights
+*.msgpack
 
 # Results and logs
 results/runs/
@@ -43,6 +53,7 @@ results/batch_visualizations_generative/
 results/training_plots_generative/
 results/metadata_confidence_logs/
 results/comparison/
+results/GenerativeAug_Models/
 results/*.csv
 results/frequent_*.csv
 results/modality_*.csv
