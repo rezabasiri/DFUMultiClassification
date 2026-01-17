@@ -31,8 +31,9 @@ N_EPOCHS = 300  # Full training epochs
 
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
-RGB_BACKBONE = 'SimpleCNN'  # Backbone for RGB images (depth_rgb, thermal_rgb)
-MAP_BACKBONE = 'SimpleCNN'  # Backbone for map images (depth_map, thermal_map)
+# Best combination from 20-test comparison: B3+B1 (Kappa=0.3295, 79.7% improvement over baseline)
+RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_rgb)
+MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
 STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
