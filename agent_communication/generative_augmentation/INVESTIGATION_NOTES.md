@@ -28,7 +28,8 @@
 
 **Base Directory** (from `main_original.py` line 2817):
 ```
-Codes/MultimodalClassification/ImageGeneration/models_5_7/
+Original: Codes/MultimodalClassification/ImageGeneration/models_5_7/
+Current:  results/GenerativeAug_Models/
 ```
 
 **Subdirectory Structure**:
