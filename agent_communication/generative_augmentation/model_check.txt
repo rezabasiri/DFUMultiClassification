@@ -1,0 +1,46 @@
+=== Generative Augmentation Model Availability Check ===
+Date: Sat Jan 17 17:11:42 UTC 2026
+
+Expected location: Codes/MultimodalClassification/ImageGeneration/models_5_7/
+Status: ✗ NOT FOUND
+
+Searching for any 'ImageGeneration' or 'models_5_7' directories...
+Result: No directories found in repository
+
+---
+
+## Summary
+
+**Models Status:** Not present in current repository
+
+**Expected Structure:**
+- Base: Codes/MultimodalClassification/ImageGeneration/models_5_7/
+- 9 subdirectories needed (3 modalities × 3 phases):
+  - rgb_I, rgb_P, rgb_R
+  - thermal_map_I, thermal_map_P, thermal_map_R
+  - depth_map_I, depth_map_P, depth_map_R
+
+**Impact:**
+- Cannot test generative augmentation effectiveness without models
+- Code infrastructure exists but models are missing
+- Models were likely trained separately and not committed to git
+
+---
+
+## Next Steps
+
+1. **Locate existing models:**
+   - Check if models exist on original training machine
+   - Check backup/external storage
+   - Models are likely large (500MB-2GB each)
+
+2. **Alternative: Disable generative augmentation:**
+   - Focus on other augmentation methods (already tested)
+   - General augmentation (brightness, contrast, etc.) is working
+
+3. **Alternative: Retrain models:**
+   - Requires Stable Diffusion fine-tuning pipeline
+   - Time-intensive (hours per model)
+   - Needs sufficient training images per phase
+
+**Recommendation:** Proceed with other experiments while locating models
