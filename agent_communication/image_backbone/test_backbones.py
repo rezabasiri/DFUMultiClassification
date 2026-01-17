@@ -208,24 +208,30 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
         runtime = time.time() - start_time
         output = '\n'.join(output_lines)
 
-        # Try multiple patterns for each metric
-        # First try FINAL SUMMARY format (averaged across folds), then fallback to single run format
-        kappa = (extract_metric(output, r"Kappa:\s+(\d+\.\d+)\s*±") or  # FINAL SUMMARY: "Kappa: 0.2166 ±"
-                extract_metric(output, r"Kappa:\s+(\d+\.\d+)") or         # Single run: "Kappa: 0.2166"
-                extract_metric(output, r"Cohen'?s?\s+Kappa:\s+(\d+\.\d+)") or
-                extract_metric(output, r"kappa:\s+(\d+\.\d+)"))
+        # Extract metrics from FINAL SUMMARY section to get averaged results across folds
+        # Look for the section between "FINAL SUMMARY" and the next "===" separator
+        final_summary_match = re.search(
+            r"FINAL SUMMARY.*?Best by Accuracy:(.*?)(?:={5,}|$)",
+            output,
+            re.DOTALL
+        )
 
-        accuracy = (extract_metric(output, r"Accuracy:\s+(\d+\.\d+)\s*±") or  # FINAL SUMMARY
-                   extract_metric(output, r"Accuracy:\s+(\d+\.\d+)") or         # Single run
-                   extract_metric(output, r"accuracy:\s+(\d+\.\d+)"))
+        if final_summary_match:
+            # Extract from FINAL SUMMARY section (averaged metrics)
+            summary_text = final_summary_match.group(1)
+            kappa = extract_metric(summary_text, r"Kappa:\s+(\d+\.\d+)")
+            accuracy = extract_metric(summary_text, r"Accuracy:\s+(\d+\.\d+)")
+            f1_macro = extract_metric(summary_text, r"F1\s+Macro:\s+(\d+\.\d+)")
+        else:
+            # Fallback: extract from full output (for single-run tests without FINAL SUMMARY)
+            # Use findall and take the LAST occurrence to avoid early-stage 0.0000 values
+            kappa = extract_last_metric(output, r"(?:Cohen'?s?\s+)?Kappa:\s+(\d+\.\d+)")
+            accuracy = extract_last_metric(output, r"Accuracy:\s+(\d+\.\d+)")
+            f1_macro = extract_last_metric(output, r"F1\s+Macro:\s+(\d+\.\d+)")
 
-        f1_macro = (extract_metric(output, r"F1\s+Macro:\s+(\d+\.\d+)") or  # "F1 Macro: 0.4269"
-                   extract_metric(output, r"Macro\s+F1:\s+(\d+\.\d+)") or
-                   extract_metric(output, r"f1_macro:\s+(\d+\.\d+)"))
-
-        # F1 Weighted is in classification report: "weighted avg  0.54  0.44  0.44  294"
+        # F1 Weighted: extract from the last classification report in the output
         # The third column is the f1-score (F1 Weighted)
-        f1_weighted = extract_metric(output, r"weighted avg\s+\d+\.\d+\s+\d+\.\d+\s+(\d+\.\d+)")
+        f1_weighted = extract_last_metric(output, r"weighted avg\s+\d+\.\d+\s+\d+\.\d+\s+(\d+\.\d+)")
 
         return {
             'rgb_backbone': rgb_backbone,
@@ -262,10 +268,17 @@ def run_training(rgb_backbone, map_backbone, test_num, total_tests):
         }
 
 def extract_metric(text, pattern):
-    """Extract metric value from output text"""
+    """Extract metric value from output text (first match)"""
     match = re.search(pattern, text)
     if match:
         return float(match.group(1))
+    return None
+
+def extract_last_metric(text, pattern):
+    """Extract metric value from output text (last match to avoid early-stage zeros)"""
+    matches = re.findall(pattern, text)
+    if matches:
+        return float(matches[-1])  # Return the last match
     return None
 
 def load_previous_results():

@@ -13,7 +13,7 @@ RESULTS SUMMARY
 3    SimpleCNN          EfficientNetB1     0.2331     0.4314     0.3540     0.3400     38.2       ✓ Complete     
 4    EfficientNetB0     SimpleCNN          0.2724     0.4646     0.4654     0.5400     30.2       ✓ Complete     
 5    EfficientNetB0     EfficientNetB0     0.0901     0.5308     0.3298     0.4900     35.8       ✓ Complete     
-6    EfficientNetB0     EfficientNetB1     N/A        N/A        N/A        N/A        29.6       ⚠ No metrics   
+6    EfficientNetB0     EfficientNetB1     0.2209     0.4825     0.4209     0.4900     29.6       ✓ Complete   
 7    EfficientNetB1     SimpleCNN          0.2499     0.4555     0.4116     0.4500     33.6       ✓ Complete     
 8    EfficientNetB1     EfficientNetB0     0.2847     0.4763     0.4215     0.4800     50.7       ✓ Complete     
 9    EfficientNetB1     EfficientNetB1     0.2208     0.4825     0.4261     0.5200     50.8       ✓ Complete     
@@ -37,6 +37,7 @@ Baseline (SimpleCNN/SimpleCNN): Kappa 0.1834
   SimpleCNN/EfficientNetB1: Kappa 0.2331 (+0.0497, +27.1%)
   EfficientNetB0/SimpleCNN: Kappa 0.2724 (+0.0890, +48.5%)
   EfficientNetB0/EfficientNetB0: Kappa 0.0901 (-0.0933, -50.9%)
+  EfficientNetB0/EfficientNetB1: Kappa 0.2209 (+0.0375, +20.4%)
   EfficientNetB1/SimpleCNN: Kappa 0.2499 (+0.0665, +36.3%)
   EfficientNetB1/EfficientNetB0: Kappa 0.2847 (+0.1013, +55.2%)
   EfficientNetB1/EfficientNetB1: Kappa 0.2208 (+0.0374, +20.4%)
@@ -46,7 +47,7 @@ Baseline (SimpleCNN/SimpleCNN): Kappa 0.1834
 ----------------------------------------------------------------------------------------------------
 
 Total tests: 12
-Successful: 11
-Failed: 1
+Successful: 12
+Failed: 0
 
 ====================================================================================================
