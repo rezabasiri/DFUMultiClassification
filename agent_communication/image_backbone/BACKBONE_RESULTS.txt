@@ -1,6 +1,6 @@
 ====================================================================================================
 BACKBONE COMPARISON RESULTS
-Date: 2026-01-16 23:16:18
+Date: 2026-01-17 15:04:02
 Configuration: 100% data, 64x64 images, single GPU
 ====================================================================================================
 
@@ -13,13 +13,21 @@ RESULTS SUMMARY
 3    SimpleCNN          EfficientNetB1     0.2331     0.4314     0.3540     0.3400     38.2       ✓ Complete     
 4    EfficientNetB0     SimpleCNN          0.2724     0.4646     0.4654     0.5400     30.2       ✓ Complete     
 5    EfficientNetB0     EfficientNetB0     0.0901     0.5308     0.3298     0.4900     35.8       ✓ Complete     
-6    EfficientNetB0     EfficientNetB1     0.2209     0.4825     0.4209     0.4900     29.6       ✓ Complete   
+6    EfficientNetB0     EfficientNetB1     0.2209     0.4825     0.4209     0.4900     29.6       ✓ Complete     
 7    EfficientNetB1     SimpleCNN          0.2499     0.4555     0.4116     0.4500     33.6       ✓ Complete     
 8    EfficientNetB1     EfficientNetB0     0.2847     0.4763     0.4215     0.4800     50.7       ✓ Complete     
 9    EfficientNetB1     EfficientNetB1     0.2208     0.4825     0.4261     0.5200     50.8       ✓ Complete     
 10   EfficientNetB3     SimpleCNN          0.2672     0.4481     0.4273     0.4700     34.2       ✓ Complete     
 11   EfficientNetB3     EfficientNetB0     0.2796     0.4822     0.4404     0.5100     66.1       ✓ Complete     
 12   EfficientNetB3     EfficientNetB1     0.3295     0.5155     0.4734     0.5500     62.1       ✓ Complete     
+13   SimpleCNN          EfficientNetB2     0.2817     0.4556     0.4301     0.4900     39.2       ✓ Complete     
+14   EfficientNetB0     EfficientNetB2     0.0938     0.4052     0.2989     0.4900     39.4       ✓ Complete     
+15   EfficientNetB1     EfficientNetB2     0.2729     0.5000     0.4431     0.5000     58.2       ✓ Complete     
+16   EfficientNetB2     SimpleCNN          0.2461     0.4551     0.4202     0.4800     35.2       ✓ Complete     
+17   EfficientNetB2     EfficientNetB0     0.2741     0.4910     0.4482     0.5400     52.6       ✓ Complete     
+18   EfficientNetB2     EfficientNetB1     0.2363     0.4941     0.4302     0.4800     52.9       ✓ Complete     
+19   EfficientNetB2     EfficientNetB2     0.2533     0.4925     0.4376     0.5000     57.3       ✓ Complete     
+20   EfficientNetB3     EfficientNetB2     0.2842     0.5225     0.4660     0.5500     59.2       ✓ Complete     
 ----------------------------------------------------------------------------------------------------
 
 BEST PERFORMERS
@@ -44,10 +52,18 @@ Baseline (SimpleCNN/SimpleCNN): Kappa 0.1834
   EfficientNetB3/SimpleCNN: Kappa 0.2672 (+0.0838, +45.7%)
   EfficientNetB3/EfficientNetB0: Kappa 0.2796 (+0.0962, +52.5%)
   EfficientNetB3/EfficientNetB1: Kappa 0.3295 (+0.1461, +79.7%)
+  SimpleCNN/EfficientNetB2: Kappa 0.2817 (+0.0983, +53.6%)
+  EfficientNetB0/EfficientNetB2: Kappa 0.0938 (-0.0896, -48.9%)
+  EfficientNetB1/EfficientNetB2: Kappa 0.2729 (+0.0895, +48.8%)
+  EfficientNetB2/SimpleCNN: Kappa 0.2461 (+0.0627, +34.2%)
+  EfficientNetB2/EfficientNetB0: Kappa 0.2741 (+0.0907, +49.5%)
+  EfficientNetB2/EfficientNetB1: Kappa 0.2363 (+0.0529, +28.8%)
+  EfficientNetB2/EfficientNetB2: Kappa 0.2533 (+0.0699, +38.1%)
+  EfficientNetB3/EfficientNetB2: Kappa 0.2842 (+0.1008, +55.0%)
 ----------------------------------------------------------------------------------------------------
 
-Total tests: 12
-Successful: 12
+Total tests: 20
+Successful: 20
 Failed: 0
 
 ====================================================================================================

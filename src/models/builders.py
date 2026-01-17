@@ -45,6 +45,7 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
     backbone_map = {
         'EfficientNetB0': tf.keras.applications.EfficientNetB0,
         'EfficientNetB1': tf.keras.applications.EfficientNetB1,
+        'EfficientNetB2': tf.keras.applications.EfficientNetB2,
         'EfficientNetB3': tf.keras.applications.EfficientNetB3,
     }
 

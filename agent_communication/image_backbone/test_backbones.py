@@ -90,8 +90,8 @@ def log_to_file_only(message):
             f.write(message + '\n')
 
 # Configuration
-RGB_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3']
-MAP_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1']
+RGB_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3']
+MAP_BACKBONES = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2']
 
 # Test parameters
 DATA_PERCENTAGE = 100

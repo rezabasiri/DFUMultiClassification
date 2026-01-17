@@ -30,7 +30,7 @@ GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
 # Image backbone selection (for backbone comparison experiments)
-# Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB3'
+# Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
 RGB_BACKBONE = 'SimpleCNN'  # Backbone for RGB images (depth_rgb, thermal_rgb)
 MAP_BACKBONE = 'SimpleCNN'  # Backbone for map images (depth_map, thermal_map)
 
