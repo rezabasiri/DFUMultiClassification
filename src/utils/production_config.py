@@ -64,7 +64,7 @@ MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_m
 
 # Fusion-specific training parameters
 STAGE1_EPOCHS = 50  # Stage 1 fusion training epochs (frozen image branch)
-DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
+DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
 # Options: 'random', 'smote', 'combined', 'combined_smote'
@@ -98,7 +98,7 @@ USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augme
 # Uses fine-tuned SD models per modality/phase from results/GenerativeAug_Models/models_5_7/
 # Only applies to RGB images (depth_rgb, thermal_rgb use rgb_I/P/R models)
 # Model mapping: thermal_rgb→rgb, depth_rgb→rgb, thermal_map→thermal_map, depth_map→depth_map
-USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation (48 GB models required)
+USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation (48 GB models required)
 GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD models
 GENERATIVE_AUG_PROB = 0.15  # Probability of applying generative augmentation (0.0-1.0) - Reduced from 0.50 for better quality/quantity balance
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
@@ -299,7 +299,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('depth_rgb', 'thermal_map',),
+    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
