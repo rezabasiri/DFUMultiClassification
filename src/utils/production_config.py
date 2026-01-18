@@ -29,6 +29,33 @@ IMAGE_SIZE = 128  # Image dimensions (64x64 optimal for fusion - see agent_commu
 GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
+# EPOCH SETTINGS - Understanding the different epoch parameters:
+# ----------------------------------------------------------------
+# N_EPOCHS: Total training budget for the entire training process
+#   - For pre-training (image-only models): Uses N_EPOCHS epochs
+#   - For Stage 1 (frozen image branch): Uses STAGE1_EPOCHS epochs
+#   - For Stage 2 (fine-tuning): Uses (N_EPOCHS - STAGE1_EPOCHS) epochs
+#   - Production: 300 epochs total
+#   - Quick test: 50 epochs total (agent_communication/generative_augmentation/test_generative_aug.py)
+#
+# STAGE1_EPOCHS: Number of epochs for Stage 1 fusion training (frozen image branch)
+#   - Only used in two-stage fusion training
+#   - Image branch is frozen, only fusion layers train
+#   - Typically ~10% of N_EPOCHS (30 out of 300)
+#   - Production: 30 epochs
+#   - Quick test: 25 epochs
+#
+# LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
+#   - Defines how long to explore different learning rates
+#   - Should match N_EPOCHS for full training
+#   - Production: 300 epochs
+#   - Quick test: 50 epochs (auto-set to match N_EPOCHS in test script)
+#
+# Example production timeline (N_EPOCHS=300, STAGE1_EPOCHS=30):
+#   1. Pre-training: 0-300 epochs (trains image-only model)
+#   2. Stage 1: 0-30 epochs (frozen image, train fusion)
+#   3. Stage 2: 30-300 epochs (fine-tune everything)
+
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
 # Best combination from 20-test comparison: B3+B1 (Kappa=0.3295, 79.7% improvement over baseline)

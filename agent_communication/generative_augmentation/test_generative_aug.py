@@ -99,11 +99,11 @@ IMAGE_SIZE = 128
 
 # Quick mode settings
 QUICK_DATA_PERCENTAGE = 30.0
-QUICK_N_EPOCHS = 2
+QUICK_N_EPOCHS = 50  # Needs at least 50 epochs to learn something meaningful
 QUICK_IMAGE_SIZE = 64
-QUICK_STAGE1_EPOCHS = 1  # Stage 1 pre-training for quick mode
+QUICK_STAGE1_EPOCHS = 25  # Stage 1 pre-training for quick mode (50% of total)
 QUICK_EARLY_STOP_PATIENCE = 10  # Allow full training in quick mode
-QUICK_REDUCE_LR_PATIENCE = 1  # Reduce LR quickly in quick mode
+QUICK_REDUCE_LR_PATIENCE = 3  # Reduce LR after 3 epochs without improvement
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
