@@ -100,7 +100,7 @@ USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augme
 # Model mapping: thermal_rgb→rgb, depth_rgb→rgb, thermal_map→thermal_map, depth_map→depth_map
 USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation (48 GB models required)
 GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD models
-GENERATIVE_AUG_PROB = 0.25  # Probability of applying generative augmentation (0.0-1.0) - Reduced from 0.50 for better quality/quantity balance
+GENERATIVE_AUG_PROB = 0.15  # Probability of applying generative augmentation (0.0-1.0) - Reduced from 0.50 for better quality/quantity balance
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
 GENERATIVE_AUG_INFERENCE_STEPS = 30  # Diffusion inference steps (10=fast, 50=quality) - Increased from 10 for better image quality
 GENERATIVE_AUG_BATCH_LIMIT = 30  # Max batch size for generative aug (GPU memory constraint)
