@@ -44,31 +44,36 @@ Evaluate impact of generative augmentation on DFU classification performance and
 
 ## Testing TODO
 
-- [ ] Design comparison matrix:
-  - Baseline (no generative aug)
-  - Generative aug ON (all modalities)
-  - Per-modality effectiveness (rgb only, thermal only, etc.)
-  - Mix ratio optimization
-- [ ] Create test script similar to `test_backbones.py`
-- [ ] Run controlled experiments with same data/config
-- [ ] Track metrics: Kappa, F1, accuracy, runtime overhead
+**Status:** ✅ Ready to test
+
+**Quick Test (local agent):**
+```bash
+python agent_communication/generative_augmentation/test_generative_aug.py --quick --fresh
+```
+
+**Production Run:**
+```bash
+python agent_communication/generative_augmentation/test_generative_aug.py --fresh
+```
+
+**Test Configuration:**
+- Modalities: metadata, depth_rgb, thermal_map, depth_map (fixed)
+- Test 1: Baseline (USE_GENERATIVE_AUGMENTATION=False)
+- Test 2: With gen aug (USE_GENERATIVE_AUGMENTATION=True, depth_rgb only)
+- Automatically generates comparison report
+
+See RUN_INSTRUCTIONS.txt for detailed local agent instructions.
 
 ---
 
-## Key Questions
-
-1. Do the trained Stable Diffusion models still exist?
-2. What's the quality of generated samples?
-3. Does generative aug help all modalities equally?
-4. What's the computational cost vs performance gain?
-5. Optimal mix ratio between real and synthetic samples?
-
----
-
-## Files in This Folder
+## Files
 
 | File | Purpose |
 |------|---------|
-| **PROJECT_DESCRIPTION.md** | This document |
-| **INVESTIGATION_NOTES.md** | Detailed findings from code review |
-| **model_check.txt** | Model availability check results |
+| **test_generative_aug.py** | Automated test script (run with --quick first) |
+| **RUN_INSTRUCTIONS.txt** | Step-by-step instructions for local agent |
+| **INVESTIGATION_NOTES.md** | Code review findings and configuration details |
+| **MODEL_INSPECTION_REPORT.txt** | Model availability and specifications |
+| **gengen_test.log** | Live test log (gitignored) |
+| **GENGEN_PROGRESS.json** | Test progress tracker (resumable) |
+| **GENGEN_REPORT.txt** | Final effectiveness report (generated after test) |
