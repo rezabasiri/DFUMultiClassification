@@ -74,6 +74,6 @@ See RUN_INSTRUCTIONS.txt for detailed local agent instructions.
 | **RUN_INSTRUCTIONS.txt** | Step-by-step instructions for local agent |
 | **INVESTIGATION_NOTES.md** | Code review findings and configuration details |
 | **MODEL_INSPECTION_REPORT.txt** | Model availability and specifications |
-| **gengen_test.log** | Live test log (gitignored) |
+| **gengen_test.log** | Live test log (synced for cloud agent review) |
 | **GENGEN_PROGRESS.json** | Test progress tracker (resumable) |
 | **GENGEN_REPORT.txt** | Final effectiveness report (generated after test) |

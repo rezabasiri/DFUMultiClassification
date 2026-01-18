@@ -57,7 +57,7 @@ If interrupted, resume with:
 OUTPUT FILES
 ================================================================================
 
-- gengen_test.log           - Detailed execution log (gitignored, not committed)
+- gengen_test.log           - Detailed execution log (synced to git for cloud agent)
 - GENGEN_PROGRESS.json      - Test progress tracker (commit this)
 - GENGEN_REPORT.txt         - Final effectiveness report (commit this)
 
@@ -68,7 +68,7 @@ WHAT TO COMMIT
 After successful production run, commit:
 ✓ GENGEN_PROGRESS.json
 ✓ GENGEN_REPORT.txt
-✗ gengen_test.log (excluded by .gitignore)
+✓ gengen_test.log (synced so cloud agent can review logs)
 
 ================================================================================
 TROUBLESHOOTING

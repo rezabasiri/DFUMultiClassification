@@ -37,8 +37,8 @@ python agent_communication/generative_augmentation/test_generative_aug.py --fres
 - Creates comprehensive effectiveness report
 
 **After completion:**
-- Commit GENGEN_PROGRESS.json and GENGEN_REPORT.txt
-- Log file (gengen_test.log) is gitignored
+- Commit GENGEN_PROGRESS.json, GENGEN_REPORT.txt, and gengen_test.log
+- Log file is synced to git so cloud agent can review details
 
 ---
 
