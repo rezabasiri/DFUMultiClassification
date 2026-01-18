@@ -8,7 +8,7 @@
       "accuracy": 0.5753,
       "f1_macro": 0.484,
       "f1_weighted": null,
-      "runtime_min": 157.58277912139891,
+      "runtime_min": 157.58,
       "success": true
     }
   }

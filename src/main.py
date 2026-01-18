@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.
 
 # Suppress TensorFlow C++ logging (must be set before importing TensorFlow)
 # This will be overridden later based on verbosity level, but default to minimal logging
-os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '1')  # Default: suppress INFO messages
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING messages (keep errors only)
 
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
