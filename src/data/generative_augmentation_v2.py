@@ -11,11 +11,21 @@ import traceback
 import numpy as np
 import threading
 
-from src.utils.production_config import IMAGE_SIZE
+from src.utils.production_config import (
+    IMAGE_SIZE,
+    USE_GENERATIVE_AUGMENTATION,
+    GENERATIVE_AUG_PROB,
+    GENERATIVE_AUG_MIX_RATIO,
+    GENERATIVE_AUG_INFERENCE_STEPS,
+    GENERATIVE_AUG_BATCH_LIMIT,
+    GENERATIVE_AUG_MAX_MODELS
+)
 
 class AugmentationConfig:
     def __init__(self):
         # Per-modality settings
+        # Note: depth_rgb setting acts as master switch for generative augmentation
+        # Both depth_rgb and thermal_rgb use the same RGB models (rgb_I, rgb_P, rgb_R)
         self.modality_settings = {
             'depth_rgb': {
                 'regular_augmentations': {
@@ -27,7 +37,7 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.15},
                 },
                 'generative_augmentations': {
-                    'enabled': False
+                    'enabled': USE_GENERATIVE_AUGMENTATION  # Master switch from production_config
                 }
             },
             'thermal_rgb': {
@@ -40,7 +50,7 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.15},
                 },
                 'generative_augmentations': {
-                    'enabled': False
+                    'enabled': False  # Controlled by depth_rgb setting
                 }
             },
             'thermal_map': {
@@ -53,7 +63,7 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.1},
                 },
                 'generative_augmentations': {
-                    'enabled': False  # Disable generative augmentations
+                    'enabled': False  # Map modalities not using generative aug in original implementation
                 }
             },
             'depth_map': {
@@ -66,19 +76,19 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.1},
                 },
                 'generative_augmentations': {
-                    'enabled': False
+                    'enabled': False  # Map modalities not using generative aug in original implementation
                 }
             }
         }
-        
-        # Global generative settings
+
+        # Global generative settings (from production_config)
         self.generative_settings = {
             'output_size': {'height': IMAGE_SIZE, 'width': IMAGE_SIZE},
-            'prob': 0.50,
-            'mix_ratio_range': (0.01, 0.05),
-            'inference_steps': 10, #200,
-            'batch_size_limit': 30, # Limit batch size for generative augmentation
-            'max_loaded_models': 3, # Limit number of loaded models
+            'prob': GENERATIVE_AUG_PROB,
+            'mix_ratio_range': GENERATIVE_AUG_MIX_RATIO,
+            'inference_steps': GENERATIVE_AUG_INFERENCE_STEPS,
+            'batch_size_limit': GENERATIVE_AUG_BATCH_LIMIT,
+            'max_loaded_models': GENERATIVE_AUG_MAX_MODELS,
         }
 
 def resize_and_pad_generated_images(generated_images, target_shape):

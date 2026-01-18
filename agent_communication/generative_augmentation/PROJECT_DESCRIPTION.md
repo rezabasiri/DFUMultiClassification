@@ -31,11 +31,16 @@ Evaluate impact of generative augmentation on DFU classification performance and
 
 ## Investigation TODO
 
-- [ ] Verify model files exist in `ImageGeneration/models_5_7/`
-- [ ] Check which modality/phase combinations have trained models
-- [ ] Document model specifications (steps, resolution, etc.)
-- [ ] Review current augmentation config in production_config.py
-- [ ] Identify what needs to be enabled for testing
+- [x] Verify model files exist in `results/GenerativeAug_Models/models_5_7/`
+- [x] Check which modality/phase combinations have trained models (12 found, 9 expected + 3 extras)
+- [x] Document model specifications (Diffusers v0.31.0, 4GB each, 48GB total)
+- [x] Review current augmentation config in production_config.py
+- [x] Identify what needs to be enabled for testing
+
+**Configuration Location:** `src/utils/production_config.py` lines 70-79
+- Set `USE_GENERATIVE_AUGMENTATION = True` to enable
+- Adjust `GENERATIVE_AUG_PROB`, `GENERATIVE_AUG_MIX_RATIO`, `GENERATIVE_AUG_INFERENCE_STEPS` as needed
+- Model path: Hardcoded in code (needs update to new location)
 
 ## Testing TODO
 
