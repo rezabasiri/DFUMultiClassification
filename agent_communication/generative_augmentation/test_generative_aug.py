@@ -254,12 +254,14 @@ def run_test(config_name, config_desc, use_gen_aug):
     # Run main.py (using conda environment)
     # Pass data_percentage as command-line argument (not just config file)
     # Use 'fresh' resume mode to avoid loading old checkpoints
+    # Use 'multi' device mode to leverage both GPUs
     start_time = time.time()
     data_pct = DATA_PERCENTAGE if not QUICK_MODE else QUICK_DATA_PERCENTAGE
     cmd = [
         '/venv/multimodal/bin/python', 'src/main.py',
         '--data_percentage', str(data_pct),
-        '--resume_mode', 'fresh'
+        '--resume_mode', 'fresh',
+        '--device-mode', 'multi'
     ]
 
     logger.info(f"Running: {' '.join(cmd)}")
