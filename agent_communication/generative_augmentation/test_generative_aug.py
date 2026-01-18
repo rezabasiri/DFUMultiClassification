@@ -87,13 +87,20 @@ TEST_CONFIGS = [
 ]
 
 # Test modalities (fixed for all tests)
-TEST_MODALITIES = ['metadata', 'depth_rgb', 'thermal_map', 'depth_map']
+# IMPORTANT: Must match order in production_config.py ALL_MODALITIES
+# ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+TEST_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
 
 # Test parameters (will be overridden by --quick mode)
 QUICK_MODE = False
 DATA_PERCENTAGE = 100
 N_EPOCHS = 300
 IMAGE_SIZE = 128
+
+# Quick mode settings
+QUICK_DATA_PERCENTAGE = 30.0
+QUICK_N_EPOCHS = 2
+QUICK_IMAGE_SIZE = 64
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
@@ -112,7 +119,7 @@ def save_original_config():
     # Extract key values
     patterns = {
         'USE_GENERATIVE_AUGMENTATION': r'USE_GENERATIVE_AUGMENTATION = (True|False)',
-        'INCLUDED_COMBINATIONS': r'INCLUDED_COMBINATIONS = \[([\s\S]*?)\n\]',
+        'INCLUDED_COMBINATIONS': r'INCLUDED_COMBINATIONS = \[[\s\S]*?\n\]',
         'DATA_PERCENTAGE': r'DATA_PERCENTAGE = ([\d.]+)',
         'N_EPOCHS': r'N_EPOCHS = (\d+)',
         'IMAGE_SIZE': r'IMAGE_SIZE = (\d+)',
@@ -165,6 +172,7 @@ def update_config_for_test(use_gen_aug):
     # Update INCLUDED_COMBINATIONS with test modalities
     modalities_str = ', '.join([f"'{m}'" for m in TEST_MODALITIES])
     new_combinations = f"INCLUDED_COMBINATIONS = [\n    ({modalities_str},),\n]"
+    # Match from INCLUDED_COMBINATIONS to the first ] that's at the start of a line or followed by whitespace and #
     content = re.sub(
         r'INCLUDED_COMBINATIONS = \[[\s\S]*?\n\]',
         new_combinations,
@@ -173,9 +181,9 @@ def update_config_for_test(use_gen_aug):
 
     # Update test parameters if in quick mode
     if QUICK_MODE:
-        content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = 50.0', content)
-        content = re.sub(r'N_EPOCHS = \d+', 'N_EPOCHS = 2', content)
-        content = re.sub(r'IMAGE_SIZE = \d+', 'IMAGE_SIZE = 64', content)
+        content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {QUICK_DATA_PERCENTAGE}', content)
+        content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {QUICK_N_EPOCHS}', content)
+        content = re.sub(r'IMAGE_SIZE = \d+', f'IMAGE_SIZE = {QUICK_IMAGE_SIZE}', content)
     else:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {DATA_PERCENTAGE}', content)
         content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
@@ -202,6 +210,20 @@ def run_test(config_name, config_desc, use_gen_aug):
     logger.info(f"TEST: {config_desc}")
     logger.info(f"{'='*80}")
 
+    # Delete cached cleaned datasets to force regeneration with correct DATA_PERCENTAGE
+    # This is critical because:
+    # 1. Cached datasets bypass DATA_PERCENTAGE parameter
+    # 2. Both baseline and gen-aug tests would use the same cached dataset otherwise
+    combo_name = '_'.join(sorted(TEST_MODALITIES))
+    cleaned_dir = project_root / 'data/cleaned'
+    if cleaned_dir.exists():
+        for cache_file in cleaned_dir.glob(f"{combo_name}_*.csv"):
+            cache_file.unlink()
+            logger.info(f"Deleted cached dataset: {cache_file.name}")
+        for outlier_file in cleaned_dir.glob(f"outliers_{combo_name}_*.csv"):
+            outlier_file.unlink()
+            logger.info(f"Deleted cached outliers: {outlier_file.name}")
+
     # Update config
     update_config_for_test(use_gen_aug)
     logger.info(f"Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}")
@@ -211,8 +233,15 @@ def run_test(config_name, config_desc, use_gen_aug):
     log_start_pos = LOG_FILE.stat().st_size if LOG_FILE.exists() else 0
 
     # Run main.py (using conda environment)
+    # Pass data_percentage as command-line argument (not just config file)
+    # Use 'fresh' resume mode to avoid loading old checkpoints
     start_time = time.time()
-    cmd = ['/venv/multimodal/bin/python', 'src/main.py']
+    data_pct = DATA_PERCENTAGE if not QUICK_MODE else QUICK_DATA_PERCENTAGE
+    cmd = [
+        '/venv/multimodal/bin/python', 'src/main.py',
+        '--data_percentage', str(data_pct),
+        '--resume_mode', 'fresh'
+    ]
 
     logger.info(f"Running: {' '.join(cmd)}")
     log_to_file_only(f"\nCOMMAND: {' '.join(cmd)}\n")
@@ -321,9 +350,9 @@ def generate_report(progress):
         f.write(f"Modalities: {', '.join(TEST_MODALITIES)}\n")
         f.write(f"Mode: {'QUICK TEST' if QUICK_MODE else 'FULL PRODUCTION'}\n")
         if QUICK_MODE:
-            f.write(f"Settings: 10% data, 2 epochs, 64x64 images\n")
+            f.write(f"Settings: {DATA_PERCENTAGE}% data, {N_EPOCHS} epochs, {IMAGE_SIZE}x{IMAGE_SIZE} images\n")
         else:
-            f.write(f"Settings: 100% data, 300 epochs, 128x128 images\n")
+            f.write(f"Settings: {DATA_PERCENTAGE}% data, {N_EPOCHS} epochs, {IMAGE_SIZE}x{IMAGE_SIZE} images\n")
         f.write("\n")
 
         f.write("-" * 80 + "\n")
@@ -391,11 +420,16 @@ def main():
     parser.add_argument('--quick', action='store_true', help='Quick test with minimal settings')
     args = parser.parse_args()
 
+    global QUICK_MODE, DATA_PERCENTAGE, N_EPOCHS, IMAGE_SIZE
     QUICK_MODE = args.quick
 
     if QUICK_MODE:
+        # Update global variables for quick mode
+        DATA_PERCENTAGE = QUICK_DATA_PERCENTAGE
+        N_EPOCHS = QUICK_N_EPOCHS
+        IMAGE_SIZE = QUICK_IMAGE_SIZE
         logger.info("=" * 80)
-        logger.info("QUICK TEST MODE: 10% data, 2 epochs, 64x64 images")
+        logger.info(f"QUICK TEST MODE: {DATA_PERCENTAGE}% data, {N_EPOCHS} epochs, {IMAGE_SIZE}x{IMAGE_SIZE} images")
         logger.info("This is for error checking only - results not production-ready")
         logger.info("=" * 80 + "\n")
 
