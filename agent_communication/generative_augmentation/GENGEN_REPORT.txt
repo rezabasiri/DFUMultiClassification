@@ -1,0 +1,28 @@
+================================================================================
+GENERATIVE AUGMENTATION EFFECTIVENESS TEST - RESULTS
+================================================================================
+Test Date: 2026-01-18 10:29:14
+Modalities: metadata, depth_rgb, thermal_map, depth_map
+Mode: QUICK TEST
+Settings: 10% data, 2 epochs, 64x64 images
+
+--------------------------------------------------------------------------------
+RESULTS SUMMARY
+--------------------------------------------------------------------------------
+
+Configuration                       Kappa   Accuracy   F1 Macro    Runtime
+--------------------------------------------------------------------------------
+Baseline (no gen aug)          0.2842   0.5225   0.4660   0.2 min
+With gen aug (depth_rgb)       0.2842   0.5225   0.4660   0.2 min
+
+Kappa Improvement: +0.0%
+
+================================================================================
+INTERPRETATION
+================================================================================
+
+✗ NOT EFFECTIVE: Generative augmentation does not improve performance.
+  Recommendation: Keep USE_GENERATIVE_AUGMENTATION = False.
+
+Detailed logs: agent_communication/generative_augmentation/gengen_test.log
+================================================================================
