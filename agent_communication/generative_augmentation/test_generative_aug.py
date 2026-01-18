@@ -173,7 +173,7 @@ def update_config_for_test(use_gen_aug):
 
     # Update test parameters if in quick mode
     if QUICK_MODE:
-        content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = 10.0', content)
+        content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = 50.0', content)
         content = re.sub(r'N_EPOCHS = \d+', 'N_EPOCHS = 2', content)
         content = re.sub(r'IMAGE_SIZE = \d+', 'IMAGE_SIZE = 64', content)
     else:
