@@ -15,7 +15,10 @@ Output:
     - Final report: agent_communication/generative_augmentation/GENGEN_REPORT.txt
 """
 
+# CRITICAL: Disable tqdm BEFORE any other imports
 import os
+os.environ['TQDM_DISABLE'] = '1'
+
 import sys
 import subprocess
 import time

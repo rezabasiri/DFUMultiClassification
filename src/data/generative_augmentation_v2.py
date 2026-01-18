@@ -19,11 +19,44 @@ from src.utils.production_config import (
     GENERATIVE_AUG_MIX_RATIO,
     GENERATIVE_AUG_INFERENCE_STEPS,
     GENERATIVE_AUG_BATCH_LIMIT,
-    GENERATIVE_AUG_MAX_MODELS
+    GENERATIVE_AUG_MAX_MODELS,
+    GENERATIVE_AUG_PHASES
 )
 
-# Disable verbose progress bars from diffusers
-diffusers_logging.disable_progress_bar()
+# Disable all progress bars comprehensively - MUST come before any diffusers imports
+os.environ['TQDM_DISABLE'] = '1'  # Disable tqdm globally
+
+# Monkey-patch tqdm to make it a no-op before diffusers uses it
+import sys
+class DummyTqdm:
+    """Dummy tqdm that does nothing"""
+    def __init__(self, *args, **kwargs):
+        self.iterable = kwargs.get('iterable', args[0] if args else None)
+    def __iter__(self):
+        return iter(self.iterable) if self.iterable is not None else iter([])
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        pass
+    def update(self, *args, **kwargs):
+        pass
+    def close(self):
+        pass
+    def set_description(self, *args, **kwargs):
+        pass
+
+# Replace tqdm in all its import locations
+sys.modules['tqdm'] = type(sys)('tqdm')
+sys.modules['tqdm'].tqdm = DummyTqdm
+sys.modules['tqdm.auto'] = type(sys)('tqdm.auto')
+sys.modules['tqdm.auto'].tqdm = DummyTqdm
+
+diffusers_logging.disable_progress_bar()  # Disable diffusers progress bars
+diffusers_logging.set_verbosity_error()  # Only show errors from diffusers
+
+# Suppress TensorFlow GeneratorDatasetOp warning
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TF warnings (keep errors)
+tf.get_logger().setLevel('ERROR')  # Only show TF errors
 
 class GeneratedImageCounter:
     """Thread-safe counter for tracking generated images"""
@@ -500,7 +533,8 @@ class GenerativeAugmentationManager:
                     num_images_per_prompt=batch_size,
                     num_inference_steps=self.config.generative_settings['inference_steps'],
                     height=self.config.generative_settings['output_size']['height'],
-                    width=self.config.generative_settings['output_size']['width']
+                    width=self.config.generative_settings['output_size']['width'],
+                    disable_progress_bar=True  # Explicitly disable progress bar
                 ).images
             # Update generated image counter
             _gen_image_counter.increment(batch_size)
@@ -514,14 +548,23 @@ class GenerativeAugmentationManager:
             return None
 
     def should_generate(self, modality):
-        
+
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return False
-        
-        # Get current phase from the calling context. ##! FOR TESTING PURPOSES ONLY Limiting to phase I, may need to comment out for actual use
-        if not hasattr(self, 'current_phase') or self.current_phase != 'I':
+
+        # Check if current phase is in the enabled phases list (configurable via GENERATIVE_AUG_PHASES)
+        if not hasattr(self, 'current_phase'):
             return False
-        
+
+        # current_phase is a TensorFlow string tensor, need to decode it for comparison
+        try:
+            phase_str = self.current_phase if isinstance(self.current_phase, str) else self.current_phase.numpy().decode('utf-8')
+        except:
+            return False
+
+        if phase_str not in GENERATIVE_AUG_PHASES:
+            return False
+
         return (self.config.modality_settings[modality]['generative_augmentations']['enabled'] and
                 tf.random.uniform([], 0, 1) < self.config.generative_settings['prob'])
 
