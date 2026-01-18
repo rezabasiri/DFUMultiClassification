@@ -1597,3 +1597,280 @@ Generating final report...
 2026-01-18 10:29:14,848 - INFO - Restored original production_config values
 2026-01-18 10:29:14,848 - INFO - 
 Original configuration restored
+2026-01-18 10:35:24,707 - INFO - ================================================================================
+2026-01-18 10:35:24,707 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:35:24,707 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:35:24,707 - INFO - ================================================================================
+
+2026-01-18 10:35:24,708 - INFO - Saved original production_config values
+2026-01-18 10:35:24,708 - INFO - Starting fresh test run
+2026-01-18 10:35:24,708 - INFO - 
+================================================================================
+2026-01-18 10:35:24,708 - INFO - Starting test 1/2
+2026-01-18 10:35:24,708 - INFO - ================================================================================
+2026-01-18 10:35:24,708 - INFO - 
+================================================================================
+2026-01-18 10:35:24,708 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:35:24,708 - INFO - ================================================================================
+2026-01-18 10:35:24,709 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:35:24,709 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:35:24,709 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:35:25.294077: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:35:25.294136: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:35:25.295310: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:35:25.940667: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Total outliers: 428/2852 (15.0%)
+  Cleaned dataset: 2424 samples
+  Saved cleaned dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+Applying cleaned dataset for depth_map_depth_rgb_metadata_thermal_map (15% outlier removal)...
+  Filtered: 2807 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_map_depth_rgb_metadata_thermal_map: 2424 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:38:17,971 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:38:17,971 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:38:17,971 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:38:20,557 - INFO - Test completed in 2.9 minutes
+2026-01-18 10:38:20,558 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:38:20,558 - INFO - 
+================================================================================
+2026-01-18 10:38:20,558 - INFO - Starting test 2/2
+2026-01-18 10:38:20,558 - INFO - ================================================================================
+2026-01-18 10:38:20,558 - INFO - 
+================================================================================
+2026-01-18 10:38:20,558 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-18 10:38:20,558 - INFO - ================================================================================
+2026-01-18 10:38:20,559 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-18 10:38:20,559 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:38:20,559 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:38:21.179030: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:38:21.179087: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:38:21.181476: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:38:21.859288: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Using existing cleaned dataset for depth_map_depth_rgb_metadata_thermal_map: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+Applying cleaned dataset for depth_map_depth_rgb_metadata_thermal_map (15% outlier removal)...
+  Filtered: 2807 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_map_depth_rgb_metadata_thermal_map: 2424 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:38:27,240 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:38:27,240 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:38:27,240 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:38:28,904 - INFO - Test completed in 0.1 minutes
+2026-01-18 10:38:28,905 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:38:28,905 - INFO - 
+================================================================================
+2026-01-18 10:38:28,905 - INFO - ALL TESTS COMPLETE
+2026-01-18 10:38:28,905 - INFO - ================================================================================
+2026-01-18 10:38:28,905 - INFO - 
+Generating final report...
+2026-01-18 10:38:28,906 - INFO - Report saved to: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/GENGEN_REPORT.txt
+2026-01-18 10:38:28,907 - INFO - Restored original production_config values
+2026-01-18 10:38:28,907 - INFO - 
+Original configuration restored
+2026-01-18 10:38:57,229 - INFO - ================================================================================
+2026-01-18 10:38:57,229 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:38:57,229 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:38:57,229 - INFO - ================================================================================
+
+2026-01-18 10:38:57,229 - INFO - Saved original production_config values
+2026-01-18 10:38:57,229 - INFO - Resuming test run - 2/2 tests completed
+2026-01-18 10:38:57,229 - INFO - 
+Skipping Baseline (no generative augmentation) (already completed)
+2026-01-18 10:38:57,230 - INFO - 
+Skipping With generative augmentation (depth_rgb) (already completed)
+2026-01-18 10:38:57,230 - INFO - 
+================================================================================
+2026-01-18 10:38:57,230 - INFO - ALL TESTS COMPLETE
+2026-01-18 10:38:57,230 - INFO - ================================================================================
+2026-01-18 10:38:57,230 - INFO - 
+Generating final report...
+2026-01-18 10:38:57,230 - INFO - Report saved to: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/GENGEN_REPORT.txt
+2026-01-18 10:38:57,231 - INFO - Restored original production_config values
+2026-01-18 10:38:57,231 - INFO - 
+Original configuration restored
