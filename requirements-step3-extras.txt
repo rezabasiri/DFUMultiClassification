@@ -26,15 +26,19 @@
 # For text/image generation, CLIP, stable diffusion, etc.
 # These versions are tested to work together.
 #
-# IMPORTANT: Updated from transformers 4.35.0 to 4.57.6+ to support
-# accelerate library (required for efficient Stable Diffusion loading).
-# The accelerate library is strongly recommended by diffusers for:
-# - Faster model loading
-# - Lower memory usage during model initialization
-# - Multi-GPU support for inference
+# IMPORTANT: Updated from older versions to support accelerate library
+# (required for efficient Stable Diffusion loading).
+#
+# Version requirements:
+# - transformers>=4.57.0: Required for compatibility with accelerate>=1.12.0
+# - tokenizers>=0.22.0: Required for compatibility with transformers>=4.57.0
+# - diffusers>=0.36.0: Required to use modern huggingface_hub API (older
+#   versions use deprecated cached_download function removed in hub>=0.34.0)
+# - accelerate>=1.12.0: Strongly recommended by diffusers for faster model
+#   loading, lower memory usage, and multi-GPU support
 transformers>=4.57.0
 tokenizers>=0.22.0
-diffusers==0.23.0
+diffusers>=0.36.0
 accelerate>=1.12.0
 
 # ==========================================================================
