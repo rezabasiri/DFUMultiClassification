@@ -42,19 +42,11 @@ Evaluate impact of generative augmentation on DFU classification performance and
 - Adjust `GENERATIVE_AUG_PROB`, `GENERATIVE_AUG_MIX_RATIO`, `GENERATIVE_AUG_INFERENCE_STEPS` as needed
 - Model path: Hardcoded in code (needs update to new location)
 
-## Testing TODO
+## Testing
 
 **Status:** ✅ Ready to test
 
-**Quick Test (local agent):**
-```bash
-python agent_communication/generative_augmentation/test_generative_aug.py --quick --fresh
-```
-
-**Production Run:**
-```bash
-python agent_communication/generative_augmentation/test_generative_aug.py --fresh
-```
+**For Local Agent:** See **README.md** for quick start instructions
 
 **Test Configuration:**
 - Modalities: metadata, depth_rgb, thermal_map, depth_map (fixed)
@@ -62,18 +54,16 @@ python agent_communication/generative_augmentation/test_generative_aug.py --fres
 - Test 2: With gen aug (USE_GENERATIVE_AUGMENTATION=True, depth_rgb only)
 - Automatically generates comparison report
 
-See RUN_INSTRUCTIONS.txt for detailed local agent instructions.
-
 ---
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| **test_generative_aug.py** | Automated test script (run with --quick first) |
-| **RUN_INSTRUCTIONS.txt** | Step-by-step instructions for local agent |
-| **INVESTIGATION_NOTES.md** | Code review findings and configuration details |
-| **MODEL_INSPECTION_REPORT.txt** | Model availability and specifications |
-| **gengen_test.log** | Live test log (synced for cloud agent review) |
-| **GENGEN_PROGRESS.json** | Test progress tracker (resumable) |
+| **README.md** | Quick start guide for local agent |
+| **test_generative_aug.py** | Automated test script |
+| **INVESTIGATION_NOTES.md** | Technical code review and configuration details |
+| **MODEL_INSPECTION_REPORT.txt** | Model specifications (48 GB, 12 variants) |
+| **gengen_test.log** | Live test log (generated during test, synced to git) |
+| **GENGEN_PROGRESS.json** | Progress tracker (generated during test, resumable) |
 | **GENGEN_REPORT.txt** | Final effectiveness report (generated after test) |
