@@ -2197,14 +2197,14 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Test all 31 modality combinations with default settings (single GPU)
+  # Test all 31 modality combinations with default settings (multi-GPU)
   python src/main.py --mode search
 
   # Use CPU only (no GPUs)
   python src/main.py --mode search --device-mode cpu
 
-  # Use all available GPUs (multi-GPU training)
-  python src/main.py --mode search --device-mode multi
+  # Use single GPU only (auto-selects best GPU)
+  python src/main.py --mode search --device-mode single
 
   # Use specific GPUs (custom)
   python src/main.py --mode search --device-mode custom --custom-gpus 0 1
@@ -2216,11 +2216,11 @@ Examples:
   python src/main.py --mode search --cv_folds 3
 
   # Filter out low-memory GPUs (require 12GB+)
-  python src/main.py --mode search --device-mode multi --min-gpu-memory 12.0
+  python src/main.py --mode search --min-gpu-memory 12.0
 
 Configuration:
   GPU selection:
-  - --device-mode: 'cpu', 'single' (default), 'multi', or 'custom'
+  - --device-mode: 'cpu', 'single', 'multi' (default), or 'custom'
   - Automatic filtering: >=8GB memory, non-display GPUs
   - Single mode: auto-selects best GPU
   - Multi mode: uses TensorFlow MirroredStrategy
@@ -2316,7 +2316,7 @@ Configuration:
         "--device-mode",
         type=str,
         choices=['cpu', 'single', 'multi', 'custom'],
-        default='single',
+        default='multi',
         help="""Device mode for training:
         'cpu': Use CPU only (disables all GPUs)
         'single': Use single best GPU (auto-selected, >=8GB, non-display)
@@ -2328,7 +2328,7 @@ Configuration:
         - Excludes display GPUs by default (unless --include-display-gpus)
         - Single mode: selects GPU with most memory
         - Multi mode: uses TensorFlow MirroredStrategy for data parallelism
-        (default: single)"""
+        (default: multi)"""
     )
 
     parser.add_argument(
