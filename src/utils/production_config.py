@@ -67,6 +67,18 @@ OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
 # Applied with 60% probability, different settings for RGB vs maps
 USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augmentation
 
+# Generative augmentation (Stable Diffusion-based synthetic data generation)
+# Uses fine-tuned SD models per modality/phase from results/GenerativeAug_Models/models_5_7/
+# Only applies to RGB images (depth_rgb, thermal_rgb use rgb_I/P/R models)
+# Model mapping: thermal_rgb→rgb, depth_rgb→rgb, thermal_map→thermal_map, depth_map→depth_map
+USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation (48 GB models required)
+GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD models
+GENERATIVE_AUG_PROB = 0.50  # Probability of applying generative augmentation (0.0-1.0)
+GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
+GENERATIVE_AUG_INFERENCE_STEPS = 10  # Diffusion inference steps (10=fast, 50=quality)
+GENERATIVE_AUG_BATCH_LIMIT = 30  # Max batch size for generative aug (GPU memory constraint)
+GENERATIVE_AUG_MAX_MODELS = 3  # Max SD models loaded in GPU memory simultaneously
+
 # Misclassification tracking (for iterative data polishing)
 # Options: 'none', 'both', 'valid', 'train'
 #   'none': Disable tracking (fastest, default for production)

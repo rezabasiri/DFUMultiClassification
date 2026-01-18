@@ -107,27 +107,50 @@ gen_manager = GenerativeAugmentationManager(
 
 ---
 
+## Configuration Setup (COMPLETE)
+
+### Production Config Location
+**File:** `src/utils/production_config.py` (lines 70-80)
+
+```python
+USE_GENERATIVE_AUGMENTATION = False  # Set to True to enable
+GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'
+GENERATIVE_AUG_PROB = 0.50  # 50% chance of applying
+GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Mix 1-5% synthetic with real
+GENERATIVE_AUG_INFERENCE_STEPS = 10  # Diffusion steps (10=fast, 50=quality)
+GENERATIVE_AUG_BATCH_LIMIT = 30  # GPU memory limit
+GENERATIVE_AUG_MAX_MODELS = 3  # Max models in VRAM
+```
+
+### How It Works
+1. Config imported by `src/data/generative_augmentation_v2.py`
+2. `AugmentationConfig` class uses these values automatically
+3. Only `depth_rgb` uses generative aug (both depth_rgb and thermal_rgb map to RGB models)
+4. `thermal_map` and `depth_map` keep regular augmentation only (matching original implementation)
+
+### To Enable Generative Augmentation
+1. Set `USE_GENERATIVE_AUGMENTATION = True` in production_config.py
+2. Ensure models exist at `results/GenerativeAug_Models/models_5_7/` (48 GB)
+3. Run training as normal - generative aug applies automatically
+
+---
+
 ## Next Steps for Testing
 
-1. **Verify Model Availability:**
-   ```bash
-   # Check if base directory exists
-   ls -la Codes/MultimodalClassification/ImageGeneration/models_5_7/
+1. **Baseline Comparison:**
+   - Run 1: `USE_GENERATIVE_AUGMENTATION = False` (baseline)
+   - Run 2: `USE_GENERATIVE_AUGMENTATION = True` (with gen aug)
+   - Compare Kappa, F1, accuracy
 
-   # List available models
-   find Codes/MultimodalClassification/ImageGeneration/models_5_7/ -type d -maxdepth 1
-   ```
+2. **Parameter Tuning (if effective):**
+   - Test different `GENERATIVE_AUG_PROB` values (0.3, 0.5, 0.7)
+   - Test different `GENERATIVE_AUG_MIX_RATIO` ranges
+   - Test `GENERATIVE_AUG_INFERENCE_STEPS` (10 vs 20 vs 50)
 
-2. **Enable in Configuration:**
-   - Add generative augmentation config to production_config.py
-   - Set per-modality enabled flags
-   - Configure inference_steps, prob, mix_ratio_range
-
-3. **Design Experiment:**
-   - Baseline run (gen aug OFF)
-   - Full run (gen aug ON for all modalities)
-   - Ablation study (one modality at a time)
-   - Parameter sweep (mix ratios, probabilities)
+3. **Model Variant Testing:**
+   - Test 512 resolution variants (rgb_I_512, rgb_P_512)
+   - Test color correction variant (rgb_P_colorCorrection)
+   - Compare quality vs standard models
 
 ---
 
