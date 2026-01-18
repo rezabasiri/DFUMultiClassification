@@ -76,6 +76,17 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     for patient, cls in patient_classes.items():
         class_patients[cls].append(patient)
 
+    # Check if stratification is feasible
+    vprint("\n" + "=" * 80, level=1)
+    vprint("STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK", level=1)
+    vprint("=" * 80, level=1)
+    for cls, patients in class_patients.items():
+        vprint(f"Class {cls}: {len(patients)} patients", level=1)
+        if len(patients) < n_folds:
+            vprint(f"  ⚠ WARNING: Class {cls} has fewer patients ({len(patients)}) than folds ({n_folds})", level=1)
+            vprint(f"  Some folds will have 0 patients from this class in validation set", level=1)
+    vprint("=" * 80 + "\n", level=1)
+
     # Shuffle patients within each class
     for cls in class_patients:
         np.random.shuffle(class_patients[cls])
@@ -116,11 +127,19 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         # Check all classes present
         train_classes = set(train_data['Healing Phase Abs'].unique())
         valid_classes = set(valid_data['Healing Phase Abs'].unique())
+        all_classes = {0, 1, 2}
 
         if len(train_classes) < 3 or len(valid_classes) < 3:
-            vprint(f"Warning: Fold {fold_idx + 1} missing classes (train: {train_classes}, valid: {valid_classes})", level=1)
+            missing_train = all_classes - train_classes
+            missing_valid = all_classes - valid_classes
+            vprint(f"⚠ WARNING: Fold {fold_idx + 1} missing classes:", level=1)
+            if missing_train:
+                vprint(f"  Train set missing: {missing_train} (may cause training issues)", level=1)
+            if missing_valid:
+                vprint(f"  Valid set missing: {missing_valid} (may affect validation metrics)", level=1)
+            vprint(f"  Cause: Insufficient patients in minority class for {n_folds}-fold CV", level=1)
         elif max_diff > max_imbalance:
-            vprint(f"Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
+            vprint(f"⚠ Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
 
         fold_splits.append((train_patients, valid_patients))
 
