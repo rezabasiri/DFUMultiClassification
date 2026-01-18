@@ -95,7 +95,7 @@ TEST_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
 QUICK_MODE = False
 DATA_PERCENTAGE = 100
 N_EPOCHS = 300
-IMAGE_SIZE = 128
+IMAGE_SIZE = 64
 
 # Quick mode settings
 QUICK_DATA_PERCENTAGE = 50.0  # Need at least 50% data for model to learn with class imbalance

@@ -25,7 +25,7 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
 GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
@@ -42,7 +42,7 @@ N_EPOCHS = 300  # Full training epochs
 #   - Only used in two-stage fusion training
 #   - Image branch is frozen, only fusion layers train
 #   - Typically ~10% of N_EPOCHS (30 out of 300)
-#   - Production: 30 epochs
+#   - Production: 50 epochs
 #   - Quick test: 25 epochs
 #
 # LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
@@ -63,7 +63,7 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
+STAGE1_EPOCHS = 50  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
@@ -76,8 +76,8 @@ DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = h
 SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
 
 # Early stopping and learning rate
-EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
-REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR (increased for longer training)
+EARLY_STOP_PATIENCE = 30  # Epochs to wait before stopping (increased for longer training)
+REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for longer training)
 
 # =============================================================================
 # Data Cleaning and Outlier Detection
@@ -102,8 +102,8 @@ USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation (4
 GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD models
 GENERATIVE_AUG_PROB = 0.15  # Probability of applying generative augmentation (0.0-1.0) - Reduced from 0.50 for better quality/quantity balance
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
-GENERATIVE_AUG_INFERENCE_STEPS = 30  # Diffusion inference steps (10=fast, 50=quality) - Increased from 10 for better image quality
-GENERATIVE_AUG_BATCH_LIMIT = 30  # Max batch size for generative aug (GPU memory constraint)
+GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (10=fast, 50=quality) - Increased from 10 for better image quality
+GENERATIVE_AUG_BATCH_LIMIT = 64  # Max batch size for generative aug (GPU memory constraint)
 GENERATIVE_AUG_MAX_MODELS = 3  # Max SD models loaded in GPU memory simultaneously
 
 # Misclassification tracking (for iterative data polishing)
