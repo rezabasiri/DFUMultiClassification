@@ -384,23 +384,49 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
 
     else:
         # Extract image features using training architecture
+        # Import production config to check backbone type
+        from src.utils.production_config import RGB_BACKBONE, MAP_BACKBONE
+
         # Create feature extractor
         input_shape = (image_size, image_size, 3)
         image_input, branch_output = create_image_branch(input_shape, modality)
         temp_model = tf.keras.Model(inputs=image_input, outputs=branch_output)
 
-        # Find GlobalAveragePooling2D layer
-        gap_layer = None
-        for layer in temp_model.layers:
-            if isinstance(layer, tf.keras.layers.GlobalAveragePooling2D):
-                gap_layer = layer
-                break
+        # Determine which backbone is being used for this modality
+        if modality in ['depth_rgb', 'thermal_rgb']:
+            current_backbone = RGB_BACKBONE
+        else:  # depth_map, thermal_map
+            current_backbone = MAP_BACKBONE
 
-        if gap_layer is None:
-            vprint(f"  Error: Could not find GlobalAveragePooling2D layer for {modality}", level=0)
-            return None
+        # Find appropriate feature extraction layer
+        # For SimpleCNN: use GlobalAveragePooling2D
+        # For EfficientNet: use first Dense layer (after built-in pooling)
+        feature_layer = None
 
-        feature_extractor = tf.keras.Model(inputs=image_input, outputs=gap_layer.output)
+        if current_backbone == 'SimpleCNN':
+            # Look for GlobalAveragePooling2D layer
+            for layer in temp_model.layers:
+                if isinstance(layer, tf.keras.layers.GlobalAveragePooling2D):
+                    feature_layer = layer
+                    vprint(f"  Using GlobalAveragePooling2D layer for {modality} features", level=2)
+                    break
+        else:
+            # For EfficientNet backbones, use first Dense layer output
+            # (EfficientNet has built-in pooling, so no separate GAP layer)
+            for layer in temp_model.layers:
+                if isinstance(layer, tf.keras.layers.Dense):
+                    feature_layer = layer
+                    vprint(f"  Using Dense layer '{layer.name}' for {modality} features ({current_backbone})", level=2)
+                    break
+
+        if feature_layer is None:
+            vprint(f"  Warning: Could not find suitable feature layer for {modality} ({current_backbone})", level=1)
+            vprint(f"  Skipping outlier detection for {modality} - using identity features", level=1)
+            # Return dummy features (will be ignored in multimodal detection)
+            n_samples = len(best_matching_df)
+            return np.zeros((n_samples, 1), dtype=np.float32)
+
+        feature_extractor = tf.keras.Model(inputs=image_input, outputs=feature_layer.output)
 
         # Determine folder and bounding box columns
         if modality in ['depth_rgb', 'depth_map']:
@@ -412,7 +438,7 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
 
         # Extract features
         n_samples = len(best_matching_df)
-        feature_dim = gap_layer.output.shape[-1]
+        feature_dim = feature_layer.output.shape[-1]
         all_features = np.zeros((n_samples, feature_dim), dtype=np.float32)
 
         for start_idx in range(0, n_samples, batch_size):
