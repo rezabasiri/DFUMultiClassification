@@ -98,7 +98,7 @@ N_EPOCHS = 300
 IMAGE_SIZE = 128
 
 # Quick mode settings
-QUICK_DATA_PERCENTAGE = 30.0
+QUICK_DATA_PERCENTAGE = 50.0  # Need at least 50% data for model to learn with class imbalance
 QUICK_N_EPOCHS = 50  # Needs at least 50 epochs to learn something meaningful
 QUICK_IMAGE_SIZE = 64
 QUICK_STAGE1_EPOCHS = 25  # Stage 1 pre-training for quick mode (50% of total)
