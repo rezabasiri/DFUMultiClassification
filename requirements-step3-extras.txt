@@ -25,8 +25,17 @@
 # ==========================================================================
 # For text/image generation, CLIP, stable diffusion, etc.
 # These versions are tested to work together.
-transformers==4.35.0
+#
+# IMPORTANT: Updated from transformers 4.35.0 to 4.57.6+ to support
+# accelerate library (required for efficient Stable Diffusion loading).
+# The accelerate library is strongly recommended by diffusers for:
+# - Faster model loading
+# - Lower memory usage during model initialization
+# - Multi-GPU support for inference
+transformers>=4.57.0
+tokenizers>=0.22.0
 diffusers==0.23.0
+accelerate>=1.12.0
 
 # ==========================================================================
 # HYPERPARAMETER OPTIMIZATION
