@@ -207,9 +207,12 @@ def run_test(config_name, config_desc, use_gen_aug):
     logger.info(f"Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}")
     logger.info(f"Modalities: {', '.join(TEST_MODALITIES)}")
 
-    # Run main.py
+    # Record log file position before running test (to read only new content)
+    log_start_pos = LOG_FILE.stat().st_size if LOG_FILE.exists() else 0
+
+    # Run main.py (using conda environment)
     start_time = time.time()
-    cmd = ['python', 'src/main.py']
+    cmd = ['/venv/multimodal/bin/python', 'src/main.py']
 
     logger.info(f"Running: {' '.join(cmd)}")
     log_to_file_only(f"\nCOMMAND: {' '.join(cmd)}\n")
@@ -238,18 +241,24 @@ def run_test(config_name, config_desc, use_gen_aug):
 
         if process.returncode != 0:
             logger.error(f"Test FAILED with return code {process.returncode}")
-            return None
+            return None, None
 
         logger.info(f"Test completed in {elapsed/60:.1f} minutes")
-        return elapsed
+        return elapsed, log_start_pos
 
     except Exception as e:
         logger.error(f"Error running test: {e}")
-        return None
+        return None, None
 
-def extract_metrics_from_logs():
-    """Extract final metrics from main.py output logs"""
-    # Look in results directory for the latest metrics
+def extract_metrics_from_logs(log_start_pos=0):
+    """Extract final metrics from main.py output logs
+
+    Args:
+        log_start_pos: File position to start reading from (to avoid stale metrics from previous runs)
+    """
+    metrics = {'kappa': None, 'accuracy': None, 'f1_macro': None, 'f1_weighted': None}
+
+    # Try method 1: Read from CSV file
     results_dir = project_root / 'results'
     csv_pattern = results_dir / 'modality_combination_results.csv'
 
@@ -260,22 +269,49 @@ def extract_metrics_from_logs():
             if len(lines) > 1:
                 last_line = lines[-1].strip().split(',')
                 try:
-                    return {
+                    metrics = {
                         'kappa': float(last_line[1]) if len(last_line) > 1 else None,
                         'accuracy': float(last_line[2]) if len(last_line) > 2 else None,
                         'f1_macro': float(last_line[3]) if len(last_line) > 3 else None,
                         'f1_weighted': float(last_line[4]) if len(last_line) > 4 else None,
                     }
+                    if metrics['kappa'] is not None:
+                        return metrics
                 except:
                     pass
 
-    return {'kappa': None, 'accuracy': None, 'f1_macro': None, 'f1_weighted': None}
+    # Try method 2: Parse from log file (only read content after log_start_pos to avoid stale metrics)
+    if LOG_FILE.exists():
+        with open(LOG_FILE, 'r') as f:
+            # Seek to the position where this test started
+            f.seek(log_start_pos)
+            log_content = f.read()
+
+            # Look for metrics - use findall and take last match to get final results from THIS test run
+            kappa_matches = re.findall(r'Kappa:\s+(\d+\.\d+)', log_content)
+            accuracy_matches = re.findall(r'Accuracy:\s+(\d+\.\d+)\s+±', log_content)
+            f1_macro_matches = re.findall(r'F1\s+Macro:\s+(\d+\.\d+)', log_content)
+
+            if kappa_matches:
+                metrics['kappa'] = float(kappa_matches[-1])
+            if accuracy_matches:
+                metrics['accuracy'] = float(accuracy_matches[-1])
+            if f1_macro_matches:
+                metrics['f1_macro'] = float(f1_macro_matches[-1])
+
+    return metrics
 
 def generate_report(progress):
     """Generate final comparison report"""
     logger.info("\nGenerating final report...")
 
     results = progress['results']
+
+    def safe_format(value, default=0.0, fmt='.4f'):
+        """Safely format a value that might be None"""
+        if value is None:
+            value = default
+        return f"{value:{fmt}}"
 
     with open(REPORT_FILE, 'w') as f:
         f.write("=" * 80 + "\n")
@@ -303,17 +339,17 @@ def generate_report(progress):
 
         # Baseline row
         f.write(f"{'Baseline (no gen aug)':<30} "
-                f"{baseline.get('kappa', 0):.4f}   "
-                f"{baseline.get('accuracy', 0):.4f}   "
-                f"{baseline.get('f1_macro', 0):.4f}   "
-                f"{baseline.get('runtime_min', 0):.1f} min\n")
+                f"{safe_format(baseline.get('kappa'))}   "
+                f"{safe_format(baseline.get('accuracy'))}   "
+                f"{safe_format(baseline.get('f1_macro'))}   "
+                f"{safe_format(baseline.get('runtime_min'), fmt='.1f')} min\n")
 
         # Gen aug row
         f.write(f"{'With gen aug (depth_rgb)':<30} "
-                f"{gengen.get('kappa', 0):.4f}   "
-                f"{gengen.get('accuracy', 0):.4f}   "
-                f"{gengen.get('f1_macro', 0):.4f}   "
-                f"{gengen.get('runtime_min', 0):.1f} min\n")
+                f"{safe_format(gengen.get('kappa'))}   "
+                f"{safe_format(gengen.get('accuracy'))}   "
+                f"{safe_format(gengen.get('f1_macro'))}   "
+                f"{safe_format(gengen.get('runtime_min'), fmt='.1f')} min\n")
 
         f.write("\n")
 
@@ -388,14 +424,14 @@ def main():
             logger.info(f"Starting test {len(progress['completed'])+1}/2")
             logger.info(f"{'='*80}")
 
-            runtime = run_test(config_name, config['description'], config['use_gen_aug'])
+            runtime, log_start_pos = run_test(config_name, config['description'], config['use_gen_aug'])
 
             if runtime is None:
                 logger.error("Test failed - stopping")
                 return 1
 
-            # Extract metrics
-            metrics = extract_metrics_from_logs()
+            # Extract metrics (only from this test run using log_start_pos)
+            metrics = extract_metrics_from_logs(log_start_pos)
             metrics['runtime_min'] = runtime / 60
             metrics['success'] = True
 
@@ -404,7 +440,11 @@ def main():
             progress['completed'].append(config_name)
             save_progress(progress)
 
-            logger.info(f"✓ Test completed - Kappa: {metrics.get('kappa', 0):.4f}")
+            kappa_value = metrics.get('kappa')
+            if kappa_value is not None:
+                logger.info(f"✓ Test completed - Kappa: {kappa_value:.4f}")
+            else:
+                logger.warning("✓ Test completed - Kappa: N/A (metric extraction failed)")
 
         # Generate final report
         logger.info("\n" + "="*80)

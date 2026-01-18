@@ -1,0 +1,24 @@
+{
+  "completed": [
+    "baseline",
+    "gengen_enabled"
+  ],
+  "results": {
+    "baseline": {
+      "kappa": 0.2842,
+      "accuracy": 0.5225,
+      "f1_macro": 0.466,
+      "f1_weighted": null,
+      "runtime_min": 0.19119075536727906,
+      "success": true
+    },
+    "gengen_enabled": {
+      "kappa": 0.2842,
+      "accuracy": 0.5225,
+      "f1_macro": 0.466,
+      "f1_weighted": null,
+      "runtime_min": 0.1940810759862264,
+      "success": true
+    }
+  }
+}

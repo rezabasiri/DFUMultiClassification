@@ -1,0 +1,1599 @@
+2026-01-18 10:15:23,697 - INFO - ================================================================================
+2026-01-18 10:15:23,697 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:15:23,697 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:15:23,697 - INFO - ================================================================================
+
+2026-01-18 10:15:23,698 - INFO - Saved original production_config values
+2026-01-18 10:15:23,698 - INFO - Starting fresh test run
+2026-01-18 10:15:23,698 - INFO - 
+================================================================================
+2026-01-18 10:15:23,698 - INFO - Starting test 1/2
+2026-01-18 10:15:23,698 - INFO - ================================================================================
+2026-01-18 10:15:23,698 - INFO - 
+================================================================================
+2026-01-18 10:15:23,698 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:15:23,698 - INFO - ================================================================================
+2026-01-18 10:15:23,699 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:15:23,699 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:15:23,699 - INFO - Running: python src/main.py
+
+COMMAND: python src/main.py
+
+2026-01-18 10:15:24.287968: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:15:24.288016: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:15:24.289193: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:15:24.944355: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:15:33,494 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:15:33,494 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:15:33,494 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:15:33,496 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:15:33,496 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:15:33,496 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:15:35,338 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:15:35,340 - INFO - Restored original production_config values
+2026-01-18 10:15:35,340 - INFO - 
+Original configuration restored
+2026-01-18 10:19:20,764 - INFO - ================================================================================
+2026-01-18 10:19:20,764 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:19:20,764 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:19:20,764 - INFO - ================================================================================
+
+2026-01-18 10:19:20,764 - INFO - Saved original production_config values
+2026-01-18 10:19:20,765 - INFO - Starting fresh test run
+2026-01-18 10:19:20,765 - INFO - 
+================================================================================
+2026-01-18 10:19:20,765 - INFO - Starting test 1/2
+2026-01-18 10:19:20,765 - INFO - ================================================================================
+2026-01-18 10:19:20,765 - INFO - 
+================================================================================
+2026-01-18 10:19:20,765 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:19:20,765 - INFO - ================================================================================
+2026-01-18 10:19:20,766 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:19:20,766 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:19:20,766 - INFO - Running: python src/main.py
+
+COMMAND: python src/main.py
+
+2026-01-18 10:19:20,766 - ERROR - Error running test: [Errno 2] No such file or directory: 'python'
+2026-01-18 10:19:20,766 - ERROR - Test failed - stopping
+2026-01-18 10:19:20,767 - INFO - Restored original production_config values
+2026-01-18 10:19:20,767 - INFO - 
+Original configuration restored
+2026-01-18 10:19:34,809 - INFO - ================================================================================
+2026-01-18 10:19:34,809 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:19:34,809 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:19:34,809 - INFO - ================================================================================
+
+2026-01-18 10:19:34,810 - INFO - Saved original production_config values
+2026-01-18 10:19:34,810 - INFO - Starting fresh test run
+2026-01-18 10:19:34,810 - INFO - 
+================================================================================
+2026-01-18 10:19:34,810 - INFO - Starting test 1/2
+2026-01-18 10:19:34,810 - INFO - ================================================================================
+2026-01-18 10:19:34,810 - INFO - 
+================================================================================
+2026-01-18 10:19:34,810 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:19:34,810 - INFO - ================================================================================
+2026-01-18 10:19:34,811 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:19:34,811 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:19:34,811 - INFO - Running: python3 src/main.py
+
+COMMAND: python3 src/main.py
+
+Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 24, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
+2026-01-18 10:19:34,872 - INFO -   ModuleNotFoundError: No module named 'pandas'
+2026-01-18 10:19:34,876 - ERROR - Test FAILED with return code 1
+2026-01-18 10:19:34,876 - ERROR - Test failed - stopping
+2026-01-18 10:19:34,876 - INFO - Restored original production_config values
+2026-01-18 10:19:34,876 - INFO - 
+Original configuration restored
+2026-01-18 10:22:02,083 - INFO - ================================================================================
+2026-01-18 10:22:02,083 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:22:02,083 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:22:02,083 - INFO - ================================================================================
+
+2026-01-18 10:22:02,084 - INFO - Saved original production_config values
+2026-01-18 10:22:02,084 - INFO - Starting fresh test run
+2026-01-18 10:22:02,084 - INFO - 
+================================================================================
+2026-01-18 10:22:02,084 - INFO - Starting test 1/2
+2026-01-18 10:22:02,084 - INFO - ================================================================================
+2026-01-18 10:22:02,084 - INFO - 
+================================================================================
+2026-01-18 10:22:02,084 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:22:02,084 - INFO - ================================================================================
+2026-01-18 10:22:02,085 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:22:02,085 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:22:02,085 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:22:02.670627: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:22:02.670686: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:22:02.671850: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:22:03.346068: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:22:11,903 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:22:11,903 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:22:11,903 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:22:11,905 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:22:11,905 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:22:11,905 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:22:13,741 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:22:13,742 - INFO - Restored original production_config values
+2026-01-18 10:22:13,742 - INFO - 
+Original configuration restored
+2026-01-18 10:22:53,138 - INFO - ================================================================================
+2026-01-18 10:22:53,138 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:22:53,138 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:22:53,138 - INFO - ================================================================================
+
+2026-01-18 10:22:53,138 - INFO - Saved original production_config values
+2026-01-18 10:22:53,138 - INFO - Starting fresh test run
+2026-01-18 10:22:53,139 - INFO - 
+================================================================================
+2026-01-18 10:22:53,139 - INFO - Starting test 1/2
+2026-01-18 10:22:53,139 - INFO - ================================================================================
+2026-01-18 10:22:53,139 - INFO - 
+================================================================================
+2026-01-18 10:22:53,139 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:22:53,139 - INFO - ================================================================================
+2026-01-18 10:22:53,140 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:22:53,140 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:22:53,140 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:22:53.707464: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:22:53.707525: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:22:53.708805: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:22:54.368619: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:23:02,982 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:23:02,982 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:23:02,982 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:23:02,984 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:23:02,984 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:23:02,984 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:23:04,827 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:23:04,828 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:23:04,828 - INFO - 
+================================================================================
+2026-01-18 10:23:04,828 - INFO - Starting test 2/2
+2026-01-18 10:23:04,828 - INFO - ================================================================================
+2026-01-18 10:23:04,828 - INFO - 
+================================================================================
+2026-01-18 10:23:04,828 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-18 10:23:04,828 - INFO - ================================================================================
+2026-01-18 10:23:04,829 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-18 10:23:04,829 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:23:04,829 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:23:05.399388: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:23:05.399445: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:23:05.400751: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:23:06.081699: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:23:14,841 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:23:14,841 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:23:14,841 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:23:14,843 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:23:14,843 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:23:14,843 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:23:16,733 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:23:16,734 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:23:16,734 - INFO - 
+================================================================================
+2026-01-18 10:23:16,734 - INFO - ALL TESTS COMPLETE
+2026-01-18 10:23:16,734 - INFO - ================================================================================
+2026-01-18 10:23:16,734 - INFO - 
+Generating final report...
+2026-01-18 10:23:16,735 - INFO - Restored original production_config values
+2026-01-18 10:23:16,735 - INFO - 
+Original configuration restored
+2026-01-18 10:23:46,252 - INFO - ================================================================================
+2026-01-18 10:23:46,252 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:23:46,252 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:23:46,252 - INFO - ================================================================================
+
+2026-01-18 10:23:46,252 - INFO - Saved original production_config values
+2026-01-18 10:23:46,252 - INFO - Starting fresh test run
+2026-01-18 10:23:46,253 - INFO - 
+================================================================================
+2026-01-18 10:23:46,253 - INFO - Starting test 1/2
+2026-01-18 10:23:46,253 - INFO - ================================================================================
+2026-01-18 10:23:46,253 - INFO - 
+================================================================================
+2026-01-18 10:23:46,253 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:23:46,253 - INFO - ================================================================================
+2026-01-18 10:23:46,254 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:23:46,254 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:23:46,254 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:23:46.852156: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:23:46.852215: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:23:46.853418: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:23:47.518991: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:23:56,066 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:23:56,066 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:23:56,066 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:23:56,068 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:23:56,068 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:23:56,068 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:23:57,922 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:23:57,923 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:23:57,923 - INFO - 
+================================================================================
+2026-01-18 10:23:57,923 - INFO - Starting test 2/2
+2026-01-18 10:23:57,923 - INFO - ================================================================================
+2026-01-18 10:23:57,923 - INFO - 
+================================================================================
+2026-01-18 10:23:57,923 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-18 10:23:57,924 - INFO - ================================================================================
+2026-01-18 10:23:57,924 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-18 10:23:57,925 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:23:57,925 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:23:58.513117: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:23:58.513169: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:23:58.514410: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:23:59.221186: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:24:07,785 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:24:07,785 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:24:07,785 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:24:07,787 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:24:07,787 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:24:07,787 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:24:09,621 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:24:09,621 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:24:09,622 - INFO - 
+================================================================================
+2026-01-18 10:24:09,622 - INFO - ALL TESTS COMPLETE
+2026-01-18 10:24:09,622 - INFO - ================================================================================
+2026-01-18 10:24:09,622 - INFO - 
+Generating final report...
+2026-01-18 10:24:09,622 - INFO - Report saved to: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/GENGEN_REPORT.txt
+2026-01-18 10:24:09,623 - INFO - Restored original production_config values
+2026-01-18 10:24:09,623 - INFO - 
+Original configuration restored
+2026-01-18 10:24:36,157 - INFO - ================================================================================
+2026-01-18 10:24:36,157 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:24:36,158 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:24:36,158 - INFO - ================================================================================
+
+2026-01-18 10:24:36,158 - INFO - Saved original production_config values
+2026-01-18 10:24:36,158 - INFO - Starting fresh test run
+2026-01-18 10:24:36,158 - INFO - 
+================================================================================
+2026-01-18 10:24:36,158 - INFO - Starting test 1/2
+2026-01-18 10:24:36,158 - INFO - ================================================================================
+2026-01-18 10:24:36,159 - INFO - 
+================================================================================
+2026-01-18 10:24:36,159 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:24:36,159 - INFO - ================================================================================
+2026-01-18 10:24:36,159 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:24:36,159 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:24:36,159 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:24:36.750684: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:24:36.750742: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:24:36.751912: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:24:37.412121: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:24:45,995 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:24:45,995 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:24:45,995 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:24:45,997 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:24:45,997 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:24:45,997 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:24:47,825 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:24:47,826 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:24:47,826 - INFO - 
+================================================================================
+2026-01-18 10:24:47,827 - INFO - Starting test 2/2
+2026-01-18 10:24:47,827 - INFO - ================================================================================
+2026-01-18 10:24:47,827 - INFO - 
+================================================================================
+2026-01-18 10:24:47,827 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-18 10:24:47,827 - INFO - ================================================================================
+2026-01-18 10:24:47,827 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-18 10:24:47,827 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:24:47,827 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:24:48.410200: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:24:48.410266: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:24:48.411611: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:24:49.091591: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:24:57,715 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:24:57,715 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:24:57,715 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:24:57,717 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:24:57,717 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:24:57,717 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:24:59,690 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:24:59,692 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:24:59,692 - INFO - 
+================================================================================
+2026-01-18 10:24:59,692 - INFO - ALL TESTS COMPLETE
+2026-01-18 10:24:59,692 - INFO - ================================================================================
+2026-01-18 10:24:59,692 - INFO - 
+Generating final report...
+2026-01-18 10:24:59,693 - INFO - Report saved to: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/GENGEN_REPORT.txt
+2026-01-18 10:24:59,694 - INFO - Restored original production_config values
+2026-01-18 10:24:59,694 - INFO - 
+Original configuration restored
+2026-01-18 10:26:37,216 - INFO - ================================================================================
+2026-01-18 10:26:37,216 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:26:37,216 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:26:37,216 - INFO - ================================================================================
+
+2026-01-18 10:26:37,217 - INFO - Saved original production_config values
+2026-01-18 10:26:37,217 - INFO - Starting fresh test run
+2026-01-18 10:26:37,217 - INFO - 
+================================================================================
+2026-01-18 10:26:37,217 - INFO - Starting test 1/2
+2026-01-18 10:26:37,217 - INFO - ================================================================================
+2026-01-18 10:26:37,217 - INFO - 
+================================================================================
+2026-01-18 10:26:37,217 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:26:37,217 - INFO - ================================================================================
+2026-01-18 10:26:37,218 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:26:37,218 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:26:37,218 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:26:37.810711: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:26:37.810767: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:26:37.811929: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:26:38.470010: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:26:46,977 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:26:46,977 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:26:46,977 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:26:46,979 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:26:46,979 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:26:46,979 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:26:48,813 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:26:48,814 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:26:48,814 - INFO - 
+================================================================================
+2026-01-18 10:26:48,814 - INFO - Starting test 2/2
+2026-01-18 10:26:48,814 - INFO - ================================================================================
+2026-01-18 10:26:48,814 - INFO - 
+================================================================================
+2026-01-18 10:26:48,814 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-18 10:26:48,814 - INFO - ================================================================================
+2026-01-18 10:26:48,815 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-18 10:26:48,815 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:26:48,816 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:26:49.402451: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:26:49.402512: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:26:49.403737: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:26:50.055074: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:26:58,598 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:26:58,598 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:26:58,598 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:26:58,600 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:26:58,600 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:26:58,600 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:27:00,646 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:27:00,647 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:27:00,647 - INFO - 
+================================================================================
+2026-01-18 10:27:00,647 - INFO - ALL TESTS COMPLETE
+2026-01-18 10:27:00,647 - INFO - ================================================================================
+2026-01-18 10:27:00,647 - INFO - 
+Generating final report...
+2026-01-18 10:27:00,647 - INFO - Report saved to: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/GENGEN_REPORT.txt
+2026-01-18 10:27:00,648 - INFO - Restored original production_config values
+2026-01-18 10:27:00,648 - INFO - 
+Original configuration restored
+2026-01-18 10:28:51,724 - INFO - ================================================================================
+2026-01-18 10:28:51,725 - INFO - QUICK TEST MODE: 10% data, 2 epochs, 64x64 images
+2026-01-18 10:28:51,725 - INFO - This is for error checking only - results not production-ready
+2026-01-18 10:28:51,725 - INFO - ================================================================================
+
+2026-01-18 10:28:51,725 - INFO - Saved original production_config values
+2026-01-18 10:28:51,725 - INFO - Starting fresh test run
+2026-01-18 10:28:51,725 - INFO - 
+================================================================================
+2026-01-18 10:28:51,725 - INFO - Starting test 1/2
+2026-01-18 10:28:51,726 - INFO - ================================================================================
+2026-01-18 10:28:51,726 - INFO - 
+================================================================================
+2026-01-18 10:28:51,726 - INFO - TEST: Baseline (no generative augmentation)
+2026-01-18 10:28:51,726 - INFO - ================================================================================
+2026-01-18 10:28:51,726 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=False
+2026-01-18 10:28:51,726 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:28:51,726 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:28:52.303849: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:28:52.303904: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:28:52.305080: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:28:52.951297: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:29:01,399 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:29:01,400 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:29:01,400 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:29:01,401 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:29:01,402 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:29:01,402 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:29:03,198 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:29:03,199 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:29:03,199 - INFO - 
+================================================================================
+2026-01-18 10:29:03,200 - INFO - Starting test 2/2
+2026-01-18 10:29:03,200 - INFO - ================================================================================
+2026-01-18 10:29:03,200 - INFO - 
+================================================================================
+2026-01-18 10:29:03,200 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-18 10:29:03,200 - INFO - ================================================================================
+2026-01-18 10:29:03,201 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-18 10:29:03,201 - INFO - Modalities: metadata, depth_rgb, thermal_map, depth_map
+2026-01-18 10:29:03,201 - INFO - Running: /venv/multimodal/bin/python src/main.py
+
+COMMAND: /venv/multimodal/bin/python src/main.py
+
+2026-01-18 10:29:03.781305: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-18 10:29:03.781364: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-18 10:29:03.782531: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-18 10:29:04.429790: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+Max epochs: 2 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+2026-01-18 10:29:12,991 - INFO -     Error: Could not find GlobalAveragePooling2D layer for depth_rgb
+  Error: Failed to extract features for depth_rgb
+2026-01-18 10:29:12,991 - INFO -     Error: Failed to extract features for depth_rgb
+  ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+2026-01-18 10:29:12,991 - INFO -     ⚠ Detection failed for depth_map_depth_rgb_metadata_thermal_map, using original
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (0 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 0
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 0
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+2026-01-18 10:29:12,993 - INFO -   Best by Accuracy:
+  Modalities: depth_rgb+thermal_map
+  Accuracy: 0.5225 ± 0.0175
+2026-01-18 10:29:12,993 - INFO -     Accuracy: 0.5225 ± 0.0175
+  F1 Macro: 0.4660
+  Kappa: 0.2842
+2026-01-18 10:29:12,993 - INFO -     Kappa: 0.2842
+
+Total combinations tested: 1
+================================================================================
+
+2026-01-18 10:29:14,846 - INFO - Test completed in 0.2 minutes
+2026-01-18 10:29:14,847 - INFO - ✓ Test completed - Kappa: 0.2842
+2026-01-18 10:29:14,847 - INFO - 
+================================================================================
+2026-01-18 10:29:14,847 - INFO - ALL TESTS COMPLETE
+2026-01-18 10:29:14,847 - INFO - ================================================================================
+2026-01-18 10:29:14,847 - INFO - 
+Generating final report...
+2026-01-18 10:29:14,847 - INFO - Report saved to: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/GENGEN_REPORT.txt
+2026-01-18 10:29:14,848 - INFO - Restored original production_config values
+2026-01-18 10:29:14,848 - INFO - 
+Original configuration restored

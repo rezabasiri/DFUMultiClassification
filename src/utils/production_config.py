@@ -171,7 +171,7 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
 LR_SCHEDULE_MIN_LR = 1e-14  # Minimum learning rate
-LR_SCHEDULE_EXPLORATION_EPOCHS = 10  # Number of exploration epochs
+LR_SCHEDULE_EXPLORATION_EPOCHS = 300  # Number of exploration epochs
 LR_SCHEDULE_CYCLE_LENGTH = 30  # Initial cycle length
 LR_SCHEDULE_CYCLE_MULTIPLIER = 2.0  # Factor to multiply cycle length
 
