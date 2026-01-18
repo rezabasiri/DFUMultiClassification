@@ -101,6 +101,9 @@ IMAGE_SIZE = 128
 QUICK_DATA_PERCENTAGE = 30.0
 QUICK_N_EPOCHS = 2
 QUICK_IMAGE_SIZE = 64
+QUICK_STAGE1_EPOCHS = 1  # Stage 1 pre-training for quick mode
+QUICK_EARLY_STOP_PATIENCE = 10  # Allow full training in quick mode
+QUICK_REDUCE_LR_PATIENCE = 1  # Reduce LR quickly in quick mode
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
@@ -123,6 +126,10 @@ def save_original_config():
         'DATA_PERCENTAGE': r'DATA_PERCENTAGE = ([\d.]+)',
         'N_EPOCHS': r'N_EPOCHS = (\d+)',
         'IMAGE_SIZE': r'IMAGE_SIZE = (\d+)',
+        'STAGE1_EPOCHS': r'STAGE1_EPOCHS = (\d+)',
+        'EARLY_STOP_PATIENCE': r'EARLY_STOP_PATIENCE = (\d+)',
+        'REDUCE_LR_PATIENCE': r'REDUCE_LR_PATIENCE = (\d+)',
+        'LR_SCHEDULE_EXPLORATION_EPOCHS': r'LR_SCHEDULE_EXPLORATION_EPOCHS = (\d+)',
     }
 
     for key, pattern in patterns.items():
@@ -151,6 +158,14 @@ def restore_original_config():
             content = re.sub(r'N_EPOCHS = \d+', original_value, content)
         elif key == 'IMAGE_SIZE':
             content = re.sub(r'IMAGE_SIZE = \d+', original_value, content)
+        elif key == 'STAGE1_EPOCHS':
+            content = re.sub(r'STAGE1_EPOCHS = \d+', original_value, content)
+        elif key == 'EARLY_STOP_PATIENCE':
+            content = re.sub(r'EARLY_STOP_PATIENCE = \d+', original_value, content)
+        elif key == 'REDUCE_LR_PATIENCE':
+            content = re.sub(r'REDUCE_LR_PATIENCE = \d+', original_value, content)
+        elif key == 'LR_SCHEDULE_EXPLORATION_EPOCHS':
+            content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', original_value, content)
 
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
@@ -184,6 +199,10 @@ def update_config_for_test(use_gen_aug):
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {QUICK_DATA_PERCENTAGE}', content)
         content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {QUICK_N_EPOCHS}', content)
         content = re.sub(r'IMAGE_SIZE = \d+', f'IMAGE_SIZE = {QUICK_IMAGE_SIZE}', content)
+        content = re.sub(r'STAGE1_EPOCHS = \d+', f'STAGE1_EPOCHS = {QUICK_STAGE1_EPOCHS}', content)
+        content = re.sub(r'EARLY_STOP_PATIENCE = \d+', f'EARLY_STOP_PATIENCE = {QUICK_EARLY_STOP_PATIENCE}', content)
+        content = re.sub(r'REDUCE_LR_PATIENCE = \d+', f'REDUCE_LR_PATIENCE = {QUICK_REDUCE_LR_PATIENCE}', content)
+        content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', f'LR_SCHEDULE_EXPLORATION_EPOCHS = {QUICK_N_EPOCHS}', content)
     else:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {DATA_PERCENTAGE}', content)
         content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
