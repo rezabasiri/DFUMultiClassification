@@ -1,7 +1,7 @@
 ================================================================================
 GENERATIVE AUGMENTATION EFFECTIVENESS TEST - RESULTS
 ================================================================================
-Test Date: 2026-01-18 10:29:14
+Test Date: 2026-01-18 10:38:57
 Modalities: metadata, depth_rgb, thermal_map, depth_map
 Mode: QUICK TEST
 Settings: 10% data, 2 epochs, 64x64 images
@@ -12,8 +12,8 @@ RESULTS SUMMARY
 
 Configuration                       Kappa   Accuracy   F1 Macro    Runtime
 --------------------------------------------------------------------------------
-Baseline (no gen aug)          0.2842   0.5225   0.4660   0.2 min
-With gen aug (depth_rgb)       0.2842   0.5225   0.4660   0.2 min
+Baseline (no gen aug)          0.2842   0.5225   0.4660   2.9 min
+With gen aug (depth_rgb)       0.2842   0.5225   0.4660   0.1 min
 
 Kappa Improvement: +0.0%
 
