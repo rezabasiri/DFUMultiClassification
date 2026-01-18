@@ -59,6 +59,7 @@ results/frequent_*.csv
 results/modality_*.csv
 *.log
 !agent_communication/image_backbone/*.log
+!agent_communication/generative_augmentation/*.log
 device*
 
 # raw data
