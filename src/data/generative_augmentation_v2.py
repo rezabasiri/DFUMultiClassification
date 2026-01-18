@@ -5,6 +5,7 @@ import torch
 from torch.nn import functional as F
 import torchvision.transforms as transforms
 from diffusers import StableDiffusionPipeline
+from diffusers.utils import logging as diffusers_logging
 import random
 import tensorflow as tf
 import traceback
@@ -20,6 +21,36 @@ from src.utils.production_config import (
     GENERATIVE_AUG_BATCH_LIMIT,
     GENERATIVE_AUG_MAX_MODELS
 )
+
+# Disable verbose progress bars from diffusers
+diffusers_logging.disable_progress_bar()
+
+class GeneratedImageCounter:
+    """Thread-safe counter for tracking generated images"""
+    def __init__(self):
+        self.count = 0
+        self.lock = threading.Lock()
+        self.print_interval = 10  # Print every N images
+
+    def increment(self, batch_size=1):
+        """Increment counter and optionally print update"""
+        with self.lock:
+            self.count += batch_size
+            if self.count % self.print_interval == 0 or batch_size > 1:
+                print(f"  Generated images: {self.count}", flush=True)
+
+    def reset(self):
+        """Reset counter to 0"""
+        with self.lock:
+            self.count = 0
+
+    def get_count(self):
+        """Get current count"""
+        with self.lock:
+            return self.count
+
+# Global counter instance
+_gen_image_counter = GeneratedImageCounter()
 
 class AugmentationConfig:
     def __init__(self):
@@ -471,6 +502,8 @@ class GenerativeAugmentationManager:
                     height=self.config.generative_settings['output_size']['height'],
                     width=self.config.generative_settings['output_size']['width']
                 ).images
+            # Update generated image counter
+            _gen_image_counter.increment(batch_size)
             # Convert PIL images to normalized numpy arrays
             tensors = [np.array(img).astype(np.float32) / 255.0 for img in output]
             return tf.convert_to_tensor(np.stack(tensors), dtype=tf.float32)
