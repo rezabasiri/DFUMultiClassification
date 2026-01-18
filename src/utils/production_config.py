@@ -185,7 +185,7 @@ HIERARCHICAL_VERBOSE = 2  # Training verbosity
 
 # Callbacks - ReduceLROnPlateau
 HIERARCHICAL_REDUCE_LR_FACTOR = 0.5  # Factor to reduce learning rate
-HIERARCHICAL_REDUCE_LR_PATIENCE = 7  # Epochs to wait before reducing LR
+HIERARCHICAL_REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR
 HIERARCHICAL_REDUCE_LR_MIN_LR = 1e-12  # Minimum learning rate
 
 # Focal loss for hierarchical gating
