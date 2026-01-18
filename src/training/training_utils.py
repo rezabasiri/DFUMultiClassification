@@ -29,7 +29,8 @@ from src.utils.production_config import (
     EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE, EPOCH_PRINT_INTERVAL,
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
     GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT,
-    STAGE1_EPOCHS, DATA_PERCENTAGE
+    STAGE1_EPOCHS, DATA_PERCENTAGE, USE_GENERATIVE_AUGMENTATION,
+    GENERATIVE_AUG_MODEL_PATH
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
@@ -976,12 +977,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         aug_config.generative_settings['output_size']['width'] = image_size
         aug_config.generative_settings['output_size']['height'] = image_size
 
-        # DISABLED FOR FUSION TESTING - All augmentations (generative + regular) disabled for fair comparison
-        gen_manager = None  # Was: GenerativeAugmentationManager(...)
-        # gen_manager = GenerativeAugmentationManager(
-        #     base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
-        #     config=aug_config
-        # )
+        # Initialize generative augmentation manager based on config setting
+        gen_manager = None
+        if USE_GENERATIVE_AUGMENTATION and GENERATIVE_AUG_MODEL_PATH:
+            vprint(f"Initializing GenerativeAugmentationManager with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
+            gen_manager = GenerativeAugmentationManager(
+                base_dir=GENERATIVE_AUG_MODEL_PATH,
+                config=aug_config
+            )
+        else:
+            vprint("Generative augmentation disabled", level=1)
 
         # Get all unique modalities from all configs
         all_modalities = set()

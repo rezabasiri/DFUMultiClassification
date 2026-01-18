@@ -25,9 +25,9 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
 GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
-N_EPOCHS = 300  # Full training epochs
+N_EPOCHS = 2  # Full training epochs
 
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
@@ -37,7 +37,7 @@ MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_m
 
 # Fusion-specific training parameters
 STAGE1_EPOCHS = 30  # Stage 1 fusion training epochs (frozen image branch)
-DATA_PERCENTAGE = 100.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
+DATA_PERCENTAGE = 30.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
 # Options: 'random', 'smote', 'combined', 'combined_smote'
@@ -171,7 +171,7 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
 LR_SCHEDULE_MIN_LR = 1e-14  # Minimum learning rate
-LR_SCHEDULE_EXPLORATION_EPOCHS = 300  # Number of exploration epochs
+LR_SCHEDULE_EXPLORATION_EPOCHS = 2  # Number of exploration epochs
 LR_SCHEDULE_CYCLE_LENGTH = 30  # Initial cycle length
 LR_SCHEDULE_CYCLE_MULTIPLIER = 2.0  # Factor to multiply cycle length
 
@@ -272,7 +272,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('depth_rgb', 'thermal_map',),
+    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
