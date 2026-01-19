@@ -22,8 +22,13 @@ Usage:
     python train_lora_model.py --config configs/phase_R_config.yaml
 """
 
-import argparse
+# CRITICAL: Set PyTorch CUDA memory allocator to use expandable segments
+# This prevents memory fragmentation when moving models to/from CPU during metrics computation
+# Without this, restoring EMA model after FID computation causes OOM due to fragmentation
 import os
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
+import argparse
 import sys
 from pathlib import Path
 import yaml
@@ -869,14 +874,17 @@ def main():
                 original_device = accelerator.device
 
                 # Move large models to CPU (all processes)
+                # Note: We don't offload EMA to avoid memory fragmentation when restoring
+                # EMA is a copy of UNet (~2GB for SDXL), keeping it on CPU/GPU is fine
                 unwrapped_unet = accelerator.unwrap_model(unet_lora)
                 unwrapped_unet.to('cpu')
                 vae.to('cpu')
                 text_encoder.to('cpu')
                 if text_encoder_2 is not None:
                     text_encoder_2.to('cpu')
-                if ema_model is not None:
-                    ema_model.ema_model.to('cpu')
+                # EMA stays on its current device (either CPU or GPU) - don't move it
+                # if ema_model is not None:
+                #     ema_model.ema_model.to('cpu')  # SKIP: Causes OOM on restore due to fragmentation
 
                 # Clear GPU cache
                 torch.cuda.empty_cache()
@@ -994,10 +1002,11 @@ def main():
                     text_encoder_2.to(original_device)
                     torch.cuda.empty_cache()
 
-                if ema_model is not None:
-                    print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring EMA model...")
-                    ema_model.ema_model.to(original_device)
-                    torch.cuda.empty_cache()
+                # EMA was never offloaded, so don't restore it
+                # if ema_model is not None:
+                #     print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring EMA model...")
+                #     ema_model.ema_model.to(original_device)
+                #     torch.cuda.empty_cache()
 
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} finished restoring models")
 
