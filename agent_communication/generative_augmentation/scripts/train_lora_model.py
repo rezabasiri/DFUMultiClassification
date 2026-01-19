@@ -245,7 +245,8 @@ def compute_diffusion_loss(
     else:
         raise ValueError(f"Unknown prediction type: {noise_scheduler.config.prediction_type}")
 
-    # MSE loss
+    # MSE loss - ensure target is on same device as model_pred
+    target = target.to(model_pred.device)
     loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")
 
     return loss
@@ -263,7 +264,9 @@ def train_one_epoch(
     accelerator: Accelerator,
     config: dict,
     perceptual_loss_fn=None,
-    ema_model=None
+    ema_model=None,
+    text_encoder_2=None,
+    is_sdxl=False
 ) -> float:
     """
     Train for one epoch
@@ -308,11 +311,31 @@ def train_one_epoch(
             input_ids = batch['input_ids'].to(text_encoder.device)
             encoder_hidden_states = text_encoder(input_ids)[0]
 
+            # SDXL-specific: Compute pooled embeddings and time_ids
+            added_cond_kwargs = None
+            if is_sdxl and text_encoder_2 is not None:
+                # Get pooled embeddings from second text encoder
+                input_ids_2 = batch['input_ids'].to(text_encoder_2.device)
+                pooled_embeds = text_encoder_2(input_ids_2, output_hidden_states=False)[0]
+
+                # Create time_ids (original_size, crops_coords_top_left, target_size)
+                # Format: [original_h, original_w, crops_top, crops_left, target_h, target_w]
+                resolution = config['model']['resolution']
+                time_ids = torch.tensor([
+                    [resolution, resolution, 0, 0, resolution, resolution]
+                ]).repeat(batch_size, 1).to(accelerator.device, dtype=encoder_hidden_states.dtype)
+
+                added_cond_kwargs = {
+                    "text_embeds": pooled_embeds.to(accelerator.device),
+                    "time_ids": time_ids
+                }
+
             # Predict noise (ensure all inputs on same device)
             model_pred = unet_lora(
                 noisy_latents.to(accelerator.device),
                 timesteps.to(accelerator.device),
-                encoder_hidden_states.to(accelerator.device)
+                encoder_hidden_states.to(accelerator.device),
+                added_cond_kwargs=added_cond_kwargs
             ).sample
 
             # Compute diffusion loss
@@ -383,7 +406,9 @@ def validate(
     accelerator: Accelerator,
     config: dict,
     use_ema: bool = False,
-    ema_model=None
+    ema_model=None,
+    text_encoder_2=None,
+    is_sdxl=False
 ) -> float:
     """
     Run validation
@@ -427,11 +452,30 @@ def validate(
         input_ids = batch['input_ids'].to(text_encoder.device)
         encoder_hidden_states = text_encoder(input_ids)[0]
 
+        # SDXL-specific: Compute pooled embeddings and time_ids
+        added_cond_kwargs = None
+        if is_sdxl and text_encoder_2 is not None:
+            # Get pooled embeddings from second text encoder
+            input_ids_2 = batch['input_ids'].to(text_encoder_2.device)
+            pooled_embeds = text_encoder_2(input_ids_2, output_hidden_states=False)[0]
+
+            # Create time_ids
+            resolution = config['model']['resolution']
+            time_ids = torch.tensor([
+                [resolution, resolution, 0, 0, resolution, resolution]
+            ]).repeat(batch_size, 1).to(accelerator.device, dtype=encoder_hidden_states.dtype)
+
+            added_cond_kwargs = {
+                "text_embeds": pooled_embeds.to(accelerator.device),
+                "time_ids": time_ids
+            }
+
         # Predict (ensure all inputs on same device)
         model_pred = model_to_eval(
             noisy_latents.to(accelerator.device),
             timesteps.to(accelerator.device),
-            encoder_hidden_states.to(accelerator.device)
+            encoder_hidden_states.to(accelerator.device),
+            added_cond_kwargs=added_cond_kwargs
         ).sample
 
         # Compute loss
@@ -691,7 +735,9 @@ def main():
             accelerator=accelerator,
             config=config,
             perceptual_loss_fn=perceptual_loss_fn,
-            ema_model=ema_model
+            ema_model=ema_model,
+            text_encoder_2=text_encoder_2,
+            is_sdxl=is_sdxl
         )
 
         print(f"Train loss: {train_loss:.4f}")
@@ -707,7 +753,9 @@ def main():
                 accelerator=accelerator,
                 config=config,
                 use_ema=config['quality']['ema'].get('use_ema_weights_for_inference', False),
-                ema_model=ema_model
+                ema_model=ema_model,
+                text_encoder_2=text_encoder_2,
+                is_sdxl=is_sdxl
             )
 
             print(f"Val loss: {val_loss:.4f}")
