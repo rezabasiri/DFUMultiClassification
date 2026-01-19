@@ -700,6 +700,20 @@ def main():
             print("Enabled EMA (on CPU to save GPU memory)")
 
     # Create dataloaders
+    # Use phase-specific prompts if training on all phases
+    phase_prompts = None
+    single_prompt = None
+
+    if config['prompts']['enabled']:
+        if config['data']['phase'].lower() == 'all' and 'phase_prompts' in config['prompts']:
+            # Use phase-specific prompts for multi-phase training
+            phase_prompts = config['prompts']['phase_prompts']
+            if accelerator.is_main_process:
+                print("Using phase-specific prompts for conditioning")
+        else:
+            # Single prompt for all images
+            single_prompt = config['prompts']['positive']
+
     train_loader, val_loader, train_size, val_size = create_dataloaders(
         data_root=config['data']['data_root'],
         modality=config['data']['modality'],
@@ -709,7 +723,8 @@ def main():
         batch_size=config['training']['batch_size_per_gpu'],
         train_val_split=config['data']['train_val_split'],
         split_seed=config['data']['split_seed'],
-        prompt=config['prompts']['positive'] if config['prompts']['enabled'] else None,
+        prompt=single_prompt,
+        phase_prompts=phase_prompts,
         augmentation=config['data']['augmentation'],
         num_workers=config['hardware']['num_workers'],
         pin_memory=config['hardware']['pin_memory']
