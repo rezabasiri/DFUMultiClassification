@@ -44,7 +44,7 @@ from diffusers import (
     StableDiffusionPipeline,
     UNet2DConditionModel
 )
-from transformers import CLIPTextModel, CLIPTokenizer
+from transformers import CLIPTextModel, CLIPTextModelWithProjection, CLIPTokenizer
 from accelerate import Accelerator
 from accelerate.utils import ProjectConfiguration
 from peft import LoraConfig, get_peft_model
@@ -97,8 +97,11 @@ def load_base_models(config: dict, accelerator: Accelerator):
         (vae, text_encoder, tokenizer, unet, noise_scheduler)
     """
     model_id = config['model']['base_model']
+    is_sdxl = 'xl' in model_id.lower()
 
     print(f"Loading base model: {model_id}")
+    if is_sdxl:
+        print("Detected SDXL model - loading dual text encoders")
 
     # Load VAE
     vae = AutoencoderKL.from_pretrained(
@@ -107,18 +110,43 @@ def load_base_models(config: dict, accelerator: Accelerator):
         torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
     )
 
-    # Load text encoder
-    text_encoder = CLIPTextModel.from_pretrained(
-        model_id,
-        subfolder="text_encoder",
-        torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
-    )
+    # Load text encoder(s)
+    if is_sdxl:
+        # SDXL uses two text encoders
+        text_encoder = CLIPTextModel.from_pretrained(
+            model_id,
+            subfolder="text_encoder",
+            torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+        )
+        text_encoder_2 = CLIPTextModelWithProjection.from_pretrained(
+            model_id,
+            subfolder="text_encoder_2",
+            torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+        )
+    else:
+        text_encoder = CLIPTextModel.from_pretrained(
+            model_id,
+            subfolder="text_encoder",
+            torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+        )
+        text_encoder_2 = None
 
-    # Load tokenizer
-    tokenizer = CLIPTokenizer.from_pretrained(
-        model_id,
-        subfolder="tokenizer"
-    )
+    # Load tokenizer(s)
+    if is_sdxl:
+        tokenizer = CLIPTokenizer.from_pretrained(
+            model_id,
+            subfolder="tokenizer"
+        )
+        tokenizer_2 = CLIPTokenizer.from_pretrained(
+            model_id,
+            subfolder="tokenizer_2"
+        )
+    else:
+        tokenizer = CLIPTokenizer.from_pretrained(
+            model_id,
+            subfolder="tokenizer"
+        )
+        tokenizer_2 = None
 
     # Load UNet
     unet = UNet2DConditionModel.from_pretrained(
@@ -133,9 +161,11 @@ def load_base_models(config: dict, accelerator: Accelerator):
         subfolder="scheduler"
     )
 
-    # Freeze VAE and text encoder (we only train UNet)
+    # Freeze VAE and text encoder(s) (we only train UNet)
     vae.requires_grad_(False)
     text_encoder.requires_grad_(False)
+    if text_encoder_2 is not None:
+        text_encoder_2.requires_grad_(False)
 
     # Enable xFormers if requested (memory-efficient attention)
     if config['hardware']['use_xformers']:
@@ -151,7 +181,7 @@ def load_base_models(config: dict, accelerator: Accelerator):
         unet.enable_gradient_checkpointing()
         print("Enabled gradient checkpointing")
 
-    return vae, text_encoder, tokenizer, unet, noise_scheduler
+    return vae, text_encoder, tokenizer, unet, noise_scheduler, text_encoder_2, tokenizer_2
 
 
 def setup_lora(unet, config: dict):
@@ -255,7 +285,8 @@ def train_one_epoch(
     for batch_idx, batch in enumerate(progress_bar):
         with accelerator.accumulate(unet_lora):
             # Get latents from VAE
-            latents = vae.encode(batch['pixel_values'].to(vae.dtype)).latent_dist.sample()
+            pixel_values = batch['pixel_values'].to(device=vae.device, dtype=vae.dtype)
+            latents = vae.encode(pixel_values).latent_dist.sample()
             latents = latents * vae.config.scaling_factor
 
             # Sample noise
@@ -274,13 +305,14 @@ def train_one_epoch(
             noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
             # Get text embeddings
-            encoder_hidden_states = text_encoder(batch['input_ids'])[0]
+            input_ids = batch['input_ids'].to(text_encoder.device)
+            encoder_hidden_states = text_encoder(input_ids)[0]
 
-            # Predict noise
+            # Predict noise (ensure all inputs on same device)
             model_pred = unet_lora(
-                noisy_latents,
-                timesteps,
-                encoder_hidden_states
+                noisy_latents.to(accelerator.device),
+                timesteps.to(accelerator.device),
+                encoder_hidden_states.to(accelerator.device)
             ).sample
 
             # Compute diffusion loss
@@ -372,7 +404,8 @@ def validate(
 
     for batch in tqdm(val_loader, disable=not accelerator.is_local_main_process, desc="Validation"):
         # Get latents
-        latents = vae.encode(batch['pixel_values'].to(vae.dtype)).latent_dist.sample()
+        pixel_values = batch['pixel_values'].to(device=vae.device, dtype=vae.dtype)
+        latents = vae.encode(pixel_values).latent_dist.sample()
         latents = latents * vae.config.scaling_factor
 
         # Sample noise
@@ -391,13 +424,14 @@ def validate(
         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
         # Get text embeddings
-        encoder_hidden_states = text_encoder(batch['input_ids'])[0]
+        input_ids = batch['input_ids'].to(text_encoder.device)
+        encoder_hidden_states = text_encoder(input_ids)[0]
 
-        # Predict
+        # Predict (ensure all inputs on same device)
         model_pred = model_to_eval(
-            noisy_latents,
-            timesteps,
-            encoder_hidden_states
+            noisy_latents.to(accelerator.device),
+            timesteps.to(accelerator.device),
+            encoder_hidden_states.to(accelerator.device)
         ).sample
 
         # Compute loss
@@ -521,7 +555,8 @@ def main():
         np.random.seed(config['reproducibility']['seed'])
 
     # Load base models
-    vae, text_encoder, tokenizer, unet, noise_scheduler = load_base_models(config, accelerator)
+    vae, text_encoder, tokenizer, unet, noise_scheduler, text_encoder_2, tokenizer_2 = load_base_models(config, accelerator)
+    is_sdxl = text_encoder_2 is not None
 
     # Setup LoRA
     unet_lora = setup_lora(unet, config)

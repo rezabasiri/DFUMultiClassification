@@ -1,6 +1,6 @@
-# Quick Test: SDXL 1.0 Base - 128x128
+# Quick Test: SD 1.5 - 128x128
 model:
-  base_model: "stabilityai/stable-diffusion-xl-base-1.0"
+  base_model: "runwayml/stable-diffusion-v1-5"
   resolution: 128
   training_method: "lora"
 
@@ -70,7 +70,7 @@ quality:
   inference_steps_production: 50
 
 checkpointing:
-  output_dir: "agent_communication/generative_augmentation/checkpoints/test_sdxl"
+  output_dir: "agent_communication/generative_augmentation/checkpoints/test_sd15"
   save_every_n_epochs: 1
   keep_last_n_checkpoints: 2
   save_best_only: false
@@ -95,7 +95,7 @@ metrics:
     target_threshold: 2.0
 
 logging:
-  logging_dir: "agent_communication/generative_augmentation/reports/test_sdxl_logs"
+  logging_dir: "agent_communication/generative_augmentation/reports/test_sd15_logs"
   log_every_n_steps: 50
   save_samples_every_n_epochs: 1
   num_samples_to_save: 16
@@ -107,7 +107,7 @@ hardware:
   num_gpus: 1
   mixed_precision: "fp16"
   gradient_checkpointing: true
-  use_xformers: false  # Disabled - SDXL attention dim (512) exceeds xformers limit (256)
+  use_xformers: false  # Disabled - VAE attention has 512-dim heads > xformers limit (256)
   enable_cpu_offload: false
   num_workers: 4
   pin_memory: true

@@ -20,7 +20,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 sys.path.insert(0, str(Path(__file__).parent / "utils"))
 
 import torch
-from quality_metrics import QualityMetrics, load_reference_images
+from quality_metrics import QualityMetrics
+from data_loader import load_reference_images
 
 
 def print_section(title):
@@ -161,7 +162,7 @@ def train_model(config_path, model_name):
     cmd = [
         "python",
         str(Path(__file__).parent / "train_lora_model.py"),
-        "--config", config_path
+        "--config", str(config_path)
     ]
 
     print(f"Command: {' '.join(cmd)}")
