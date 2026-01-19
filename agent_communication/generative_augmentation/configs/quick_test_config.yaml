@@ -24,7 +24,7 @@ lora:
 # Data Configuration
 # ==============================================================================
 data:
-  data_root: "data/DFU_Updated"
+  data_root: "/workspace/DFUMultiClassification/data/DFU_Updated"
   modality: "rgb"
   phase: "I"  # Test with Phase I (has more images)
   train_val_split: 0.85
