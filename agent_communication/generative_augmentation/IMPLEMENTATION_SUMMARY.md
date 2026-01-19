@@ -14,7 +14,7 @@ A complete, production-ready system for training high-quality generative models 
 
 | Feature | Current (v5_7) | New System | Improvement |
 |---------|----------------|------------|-------------|
-| **Base Model** | SD v1.5 | SD v2.1 Base | Better quality |
+| **Base Model** | SD v1.5 (890M) | SDXL 1.0 (2.6B) | 3× larger, better quality |
 | **Training Method** | Full fine-tune (3.4 GB) | LoRA (60 MB) | 98% smaller, less overfitting |
 | **Resolution** | 64×64 | 128×128 | 4× better detail |
 | **Quality Loss** | Diffusion only | Diffusion + Perceptual | Better visual quality |
@@ -23,6 +23,8 @@ A complete, production-ready system for training high-quality generative models 
 | **Quality Metrics** | Manual | Automated (FID, SSIM, LPIPS, IS) | Objective evaluation |
 | **Resume** | Limited | Full state saving | Robust training |
 | **Configuration** | Hardcoded | YAML files | Easy experimentation |
+
+**Note**: Originally planned to use SD 2.1, but it was deprecated by Stability AI in 2025. SDXL 1.0 is superior and officially supported. See `MODEL_UPDATE.md` for details.
 
 ---
 
@@ -45,11 +47,12 @@ A complete, production-ready system for training high-quality generative models 
 - `scripts/generate_samples.py` - Sample image generation
 - `scripts/compare_models.py` - Compare multiple checkpoints
 
-### Documentation (4 files)
+### Documentation (5 files)
 - `TRAINING_README.md` - Complete user guide
 - `ACTION_PLANS.md` - Ranked improvement strategies
 - `TRAINING_CONSULTATION.md` - Technical decisions rationale
 - `IMPLEMENTATION_SUMMARY.md` - This file
+- `MODEL_UPDATE.md` - Model selection update (SD 2.1 → SDXL 1.0)
 - `requirements.txt` - Python dependencies
 
 ---
@@ -59,7 +62,7 @@ A complete, production-ready system for training high-quality generative models 
 ### Training Pipeline
 
 ```
-1. Load SD v2.1 Base Model
+1. Load SDXL 1.0 Base Model (2.6B params)
    ↓
 2. Add LoRA Adapters (rank=16, only 60 MB)
    ↓
