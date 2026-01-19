@@ -827,9 +827,13 @@ def main():
                 is_sdxl=is_sdxl
             )
 
-            # Generate validation samples and compute metrics (only on main process to save memory)
+            # Generate validation samples and compute metrics
+            # NOTE: ALL processes must participate in FID computation due to distributed sync in torchmetrics
             val_metrics = None
             if reference_images is not None and (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0:
+                generated_images = None
+
+                # Only main process generates samples and offloads models
                 if accelerator.is_main_process:
                     print("Computing quality metrics...")
                     print("  Offloading training models to CPU to free GPU memory...")
@@ -873,15 +877,35 @@ def main():
                         tokenizer_2=tokenizer_2,
                         is_sdxl=is_sdxl
                     )
+                else:
+                    print(f"[SYNC DEBUG] Non-main process waiting for generated images...")
 
-                    print("  Computing FID and other metrics...")
-                    # Compute metrics
-                    val_metrics = quality_metrics.compute_all_metrics(
-                        generated_images=generated_images,
-                        real_images=reference_images,
-                        compute_is=config['metrics']['inception_score']['enabled']
-                    )
+                # CRITICAL: Broadcast generated images to all processes
+                # This is required because torchmetrics FID.compute() synchronizes across all processes
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} broadcasting generated images...")
+                if accelerator.num_processes > 1:
+                    # Create placeholder on non-main processes
+                    if not accelerator.is_main_process:
+                        generated_images = torch.zeros(
+                            (config['metrics']['num_samples_for_metrics'], 3, config['model']['resolution'], config['model']['resolution']),
+                            device=accelerator.device
+                        )
 
+                    # Broadcast from rank 0 to all other ranks
+                    torch.distributed.broadcast(generated_images, src=0)
+                    print(f"[SYNC DEBUG] Process {accelerator.process_index} received generated images: {generated_images.shape}")
+
+                # ALL processes compute FID (required for distributed sync)
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} computing metrics...")
+                val_metrics = quality_metrics.compute_all_metrics(
+                    generated_images=generated_images,
+                    real_images=reference_images,
+                    compute_is=config['metrics']['inception_score']['enabled']
+                )
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} finished computing metrics")
+
+                # Only main process prints and restores models
+                if accelerator.is_main_process:
                     print(quality_metrics.format_metrics(val_metrics))
 
                     # Print val_loss and val_fid together
@@ -899,11 +923,11 @@ def main():
                         ema_model.ema_model.to(original_device)
 
                     torch.cuda.empty_cache()
-                else:
-                    print(f"Val loss: {val_loss:.4f}")
 
-                # Wait for main process to finish metrics computation
+                # All processes sync after metrics computation
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} calling wait_for_everyone()...")
                 accelerator.wait_for_everyone()
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} passed wait_for_everyone()")
             else:
                 if accelerator.is_main_process:
                     print(f"Val loss: {val_loss:.4f}")

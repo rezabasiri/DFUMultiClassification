@@ -1,20 +1,20 @@
-2026-01-19 12:47:40.167962: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-19 12:47:40.168046: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-19 12:47:40.169189: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-19 12:47:40.174978: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-19 13:03:06.209824: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-19 13:03:06.209908: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-19 13:03:06.211060: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-19 13:03:06.216683: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-19 12:47:40.177331: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-19 12:47:40.177401: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-19 12:47:40.178446: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-19 12:47:40.184250: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-19 13:03:06.242326: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-19 13:03:06.242398: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-19 13:03:06.243450: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-19 13:03:06.249008: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-19 12:47:40.870817: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-2026-01-19 12:47:40.878853: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-19 13:03:06.913178: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-19 13:03:06.958793: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
 ================================================================================
 Training Configuration: configs/test_sdxl.yaml
 Phase: I
 Modality: rgb
-Resolution: 128
+Resolution: 32
 ================================================================================
 Loading base model: stabilityai/stable-diffusion-xl-base-1.0
 Detected SDXL model - loading dual text encoders
@@ -50,9 +50,9 @@ Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
 Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
-Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 /venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
   warnings.warn(*args, **kwargs)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 
 Starting training...
 Training on 2 GPUs
@@ -60,14 +60,70 @@ Total epochs: 2
 Effective batch size: 4
 
 Epoch 1/2
-  Epoch 1 complete - Loss: 9.6992, LR: 1.00e-05
-Train loss: 9.6992
-Val loss: 0.2658
-  Validation: 2 batches - Loss: 0.2421
+  Epoch 1 complete - Loss: 17.9883, LR: 1.00e-05
+Train loss: 17.9883
+  Validation: 2 batches - Loss: 0.3490
 Computing quality metrics...
   Offloading training models to CPU to free GPU memory...
-  Generating samples for FID computation...
-  Computing FID and other metrics...
+[SYNC DEBUG] Non-main process waiting for generated images...
+[SYNC DEBUG] Process 1 broadcasting generated images...
+[SYNC DEBUG] Process 1 received generated images: torch.Size([5, 3, 32, 32])
+[SYNC DEBUG] Process 1 computing metrics...
 Computing FID...
-/venv/multimodal/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
-  warnings.warn(  # warn only once
+[FID DEBUG] Starting FID computation
+[FID DEBUG] Real images shape: torch.Size([10, 3, 32, 32])
+[FID DEBUG] Generated images shape: torch.Size([5, 3, 32, 32])
+[FID DEBUG] Moved images to device: cuda:1
+[FID DEBUG] After RGB conversion - Real: torch.Size([10, 3, 32, 32]), Gen: torch.Size([5, 3, 32, 32])
+[FID DEBUG] Converted to uint8
+[FID DEBUG] Updating FID metric with real images...
+  Generating samples for FID computation...
+[SYNC DEBUG] Process 0 broadcasting generated images...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 993, in <module>
+[rank0]:     main()
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 895, in main
+[rank0]:     torch.distributed.broadcast(generated_images, src=0)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py", line 2835, in broadcast
+[rank0]:     work = group.broadcast([tensor], opts)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: RuntimeError: No backend type associated with device type cpu
+[rank0]:[W119 13:04:06.291021976 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+W0119 13:04:08.379000 2201164 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 2201381 closing signal SIGTERM
+E0119 13:04:09.395000 2201164 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 0 (pid: 2201380) of binary: /venv/multimodal/bin/python3.11
+Traceback (most recent call last):
+  File "/venv/multimodal/bin/accelerate", line 7, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/accelerate/commands/accelerate_cli.py", line 50, in main
+    args.func(args)
+  File "/venv/multimodal/lib/python3.11/site-packages/accelerate/commands/launch.py", line 1272, in launch_command
+    multi_gpu_launcher(args)
+  File "/venv/multimodal/lib/python3.11/site-packages/accelerate/commands/launch.py", line 899, in multi_gpu_launcher
+    distrib_run.run(args)
+  File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+  File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+scripts/train_lora_model.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-01-19_13:04:08
+  host      : 8c8dadf7e27a
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2201380)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

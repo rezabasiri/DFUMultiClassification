@@ -1,7 +1,7 @@
 # Quick Test: SDXL 1.0 Base - 128x128 (multi-GPU testing)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
-  resolution: 128
+  resolution: 32
   training_method: "lora"
 
 lora:
@@ -79,10 +79,10 @@ checkpointing:
   save_optimizer_state: true
 
 metrics:
-  compute_every_n_epochs: 1  # Enabled with CPU offloading to prevent OOM
+  compute_every_n_epochs: 1  # Re-enabled with debug logging
   num_samples_for_metrics: 5  # Reduced from 10 to 5 for faster computation
   fid:
-    enabled: true
+    enabled: true  # Re-enabled with debug logging to identify hang
     target_threshold: 50.0
   ssim:
     enabled: true
