@@ -12,6 +12,9 @@ import time
 from pathlib import Path
 from datetime import datetime
 import yaml
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 # Add utils to path
 sys.path.insert(0, str(Path(__file__).parent / "utils"))
@@ -25,6 +28,127 @@ def print_section(title):
     print(f"\n{'='*80}")
     print(f"{title}")
     print(f"{'='*80}\n")
+
+
+def save_samples_to_pdf(images_tensor, output_path, model_name, num_cols=10):
+    """
+    Save generated image samples to PDF with grid layout
+
+    Args:
+        images_tensor: Tensor of shape [N, C, H, W] in range [0, 1]
+        output_path: Path to save PDF
+        model_name: Name of model for title
+        num_cols: Number of columns in grid
+    """
+    print(f"\nSaving {len(images_tensor)} samples to PDF: {output_path}")
+
+    # Convert to numpy and prepare for display
+    images_np = images_tensor.cpu().numpy()
+    images_np = np.transpose(images_np, (0, 2, 3, 1))  # [N, H, W, C]
+
+    num_images = len(images_np)
+    num_rows = (num_images + num_cols - 1) // num_cols
+
+    # Create PDF
+    with PdfPages(output_path) as pdf:
+        # Create figure with grid
+        fig, axes = plt.subplots(num_rows, num_cols, figsize=(20, 2 * num_rows))
+        fig.suptitle(f'{model_name} - Generated Samples (128×128)',
+                     fontsize=16, fontweight='bold')
+
+        # Flatten axes for easy iteration
+        if num_rows == 1:
+            axes = [axes] if num_cols == 1 else axes
+        else:
+            axes = axes.flatten()
+
+        # Plot each image
+        for idx in range(num_rows * num_cols):
+            ax = axes[idx]
+
+            if idx < num_images:
+                # Show image
+                ax.imshow(images_np[idx])
+                ax.set_title(f'Sample {idx+1}', fontsize=8)
+                ax.axis('off')
+            else:
+                # Empty subplot
+                ax.axis('off')
+
+        plt.tight_layout()
+        pdf.savefig(fig, dpi=150)
+        plt.close()
+
+    print(f"✓ PDF saved: {output_path}")
+
+
+def create_side_by_side_comparison(sdxl_images, sd3_images, output_path, num_pairs=25):
+    """
+    Create side-by-side comparison PDF of SDXL vs SD3.5 samples
+
+    Args:
+        sdxl_images: Tensor [N, C, H, W] for SDXL samples
+        sd3_images: Tensor [N, C, H, W] for SD3.5 samples
+        output_path: Path to save comparison PDF
+        num_pairs: Number of side-by-side pairs to show
+    """
+    print(f"\nCreating side-by-side comparison PDF: {output_path}")
+
+    # Convert to numpy
+    sdxl_np = sdxl_images.numpy()
+    sdxl_np = np.transpose(sdxl_np, (0, 2, 3, 1))  # [N, H, W, C]
+
+    sd3_np = sd3_images.numpy()
+    sd3_np = np.transpose(sd3_np, (0, 2, 3, 1))  # [N, H, W, C]
+
+    num_pairs = min(num_pairs, len(sdxl_np), len(sd3_np))
+
+    with PdfPages(output_path) as pdf:
+        # Create comparison grid (5 pairs per row, 5 rows per page)
+        pairs_per_page = 25
+        num_pages = (num_pairs + pairs_per_page - 1) // pairs_per_page
+
+        for page in range(num_pages):
+            start_idx = page * pairs_per_page
+            end_idx = min(start_idx + pairs_per_page, num_pairs)
+            pairs_on_page = end_idx - start_idx
+
+            # 5x5 grid, but each pair takes 2 columns
+            rows = 5
+            fig, axes = plt.subplots(rows, 10, figsize=(20, 10))
+            fig.suptitle(f'Side-by-Side Comparison: SDXL 1.0 (left) vs SD 3.5 Medium (right) - Page {page+1}/{num_pages}',
+                         fontsize=14, fontweight='bold')
+
+            for i in range(pairs_on_page):
+                row = i // 5
+                col_offset = (i % 5) * 2
+
+                img_idx = start_idx + i
+
+                # SDXL on left
+                ax_left = axes[row, col_offset]
+                ax_left.imshow(sdxl_np[img_idx])
+                ax_left.set_title(f'SDXL {img_idx+1}', fontsize=8)
+                ax_left.axis('off')
+
+                # SD3.5 on right
+                ax_right = axes[row, col_offset + 1]
+                ax_right.imshow(sd3_np[img_idx])
+                ax_right.set_title(f'SD3.5 {img_idx+1}', fontsize=8)
+                ax_right.axis('off')
+
+            # Hide unused axes
+            for i in range(pairs_on_page, rows * 5):
+                row = i // 5
+                col_offset = (i % 5) * 2
+                axes[row, col_offset].axis('off')
+                axes[row, col_offset + 1].axis('off')
+
+            plt.tight_layout()
+            pdf.savefig(fig, dpi=150)
+            plt.close()
+
+    print(f"✓ Comparison PDF saved: {output_path}")
 
 
 def train_model(config_path, model_name):
@@ -130,6 +254,13 @@ def evaluate_model(checkpoint_dir, config_path, model_name):
 
         generated_images = torch.cat(generated_images, dim=0).to(device)
 
+        # Save samples to PDF for visual inspection
+        reports_dir = Path(__file__).parent.parent / "reports"
+        reports_dir.mkdir(exist_ok=True)
+        pdf_filename = f"{model_name.lower().replace(' ', '_').replace('.', '_')}_samples.pdf"
+        pdf_path = reports_dir / pdf_filename
+        save_samples_to_pdf(generated_images, pdf_path, model_name, num_cols=10)
+
         # Load reference images
         print("\nLoading reference images...")
         reference_images = load_reference_images(
@@ -154,13 +285,14 @@ def evaluate_model(checkpoint_dir, config_path, model_name):
         del pipeline
         torch.cuda.empty_cache()
 
-        return results
+        # Return both results and generated images for side-by-side comparison
+        return results, generated_images.cpu()
 
     except Exception as e:
         print(f"✗ Evaluation failed: {e}")
         import traceback
         traceback.print_exc()
-        return None
+        return None, None
 
 
 def compare_results(sdxl_results, sd3_results):
@@ -253,28 +385,35 @@ def main():
         return 1
 
     results = {}
+    images = {}
 
     # Train SDXL
     if train_model(sdxl_config, "SDXL 1.0"):
-        results['sdxl'] = evaluate_model(
+        sdxl_result, sdxl_imgs = evaluate_model(
             checkpoints_dir / "test_sdxl",
             sdxl_config,
             "SDXL 1.0"
         )
+        results['sdxl'] = sdxl_result
+        images['sdxl'] = sdxl_imgs
     else:
         print("✗ SDXL training failed, skipping evaluation")
         results['sdxl'] = None
+        images['sdxl'] = None
 
     # Train SD3.5 Medium
     if train_model(sd3_config, "SD 3.5 Medium"):
-        results['sd3'] = evaluate_model(
+        sd3_result, sd3_imgs = evaluate_model(
             checkpoints_dir / "test_sd3_medium",
             sd3_config,
             "SD 3.5 Medium"
         )
+        results['sd3'] = sd3_result
+        images['sd3'] = sd3_imgs
     else:
         print("✗ SD3.5 training failed, skipping evaluation")
         results['sd3'] = None
+        images['sd3'] = None
 
     # Compare results
     if results['sdxl'] is not None and results['sd3'] is not None:
@@ -295,6 +434,16 @@ def main():
             json.dump(comparison_report, f, indent=2)
 
         print(f"\n✓ Full comparison saved to: {report_path}")
+
+        # Create side-by-side comparison PDF
+        if images['sdxl'] is not None and images['sd3'] is not None:
+            comparison_pdf = reports_dir / "side_by_side_comparison.pdf"
+            create_side_by_side_comparison(
+                images['sdxl'],
+                images['sd3'],
+                comparison_pdf,
+                num_pairs=25
+            )
 
         # Print recommendation
         print_section("Recommendation")

@@ -49,6 +49,7 @@ python scripts/evaluate_quality.py \
 
 ## Expected Output
 
+### Console Output
 ```
 ================================================================================
 Quality Comparison Results
@@ -65,6 +66,12 @@ IS (higher better)   2.34                 2.67                 SD3.5
 Overall Winner: ✓ SD 3.5 Medium (4/4 metrics)
 --------------------------------------------------------------------------------
 ```
+
+### Generated Files
+- `reports/model_comparison.json` - Detailed metrics in JSON
+- `reports/sdxl_1_0_samples.pdf` - 50 SDXL samples (10×5 grid)
+- `reports/sd3_5_medium_samples.pdf` - 50 SD3.5 samples (10×5 grid)
+- `reports/side_by_side_comparison.pdf` - 25 pairs side-by-side for visual comparison
 
 ## After Comparison
 
