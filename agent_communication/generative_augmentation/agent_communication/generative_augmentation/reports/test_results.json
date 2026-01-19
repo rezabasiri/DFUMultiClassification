@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-01-19T08:01:23.484577",
+  "tests_passed": [
+    "Import PyTorch",
+    "Import TorchVision",
+    "Import Diffusers",
+    "Import Transformers",
+    "Import Accelerate",
+    "Import PEFT (LoRA)",
+    "Import TorchMetrics",
+    "Import LPIPS",
+    "Import PyYAML",
+    "Import Pillow",
+    "CUDA Available",
+    "Load YAML config",
+    "Config has 'model' section",
+    "Config has 'lora' section",
+    "Config has 'data' section",
+    "Config has 'training' section",
+    "Config has 'quality' section",
+    "Dataset directory exists",
+    "Import quality_metrics",
+    "Import data_loader",
+    "Import training_utils",
+    "Import checkpoint_utils",
+    "Load tokenizer",
+    "Base model accessible",
+    "Create dataloaders",
+    "Load training batch",
+    "Load validation batch",
+    "Initialize QualityMetrics",
+    "Compute SSIM",
+    "Compute LPIPS",
+    "Quality metrics ready",
+    "Initialize CheckpointManager",
+    "Save checkpoint",
+    "Load checkpoint"
+  ],
+  "tests_failed": [],
+  "warnings": [
+    {
+      "name": "Quick training test",
+      "message": "Skipped (set RUN_TRAINING_TEST=true to enable)"
+    }
+  ],
+  "errors": []
+}
