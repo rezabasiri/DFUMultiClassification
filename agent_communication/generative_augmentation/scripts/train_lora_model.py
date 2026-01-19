@@ -409,9 +409,9 @@ def train_one_epoch(
         total_loss += loss.detach().item()
         num_batches += 1
 
-        # Log progress every N steps
+        # Log progress every N steps (also log step 1 for immediate feedback)
         log_every = config['logging'].get('log_every_n_steps', 50)
-        if num_batches % log_every == 0 and accelerator.is_main_process:
+        if (num_batches == 1 or num_batches % log_every == 0) and accelerator.is_main_process:
             avg_loss_so_far = total_loss / num_batches
             print(f"  Step {num_batches}/{num_batches_total} - Loss: {avg_loss_so_far:.4f}, LR: {optimizer.param_groups[0]['lr']:.2e}")
 
