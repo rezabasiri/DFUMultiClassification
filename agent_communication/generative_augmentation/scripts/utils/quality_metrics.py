@@ -324,7 +324,8 @@ class QualityMetrics:
         self,
         generated_images: torch.Tensor,
         real_images: torch.Tensor,
-        compute_is: bool = True
+        compute_is: bool = True,
+        verbose: bool = True
     ) -> Dict[str, float]:
         """
         Compute all quality metrics
@@ -333,6 +334,7 @@ class QualityMetrics:
             generated_images: Generated images [N, C, H, W] in [0, 1] range
             real_images: Real reference images [M, C, H, W] in [0, 1] range
             compute_is: Whether to compute Inception Score (expensive)
+            verbose: Whether to print progress messages
 
         Returns:
             Dictionary of metric scores
@@ -340,24 +342,28 @@ class QualityMetrics:
         metrics = {}
 
         # Compute FID
-        print("Computing FID...")
+        if verbose:
+            print("Computing FID...")
         metrics['fid'] = self.compute_fid(real_images, generated_images)
 
         # Compute SSIM (average best match)
-        print("Computing SSIM...")
+        if verbose:
+            print("Computing SSIM...")
         mean_ssim, ssim_scores = self.compute_ssim_batch(generated_images, real_images)
         metrics['ssim_mean'] = mean_ssim
         metrics['ssim_std'] = np.std(ssim_scores)
 
         # Compute LPIPS (average best match)
-        print("Computing LPIPS...")
+        if verbose:
+            print("Computing LPIPS...")
         mean_lpips, lpips_scores = self.compute_lpips_batch(generated_images, real_images)
         metrics['lpips_mean'] = mean_lpips
         metrics['lpips_std'] = np.std(lpips_scores)
 
         # Compute Inception Score (optional, expensive)
         if compute_is:
-            print("Computing Inception Score...")
+            if verbose:
+                print("Computing Inception Score...")
             is_mean, is_std = self.compute_inception_score(generated_images)
             metrics['is_mean'] = is_mean
             metrics['is_std'] = is_std

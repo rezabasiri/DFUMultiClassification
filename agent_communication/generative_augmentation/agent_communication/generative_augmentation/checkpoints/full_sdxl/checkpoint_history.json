@@ -1,0 +1,36 @@
+{
+  "checkpoint_history": [
+    {
+      "epoch": 2,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0002.pt",
+      "metrics": null,
+      "timestamp": "2026-01-19T17:09:18.198383"
+    },
+    {
+      "epoch": 2,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0002.pt",
+      "metrics": {
+        "train_loss": 22.72549479348319,
+        "val_loss": 0.34887194633483887,
+        "fid": 379.69012451171875,
+        "ssim_mean": 0.07244721613824368,
+        "ssim_std": 0.025342921634742062,
+        "lpips_mean": 0.2959630638360977,
+        "lpips_std": 0.039703772859316575,
+        "is_mean": 1.0,
+        "is_std": 4.5056875563886933e-08
+      },
+      "timestamp": "2026-01-19T17:16:44.262687"
+    },
+    {
+      "epoch": 2,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0002.pt",
+      "metrics": null,
+      "timestamp": "2026-01-19T17:16:53.316737"
+    }
+  ],
+  "best_checkpoint": null,
+  "best_score": Infinity,
+  "monitor_metric": "val_fid",
+  "monitor_mode": "min"
+}
