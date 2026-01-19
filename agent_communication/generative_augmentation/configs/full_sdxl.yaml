@@ -132,7 +132,7 @@ hardware:
   gradient_checkpointing: true
   use_xformers: false  # SDXL attention dim incompatible
   enable_cpu_offload: false
-  num_workers: 8
+  num_workers: 4  # Reduced from 8 to avoid potential deadlock
   pin_memory: true
 
 reproducibility:
