@@ -890,6 +890,9 @@ def main():
                             (config['metrics']['num_samples_for_metrics'], 3, config['model']['resolution'], config['model']['resolution']),
                             device=accelerator.device
                         )
+                    else:
+                        # Move generated images to GPU for NCCL broadcast (NCCL doesn't support CPU)
+                        generated_images = generated_images.to(accelerator.device)
 
                     # Broadcast from rank 0 to all other ranks
                     torch.distributed.broadcast(generated_images, src=0)
@@ -904,7 +907,26 @@ def main():
                 )
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} finished computing metrics")
 
-                # Only main process prints and restores models
+                # Clean up memory before restoring models
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} cleaning up memory...")
+                del generated_images  # Free generated images (no longer needed)
+
+                # Move quality metrics models to CPU to free GPU memory (ALL processes)
+                quality_metrics.fid_metric.to('cpu')
+                quality_metrics.is_metric.to('cpu')
+                quality_metrics.lpips_metric.to('cpu')
+                quality_metrics.ssim_metric.to('cpu')
+
+                torch.cuda.empty_cache()
+                import gc
+                gc.collect()
+
+                # All processes sync BEFORE restoring models (ensures memory is cleared on all GPUs)
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} calling wait_for_everyone()...")
+                accelerator.wait_for_everyone()
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} passed wait_for_everyone()")
+
+                # Only main process prints and restores models (non-main never offloaded them)
                 if accelerator.is_main_process:
                     print(quality_metrics.format_metrics(val_metrics))
 
@@ -924,10 +946,17 @@ def main():
 
                     torch.cuda.empty_cache()
 
-                # All processes sync after metrics computation
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} calling wait_for_everyone()...")
-                accelerator.wait_for_everyone()
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} passed wait_for_everyone()")
+                    #  Move quality metrics models back to GPU (main process)
+                    quality_metrics.fid_metric.to(accelerator.device)
+                    quality_metrics.is_metric.to(accelerator.device)
+                    quality_metrics.lpips_metric.to(accelerator.device)
+                    quality_metrics.ssim_metric.to(accelerator.device)
+                else:
+                    # Non-main process: just restore quality metrics models
+                    quality_metrics.fid_metric.to(accelerator.device)
+                    quality_metrics.is_metric.to(accelerator.device)
+                    quality_metrics.lpips_metric.to(accelerator.device)
+                    quality_metrics.ssim_metric.to(accelerator.device)
             else:
                 if accelerator.is_main_process:
                     print(f"Val loss: {val_loss:.4f}")

@@ -1,15 +1,15 @@
-2026-01-19 13:03:06.209824: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-19 13:03:06.209908: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-19 13:03:06.211060: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-19 13:03:06.216683: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-19 13:14:34.649438: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-19 13:14:34.649535: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-19 13:14:34.650719: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-19 13:14:34.656377: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-19 13:03:06.242326: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-19 13:03:06.242398: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-19 13:03:06.243450: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-19 13:03:06.249008: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-19 13:14:34.730890: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-19 13:14:34.730959: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-19 13:14:34.731998: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-19 13:14:34.737296: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-19 13:03:06.913178: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-2026-01-19 13:03:06.958793: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-19 13:14:35.371327: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-19 13:14:35.470813: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
 ================================================================================
 Training Configuration: configs/test_sdxl.yaml
 Phase: I
@@ -21,10 +21,6 @@ Detected SDXL model - loading dual text encoders
 `torch_dtype` is deprecated! Use `dtype` instead!
 `torch_dtype` is deprecated! Use `dtype` instead!
 Enabled gradient checkpointing
-/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
-  warnings.warn(
-/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
 LoRA Configuration:
   Rank: 16
   Alpha: 32
@@ -33,14 +29,18 @@ LoRA Configuration:
   warnings.warn(
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
 Enabled perceptual loss
-Found 50 images for rgb/I
-Dataset split: 42 train, 8 validation
-Limited train set to 16 samples for fast testing
 Enabled EMA
 Found 50 images for rgb/I
 Dataset split: 42 train, 8 validation
 Limited train set to 16 samples for fast testing
+Found 50 images for rgb/I
+Dataset split: 42 train, 8 validation
+Limited train set to 16 samples for fast testing
 Loaded 10 reference images from /workspace/DFUMultiClassification/data/DFU_Updated/rgb/I
 Loaded 10 reference images from /workspace/DFUMultiClassification/data/DFU_Updated/rgb/I
 Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
@@ -49,10 +49,10 @@ Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 /venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
   warnings.warn(*args, **kwargs)
-Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 
 Starting training...
 Training on 2 GPUs
@@ -60,8 +60,8 @@ Total epochs: 2
 Effective batch size: 4
 
 Epoch 1/2
-  Epoch 1 complete - Loss: 17.9883, LR: 1.00e-05
-Train loss: 17.9883
+  Epoch 1 complete - Loss: 17.9890, LR: 1.00e-05
+Train loss: 17.9890
   Validation: 2 batches - Loss: 0.3490
 Computing quality metrics...
   Offloading training models to CPU to free GPU memory...
@@ -79,21 +79,80 @@ Computing FID...
 [FID DEBUG] Updating FID metric with real images...
   Generating samples for FID computation...
 [SYNC DEBUG] Process 0 broadcasting generated images...
+[SYNC DEBUG] Process 0 received generated images: torch.Size([5, 3, 32, 32])
+[SYNC DEBUG] Process 0 computing metrics...
+Computing FID...
+[FID DEBUG] Starting FID computation
+[FID DEBUG] Real images shape: torch.Size([10, 3, 32, 32])
+[FID DEBUG] Generated images shape: torch.Size([5, 3, 32, 32])
+[FID DEBUG] Moved images to device: cuda:0
+[FID DEBUG] After RGB conversion - Real: torch.Size([10, 3, 32, 32]), Gen: torch.Size([5, 3, 32, 32])
+[FID DEBUG] Converted to uint8
+[FID DEBUG] Updating FID metric with real images...
+[FID DEBUG] Real images updated successfully
+[FID DEBUG] Updating FID metric with generated images...
+[FID DEBUG] Real images updated successfully
+[FID DEBUG] Updating FID metric with generated images...
+[FID DEBUG] Generated images updated successfully
+[FID DEBUG] Calling fid_metric.compute()...
+/venv/multimodal/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+[FID DEBUG] Generated images updated successfully
+[FID DEBUG] Calling fid_metric.compute()...
+[FID DEBUG] FID computed successfully: 404.5143737792969
+[FID DEBUG] Resetting FID metric...
+[FID DEBUG] FID metric reset successfully
+Computing SSIM...
+Computing LPIPS...
+[FID DEBUG] FID computed successfully: 404.5143737792969
+[FID DEBUG] Resetting FID metric...
+[FID DEBUG] FID metric reset successfully
+Computing SSIM...
+Computing Inception Score...
+Computing LPIPS...
+Computing Inception Score...
+[SYNC DEBUG] Process 0 finished computing metrics
+[SYNC DEBUG] Process 0 cleaning up memory...
+[SYNC DEBUG] Process 1 finished computing metrics
+[SYNC DEBUG] Process 1 cleaning up memory...
+[SYNC DEBUG] Process 0 calling wait_for_everyone()...
+[SYNC DEBUG] Process 1 calling wait_for_everyone()...
+[SYNC DEBUG] Process 0 passed wait_for_everyone()[SYNC DEBUG] Process 1 passed wait_for_everyone()
+
+Quality Metrics:
+==================================================
+FID: 404.51 (lower is better, < 50 is good)
+SSIM: 0.0815 ± 0.0480 (higher is better, > 0.7 is good)
+LPIPS: 0.3265 ± 0.0739 (lower is better, < 0.3 is good)
+IS: 1.00 ± 0.00 (higher is better, > 2.0 is good)
+==================================================
+Val loss: 0.3490, Val FID: 404.51
+  Restoring training models to GPU...
 [rank0]: Traceback (most recent call last):
-[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 993, in <module>
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 1022, in <module>
 [rank0]:     main()
-[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 895, in main
-[rank0]:     torch.distributed.broadcast(generated_images, src=0)
-[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
-[rank0]:     return func(*args, **kwargs)
-[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
-[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py", line 2835, in broadcast
-[rank0]:     work = group.broadcast([tensor], opts)
-[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-[rank0]: RuntimeError: No backend type associated with device type cpu
-[rank0]:[W119 13:04:06.291021976 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
-W0119 13:04:08.379000 2201164 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 2201381 closing signal SIGTERM
-E0119 13:04:09.395000 2201164 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 0 (pid: 2201380) of binary: /venv/multimodal/bin/python3.11
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 939, in main
+[rank0]:     unwrapped_unet.to(original_device)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1371, in to
+[rank0]:     return self._apply(convert)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 930, in _apply
+[rank0]:     module._apply(fn)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 930, in _apply
+[rank0]:     module._apply(fn)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 930, in _apply
+[rank0]:     module._apply(fn)
+[rank0]:   [Previous line repeated 8 more times]
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 957, in _apply
+[rank0]:     param_applied = fn(param)
+[rank0]:                     ^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1357, in convert
+[rank0]:     return t.to(
+[rank0]:            ^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 50.00 MiB. GPU 0 has a total capacity of 23.52 GiB of which 38.62 MiB is free. Including non-PyTorch memory, this process has 23.47 GiB memory in use. Of the allocated memory 22.46 GiB is allocated by PyTorch, and 411.39 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[rank0]:[W119 13:15:40.854966007 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+W0119 13:15:42.906000 2205167 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 2205378 closing signal SIGTERM
+E0119 13:15:43.872000 2205167 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 0 (pid: 2205377) of binary: /venv/multimodal/bin/python3.11
 Traceback (most recent call last):
   File "/venv/multimodal/bin/accelerate", line 7, in <module>
     sys.exit(main())
@@ -120,10 +179,10 @@ Failures:
 ------------------------------------------------------------
 Root Cause (first observed failure):
 [0]:
-  time      : 2026-01-19_13:04:08
+  time      : 2026-01-19_13:15:42
   host      : 8c8dadf7e27a
   rank      : 0 (local_rank: 0)
-  exitcode  : 1 (pid: 2201380)
+  exitcode  : 1 (pid: 2205377)
   error_file: <N/A>
   traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
 ============================================================
