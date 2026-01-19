@@ -318,6 +318,7 @@ def train_one_epoch(
             # SDXL-specific: Concatenate embeddings and compute pooled embeddings/time_ids
             added_cond_kwargs = None
             if is_sdxl and text_encoder_2 is not None:
+
                 # Get hidden states from second text encoder
                 input_ids_2 = batch['input_ids'].to(text_encoder_2.device)
                 encoder_output_2 = text_encoder_2(input_ids_2, output_hidden_states=True)
@@ -407,6 +408,12 @@ def train_one_epoch(
         # Update progress
         total_loss += loss.detach().item()
         num_batches += 1
+
+        # Log progress every N steps
+        log_every = config['logging'].get('log_every_n_steps', 50)
+        if num_batches % log_every == 0 and accelerator.is_main_process:
+            avg_loss_so_far = total_loss / num_batches
+            print(f"  Step {num_batches}/{num_batches_total} - Loss: {avg_loss_so_far:.4f}, LR: {optimizer.param_groups[0]['lr']:.2e}")
 
     # Print final epoch results
     avg_loss = total_loss / num_batches
@@ -673,6 +680,12 @@ def main():
     # Load base models
     vae, text_encoder, tokenizer, unet, noise_scheduler, text_encoder_2, tokenizer_2 = load_base_models(config, accelerator)
     is_sdxl = text_encoder_2 is not None
+
+    # Move frozen models to GPU
+    vae = vae.to(accelerator.device)
+    text_encoder = text_encoder.to(accelerator.device)
+    if text_encoder_2 is not None:
+        text_encoder_2 = text_encoder_2.to(accelerator.device)
 
     # Setup LoRA
     unet_lora = setup_lora(unet, config, accelerator)
