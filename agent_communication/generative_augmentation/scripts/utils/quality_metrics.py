@@ -71,7 +71,8 @@ class QualityMetrics:
         # Lower is better (< 50 is good, < 30 is very good)
         self.fid_metric = FrechetInceptionDistance(
             feature=fid_feature,
-            normalize=True  # Normalize images to [0, 1]
+            normalize=True,  # Normalize images to [0, 1]
+            dist_sync_on_step=False  # Disable distributed sync (only main process computes FID)
         ).to(self.device)
 
         # Initialize SSIM (Structural Similarity Index)
@@ -90,7 +91,10 @@ class QualityMetrics:
         # Initialize Inception Score
         # Measures quality and diversity of generated images
         # Higher is better (> 2.0 is good for medical images)
-        self.is_metric = InceptionScore(normalize=True).to(self.device)
+        self.is_metric = InceptionScore(
+            normalize=True,
+            dist_sync_on_step=False  # Disable distributed sync (only main process computes IS)
+        ).to(self.device)
 
         # Set all metrics to eval mode
         self.fid_metric.eval()

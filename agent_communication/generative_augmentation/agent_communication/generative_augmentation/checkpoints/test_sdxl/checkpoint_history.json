@@ -1,0 +1,23 @@
+{
+  "checkpoint_history": [
+    {
+      "epoch": 1,
+      "path": "agent_communication/generative_augmentation/checkpoints/test_sdxl/checkpoint_epoch_0001.pt",
+      "metrics": {
+        "train_loss": 9.513419032096863,
+        "val_loss": 0.2692188024520874
+      },
+      "timestamp": "2026-01-19T12:27:36.943892"
+    },
+    {
+      "epoch": 1,
+      "path": "agent_communication/generative_augmentation/checkpoints/test_sdxl/checkpoint_epoch_0001.pt",
+      "metrics": null,
+      "timestamp": "2026-01-19T12:27:46.405694"
+    }
+  ],
+  "best_checkpoint": null,
+  "best_score": Infinity,
+  "monitor_metric": "val_fid",
+  "monitor_mode": "min"
+}
