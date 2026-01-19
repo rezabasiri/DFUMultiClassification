@@ -22,6 +22,7 @@ pandas>=1.5.0
 numpy>=1.23.0
 pyyaml>=6.0
 tqdm>=4.65.0
+matplotlib>=3.5.0  # For PDF visualization
 
 # Optional but Recommended
 xformers>=0.0.20  # Memory-efficient attention
