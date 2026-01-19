@@ -602,6 +602,24 @@ def generate_validation_samples(
             normalize=True
         )
 
+    # CRITICAL: Delete pipeline and move all model components back to CPU
+    # The pipeline holds references to all models on GPU
+    # Explicitly move each component to CPU before deleting
+    pipeline.unet.to('cpu')
+    pipeline.vae.to('cpu')
+    pipeline.text_encoder.to('cpu')
+    if hasattr(pipeline, 'text_encoder_2') and pipeline.text_encoder_2 is not None:
+        pipeline.text_encoder_2.to('cpu')
+
+    del pipeline
+
+    # Aggressive memory cleanup
+    torch.cuda.empty_cache()
+    torch.cuda.synchronize()
+    import gc
+    gc.collect()
+    torch.cuda.empty_cache()
+
     return image_tensors
 
 
@@ -841,31 +859,34 @@ def main():
 
                 generated_images = None
 
-                # Only main process generates samples and offloads models
+                # ALL PROCESSES: Offload training models to CPU to free GPU memory
+                # This is critical because ALL processes need GPU memory for FID computation
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} offloading training models to CPU...")
+
+                import gc
+
+                # Get the original device
+                original_device = accelerator.device
+
+                # Move large models to CPU (all processes)
+                unwrapped_unet = accelerator.unwrap_model(unet_lora)
+                unwrapped_unet.to('cpu')
+                vae.to('cpu')
+                text_encoder.to('cpu')
+                if text_encoder_2 is not None:
+                    text_encoder_2.to('cpu')
+                if ema_model is not None:
+                    ema_model.ema_model.to('cpu')
+
+                # Clear GPU cache
+                torch.cuda.empty_cache()
+                gc.collect()
+
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} finished offloading models")
+
+                # Only main process generates samples
                 if accelerator.is_main_process:
                     print("Computing quality metrics...")
-                    print("  Offloading training models to CPU to free GPU memory...")
-
-                    # Offload training models to CPU temporarily to free GPU memory
-                    import gc
-
-                    # Get the original device
-                    original_device = accelerator.device
-
-                    # Move large models to CPU
-                    unwrapped_unet = accelerator.unwrap_model(unet_lora)
-                    unwrapped_unet.to('cpu')
-                    vae.to('cpu')
-                    text_encoder.to('cpu')
-                    if text_encoder_2 is not None:
-                        text_encoder_2.to('cpu')
-                    if ema_model is not None:
-                        ema_model.ema_model.to('cpu')
-
-                    # Clear GPU cache
-                    torch.cuda.empty_cache()
-                    gc.collect()
-
                     print("  Generating samples for FID computation...")
 
                     # Generate samples (will reload models to GPU inside the function)
@@ -937,7 +958,7 @@ def main():
                 accelerator.wait_for_everyone()
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} passed wait_for_everyone()")
 
-                # Only main process prints and restores models (non-main never offloaded them)
+                # Only main process prints metrics
                 if accelerator.is_main_process:
                     print(quality_metrics.format_metrics(val_metrics))
 
@@ -945,37 +966,43 @@ def main():
                     val_fid = val_metrics.get('fid', 0)
                     print(f"Val loss: {val_loss:.4f}, Val FID: {val_fid:.2f}")
 
-                    print("  Restoring training models to GPU...")
+                # ALL PROCESSES: Restore training models to GPU
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring training models to GPU...")
 
-                    # One more memory cleanup before loading models back
+                # SUPER AGGRESSIVE memory cleanup before loading models back
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                gc.collect()
+                torch.cuda.empty_cache()
+
+                # Move models back to GPU for next training epoch
+                # Do it one at a time to reduce memory pressure
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring UNet...")
+                unwrapped_unet.to(original_device)
+                torch.cuda.empty_cache()
+
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring VAE...")
+                vae.to(original_device)
+                torch.cuda.empty_cache()
+
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring text_encoder...")
+                text_encoder.to(original_device)
+                torch.cuda.empty_cache()
+
+                if text_encoder_2 is not None:
+                    print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring text_encoder_2...")
+                    text_encoder_2.to(original_device)
                     torch.cuda.empty_cache()
 
-                    # Move models back to GPU for next training epoch
-                    # Do it one at a time to reduce memory pressure
-                    unwrapped_unet.to(original_device)
+                if ema_model is not None:
+                    print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring EMA model...")
+                    ema_model.ema_model.to(original_device)
                     torch.cuda.empty_cache()
 
-                    vae.to(original_device)
-                    torch.cuda.empty_cache()
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} finished restoring models")
 
-                    text_encoder.to(original_device)
-                    torch.cuda.empty_cache()
-
-                    if text_encoder_2 is not None:
-                        text_encoder_2.to(original_device)
-                        torch.cuda.empty_cache()
-
-                    if ema_model is not None:
-                        ema_model.ema_model.to(original_device)
-                        torch.cuda.empty_cache()
-
-                    print("  All training models restored to GPU")
-
-                    # DON'T move quality metrics back to GPU yet - keep them on CPU to save memory
-                    # They'll be moved to GPU again next time we need them
-                else:
-                    # Non-main processes don't need to do anything - they never offloaded training models
-                    pass
+                # DON'T move quality metrics back to GPU yet - keep them on CPU to save memory
+                # They'll be moved to GPU again next time we need them
             else:
                 if accelerator.is_main_process:
                     print(f"Val loss: {val_loss:.4f}")
