@@ -856,7 +856,6 @@ def main():
             val_metrics = None
             if config['validation']['compare_to_real'] and (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0:
                 # Load reference images for this metrics computation (freed after each computation to save GPU memory)
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} loading reference images...")
                 reference_images = load_reference_images(
                     data_root=config['data']['data_root'],
                     modality=config['data']['modality'],
@@ -866,7 +865,6 @@ def main():
                 ).to(accelerator.device)
 
                 # Move quality metrics models to GPU (all processes need them)
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} moving quality metrics to GPU...")
                 quality_metrics.fid_metric.to(accelerator.device)
                 quality_metrics.is_metric.to(accelerator.device)
                 quality_metrics.lpips_metric.to(accelerator.device)
@@ -877,8 +875,6 @@ def main():
 
                 # ALL PROCESSES: Offload training models to CPU to free GPU memory
                 # This is critical because ALL processes need GPU memory for FID computation
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} offloading training models to CPU...")
-
                 import gc
 
                 # Get the original device
@@ -908,12 +904,9 @@ def main():
                 gc.collect()
                 torch.cuda.empty_cache()
 
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} finished offloading models")
-
                 # Only main process generates samples
                 if accelerator.is_main_process:
                     print("Computing quality metrics...")
-                    print("  Generating samples for FID computation...")
 
                     # Generate samples (will reload models to GPU inside the function)
                     generated_images = generate_validation_samples(
@@ -932,12 +925,9 @@ def main():
                         tokenizer_2=tokenizer_2,
                         is_sdxl=is_sdxl
                     )
-                else:
-                    print(f"[SYNC DEBUG] Non-main process waiting for generated images...")
 
                 # CRITICAL: Broadcast generated images to all processes
                 # This is required because torchmetrics FID.compute() synchronizes across all processes
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} broadcasting generated images...")
                 if accelerator.num_processes > 1:
                     # Create placeholder on non-main processes
                     if not accelerator.is_main_process:
@@ -951,27 +941,21 @@ def main():
 
                     # Broadcast from rank 0 to all other ranks
                     torch.distributed.broadcast(generated_images, src=0)
-                    print(f"[SYNC DEBUG] Process {accelerator.process_index} received generated images: {generated_images.shape}")
 
                 # ALL processes compute FID (required for distributed sync)
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} computing metrics...")
                 val_metrics = quality_metrics.compute_all_metrics(
                     generated_images=generated_images,
                     real_images=reference_images,
                     compute_is=config['metrics']['inception_score']['enabled']
                 )
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} finished computing metrics")
 
                 # Clean up memory before restoring models
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} cleaning up memory...")
                 del generated_images  # Free generated images (no longer needed)
 
                 # Free reference_images on ALL processes to reclaim GPU memory
-                # This is critical because reference_images stays on GPU and takes ~50-100MB
-                # We'll reload them next time metrics are computed
                 if reference_images is not None:
                     del reference_images
-                    reference_images = None  # Reset to None so it can be reloaded
+                    reference_images = None
 
                 # Move quality metrics models to CPU to free GPU memory (ALL processes)
                 quality_metrics.fid_metric.to('cpu')
@@ -979,58 +963,43 @@ def main():
                 quality_metrics.lpips_metric.to('cpu')
                 quality_metrics.ssim_metric.to('cpu')
 
-                # More aggressive memory cleanup
+                # Aggressive memory cleanup
                 torch.cuda.empty_cache()
-                torch.cuda.synchronize()  # Wait for all CUDA ops to finish
+                torch.cuda.synchronize()
                 import gc
                 gc.collect()
-                torch.cuda.empty_cache()  # Second pass after gc.collect()
+                torch.cuda.empty_cache()
 
-                # All processes sync BEFORE restoring models (ensures memory is cleared on all GPUs)
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} calling wait_for_everyone()...")
+                # All processes sync BEFORE restoring models
                 accelerator.wait_for_everyone()
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} passed wait_for_everyone()")
 
                 # Only main process prints metrics
                 if accelerator.is_main_process:
                     print(quality_metrics.format_metrics(val_metrics))
-
-                    # Print val_loss and val_fid together
                     val_fid = val_metrics.get('fid', 0)
                     print(f"Val loss: {val_loss:.4f}, Val FID: {val_fid:.2f}")
 
                 # ALL PROCESSES: Restore training models to GPU
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring training models to GPU...")
-
-                # SUPER AGGRESSIVE memory cleanup before loading models back
                 torch.cuda.empty_cache()
                 torch.cuda.synchronize()
                 gc.collect()
                 torch.cuda.empty_cache()
 
-                # Move models back to GPU for next training epoch
-                # Do it one at a time to reduce memory pressure
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring UNet...")
+                # Move models back to GPU one at a time
                 unwrapped_unet.to(original_device)
                 torch.cuda.empty_cache()
 
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring VAE...")
                 vae.to(original_device)
                 torch.cuda.empty_cache()
 
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring text_encoder...")
                 text_encoder.to(original_device)
                 torch.cuda.empty_cache()
 
                 if text_encoder_2 is not None:
-                    print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring text_encoder_2...")
                     text_encoder_2.to(original_device)
                     torch.cuda.empty_cache()
 
                 # NOTE: EMA stays on CPU - it's only loaded to GPU during sample generation
-                # This saves ~2.5GB of GPU memory during training
-
-                print(f"[SYNC DEBUG] Process {accelerator.process_index} finished restoring models")
 
                 # DON'T move quality metrics back to GPU yet - keep them on CPU to save memory
                 # They'll be moved to GPU again next time we need them

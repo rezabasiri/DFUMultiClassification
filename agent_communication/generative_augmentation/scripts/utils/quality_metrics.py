@@ -117,46 +117,31 @@ class QualityMetrics:
         Returns:
             FID score (lower is better)
         """
-        print(f"[FID DEBUG] Starting FID computation")
-        print(f"[FID DEBUG] Real images shape: {real_images.shape}")
-        print(f"[FID DEBUG] Generated images shape: {generated_images.shape}")
-
         # Ensure images are on correct device
         real_images = real_images.to(self.device)
         generated_images = generated_images.to(self.device)
-        print(f"[FID DEBUG] Moved images to device: {self.device}")
 
         # Ensure RGB (3 channels)
         if real_images.shape[1] == 1:
             real_images = real_images.repeat(1, 3, 1, 1)
         if generated_images.shape[1] == 1:
             generated_images = generated_images.repeat(1, 3, 1, 1)
-        print(f"[FID DEBUG] After RGB conversion - Real: {real_images.shape}, Gen: {generated_images.shape}")
 
         # FID requires uint8 images [0, 255], convert from float [0, 1]
         real_images_uint8 = (real_images * 255).byte()
         generated_images_uint8 = (generated_images * 255).byte()
-        print(f"[FID DEBUG] Converted to uint8")
 
         # Update metric with real images (as "real" distribution)
-        print(f"[FID DEBUG] Updating FID metric with real images...")
         self.fid_metric.update(real_images_uint8, real=True)
-        print(f"[FID DEBUG] Real images updated successfully")
 
         # Update metric with generated images (as "fake" distribution)
-        print(f"[FID DEBUG] Updating FID metric with generated images...")
         self.fid_metric.update(generated_images_uint8, real=False)
-        print(f"[FID DEBUG] Generated images updated successfully")
 
         # Compute FID
-        print(f"[FID DEBUG] Calling fid_metric.compute()...")
         fid_score = self.fid_metric.compute().item()
-        print(f"[FID DEBUG] FID computed successfully: {fid_score}")
 
         # Reset metric for next computation
-        print(f"[FID DEBUG] Resetting FID metric...")
         self.fid_metric.reset()
-        print(f"[FID DEBUG] FID metric reset successfully")
 
         return fid_score
 

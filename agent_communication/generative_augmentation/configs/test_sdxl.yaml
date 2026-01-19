@@ -1,7 +1,7 @@
-# Quick Test: SDXL 1.0 Base - 128x128 (multi-GPU testing)
+# SDXL 1.0 Base - 128x128 (multi-GPU training)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
-  resolution: 32
+  resolution: 128
   training_method: "lora"
 
 lora:
@@ -41,10 +41,10 @@ training:
   adam_weight_decay: 0.01
   adam_epsilon: 1.0e-8
   max_grad_norm: 1.0
-  max_epochs: 2  # Quick test: just 2 epochs
+  max_epochs: 20
   early_stopping:
     enabled: false
-  max_train_samples: 16  # TESTING: Use only 16 images for fast testing
+  max_train_samples: null  # Use all training images
 
 prompts:
   enabled: true
@@ -67,7 +67,7 @@ quality:
     decay: 0.9999
     use_ema_weights_for_inference: true
   guidance_scale: 12.0
-  inference_steps_training: 20
+  inference_steps_training: 30
   inference_steps_production: 50
 
 checkpointing:
@@ -79,8 +79,8 @@ checkpointing:
   save_optimizer_state: true
 
 metrics:
-  compute_every_n_epochs: 1  # Re-enabled with debug logging
-  num_samples_for_metrics: 5  # Reduced from 10 to 5 for faster computation
+  compute_every_n_epochs: 1
+  num_samples_for_metrics: 50
   fid:
     enabled: true  # Re-enabled with debug logging to identify hang
     target_threshold: 50.0
@@ -121,5 +121,5 @@ validation:
   validate_every_n_epochs: 1
   generate_samples: false  # Disabled for fast testing
   num_validation_samples: 4
-  compare_to_real: true  # Enabled for FID computation
-  num_real_samples_for_comparison: 10
+  compare_to_real: true
+  num_real_samples_for_comparison: 50
