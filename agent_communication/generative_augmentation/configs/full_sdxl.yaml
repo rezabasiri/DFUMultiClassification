@@ -29,11 +29,11 @@ data:
       hue: 0.05
 
 training:
-  batch_size_per_gpu: 1  # Reduced for 512x512 (more VRAM needed)
-  gradient_accumulation_steps: 4  # Effective batch size = 1 * 4 * 2 GPUs = 8
+  batch_size_per_gpu: 4  # Increased for better GPU utilization (~20GB/24GB)
+  gradient_accumulation_steps: 2  # Effective batch size = 4 * 2 * 2 GPUs = 16
   learning_rate: 1.0e-4  # Higher for LoRA
   lr_scheduler: "cosine"  # Cosine annealing
-  lr_warmup_steps: 500  # ~5% of total steps
+  lr_warmup_steps: 250  # ~5% of total steps (halved due to larger batch)
   lr_num_cycles: 1
   optimizer: "adamw"
   adam_beta1: 0.9
@@ -41,7 +41,7 @@ training:
   adam_weight_decay: 0.01
   adam_epsilon: 1.0e-8
   max_grad_norm: 1.0
-  max_epochs: 200  # 2860 images * 200 epochs / 8 batch = 71,500 steps
+  max_epochs: 200  # 2860 images * 200 epochs / 16 batch = 35,750 steps
   early_stopping:
     enabled: true
     patience: 30  # Stop if no improvement for 30 epochs
