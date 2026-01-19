@@ -831,6 +831,14 @@ def main():
             # NOTE: ALL processes must participate in FID computation due to distributed sync in torchmetrics
             val_metrics = None
             if reference_images is not None and (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0:
+                # Move quality metrics models to GPU (all processes need them)
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} moving quality metrics to GPU...")
+                quality_metrics.fid_metric.to(accelerator.device)
+                quality_metrics.is_metric.to(accelerator.device)
+                quality_metrics.lpips_metric.to(accelerator.device)
+                quality_metrics.ssim_metric.to(accelerator.device)
+                torch.cuda.empty_cache()
+
                 generated_images = None
 
                 # Only main process generates samples and offloads models
@@ -917,9 +925,12 @@ def main():
                 quality_metrics.lpips_metric.to('cpu')
                 quality_metrics.ssim_metric.to('cpu')
 
+                # More aggressive memory cleanup
                 torch.cuda.empty_cache()
+                torch.cuda.synchronize()  # Wait for all CUDA ops to finish
                 import gc
                 gc.collect()
+                torch.cuda.empty_cache()  # Second pass after gc.collect()
 
                 # All processes sync BEFORE restoring models (ensures memory is cleared on all GPUs)
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} calling wait_for_everyone()...")
@@ -935,28 +946,36 @@ def main():
                     print(f"Val loss: {val_loss:.4f}, Val FID: {val_fid:.2f}")
 
                     print("  Restoring training models to GPU...")
-                    # Move models back to GPU for next training epoch
-                    unwrapped_unet.to(original_device)
-                    vae.to(original_device)
-                    text_encoder.to(original_device)
-                    if text_encoder_2 is not None:
-                        text_encoder_2.to(original_device)
-                    if ema_model is not None:
-                        ema_model.ema_model.to(original_device)
 
+                    # One more memory cleanup before loading models back
                     torch.cuda.empty_cache()
 
-                    #  Move quality metrics models back to GPU (main process)
-                    quality_metrics.fid_metric.to(accelerator.device)
-                    quality_metrics.is_metric.to(accelerator.device)
-                    quality_metrics.lpips_metric.to(accelerator.device)
-                    quality_metrics.ssim_metric.to(accelerator.device)
+                    # Move models back to GPU for next training epoch
+                    # Do it one at a time to reduce memory pressure
+                    unwrapped_unet.to(original_device)
+                    torch.cuda.empty_cache()
+
+                    vae.to(original_device)
+                    torch.cuda.empty_cache()
+
+                    text_encoder.to(original_device)
+                    torch.cuda.empty_cache()
+
+                    if text_encoder_2 is not None:
+                        text_encoder_2.to(original_device)
+                        torch.cuda.empty_cache()
+
+                    if ema_model is not None:
+                        ema_model.ema_model.to(original_device)
+                        torch.cuda.empty_cache()
+
+                    print("  All training models restored to GPU")
+
+                    # DON'T move quality metrics back to GPU yet - keep them on CPU to save memory
+                    # They'll be moved to GPU again next time we need them
                 else:
-                    # Non-main process: just restore quality metrics models
-                    quality_metrics.fid_metric.to(accelerator.device)
-                    quality_metrics.is_metric.to(accelerator.device)
-                    quality_metrics.lpips_metric.to(accelerator.device)
-                    quality_metrics.ssim_metric.to(accelerator.device)
+                    # Non-main processes don't need to do anything - they never offloaded training models
+                    pass
             else:
                 if accelerator.is_main_process:
                     print(f"Val loss: {val_loss:.4f}")
