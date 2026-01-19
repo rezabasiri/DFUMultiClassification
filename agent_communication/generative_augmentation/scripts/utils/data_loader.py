@@ -30,6 +30,8 @@ class WoundDataset(Dataset):
     Example:
         data/DFU_Updated/rgb/I/*.png
         data/DFU_Updated/rgb/R/*.png
+
+    Use phase='all' to load images from all available phases with phase-specific prompts.
     """
 
     def __init__(
@@ -40,6 +42,7 @@ class WoundDataset(Dataset):
         resolution: int,
         tokenizer: CLIPTokenizer,
         prompt: Optional[str] = None,
+        phase_prompts: Optional[Dict[str, str]] = None,
         augmentation: Optional[Dict] = None,
         cache_latents: bool = False
     ):
@@ -49,10 +52,12 @@ class WoundDataset(Dataset):
         Args:
             data_root: Root directory containing wound images
             modality: Imaging modality ('rgb', 'depth_map', 'thermal_map')
-            phase: Healing phase ('I', 'P', 'R')
+            phase: Healing phase ('I', 'P', 'R', or 'all' for all phases)
             resolution: Target image resolution (e.g., 128)
             tokenizer: CLIP tokenizer for text prompts
-            prompt: Text prompt for conditional generation
+            prompt: Text prompt for conditional generation (used when phase != 'all')
+            phase_prompts: Dict mapping phase to prompt (used when phase == 'all')
+                Example: {'I': 'inflammatory phase...', 'P': 'proliferative phase...', 'R': 'remodeling phase...'}
             augmentation: Dict of augmentation parameters
             cache_latents: Whether to pre-compute and cache VAE latents (faster but more memory)
         """
@@ -62,31 +67,68 @@ class WoundDataset(Dataset):
         self.resolution = resolution
         self.tokenizer = tokenizer
         self.prompt = prompt
+        self.phase_prompts = phase_prompts
         self.cache_latents = cache_latents
 
-        # Find all image files for this phase
-        image_dir = self.data_root / modality / phase
-        if not image_dir.exists():
-            raise ValueError(f"Image directory not found: {image_dir}")
-
-        # Load all image paths
+        # Find all image files and track their phases
         self.image_paths = []
-        for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
-            self.image_paths.extend(list(image_dir.glob(ext)))
+        self.image_phases = []  # Track phase for each image (for phase-specific prompts)
 
-        if len(self.image_paths) == 0:
-            raise ValueError(f"No images found in {image_dir}")
+        if phase.lower() == 'all':
+            # Load from all available phase directories
+            modality_dir = self.data_root / modality
+            if not modality_dir.exists():
+                raise ValueError(f"Modality directory not found: {modality_dir}")
 
-        print(f"Found {len(self.image_paths)} images for {modality}/{phase}")
+            phase_counts = {}
+            for phase_dir in modality_dir.iterdir():
+                if phase_dir.is_dir():
+                    phase_name = phase_dir.name  # 'I', 'P', or 'R'
+                    phase_images = []
+                    for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
+                        phase_images.extend(list(phase_dir.glob(ext)))
+
+                    self.image_paths.extend(phase_images)
+                    self.image_phases.extend([phase_name] * len(phase_images))
+                    phase_counts[phase_name] = len(phase_images)
+
+            if len(self.image_paths) == 0:
+                raise ValueError(f"No images found in any phase under {modality_dir}")
+
+            print(f"Found {len(self.image_paths)} images for {modality}/all phases")
+            for p, count in sorted(phase_counts.items()):
+                print(f"  Phase {p}: {count} images")
+        else:
+            # Load from specific phase
+            image_dir = self.data_root / modality / phase
+            if not image_dir.exists():
+                raise ValueError(f"Image directory not found: {image_dir}")
+
+            for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
+                self.image_paths.extend(list(image_dir.glob(ext)))
+
+            # All images have the same phase
+            self.image_phases = [phase] * len(self.image_paths)
+
+            if len(self.image_paths) == 0:
+                raise ValueError(f"No images found in {image_dir}")
+
+            print(f"Found {len(self.image_paths)} images for {modality}/{phase}")
 
         # Setup data augmentation
         self.setup_augmentation(augmentation)
 
-        # Tokenize prompt once (same for all images in this phase)
-        if self.prompt is not None:
-            self.encoded_prompt = self.tokenize_prompt(self.prompt)
-        else:
-            self.encoded_prompt = None
+        # Pre-tokenize prompts for efficiency
+        self.encoded_prompts = {}
+
+        if phase.lower() == 'all' and phase_prompts is not None:
+            # Tokenize phase-specific prompts
+            for p, p_prompt in phase_prompts.items():
+                self.encoded_prompts[p] = self.tokenize_prompt(p_prompt)
+            print(f"Using phase-specific prompts for phases: {list(phase_prompts.keys())}")
+        elif self.prompt is not None:
+            # Single prompt for all images
+            self.encoded_prompts['default'] = self.tokenize_prompt(self.prompt)
 
     def setup_augmentation(self, augmentation: Optional[Dict]):
         """
@@ -183,9 +225,12 @@ class WoundDataset(Dataset):
         # Prepare output dict
         output = {'pixel_values': pixel_values}
 
-        # Add prompt if available
-        if self.encoded_prompt is not None:
-            output['input_ids'] = self.encoded_prompt
+        # Add prompt - use phase-specific if available
+        image_phase = self.image_phases[idx]
+        if image_phase in self.encoded_prompts:
+            output['input_ids'] = self.encoded_prompts[image_phase]
+        elif 'default' in self.encoded_prompts:
+            output['input_ids'] = self.encoded_prompts['default']
 
         return output
 
@@ -200,6 +245,7 @@ def create_dataloaders(
     train_val_split: float = 0.85,
     split_seed: int = 42,
     prompt: Optional[str] = None,
+    phase_prompts: Optional[Dict[str, str]] = None,
     augmentation: Optional[Dict] = None,
     num_workers: int = 4,
     pin_memory: bool = True
@@ -210,13 +256,14 @@ def create_dataloaders(
     Args:
         data_root: Root directory containing wound images
         modality: Imaging modality ('rgb', 'depth_map', 'thermal_map')
-        phase: Healing phase ('I', 'P', 'R')
+        phase: Healing phase ('I', 'P', 'R', or 'all' for all phases)
         resolution: Target image resolution
         tokenizer: CLIP tokenizer
         batch_size: Batch size
         train_val_split: Ratio of train/total (e.g., 0.85 = 85% train)
         split_seed: Random seed for split
-        prompt: Text prompt for conditional generation
+        prompt: Text prompt for conditional generation (single phase)
+        phase_prompts: Dict mapping phase to prompt (for multi-phase training)
         augmentation: Dict of augmentation parameters
         num_workers: Number of dataloader workers
         pin_memory: Whether to pin memory for faster GPU transfer
@@ -232,6 +279,7 @@ def create_dataloaders(
         resolution=resolution,
         tokenizer=tokenizer,
         prompt=prompt,
+        phase_prompts=phase_prompts,
         augmentation=augmentation
     )
 
@@ -286,7 +334,7 @@ def load_reference_images(
     Args:
         data_root: Root directory containing wound images
         modality: Imaging modality
-        phase: Healing phase
+        phase: Healing phase ('I', 'P', 'R', or 'all' for all phases)
         resolution: Target resolution
         num_images: Number of images to load (None = all)
         seed: Random seed for sampling
@@ -295,10 +343,20 @@ def load_reference_images(
         Tensor of reference images [N, C, H, W] in [0, 1] range
     """
     # Find all image files
-    image_dir = Path(data_root) / modality / phase
     image_paths = []
-    for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
-        image_paths.extend(list(image_dir.glob(ext)))
+
+    if phase.lower() == 'all':
+        # Load from all available phase directories
+        modality_dir = Path(data_root) / modality
+        for phase_dir in modality_dir.iterdir():
+            if phase_dir.is_dir():
+                for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
+                    image_paths.extend(list(phase_dir.glob(ext)))
+        image_dir = modality_dir  # For error message
+    else:
+        image_dir = Path(data_root) / modality / phase
+        for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
+            image_paths.extend(list(image_dir.glob(ext)))
 
     if len(image_paths) == 0:
         raise ValueError(f"No images found in {image_dir}")

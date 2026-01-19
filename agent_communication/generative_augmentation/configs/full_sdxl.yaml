@@ -1,0 +1,145 @@
+# SDXL 1.0 Base - 512x512 (Full training run with all images)
+model:
+  base_model: "stabilityai/stable-diffusion-xl-base-1.0"
+  resolution: 512
+  training_method: "lora"
+
+lora:
+  rank: 32  # Increased from 16 for more capacity
+  alpha: 64  # 2x rank
+  dropout: 0.1
+  target_modules: ["to_q", "to_k", "to_v", "to_out.0"]
+  bias: "none"
+
+data:
+  data_root: "/workspace/DFUMultiClassification/data/diffusion"  # New organized data
+  modality: "rgb"
+  phase: "all"  # Use all phases (I=860, P=1678, R=322) = 2860 images total
+  train_val_split: 0.95  # 2717 train, 143 validation
+  split_seed: 42
+  augmentation:
+    enabled: true
+    horizontal_flip: true
+    vertical_flip: true
+    rotation_degrees: 15
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.05
+
+training:
+  batch_size_per_gpu: 1  # Reduced for 512x512 (more VRAM needed)
+  gradient_accumulation_steps: 4  # Effective batch size = 1 * 4 * 2 GPUs = 8
+  learning_rate: 1.0e-4  # Higher for LoRA
+  lr_scheduler: "cosine"  # Cosine annealing
+  lr_warmup_steps: 500  # ~5% of total steps
+  lr_num_cycles: 1
+  optimizer: "adamw"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 0.01
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+  max_epochs: 200  # 2860 images * 200 epochs / 8 batch = 71,500 steps
+  early_stopping:
+    enabled: true
+    patience: 30  # Stop if no improvement for 30 epochs
+    min_delta: 0.01
+
+prompts:
+  enabled: true
+  # Phase-specific prompts for multi-phase training
+  # Model learns to associate each phase with its visual characteristics
+  phase_prompts:
+    I: >
+      Medical photograph of diabetic foot ulcer in inflammatory phase,
+      acute wound with redness erythema and swelling edema,
+      early wound response, tissue inflammation, wound debridement stage,
+      clinical documentation, high resolution, professional medical imaging
+    P: >
+      Medical photograph of diabetic foot ulcer in proliferative phase,
+      granulation tissue formation, pink red wound bed, new tissue growth,
+      active healing, collagen deposition, angiogenesis visible,
+      clinical documentation, high resolution, professional medical imaging
+    R: >
+      Medical photograph of diabetic foot ulcer in remodeling phase,
+      mature scar tissue, wound contraction, healed tissue,
+      epithelialization complete, late stage healing, tissue maturation,
+      clinical documentation, high resolution, professional medical imaging
+  # Fallback positive prompt (used if phase_prompts not available)
+  positive: >
+    Medical photograph of diabetic foot ulcer wound,
+    clinical documentation, high resolution, detailed tissue texture,
+    wound healing assessment, professional medical imaging
+  negative: >
+    blurry, out of focus, low quality, jpeg artifacts,
+    unrealistic colors, smooth skin, healthy tissue,
+    artificial, cartoon, text, watermark, drawing
+
+quality:
+  perceptual_loss:
+    enabled: true
+    weight: 0.1
+    vgg_layer: 16
+  ema:
+    enabled: true
+    decay: 0.9999
+    use_ema_weights_for_inference: true
+  guidance_scale: 7.5
+  inference_steps_training: 30
+  inference_steps_production: 50
+
+checkpointing:
+  output_dir: "agent_communication/generative_augmentation/checkpoints/full_sdxl"
+  save_every_n_epochs: 20  # Save checkpoint every 20 epochs
+  keep_last_n_checkpoints: 3
+  save_best_only: false
+  resume_from_checkpoint: null
+  save_optimizer_state: true
+
+metrics:
+  compute_every_n_epochs: 20  # FID every 20 epochs
+  num_samples_for_metrics: 50
+  fid:
+    enabled: true
+    target_threshold: 50.0
+  ssim:
+    enabled: true
+    target_threshold: 0.70
+  lpips:
+    enabled: true
+    target_threshold: 0.30
+    network: "alex"
+  inception_score:
+    enabled: true
+    target_threshold: 2.0
+
+logging:
+  logging_dir: "agent_communication/generative_augmentation/reports/full_sdxl_logs"
+  log_every_n_steps: 50  # Log every 50 steps
+  save_samples_every_n_epochs: 60  # Save samples every 60 epochs
+  num_samples_to_save: 16
+  use_tensorboard: true
+  use_wandb: false
+
+hardware:
+  multi_gpu: true
+  num_gpus: 2
+  mixed_precision: "no"  # fp16 causes errors
+  gradient_checkpointing: true
+  use_xformers: false  # SDXL attention dim incompatible
+  enable_cpu_offload: false
+  num_workers: 8
+  pin_memory: true
+
+reproducibility:
+  seed: 42
+  deterministic: false
+
+validation:
+  validate_every_n_epochs: 10  # Validate every 10 epochs
+  generate_samples: true  # Enable sample generation
+  num_validation_samples: 4
+  compare_to_real: true
+  num_real_samples_for_comparison: 50
