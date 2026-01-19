@@ -1,12 +1,13 @@
 # Training Configuration for Phase R (Remodeling) - 128x128 Resolution
-# High-quality wound generation using Stable Diffusion v2.1 Base + LoRA
+# High-quality wound generation using Stable Diffusion XL 1.0 + LoRA
 
 # ==============================================================================
 # Model Configuration
 # ==============================================================================
 model:
-  # Base model: SD v2.1 Base provides better quality than v1.5
-  base_model: "stabilityai/stable-diffusion-2-1-base"
+  # Base model: SDXL 1.0 (2.6B params, officially supported, not deprecated)
+  # Note: SD 2.1 was deprecated by Stability AI in 2025, SDXL provides superior quality
+  base_model: "stabilityai/stable-diffusion-xl-base-1.0"
 
   # Resolution: 128x128 for better detail than 64x64
   resolution: 128
@@ -73,10 +74,11 @@ data:
 # ==============================================================================
 training:
   # Batch size per GPU (total batch = batch_size_per_gpu * num_gpus)
-  batch_size_per_gpu: 8
+  # Note: SDXL is larger than SD2.1, reduced from 8 to 4 per GPU
+  batch_size_per_gpu: 4
 
   # Gradient accumulation steps (effective_batch = batch_size * accumulation)
-  gradient_accumulation_steps: 2  # Effective batch = 8 * 2 * 2 GPUs = 32
+  gradient_accumulation_steps: 4  # Effective batch = 4 * 4 * 2 GPUs = 32
 
   # Learning rate
   learning_rate: 1.0e-5

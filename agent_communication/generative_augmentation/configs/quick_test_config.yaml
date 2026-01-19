@@ -5,7 +5,8 @@
 # Model Configuration
 # ==============================================================================
 model:
-  base_model: "stabilityai/stable-diffusion-2-1-base"
+  # Using SDXL 1.0 (SD 2.1 was deprecated in 2025)
+  base_model: "stabilityai/stable-diffusion-xl-base-1.0"
   resolution: 128
   training_method: "lora"
 

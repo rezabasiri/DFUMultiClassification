@@ -126,9 +126,10 @@ accelerate launch scripts/train_lora_model.py --config configs/phase_I_config.ya
 **Model:**
 ```yaml
 model:
-  base_model: "stabilityai/stable-diffusion-2-1-base"
+  base_model: "stabilityai/stable-diffusion-xl-base-1.0"  # SDXL 1.0 (2.6B params)
   resolution: 128
 ```
+*Note: Originally planned SD 2.1, but it was deprecated in 2025. SDXL 1.0 is superior. See `MODEL_UPDATE.md`.*
 
 **LoRA:**
 ```yaml
@@ -141,7 +142,7 @@ lora:
 **Training:**
 ```yaml
 training:
-  batch_size_per_gpu: 8
+  batch_size_per_gpu: 4   # Reduced for SDXL (larger model)
   learning_rate: 1.0e-5
   max_epochs: 100
   early_stopping:
