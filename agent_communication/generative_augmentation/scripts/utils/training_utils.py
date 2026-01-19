@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 import copy
 from pathlib import Path
 
