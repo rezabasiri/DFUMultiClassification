@@ -1,0 +1,32 @@
+# Core dependencies for high-quality wound image generation training
+
+# Deep Learning Frameworks
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Diffusion Models
+diffusers>=0.25.0
+transformers>=4.30.0
+accelerate>=0.20.0
+
+# LoRA and PEFT
+peft>=0.4.0
+
+# Quality Metrics
+torchmetrics>=1.0.0
+lpips>=0.1.4
+
+# Data and Utilities
+pillow>=9.0.0
+pandas>=1.5.0
+numpy>=1.23.0
+pyyaml>=6.0
+tqdm>=4.65.0
+
+# Optional but Recommended
+xformers>=0.0.20  # Memory-efficient attention
+wandb>=0.15.0     # Experiment tracking (optional)
+tensorboard>=2.13.0  # Training visualization
+
+# Development
+jupyter>=1.0.0  # For notebooks (optional)
