@@ -46,6 +46,8 @@ training:
     enabled: true
     patience: 30  # Stop if no improvement for 30 epochs
     min_delta: 0.01
+    monitor: "val_loss"  # Metric to monitor for early stopping
+    mode: "min"  # "min" for loss, "max" for accuracy
 
 prompts:
   enabled: true
