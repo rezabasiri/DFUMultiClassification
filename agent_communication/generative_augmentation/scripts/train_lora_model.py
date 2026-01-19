@@ -99,9 +99,10 @@ def load_base_models(config: dict, accelerator: Accelerator):
     model_id = config['model']['base_model']
     is_sdxl = 'xl' in model_id.lower()
 
-    print(f"Loading base model: {model_id}")
-    if is_sdxl:
-        print("Detected SDXL model - loading dual text encoders")
+    if accelerator.is_main_process:
+        print(f"Loading base model: {model_id}")
+        if is_sdxl:
+            print("Detected SDXL model - loading dual text encoders")
 
     # Load VAE
     vae = AutoencoderKL.from_pretrained(
@@ -179,12 +180,13 @@ def load_base_models(config: dict, accelerator: Accelerator):
     # Enable gradient checkpointing if requested (saves memory)
     if config['hardware']['gradient_checkpointing']:
         unet.enable_gradient_checkpointing()
-        print("Enabled gradient checkpointing")
+        if accelerator.is_main_process:
+            print("Enabled gradient checkpointing")
 
     return vae, text_encoder, tokenizer, unet, noise_scheduler, text_encoder_2, tokenizer_2
 
 
-def setup_lora(unet, config: dict):
+def setup_lora(unet, config: dict, accelerator: Accelerator):
     """
     Add LoRA adapters to UNet
 
@@ -211,10 +213,11 @@ def setup_lora(unet, config: dict):
     trainable_params = sum(p.numel() for p in unet_lora.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in unet_lora.parameters())
 
-    print(f"LoRA Configuration:")
-    print(f"  Rank: {config['lora']['rank']}")
-    print(f"  Alpha: {config['lora']['alpha']}")
-    print(f"  Trainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
+    if accelerator.is_main_process:
+        print(f"LoRA Configuration:")
+        print(f"  Rank: {config['lora']['rank']}")
+        print(f"  Alpha: {config['lora']['alpha']}")
+        print(f"  Trainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
 
     return unet_lora
 
@@ -279,13 +282,9 @@ def train_one_epoch(
     total_loss = 0.0
     num_batches = 0
 
-    progress_bar = tqdm(
-        train_loader,
-        disable=not accelerator.is_local_main_process,
-        desc=f"Epoch {epoch}"
-    )
+    num_batches_total = len(train_loader)
 
-    for batch_idx, batch in enumerate(progress_bar):
+    for batch_idx, batch in enumerate(train_loader):
         with accelerator.accumulate(unet_lora):
             # Get latents from VAE
             pixel_values = batch['pixel_values'].to(device=vae.device, dtype=vae.dtype)
@@ -311,19 +310,29 @@ def train_one_epoch(
             input_ids = batch['input_ids'].to(text_encoder.device)
             encoder_hidden_states = text_encoder(input_ids)[0]
 
-            # SDXL-specific: Compute pooled embeddings and time_ids
+            # SDXL-specific: Concatenate embeddings and compute pooled embeddings/time_ids
             added_cond_kwargs = None
             if is_sdxl and text_encoder_2 is not None:
-                # Get pooled embeddings from second text encoder
+                # Get hidden states from second text encoder
                 input_ids_2 = batch['input_ids'].to(text_encoder_2.device)
-                pooled_embeds = text_encoder_2(input_ids_2, output_hidden_states=False)[0]
+                encoder_output_2 = text_encoder_2(input_ids_2, output_hidden_states=True)
+                encoder_hidden_states_2 = encoder_output_2.hidden_states[-2]  # Penultimate layer
+
+                # Concatenate embeddings from both encoders (CLIP-L 768 + OpenCLIP 1280 = 2048)
+                encoder_hidden_states = torch.cat([
+                    encoder_hidden_states.to(accelerator.device),
+                    encoder_hidden_states_2.to(accelerator.device)
+                ], dim=-1)
+
+                # Get pooled embeddings from second text encoder
+                pooled_embeds = encoder_output_2[0]
 
                 # Create time_ids (original_size, crops_coords_top_left, target_size)
                 # Format: [original_h, original_w, crops_top, crops_left, target_h, target_w]
                 resolution = config['model']['resolution']
                 time_ids = torch.tensor([
                     [resolution, resolution, 0, 0, resolution, resolution]
-                ]).repeat(batch_size, 1).to(accelerator.device, dtype=encoder_hidden_states.dtype)
+                ]).repeat(batch_size, 1).to(accelerator.device, dtype=torch.long)
 
                 added_cond_kwargs = {
                     "text_embeds": pooled_embeds.to(accelerator.device),
@@ -353,18 +362,24 @@ def train_one_epoch(
                 # Decode predictions to image space for perceptual loss
                 with torch.no_grad():
                     # Remove noise from latents using model prediction
+                    # Ensure all inputs are on the same device
                     pred_latents = noise_scheduler.step(
-                        model_pred,
-                        timesteps[0],
-                        noisy_latents
+                        model_pred.to(accelerator.device),
+                        timesteps[0].to(accelerator.device),
+                        noisy_latents.to(accelerator.device)
                     ).pred_original_sample
 
                     # Decode to image space
-                    pred_images = vae.decode(pred_latents / vae.config.scaling_factor).sample
-                    target_images = batch['pixel_values']
+                    pred_images = vae.decode(
+                        (pred_latents / vae.config.scaling_factor).to(device=vae.device, dtype=vae.dtype)
+                    ).sample
+                    target_images = batch['pixel_values'].to(device=vae.device, dtype=vae.dtype)
 
-                # Compute perceptual loss
-                perc_loss = perceptual_loss_fn(pred_images, target_images)
+                # Compute perceptual loss (move to accelerator device)
+                perc_loss = perceptual_loss_fn(
+                    pred_images.to(accelerator.device),
+                    target_images.to(accelerator.device)
+                )
                 loss = loss + config['quality']['perceptual_loss']['weight'] * perc_loss
 
             # Backward pass
@@ -384,15 +399,14 @@ def train_one_epoch(
             if ema_model is not None and accelerator.sync_gradients:
                 ema_model.update(unet_lora)
 
-        # Update progress bar
+        # Update progress
         total_loss += loss.detach().item()
         num_batches += 1
-        progress_bar.set_postfix({
-            'loss': total_loss / num_batches,
-            'lr': optimizer.param_groups[0]['lr']
-        })
 
+    # Print final epoch results
     avg_loss = total_loss / num_batches
+    if accelerator.is_main_process:
+        print(f"  Epoch {epoch+1} complete - Loss: {avg_loss:.4f}, LR: {optimizer.param_groups[0]['lr']:.2e}")
     return avg_loss
 
 
@@ -427,7 +441,8 @@ def validate(
     total_loss = 0.0
     num_batches = 0
 
-    for batch in tqdm(val_loader, disable=not accelerator.is_local_main_process, desc="Validation"):
+    num_val_batches = len(val_loader)
+    for batch_idx, batch in enumerate(val_loader):
         # Get latents
         pixel_values = batch['pixel_values'].to(device=vae.device, dtype=vae.dtype)
         latents = vae.encode(pixel_values).latent_dist.sample()
@@ -452,18 +467,28 @@ def validate(
         input_ids = batch['input_ids'].to(text_encoder.device)
         encoder_hidden_states = text_encoder(input_ids)[0]
 
-        # SDXL-specific: Compute pooled embeddings and time_ids
+        # SDXL-specific: Concatenate embeddings and compute pooled embeddings/time_ids
         added_cond_kwargs = None
         if is_sdxl and text_encoder_2 is not None:
-            # Get pooled embeddings from second text encoder
+            # Get hidden states from second text encoder
             input_ids_2 = batch['input_ids'].to(text_encoder_2.device)
-            pooled_embeds = text_encoder_2(input_ids_2, output_hidden_states=False)[0]
+            encoder_output_2 = text_encoder_2(input_ids_2, output_hidden_states=True)
+            encoder_hidden_states_2 = encoder_output_2.hidden_states[-2]  # Penultimate layer
+
+            # Concatenate embeddings from both encoders (CLIP-L 768 + OpenCLIP 1280 = 2048)
+            encoder_hidden_states = torch.cat([
+                encoder_hidden_states.to(accelerator.device),
+                encoder_hidden_states_2.to(accelerator.device)
+            ], dim=-1)
+
+            # Get pooled embeddings from second text encoder
+            pooled_embeds = encoder_output_2[0]
 
             # Create time_ids
             resolution = config['model']['resolution']
             time_ids = torch.tensor([
                 [resolution, resolution, 0, 0, resolution, resolution]
-            ]).repeat(batch_size, 1).to(accelerator.device, dtype=encoder_hidden_states.dtype)
+            ]).repeat(batch_size, 1).to(accelerator.device, dtype=torch.long)
 
             added_cond_kwargs = {
                 "text_embeds": pooled_embeds.to(accelerator.device),
@@ -485,6 +510,8 @@ def validate(
         num_batches += 1
 
     avg_loss = total_loss / num_batches
+    if accelerator.is_main_process:
+        print(f"  Validation: {num_val_batches} batches - Loss: {avg_loss:.4f}")
     return avg_loss
 
 
@@ -500,7 +527,10 @@ def generate_validation_samples(
     config: dict,
     num_samples: int = 8,
     use_ema: bool = False,
-    ema_model=None
+    ema_model=None,
+    text_encoder_2=None,
+    tokenizer_2=None,
+    is_sdxl=False
 ) -> torch.Tensor:
     """
     Generate sample images for visual inspection
@@ -514,17 +544,29 @@ def generate_validation_samples(
     else:
         unet_to_use = unet_lora
 
-    # Create pipeline for generation
-    pipeline = StableDiffusionPipeline(
-        vae=vae,
-        text_encoder=text_encoder,
-        tokenizer=tokenizer,
-        unet=accelerator.unwrap_model(unet_to_use),
-        scheduler=noise_scheduler,
-        safety_checker=None,
-        feature_extractor=None,
-        requires_safety_checker=False
-    )
+    # Create pipeline for generation (SDXL vs SD 1.5/2.x)
+    if is_sdxl:
+        from diffusers import StableDiffusionXLPipeline
+        pipeline = StableDiffusionXLPipeline(
+            vae=vae,
+            text_encoder=text_encoder,
+            text_encoder_2=text_encoder_2,
+            tokenizer=tokenizer,
+            tokenizer_2=tokenizer_2,
+            unet=accelerator.unwrap_model(unet_to_use),
+            scheduler=noise_scheduler,
+        )
+    else:
+        pipeline = StableDiffusionPipeline(
+            vae=vae,
+            text_encoder=text_encoder,
+            tokenizer=tokenizer,
+            unet=accelerator.unwrap_model(unet_to_use),
+            scheduler=noise_scheduler,
+            safety_checker=None,
+            feature_extractor=None,
+            requires_safety_checker=False
+        )
 
     pipeline = pipeline.to(accelerator.device)
     pipeline.set_progress_bar_config(disable=True)
@@ -583,15 +625,17 @@ def main():
     # Load configuration
     config = load_config(args.config)
 
-    print("=" * 80)
-    print(f"Training Configuration: {args.config}")
-    print(f"Phase: {config['data']['phase']}")
-    print(f"Modality: {config['data']['modality']}")
-    print(f"Resolution: {config['model']['resolution']}")
-    print("=" * 80)
-
-    # Setup accelerator
+    # Setup accelerator first (needed for is_main_process checks)
     accelerator = setup_accelerator(config)
+
+    # Only print from main process to avoid duplicates
+    if accelerator.is_main_process:
+        print("=" * 80)
+        print(f"Training Configuration: {args.config}")
+        print(f"Phase: {config['data']['phase']}")
+        print(f"Modality: {config['data']['modality']}")
+        print(f"Resolution: {config['model']['resolution']}")
+        print("=" * 80)
 
     # Set random seed
     if 'seed' in config['reproducibility']:
@@ -603,7 +647,7 @@ def main():
     is_sdxl = text_encoder_2 is not None
 
     # Setup LoRA
-    unet_lora = setup_lora(unet, config)
+    unet_lora = setup_lora(unet, config, accelerator)
 
     # Setup perceptual loss
     perceptual_loss_fn = None
@@ -612,7 +656,8 @@ def main():
             layer_index=config['quality']['perceptual_loss']['vgg_layer'],
             device=accelerator.device
         )
-        print("Enabled perceptual loss")
+        if accelerator.is_main_process:
+            print("Enabled perceptual loss")
 
     # Setup EMA
     ema_model = None
@@ -622,7 +667,8 @@ def main():
             decay=config['quality']['ema']['decay'],
             device=accelerator.device
         )
-        print("Enabled EMA")
+        if accelerator.is_main_process:
+            print("Enabled EMA")
 
     # Create dataloaders
     train_loader, val_loader, train_size, val_size = create_dataloaders(
@@ -639,6 +685,24 @@ def main():
         num_workers=config['hardware']['num_workers'],
         pin_memory=config['hardware']['pin_memory']
     )
+
+    # TESTING: Limit dataset size if max_train_samples is specified
+    if 'max_train_samples' in config['training'] and config['training']['max_train_samples'] is not None:
+        max_samples = config['training']['max_train_samples']
+        if train_size > max_samples:
+            from torch.utils.data import Subset
+            # Limit train dataset to first max_samples
+            train_dataset = train_loader.dataset
+            train_dataset = Subset(train_dataset, range(min(max_samples, len(train_dataset))))
+            train_loader = torch.utils.data.DataLoader(
+                train_dataset,
+                batch_size=config['training']['batch_size_per_gpu'],
+                shuffle=True,
+                num_workers=config['hardware']['num_workers'],
+                pin_memory=config['hardware']['pin_memory']
+            )
+            train_size = len(train_dataset)
+            print(f"Limited train set to {train_size} samples for fast testing")
 
     # Setup optimizer
     optimizer = get_optimizer(
@@ -667,6 +731,8 @@ def main():
     )
 
     # Setup checkpoint manager
+    # Use val_fid for best checkpoint tracking (proper metric for generative models)
+    # CPU offloading during FID computation prevents OOM
     checkpoint_manager = CheckpointManager(
         output_dir=config['checkpointing']['output_dir'],
         keep_last_n=config['checkpointing']['keep_last_n_checkpoints'],
@@ -714,13 +780,15 @@ def main():
         print(f"Resumed from epoch {start_epoch}")
 
     # Training loop
-    print("\nStarting training...")
-    print(f"Training on {accelerator.num_processes} GPUs")
-    print(f"Total epochs: {config['training']['max_epochs']}")
-    print(f"Effective batch size: {config['training']['batch_size_per_gpu'] * accelerator.num_processes * config['training']['gradient_accumulation_steps']}")
+    if accelerator.is_main_process:
+        print("\nStarting training...")
+        print(f"Training on {accelerator.num_processes} GPUs")
+        print(f"Total epochs: {config['training']['max_epochs']}")
+        print(f"Effective batch size: {config['training']['batch_size_per_gpu'] * accelerator.num_processes * config['training']['gradient_accumulation_steps']}")
 
     for epoch in range(start_epoch, config['training']['max_epochs']):
-        print(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
+        if accelerator.is_main_process:
+            print(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
 
         # Train
         train_loss = train_one_epoch(
@@ -740,7 +808,8 @@ def main():
             is_sdxl=is_sdxl
         )
 
-        print(f"Train loss: {train_loss:.4f}")
+        if accelerator.is_main_process:
+            print(f"Train loss: {train_loss:.4f}")
 
         # Validate
         if (epoch + 1) % config['validation']['validate_every_n_epochs'] == 0:
@@ -758,36 +827,86 @@ def main():
                 is_sdxl=is_sdxl
             )
 
-            print(f"Val loss: {val_loss:.4f}")
-
-            # Generate validation samples and compute metrics
+            # Generate validation samples and compute metrics (only on main process to save memory)
             val_metrics = None
             if reference_images is not None and (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0:
-                print("Computing quality metrics...")
+                if accelerator.is_main_process:
+                    print("Computing quality metrics...")
+                    print("  Offloading training models to CPU to free GPU memory...")
 
-                # Generate samples
-                generated_images = generate_validation_samples(
-                    epoch=epoch,
-                    unet_lora=unet_lora,
-                    vae=vae,
-                    text_encoder=text_encoder,
-                    tokenizer=tokenizer,
-                    noise_scheduler=noise_scheduler,
-                    accelerator=accelerator,
-                    config=config,
-                    num_samples=config['metrics']['num_samples_for_metrics'],
-                    use_ema=config['quality']['ema'].get('use_ema_weights_for_inference', False),
-                    ema_model=ema_model
-                )
+                    # Offload training models to CPU temporarily to free GPU memory
+                    import gc
 
-                # Compute metrics
-                val_metrics = quality_metrics.compute_all_metrics(
-                    generated_images=generated_images,
-                    real_images=reference_images,
-                    compute_is=config['metrics']['inception_score']['enabled']
-                )
+                    # Get the original device
+                    original_device = accelerator.device
 
-                print(quality_metrics.format_metrics(val_metrics))
+                    # Move large models to CPU
+                    unwrapped_unet = accelerator.unwrap_model(unet_lora)
+                    unwrapped_unet.to('cpu')
+                    vae.to('cpu')
+                    text_encoder.to('cpu')
+                    if text_encoder_2 is not None:
+                        text_encoder_2.to('cpu')
+                    if ema_model is not None:
+                        ema_model.ema_model.to('cpu')
+
+                    # Clear GPU cache
+                    torch.cuda.empty_cache()
+                    gc.collect()
+
+                    print("  Generating samples for FID computation...")
+
+                    # Generate samples (will reload models to GPU inside the function)
+                    generated_images = generate_validation_samples(
+                        epoch=epoch,
+                        unet_lora=unet_lora,
+                        vae=vae,
+                        text_encoder=text_encoder,
+                        tokenizer=tokenizer,
+                        noise_scheduler=noise_scheduler,
+                        accelerator=accelerator,
+                        config=config,
+                        num_samples=config['metrics']['num_samples_for_metrics'],
+                        use_ema=config['quality']['ema'].get('use_ema_weights_for_inference', False),
+                        ema_model=ema_model,
+                        text_encoder_2=text_encoder_2,
+                        tokenizer_2=tokenizer_2,
+                        is_sdxl=is_sdxl
+                    )
+
+                    print("  Computing FID and other metrics...")
+                    # Compute metrics
+                    val_metrics = quality_metrics.compute_all_metrics(
+                        generated_images=generated_images,
+                        real_images=reference_images,
+                        compute_is=config['metrics']['inception_score']['enabled']
+                    )
+
+                    print(quality_metrics.format_metrics(val_metrics))
+
+                    # Print val_loss and val_fid together
+                    val_fid = val_metrics.get('fid', 0)
+                    print(f"Val loss: {val_loss:.4f}, Val FID: {val_fid:.2f}")
+
+                    print("  Restoring training models to GPU...")
+                    # Move models back to GPU for next training epoch
+                    unwrapped_unet.to(original_device)
+                    vae.to(original_device)
+                    text_encoder.to(original_device)
+                    if text_encoder_2 is not None:
+                        text_encoder_2.to(original_device)
+                    if ema_model is not None:
+                        ema_model.ema_model.to(original_device)
+
+                    torch.cuda.empty_cache()
+                else:
+                    print(f"Val loss: {val_loss:.4f}")
+
+                # Wait for main process to finish metrics computation
+                accelerator.wait_for_everyone()
+            else:
+                if accelerator.is_main_process:
+                    print(f"Val loss: {val_loss:.4f}")
 
             # Update metrics tracker
             metrics_tracker.update(
@@ -801,23 +920,32 @@ def main():
             # Check early stopping
             if early_stopping is not None and val_metrics is not None:
                 if early_stopping.update(epoch, val_metrics):
-                    print("Early stopping triggered")
+                    if accelerator.is_main_process:
+                        print("Early stopping triggered")
                     break
 
         # Save checkpoint
         if (epoch + 1) % config['checkpointing']['save_every_n_epochs'] == 0:
             if accelerator.is_main_process:
+                # Prepare metrics for checkpoint
+                checkpoint_metrics = {'train_loss': train_loss}
+                if 'val_loss' in locals():
+                    checkpoint_metrics['val_loss'] = val_loss
+                if val_metrics is not None:
+                    checkpoint_metrics.update(val_metrics)
+
                 checkpoint_manager.save_checkpoint(
                     epoch=epoch,
                     unet_lora=accelerator.unwrap_model(unet_lora),
                     optimizer=optimizer,
                     lr_scheduler=lr_scheduler,
                     ema_model=ema_model,
-                    metrics={'train_loss': train_loss, 'val_loss': val_loss} if 'val_loss' in locals() else None,
+                    metrics=checkpoint_metrics,
                     config=config
                 )
 
-    print("\nTraining complete!")
+    if accelerator.is_main_process:
+        print("\nTraining complete!")
 
     # Save final checkpoint
     if accelerator.is_main_process:

@@ -75,7 +75,10 @@ class PerceptualLoss(nn.Module):
         Returns:
             Normalized images
         """
-        return (x - self.mean) / self.std
+        # Ensure mean and std are on same device as input
+        mean = self.mean.to(x.device)
+        std = self.std.to(x.device)
+        return (x - mean) / std
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -136,6 +139,7 @@ class EMAModel:
 
         # Create EMA copy of model
         self.ema_model = copy.deepcopy(model)
+        self.ema_model.to(self.device)
         self.ema_model.eval()
 
         # Freeze EMA parameters
@@ -156,8 +160,9 @@ class EMAModel:
             self.ema_model.parameters(),
             model.parameters()
         ):
+            # Ensure both parameters are on the same device
             ema_param.data.mul_(self.decay).add_(
-                model_param.data,
+                model_param.data.to(ema_param.device),
                 alpha=1 - self.decay
             )
 

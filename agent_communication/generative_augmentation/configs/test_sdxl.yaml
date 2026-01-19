@@ -1,4 +1,4 @@
-# Quick Test: SDXL 1.0 Base - 128x128
+# Quick Test: SDXL 1.0 Base - 128x128 (multi-GPU testing)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
   resolution: 128
@@ -33,7 +33,7 @@ training:
   gradient_accumulation_steps: 1
   learning_rate: 1.0e-5
   lr_scheduler: "constant"
-  lr_warmup_steps: 10
+  lr_warmup_steps: 5
   lr_num_cycles: 1
   optimizer: "adamw"
   adam_beta1: 0.9
@@ -41,9 +41,10 @@ training:
   adam_weight_decay: 0.01
   adam_epsilon: 1.0e-8
   max_grad_norm: 1.0
-  max_epochs: 3  # Quick test: 3 epochs
+  max_epochs: 2  # Quick test: just 2 epochs
   early_stopping:
     enabled: false
+  max_train_samples: 16  # TESTING: Use only 16 images for fast testing
 
 prompts:
   enabled: true
@@ -58,11 +59,11 @@ prompts:
 
 quality:
   perceptual_loss:
-    enabled: true
+    enabled: true  # Re-enabled
     weight: 0.1
     vgg_layer: 16
   ema:
-    enabled: true
+    enabled: true  # Re-enabled
     decay: 0.9999
     use_ema_weights_for_inference: true
   guidance_scale: 12.0
@@ -78,8 +79,8 @@ checkpointing:
   save_optimizer_state: true
 
 metrics:
-  compute_every_n_epochs: 1
-  num_samples_for_metrics: 50
+  compute_every_n_epochs: 1  # Enabled with CPU offloading to prevent OOM
+  num_samples_for_metrics: 5  # Reduced from 10 to 5 for faster computation
   fid:
     enabled: true
     target_threshold: 50.0
@@ -103,13 +104,13 @@ logging:
   use_wandb: false
 
 hardware:
-  multi_gpu: false  # Single GPU for testing
-  num_gpus: 1
-  mixed_precision: "fp16"
+  multi_gpu: true  # Enable multi-GPU training
+  num_gpus: 2  # Use both RTX 4090s
+  mixed_precision: "no"  # Disabled for testing - FP16 may cause NaN
   gradient_checkpointing: true
   use_xformers: false  # Disabled - SDXL attention dim (512) exceeds xformers limit (256)
   enable_cpu_offload: false
-  num_workers: 4
+  num_workers: 8  # Increased for multi-GPU
   pin_memory: true
 
 reproducibility:
@@ -118,7 +119,7 @@ reproducibility:
 
 validation:
   validate_every_n_epochs: 1
-  generate_samples: true
-  num_validation_samples: 8
-  compare_to_real: true
-  num_real_samples_for_comparison: 50
+  generate_samples: false  # Disabled for fast testing
+  num_validation_samples: 4
+  compare_to_real: true  # Enabled for FID computation
+  num_real_samples_for_comparison: 10
