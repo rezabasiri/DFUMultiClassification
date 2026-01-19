@@ -248,7 +248,8 @@ def create_dataloaders(
     phase_prompts: Optional[Dict[str, str]] = None,
     augmentation: Optional[Dict] = None,
     num_workers: int = 4,
-    pin_memory: bool = True
+    pin_memory: bool = True,
+    max_samples: Optional[int] = None
 ) -> Tuple[DataLoader, DataLoader, int, int]:
     """
     Create train and validation dataloaders
@@ -267,6 +268,7 @@ def create_dataloaders(
         augmentation: Dict of augmentation parameters
         num_workers: Number of dataloader workers
         pin_memory: Whether to pin memory for faster GPU transfer
+        max_samples: Optional limit on total samples (for testing)
 
     Returns:
         (train_loader, val_loader, train_size, val_size)
@@ -283,8 +285,16 @@ def create_dataloaders(
         augmentation=augmentation
     )
 
-    # Split into train/val
+    # Limit samples if requested (for testing)
     total_size = len(dataset)
+    if max_samples is not None and max_samples < total_size:
+        print(f"Limiting dataset from {total_size} to {max_samples} samples (TEST MODE)")
+        generator = torch.Generator().manual_seed(split_seed)
+        indices = torch.randperm(total_size, generator=generator)[:max_samples].tolist()
+        dataset = torch.utils.data.Subset(dataset, indices)
+        total_size = max_samples
+
+    # Split into train/val
     train_size = int(train_val_split * total_size)
     val_size = total_size - train_size
 
@@ -326,7 +336,8 @@ def load_reference_images(
     phase: str,
     resolution: int,
     num_images: Optional[int] = None,
-    seed: int = 42
+    seed: int = 42,
+    verbose: bool = True
 ) -> torch.Tensor:
     """
     Load a set of reference images for quality comparison
@@ -338,6 +349,7 @@ def load_reference_images(
         resolution: Target resolution
         num_images: Number of images to load (None = all)
         seed: Random seed for sampling
+        verbose: Whether to print progress messages
 
     Returns:
         Tensor of reference images [N, C, H, W] in [0, 1] range
@@ -382,7 +394,8 @@ def load_reference_images(
     # Stack into batch
     images_tensor = torch.stack(images)
 
-    print(f"Loaded {len(images)} reference images from {image_dir}")
+    if verbose:
+        print(f"Loaded {len(images)} reference images from {image_dir}")
 
     return images_tensor
 

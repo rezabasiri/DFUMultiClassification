@@ -740,7 +740,8 @@ def main():
         phase_prompts=phase_prompts,
         augmentation=config['data']['augmentation'],
         num_workers=config['hardware']['num_workers'],
-        pin_memory=config['hardware']['pin_memory']
+        pin_memory=config['hardware']['pin_memory'],
+        max_samples=config['data'].get('max_samples', None)
     )
 
     # TESTING: Limit dataset size if max_train_samples is specified
@@ -889,7 +890,8 @@ def main():
                     modality=config['data']['modality'],
                     phase=config['data']['phase'],
                     resolution=config['model']['resolution'],
-                    num_images=config['validation']['num_real_samples_for_comparison']
+                    num_images=config['validation']['num_real_samples_for_comparison'],
+                    verbose=accelerator.is_main_process
                 ).to(accelerator.device)
 
                 # Move quality metrics models to GPU (all processes need them)
@@ -974,7 +976,8 @@ def main():
                 val_metrics = quality_metrics.compute_all_metrics(
                     generated_images=generated_images,
                     real_images=reference_images,
-                    compute_is=config['metrics']['inception_score']['enabled']
+                    compute_is=config['metrics']['inception_score']['enabled'],
+                    verbose=accelerator.is_main_process
                 )
 
                 # Clean up memory before restoring models
@@ -1044,9 +1047,12 @@ def main():
                 learning_rate=optimizer.param_groups[0]['lr']
             )
 
-            # Check early stopping
-            if early_stopping is not None and val_metrics is not None:
-                if early_stopping.update(epoch, val_metrics):
+            # Check early stopping - include val_loss in metrics dict
+            if early_stopping is not None:
+                early_stop_metrics = {'val_loss': val_loss}
+                if val_metrics is not None:
+                    early_stop_metrics.update(val_metrics)
+                if early_stopping.update(epoch, early_stop_metrics):
                     if accelerator.is_main_process:
                         print("Early stopping triggered")
                     break
