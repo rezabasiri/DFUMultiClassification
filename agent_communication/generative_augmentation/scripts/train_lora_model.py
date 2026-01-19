@@ -616,6 +616,11 @@ def generate_validation_samples(
     if hasattr(pipeline, 'text_encoder_2') and pipeline.text_encoder_2 is not None:
         pipeline.text_encoder_2.to('cpu')
 
+    # CRITICAL: Reset the noise scheduler timesteps for training
+    # The pipeline modifies scheduler.timesteps during inference, which breaks training
+    # Set timesteps to the full training steps to restore proper state
+    noise_scheduler.set_timesteps(noise_scheduler.config.num_train_timesteps, device=accelerator.device)
+
     del pipeline
 
     # Aggressive memory cleanup
@@ -682,16 +687,17 @@ def main():
         if accelerator.is_main_process:
             print("Enabled perceptual loss")
 
-    # Setup EMA
+    # Setup EMA - keep on CPU to save GPU memory (~2.5GB for SDXL)
+    # EMA will be moved to GPU only during sample generation
     ema_model = None
     if config['quality']['ema']['enabled']:
         ema_model = EMAModel(
             unet_lora,
             decay=config['quality']['ema']['decay'],
-            device=accelerator.device
+            device='cpu'  # Keep EMA on CPU to save GPU memory
         )
         if accelerator.is_main_process:
-            print("Enabled EMA")
+            print("Enabled EMA (on CPU to save GPU memory)")
 
     # Create dataloaders
     train_loader, val_loader, train_size, val_size = create_dataloaders(
@@ -764,16 +770,9 @@ def main():
         monitor_mode='min'
     )
 
-    # Load reference images for quality metrics
+    # Reference images are loaded on-demand during metrics computation (not here)
+    # This saves GPU memory - reference_images are loaded, used, then freed each time
     reference_images = None
-    if config['validation']['compare_to_real']:
-        reference_images = load_reference_images(
-            data_root=config['data']['data_root'],
-            modality=config['data']['modality'],
-            phase=config['data']['phase'],
-            resolution=config['model']['resolution'],
-            num_images=config['validation']['num_real_samples_for_comparison']
-        ).to(accelerator.device)
 
     # Setup quality metrics
     quality_metrics = QualityMetrics(device=accelerator.device)
@@ -836,6 +835,8 @@ def main():
 
         # Validate
         if (epoch + 1) % config['validation']['validate_every_n_epochs'] == 0:
+            # NOTE: Validation uses the current model weights (not EMA) because EMA is
+            # kept on CPU to save GPU memory. EMA is only moved to GPU for sample generation.
             val_loss = validate(
                 unet_lora=unet_lora,
                 vae=vae,
@@ -844,8 +845,8 @@ def main():
                 val_loader=val_loader,
                 accelerator=accelerator,
                 config=config,
-                use_ema=config['quality']['ema'].get('use_ema_weights_for_inference', False),
-                ema_model=ema_model,
+                use_ema=False,  # Don't use EMA for validation (EMA is on CPU)
+                ema_model=None,
                 text_encoder_2=text_encoder_2,
                 is_sdxl=is_sdxl
             )
@@ -853,7 +854,17 @@ def main():
             # Generate validation samples and compute metrics
             # NOTE: ALL processes must participate in FID computation due to distributed sync in torchmetrics
             val_metrics = None
-            if reference_images is not None and (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0:
+            if config['validation']['compare_to_real'] and (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0:
+                # Load reference images for this metrics computation (freed after each computation to save GPU memory)
+                print(f"[SYNC DEBUG] Process {accelerator.process_index} loading reference images...")
+                reference_images = load_reference_images(
+                    data_root=config['data']['data_root'],
+                    modality=config['data']['modality'],
+                    phase=config['data']['phase'],
+                    resolution=config['model']['resolution'],
+                    num_images=config['validation']['num_real_samples_for_comparison']
+                ).to(accelerator.device)
+
                 # Move quality metrics models to GPU (all processes need them)
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} moving quality metrics to GPU...")
                 quality_metrics.fid_metric.to(accelerator.device)
@@ -874,21 +885,28 @@ def main():
                 original_device = accelerator.device
 
                 # Move large models to CPU (all processes)
-                # Note: We don't offload EMA to avoid memory fragmentation when restoring
-                # EMA is a copy of UNet (~2GB for SDXL), keeping it on CPU/GPU is fine
+                # CRITICAL: Offload ALL models including EMA to free GPU memory for metrics
                 unwrapped_unet = accelerator.unwrap_model(unet_lora)
                 unwrapped_unet.to('cpu')
+                torch.cuda.empty_cache()  # Free memory immediately after each offload
+
                 vae.to('cpu')
+                torch.cuda.empty_cache()
+
                 text_encoder.to('cpu')
+                torch.cuda.empty_cache()
+
                 if text_encoder_2 is not None:
                     text_encoder_2.to('cpu')
-                # EMA stays on its current device (either CPU or GPU) - don't move it
-                # if ema_model is not None:
-                #     ema_model.ema_model.to('cpu')  # SKIP: Causes OOM on restore due to fragmentation
+                    torch.cuda.empty_cache()
 
-                # Clear GPU cache
-                torch.cuda.empty_cache()
+                # NOTE: EMA model is NOT offloaded here because it will be kept on CPU
+                # during training and only moved to GPU during sample generation.
+                # This saves GPU memory for the training models.
+
+                # Clear GPU cache and run garbage collection
                 gc.collect()
+                torch.cuda.empty_cache()
 
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} finished offloading models")
 
@@ -948,6 +966,13 @@ def main():
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} cleaning up memory...")
                 del generated_images  # Free generated images (no longer needed)
 
+                # Free reference_images on ALL processes to reclaim GPU memory
+                # This is critical because reference_images stays on GPU and takes ~50-100MB
+                # We'll reload them next time metrics are computed
+                if reference_images is not None:
+                    del reference_images
+                    reference_images = None  # Reset to None so it can be reloaded
+
                 # Move quality metrics models to CPU to free GPU memory (ALL processes)
                 quality_metrics.fid_metric.to('cpu')
                 quality_metrics.is_metric.to('cpu')
@@ -1002,11 +1027,8 @@ def main():
                     text_encoder_2.to(original_device)
                     torch.cuda.empty_cache()
 
-                # EMA was never offloaded, so don't restore it
-                # if ema_model is not None:
-                #     print(f"[SYNC DEBUG] Process {accelerator.process_index} restoring EMA model...")
-                #     ema_model.ema_model.to(original_device)
-                #     torch.cuda.empty_cache()
+                # NOTE: EMA stays on CPU - it's only loaded to GPU during sample generation
+                # This saves ~2.5GB of GPU memory during training
 
                 print(f"[SYNC DEBUG] Process {accelerator.process_index} finished restoring models")
 

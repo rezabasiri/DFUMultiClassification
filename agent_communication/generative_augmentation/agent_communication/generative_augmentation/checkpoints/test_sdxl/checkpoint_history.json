@@ -4,16 +4,23 @@
       "epoch": 1,
       "path": "agent_communication/generative_augmentation/checkpoints/test_sdxl/checkpoint_epoch_0001.pt",
       "metrics": {
-        "train_loss": 18.820364952087402,
-        "val_loss": 0.3381396606564522
+        "train_loss": 15.450915098190308,
+        "val_loss": 0.17415081709623337,
+        "fid": 425.9554443359375,
+        "ssim_mean": 0.12126601487398148,
+        "ssim_std": 0.04264559915162479,
+        "lpips_mean": 0.2837474524974823,
+        "lpips_std": 0.07622176013643851,
+        "is_mean": 1.0,
+        "is_std": 0.0
       },
-      "timestamp": "2026-01-19T12:54:51.518177"
+      "timestamp": "2026-01-19T14:04:22.202003"
     },
     {
       "epoch": 1,
       "path": "agent_communication/generative_augmentation/checkpoints/test_sdxl/checkpoint_epoch_0001.pt",
       "metrics": null,
-      "timestamp": "2026-01-19T12:55:00.837638"
+      "timestamp": "2026-01-19T14:04:30.746311"
     }
   ],
   "best_checkpoint": null,
