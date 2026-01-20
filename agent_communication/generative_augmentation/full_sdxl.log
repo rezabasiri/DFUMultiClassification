@@ -1,15 +1,15 @@
-2026-01-20 13:38:40.715054: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-20 13:38:40.715116: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-20 13:38:40.716312: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-20 13:38:40.721971: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-20 21:33:06.959781: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-20 21:33:06.959845: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-20 21:33:06.961173: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-20 21:33:06.965574: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-20 21:33:06.965637: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-20 21:33:06.966952: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-20 21:33:06.967363: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-20 13:38:40.759299: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-20 13:38:40.759367: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-20 13:38:40.760552: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-20 13:38:40.766248: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-20 21:33:06.972960: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-20 13:38:41.411060: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-2026-01-20 13:38:41.458292: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-20 21:33:07.688442: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-20 21:33:07.688680: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
 ================================================================================
 Training Configuration: configs/full_sdxl.yaml
 Phase: all
@@ -21,19 +21,28 @@ Detected SDXL model - loading dual text encoders
 `torch_dtype` is deprecated! Use `dtype` instead!
 `torch_dtype` is deprecated! Use `dtype` instead!
 Enabled gradient checkpointing
-LoRA Configuration:
-  Rank: 32
-  Alpha: 64
-  Trainable parameters: 46,448,640 (1.78%)
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
   warnings.warn(
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
+LoRA Configuration:
+  Rank: 64
+  Alpha: 128
+  Trainable parameters: 167,444,480 (6.12%)
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
   warnings.warn(
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
 Enabled perceptual loss
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2430 train, 430 validation
+  Phase I: 731 train, 129 val (85.0%/15.0%)
+  Phase P: 1426 train, 252 val (85.0%/15.0%)
+  Phase R: 273 train, 49 val (84.8%/15.2%)
 Enabled EMA (on CPU to save GPU memory)
 Using phase-specific prompts for conditioning
 Found 2860 images for rgb/all phases
@@ -45,19 +54,10 @@ Stratified split: 2430 train, 430 validation
   Phase I: 731 train, 129 val (85.0%/15.0%)
   Phase P: 1426 train, 252 val (85.0%/15.0%)
   Phase R: 273 train, 49 val (84.8%/15.2%)
-Found 2860 images for rgb/all phases
-  Phase I: 860 images
-  Phase P: 1678 images
-  Phase R: 322 images
-Using phase-specific prompts for phases: ['I', 'P', 'R']
-Stratified split: 2430 train, 430 validation
-  Phase I: 731 train, 129 val (85.0%/15.0%)
-  Phase P: 1426 train, 252 val (85.0%/15.0%)
-  Phase R: 273 train, 49 val (84.8%/15.2%)
-Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
 Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
@@ -71,14 +71,14 @@ Total epochs: 200
 Effective batch size: 16
 
 Epoch 1/200
-  Step 1/303 - Loss: 0.9917, LR: 0.00e+00
-  Step 100/303 - Loss: 1.2027, LR: 4.00e-05
-  Step 200/303 - Loss: 1.1653, LR: 8.00e-05
-  Step 300/303 - Loss: 1.1611, LR: 1.00e-04
-  Epoch 1 complete - Loss: 1.1620, LR: 1.00e-04
-Train loss: 1.1620
-  Validation: 54 batches - Loss: 0.1267
-Val loss: 0.1267
+  Step 1/303 - Loss: 0.8742, LR: 0.00e+00
+  Step 100/303 - Loss: 1.1928, LR: 4.00e-05
+  Step 200/303 - Loss: 1.1601, LR: 8.00e-05
+  Step 300/303 - Loss: 1.1445, LR: 1.00e-04
+  Epoch 1 complete - Loss: 1.1430, LR: 1.00e-04
+Train loss: 1.1430
+  Validation: 54 batches - Loss: 0.1214
+Val loss: 0.1214
 Loaded 16 reference images for phase I
 Loaded 16 reference images for phase P
 Loaded 16 reference images for phase R
@@ -96,488 +96,43 @@ Computing Inception Score...
 
 Per-phase metrics:
 ==================================================
-Phase I: SSIM=0.3739, LPIPS=0.7899
-Phase P: SSIM=0.3610, LPIPS=0.7729
-Phase R: SSIM=0.3858, LPIPS=0.7841
+Phase I: SSIM=0.3813, LPIPS=0.7975
+Phase P: SSIM=0.3277, LPIPS=0.7921
+Phase R: SSIM=0.4017, LPIPS=0.7970
 ==================================================
 Quality Metrics:
 ==================================================
-FID: 362.06 (lower is better, < 50 is good)
-SSIM: 0.3913 ± 0.0976 (higher is better, > 0.7 is good)
-LPIPS: 0.7716 ± 0.0293 (lower is better, < 0.3 is good)
-IS: 2.65 ± 0.43 (higher is better, > 2.0 is good)
+FID: 363.30 (lower is better, < 50 is good)
+SSIM: 0.3875 ± 0.1188 (higher is better, > 0.7 is good)
+LPIPS: 0.7849 ± 0.0337 (lower is better, < 0.3 is good)
+IS: 3.07 ± 0.48 (higher is better, > 2.0 is good)
 ==================================================
-Val FID: 362.06
-  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0000.pt
-  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0000.pt
+Val FID: 363.30
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/serialization.py", line 967, in save
+[rank0]:     _save(
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/serialization.py", line 1268, in _save
+[rank0]:     zip_file.write_record(name, storage, num_bytes)
+[rank0]: RuntimeError: [enforce fail at inline_container.cc:858] . PytorchStreamWriter failed writing file data/560: file write failed
 
-Epoch 2/200
-  Step 1/303 - Loss: 1.0841, LR: 1.00e-04
-  Step 100/303 - Loss: 1.1034, LR: 1.00e-04
-  Step 200/303 - Loss: 1.1125, LR: 1.00e-04
-  Step 300/303 - Loss: 1.1116, LR: 1.00e-04
-  Epoch 2 complete - Loss: 1.1112, LR: 1.00e-04
-Train loss: 1.1112
-  Validation: 54 batches - Loss: 0.1230
-Val loss: 0.1230
+[rank0]: During handling of the above exception, another exception occurred:
 
-Epoch 3/200
-  Step 1/303 - Loss: 1.0879, LR: 1.00e-04
-  Step 100/303 - Loss: 1.1306, LR: 1.00e-04
-  Step 200/303 - Loss: 1.1210, LR: 1.00e-04
-  Step 300/303 - Loss: 1.1209, LR: 1.00e-04
-  Epoch 3 complete - Loss: 1.1210, LR: 1.00e-04
-Train loss: 1.1210
-  Validation: 54 batches - Loss: 0.1127
-Val loss: 0.1127
-
-Epoch 4/200
-  Step 1/303 - Loss: 0.9617, LR: 1.00e-04
-  Step 100/303 - Loss: 1.1205, LR: 1.00e-04
-  Step 200/303 - Loss: 1.1204, LR: 1.00e-04
-  Step 300/303 - Loss: 1.1120, LR: 1.00e-04
-  Epoch 4 complete - Loss: 1.1114, LR: 1.00e-04
-Train loss: 1.1114
-  Validation: 54 batches - Loss: 0.1220
-Val loss: 0.1220
-
-Epoch 5/200
-  Step 1/303 - Loss: 1.0271, LR: 1.00e-04
-  Step 100/303 - Loss: 1.1321, LR: 1.00e-04
-  Step 200/303 - Loss: 1.1150, LR: 1.00e-04
-  Step 300/303 - Loss: 1.1177, LR: 1.00e-04
-  Epoch 5 complete - Loss: 1.1181, LR: 1.00e-04
-Train loss: 1.1181
-  Validation: 54 batches - Loss: 0.1288
-Val loss: 0.1288
-
-Epoch 6/200
-  Step 1/303 - Loss: 1.0010, LR: 1.00e-04
-  Step 100/303 - Loss: 1.1179, LR: 1.00e-04
-  Step 200/303 - Loss: 1.1081, LR: 1.00e-04
-  Step 300/303 - Loss: 1.1109, LR: 1.00e-04
-  Epoch 6 complete - Loss: 1.1103, LR: 1.00e-04
-Train loss: 1.1103
-  Validation: 54 batches - Loss: 0.1263
-Val loss: 0.1263
-
-Epoch 7/200
-  Step 1/303 - Loss: 1.0067, LR: 1.00e-04
-  Step 100/303 - Loss: 1.0809, LR: 1.00e-04
-  Step 200/303 - Loss: 1.1004, LR: 9.99e-05
-  Step 300/303 - Loss: 1.1034, LR: 9.99e-05
-  Epoch 7 complete - Loss: 1.1035, LR: 9.99e-05
-Train loss: 1.1035
-  Validation: 54 batches - Loss: 0.1140
-Val loss: 0.1140
-
-Epoch 8/200
-  Step 1/303 - Loss: 1.0704, LR: 9.99e-05
-  Step 100/303 - Loss: 1.1094, LR: 9.99e-05
-  Step 200/303 - Loss: 1.1016, LR: 9.99e-05
-  Step 300/303 - Loss: 1.1091, LR: 9.99e-05
-  Epoch 8 complete - Loss: 1.1105, LR: 9.99e-05
-Train loss: 1.1105
-  Validation: 54 batches - Loss: 0.1044
-Val loss: 0.1044
-
-Epoch 9/200
-  Step 1/303 - Loss: 1.1976, LR: 9.99e-05
-  Step 100/303 - Loss: 1.0958, LR: 9.99e-05
-  Step 200/303 - Loss: 1.0888, LR: 9.99e-05
-  Step 300/303 - Loss: 1.0900, LR: 9.99e-05
-  Epoch 9 complete - Loss: 1.0899, LR: 9.99e-05
-Train loss: 1.0899
-  Validation: 54 batches - Loss: 0.1191
-Val loss: 0.1191
-
-Epoch 10/200
-  Step 1/303 - Loss: 0.9679, LR: 9.99e-05
-  Step 100/303 - Loss: 1.1204, LR: 9.99e-05
-  Step 200/303 - Loss: 1.1098, LR: 9.99e-05
-  Step 300/303 - Loss: 1.1021, LR: 9.99e-05
-  Epoch 10 complete - Loss: 1.1006, LR: 9.99e-05
-Train loss: 1.1006
-  Validation: 54 batches - Loss: 0.1197
-Val loss: 0.1197
-Loaded 16 reference images for phase I
-Loaded 16 reference images for phase P
-Loaded 16 reference images for phase R
-Computing quality metrics...
-Generating 50 images across 3 phases...
-  Phase I: generating 17 images...
-  Phase P: generating 17 images...
-  Phase R: generating 16 images...
-Computing FID...
-Computing SSIM...
-Computing LPIPS...
-Computing Inception Score...
-
-Per-phase metrics:
-==================================================
-Phase I: SSIM=0.3950, LPIPS=0.7668
-Phase P: SSIM=0.4307, LPIPS=0.7427
-Phase R: SSIM=0.4361, LPIPS=0.7791
-==================================================
-Quality Metrics:
-==================================================
-FID: 348.08 (lower is better, < 50 is good)
-SSIM: 0.4457 ± 0.1017 (higher is better, > 0.7 is good)
-LPIPS: 0.7498 ± 0.0349 (lower is better, < 0.3 is good)
-IS: 2.86 ± 0.42 (higher is better, > 2.0 is good)
-==================================================
-Val FID: 348.08
-  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0009.pt
-
-Epoch 11/200
-  Step 1/303 - Loss: 1.0578, LR: 9.99e-05
-  Step 100/303 - Loss: 1.1083, LR: 9.99e-05
-  Step 200/303 - Loss: 1.1105, LR: 9.98e-05
-  Step 300/303 - Loss: 1.1058, LR: 9.98e-05
-  Epoch 11 complete - Loss: 1.1069, LR: 9.98e-05
-Train loss: 1.1069
-  Validation: 54 batches - Loss: 0.1325
-Val loss: 0.1325
-
-Epoch 12/200
-  Step 1/303 - Loss: 1.1265, LR: 9.98e-05
-  Step 100/303 - Loss: 1.0817, LR: 9.98e-05
-  Step 200/303 - Loss: 1.0864, LR: 9.98e-05
-  Step 300/303 - Loss: 1.0904, LR: 9.98e-05
-  Epoch 12 complete - Loss: 1.0898, LR: 9.98e-05
-Train loss: 1.0898
-  Validation: 54 batches - Loss: 0.1161
-Val loss: 0.1161
-
-Epoch 13/200
-  Step 1/303 - Loss: 1.1992, LR: 9.98e-05
-  Step 100/303 - Loss: 1.1070, LR: 9.98e-05
-  Step 200/303 - Loss: 1.1106, LR: 9.98e-05
-  Step 300/303 - Loss: 1.1088, LR: 9.98e-05
-  Epoch 13 complete - Loss: 1.1085, LR: 9.98e-05
-Train loss: 1.1085
-  Validation: 54 batches - Loss: 0.1097
-Val loss: 0.1097
-
-Epoch 14/200
-  Step 1/303 - Loss: 1.0552, LR: 9.98e-05
-  Step 100/303 - Loss: 1.1118, LR: 9.98e-05
-  Step 200/303 - Loss: 1.0947, LR: 9.97e-05
-  Step 300/303 - Loss: 1.0845, LR: 9.97e-05
-  Epoch 14 complete - Loss: 1.0858, LR: 9.97e-05
-Train loss: 1.0858
-  Validation: 54 batches - Loss: 0.1171
-Val loss: 0.1171
-
-Epoch 15/200
-  Step 1/303 - Loss: 1.0508, LR: 9.97e-05
-  Step 100/303 - Loss: 1.1035, LR: 9.97e-05
-  Step 200/303 - Loss: 1.1014, LR: 9.97e-05
-  Step 300/303 - Loss: 1.0920, LR: 9.97e-05
-  Epoch 15 complete - Loss: 1.0930, LR: 9.97e-05
-Train loss: 1.0930
-  Validation: 54 batches - Loss: 0.1297
-Val loss: 0.1297
-
-Epoch 16/200
-  Step 1/303 - Loss: 1.1289, LR: 9.97e-05
-  Step 100/303 - Loss: 1.1203, LR: 9.97e-05
-  Step 200/303 - Loss: 1.1130, LR: 9.97e-05
-  Step 300/303 - Loss: 1.1076, LR: 9.96e-05
-  Epoch 16 complete - Loss: 1.1070, LR: 9.96e-05
-Train loss: 1.1070
-  Validation: 54 batches - Loss: 0.1274
-Val loss: 0.1274
-
-Epoch 17/200
-  Step 1/303 - Loss: 1.1482, LR: 9.96e-05
-  Step 100/303 - Loss: 1.0920, LR: 9.96e-05
-  Step 200/303 - Loss: 1.0925, LR: 9.96e-05
-  Step 300/303 - Loss: 1.1027, LR: 9.96e-05
-  Epoch 17 complete - Loss: 1.1021, LR: 9.96e-05
-Train loss: 1.1021
-  Validation: 54 batches - Loss: 0.1252
-Val loss: 0.1252
-
-Epoch 18/200
-  Step 1/303 - Loss: 1.0558, LR: 9.96e-05
-  Step 100/303 - Loss: 1.1019, LR: 9.96e-05
-  Step 200/303 - Loss: 1.1044, LR: 9.96e-05
-  Step 300/303 - Loss: 1.1029, LR: 9.95e-05
-  Epoch 18 complete - Loss: 1.1024, LR: 9.95e-05
-Train loss: 1.1024
-  Validation: 54 batches - Loss: 0.1208
-Val loss: 0.1208
-
-Epoch 19/200
-  Step 1/303 - Loss: 1.0747, LR: 9.95e-05
-  Step 100/303 - Loss: 1.0761, LR: 9.95e-05
-  Step 200/303 - Loss: 1.0902, LR: 9.95e-05
-  Step 300/303 - Loss: 1.0857, LR: 9.95e-05
-  Epoch 19 complete - Loss: 1.0851, LR: 9.95e-05
-Train loss: 1.0851
-  Validation: 54 batches - Loss: 0.1169
-Val loss: 0.1169
-
-Epoch 20/200
-  Step 1/303 - Loss: 0.9720, LR: 9.95e-05
-  Step 100/303 - Loss: 1.0803, LR: 9.95e-05
-  Step 200/303 - Loss: 1.0894, LR: 9.94e-05
-  Step 300/303 - Loss: 1.0937, LR: 9.94e-05
-  Epoch 20 complete - Loss: 1.0933, LR: 9.94e-05
-Train loss: 1.0933
-  Validation: 54 batches - Loss: 0.1295
-Val loss: 0.1295
-Loaded 16 reference images for phase I
-Loaded 16 reference images for phase P
-Loaded 16 reference images for phase R
-Computing quality metrics...
-Generating 50 images across 3 phases...
-  Phase I: generating 17 images...
-  Phase P: generating 17 images...
-  Phase R: generating 16 images...
-Computing FID...
-Computing SSIM...
-Computing LPIPS...
-Computing Inception Score...
-
-Per-phase metrics:
-==================================================
-Phase I: SSIM=0.3984, LPIPS=0.7715
-Phase P: SSIM=0.4165, LPIPS=0.7454
-Phase R: SSIM=0.3798, LPIPS=0.7725
-==================================================
-Quality Metrics:
-==================================================
-FID: 323.98 (lower is better, < 50 is good)
-SSIM: 0.4232 ± 0.1007 (higher is better, > 0.7 is good)
-LPIPS: 0.7473 ± 0.0379 (lower is better, < 0.3 is good)
-IS: 2.65 ± 0.31 (higher is better, > 2.0 is good)
-==================================================
-Val FID: 323.98
-  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0019.pt
-
-Epoch 21/200
-  Step 1/303 - Loss: 1.3534, LR: 9.94e-05
-  Step 100/303 - Loss: 1.1015, LR: 9.94e-05
-  Step 200/303 - Loss: 1.0959, LR: 9.94e-05
-  Step 300/303 - Loss: 1.0975, LR: 9.94e-05
-  Epoch 21 complete - Loss: 1.0972, LR: 9.94e-05
-Train loss: 1.0972
-  Validation: 54 batches - Loss: 0.1029
-Val loss: 0.1029
-
-Epoch 22/200
-  Step 1/303 - Loss: 0.9145, LR: 9.94e-05
-  Step 100/303 - Loss: 1.0821, LR: 9.93e-05
-  Step 200/303 - Loss: 1.0926, LR: 9.93e-05
-  Step 300/303 - Loss: 1.0868, LR: 9.93e-05
-  Epoch 22 complete - Loss: 1.0883, LR: 9.93e-05
-Train loss: 1.0883
-  Validation: 54 batches - Loss: 0.1213
-Val loss: 0.1213
-
-Epoch 23/200
-  Step 1/303 - Loss: 1.1690, LR: 9.93e-05
-  Step 100/303 - Loss: 1.0914, LR: 9.93e-05
-  Step 200/303 - Loss: 1.0905, LR: 9.93e-05
-  Step 300/303 - Loss: 1.0852, LR: 9.92e-05
-  Epoch 23 complete - Loss: 1.0835, LR: 9.92e-05
-Train loss: 1.0835
-  Validation: 54 batches - Loss: 0.1241
-Val loss: 0.1241
-
-Epoch 24/200
-  Step 1/303 - Loss: 1.1927, LR: 9.92e-05
-  Step 100/303 - Loss: 1.0926, LR: 9.92e-05
-  Step 200/303 - Loss: 1.0878, LR: 9.92e-05
-  Step 300/303 - Loss: 1.0863, LR: 9.92e-05
-  Epoch 24 complete - Loss: 1.0870, LR: 9.92e-05
-Train loss: 1.0870
-  Validation: 54 batches - Loss: 0.1169
-Val loss: 0.1169
-
-Epoch 25/200
-  Step 1/303 - Loss: 1.2519, LR: 9.92e-05
-  Step 100/303 - Loss: 1.0931, LR: 9.91e-05
-  Step 200/303 - Loss: 1.0988, LR: 9.91e-05
-  Step 300/303 - Loss: 1.0916, LR: 9.91e-05
-  Epoch 25 complete - Loss: 1.0908, LR: 9.91e-05
-Train loss: 1.0908
-  Validation: 54 batches - Loss: 0.1283
-Val loss: 0.1283
-
-Epoch 26/200
-  Step 1/303 - Loss: 1.0526, LR: 9.91e-05
-  Step 100/303 - Loss: 1.0834, LR: 9.91e-05
-  Step 200/303 - Loss: 1.0949, LR: 9.90e-05
-  Step 300/303 - Loss: 1.0952, LR: 9.90e-05
-  Epoch 26 complete - Loss: 1.0965, LR: 9.90e-05
-Train loss: 1.0965
-  Validation: 54 batches - Loss: 0.1191
-Val loss: 0.1191
-
-Epoch 27/200
-  Step 1/303 - Loss: 1.0649, LR: 9.90e-05
-  Step 100/303 - Loss: 1.0937, LR: 9.90e-05
-  Step 200/303 - Loss: 1.0852, LR: 9.90e-05
-  Step 300/303 - Loss: 1.0770, LR: 9.89e-05
-  Epoch 27 complete - Loss: 1.0768, LR: 9.89e-05
-Train loss: 1.0768
-  Validation: 54 batches - Loss: 0.1240
-Val loss: 0.1240
-
-Epoch 28/200
-  Step 1/303 - Loss: 1.1286, LR: 9.89e-05
-  Step 100/303 - Loss: 1.0908, LR: 9.89e-05
-  Step 200/303 - Loss: 1.1010, LR: 9.89e-05
-  Step 300/303 - Loss: 1.0932, LR: 9.89e-05
-  Epoch 28 complete - Loss: 1.0947, LR: 9.89e-05
-Train loss: 1.0947
-  Validation: 54 batches - Loss: 0.1139
-Val loss: 0.1139
-
-Epoch 29/200
-  Step 1/303 - Loss: 0.9088, LR: 9.89e-05
-  Step 100/303 - Loss: 1.0691, LR: 9.88e-05
-  Step 200/303 - Loss: 1.0858, LR: 9.88e-05
-  Step 300/303 - Loss: 1.0825, LR: 9.88e-05
-  Epoch 29 complete - Loss: 1.0833, LR: 9.88e-05
-Train loss: 1.0833
-  Validation: 54 batches - Loss: 0.1401
-Val loss: 0.1401
-
-Epoch 30/200
-  Step 1/303 - Loss: 1.1103, LR: 9.88e-05
-  Step 100/303 - Loss: 1.1164, LR: 9.87e-05
-  Step 200/303 - Loss: 1.1104, LR: 9.87e-05
-  Step 300/303 - Loss: 1.1072, LR: 9.87e-05
-  Epoch 30 complete - Loss: 1.1066, LR: 9.87e-05
-Train loss: 1.1066
-  Validation: 54 batches - Loss: 0.1363
-Val loss: 0.1363
-Loaded 16 reference images for phase I
-Loaded 16 reference images for phase P
-Loaded 16 reference images for phase R
-Computing quality metrics...
-Generating 50 images across 3 phases...
-  Phase I: generating 17 images...
-  Phase P: generating 17 images...
-  Phase R: generating 16 images...
-Computing FID...
-Computing SSIM...
-Computing LPIPS...
-Computing Inception Score...
-
-Per-phase metrics:
-==================================================
-Phase I: SSIM=0.4616, LPIPS=0.7375
-Phase P: SSIM=0.4810, LPIPS=0.7036
-Phase R: SSIM=0.5008, LPIPS=0.7368
-==================================================
-Quality Metrics:
-==================================================
-FID: 301.59 (lower is better, < 50 is good)
-SSIM: 0.5049 ± 0.0769 (higher is better, > 0.7 is good)
-LPIPS: 0.7129 ± 0.0326 (lower is better, < 0.3 is good)
-IS: 2.62 ± 0.49 (higher is better, > 2.0 is good)
-==================================================
-Val FID: 301.59
-  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0029.pt
-
-Epoch 31/200
-  Step 1/303 - Loss: 0.9033, LR: 9.87e-05
-  Step 100/303 - Loss: 1.0986, LR: 9.87e-05
-  Step 200/303 - Loss: 1.0937, LR: 9.86e-05
-  Step 300/303 - Loss: 1.0920, LR: 9.86e-05
-  Epoch 31 complete - Loss: 1.0921, LR: 9.86e-05
-Train loss: 1.0921
-  Validation: 54 batches - Loss: 0.1286
-Val loss: 0.1286
-
-Epoch 32/200
-  Step 1/303 - Loss: 1.0637, LR: 9.86e-05
-  Step 100/303 - Loss: 1.0744, LR: 9.86e-05
-  Step 200/303 - Loss: 1.0835, LR: 9.85e-05
-  Step 300/303 - Loss: 1.0965, LR: 9.85e-05
-  Epoch 32 complete - Loss: 1.0951, LR: 9.85e-05
-Train loss: 1.0951
-  Validation: 54 batches - Loss: 0.1266
-Val loss: 0.1266
-
-Epoch 33/200
-  Step 1/303 - Loss: 0.9702, LR: 9.85e-05
-  Step 100/303 - Loss: 1.0972, LR: 9.85e-05
-  Step 200/303 - Loss: 1.0879, LR: 9.84e-05
-  Step 300/303 - Loss: 1.0889, LR: 9.84e-05
-  Epoch 33 complete - Loss: 1.0873, LR: 9.84e-05
-Train loss: 1.0873
-  Validation: 54 batches - Loss: 0.1157
-Val loss: 0.1157
-
-Early stopping triggered after 32 epochs
-Best val_loss: 0.1127 at epoch 2
-Early stopping triggered
-
-Training complete!
-  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0009.pt
-  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0199.pt
-Saved metrics to: agent_communication/generative_augmentation/reports/full_sdxl_logs/metrics_history.json
-[rank0]:[W120 20:47:12.682701098 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
-[rank0]:[W120 20:47:13.669287031 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
-[rank1]:[E120 20:56:54.976939156 ProcessGroupNCCL.cpp:683] [Rank 1] Watchdog caught collective operation timeout: WorkNCCL(SeqNum=1519, OpType=BROADCAST, NumelIn=5056, NumelOut=5056, Timeout(ms)=600000) ran for 600051 milliseconds before timing out.
-[rank1]:[E120 20:56:54.977105722 ProcessGroupNCCL.cpp:2241] [PG ID 0 PG GUID 0(default_pg) Rank 1]  failure detected by watchdog at work sequence id: 1519 PG status: last enqueued work: 1519, last completed work: 1518
-[rank1]:[E120 20:56:54.977115032 ProcessGroupNCCL.cpp:730] Stack trace of the failed collective not found, potentially because FlightRecorder is disabled. You can enable it by setting TORCH_NCCL_TRACE_BUFFER_SIZE to a non-zero value.
-[rank1]:[E120 20:56:54.977183994 ProcessGroupNCCL.cpp:2573] [PG ID 0 PG GUID 0(default_pg) Rank 1] First PG on this rank to signal dumping.
-[rank1]:[E120 20:56:55.101184229 ProcessGroupNCCL.cpp:1858] [PG ID 0 PG GUID 0(default_pg) Rank 1] Received a dump signal due to a collective timeout from this local rank and we will try our best to dump the debug info. Last enqueued NCCL work: 1519, last completed NCCL work: 1518.This is most likely caused by incorrect usages of collectives, e.g., wrong sizes used across ranks, the order of collectives is not same for all ranks or the scheduled collective, for some reason, didn't run. Additionally, this can be caused by GIL deadlock or other reasons such as network errors or bugs in the communications library (e.g. NCCL), etc. 
-[rank1]:[E120 20:56:55.101362275 ProcessGroupNCCL.cpp:1575] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL preparing to dump debug info. Include stack trace: 1
-[rank1]: Traceback (most recent call last):
-[rank1]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 1264, in <module>
-[rank1]:     main()
-[rank1]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 949, in main
-[rank1]:     train_loss = train_one_epoch(
-[rank1]:                  ^^^^^^^^^^^^^^^^
-[rank1]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 293, in train_one_epoch
-[rank1]:     for batch_idx, batch in enumerate(train_loader):
-[rank1]:   File "/venv/multimodal/lib/python3.11/site-packages/accelerate/data_loader.py", line 560, in __iter__
-[rank1]:     synchronize_rng_states(self.rng_types, self.synchronized_generator)
-[rank1]:   File "/venv/multimodal/lib/python3.11/site-packages/accelerate/utils/random.py", line 156, in synchronize_rng_states
-[rank1]:     synchronize_rng_state(RNGType(rng_type), generator=generator)
-[rank1]:   File "/venv/multimodal/lib/python3.11/site-packages/accelerate/utils/random.py", line 151, in synchronize_rng_state
-[rank1]:     generator.set_state(rng_state)
-[rank1]: RuntimeError: Invalid mt19937 state
-[rank1]:[E120 20:57:55.576963742 ProcessGroupNCCL.cpp:744] [Rank 1] Some NCCL operations have failed or timed out. Due to the asynchronous nature of CUDA kernels, subsequent GPU operations might run on corrupted/incomplete data.
-[rank1]:[E120 20:57:55.576988793 ProcessGroupNCCL.cpp:758] [Rank 1] To avoid data inconsistency, we are taking the entire process down.
-[rank1]:[E120 20:57:55.578047192 ProcessGroupNCCL.cpp:2057] [PG ID 0 PG GUID 0(default_pg) Rank 1] Process group watchdog thread terminated with exception: [Rank 1] Watchdog caught collective operation timeout: WorkNCCL(SeqNum=1519, OpType=BROADCAST, NumelIn=5056, NumelOut=5056, Timeout(ms)=600000) ran for 600051 milliseconds before timing out.
-Exception raised from checkTimeout at /pytorch/torch/csrc/distributed/c10d/ProcessGroupNCCL.cpp:686 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x7b0dd577cb80 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libc10.so)
-frame #1: c10d::ProcessGroupNCCL::WorkNCCL::checkTimeout(std::optional<std::chrono::duration<long, std::ratio<1l, 1000l> > >) + 0x247 (0x7b0d773bb5b7 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #2: c10d::ProcessGroupNCCL::Watchdog::runLoop() + 0x1691 (0x7b0d773c01c1 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #3: c10d::ProcessGroupNCCL::Watchdog::run() + 0xdf (0x7b0d773c140f in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #4: <unknown function> + 0xef5e4 (0x7b0dce2705e4 in /venv/multimodal/bin/../lib/libstdc++.so.6)
-frame #5: <unknown function> + 0x9caa4 (0x7b0dd6719aa4 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #6: __clone + 0x44 (0x7b0dd67a6a64 in /lib/x86_64-linux-gnu/libc.so.6)
-
-terminate called after throwing an instance of 'c10::DistBackendError'
-  what():  [PG ID 0 PG GUID 0(default_pg) Rank 1] Process group watchdog thread terminated with exception: [Rank 1] Watchdog caught collective operation timeout: WorkNCCL(SeqNum=1519, OpType=BROADCAST, NumelIn=5056, NumelOut=5056, Timeout(ms)=600000) ran for 600051 milliseconds before timing out.
-Exception raised from checkTimeout at /pytorch/torch/csrc/distributed/c10d/ProcessGroupNCCL.cpp:686 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x7b0dd577cb80 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libc10.so)
-frame #1: c10d::ProcessGroupNCCL::WorkNCCL::checkTimeout(std::optional<std::chrono::duration<long, std::ratio<1l, 1000l> > >) + 0x247 (0x7b0d773bb5b7 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #2: c10d::ProcessGroupNCCL::Watchdog::runLoop() + 0x1691 (0x7b0d773c01c1 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #3: c10d::ProcessGroupNCCL::Watchdog::run() + 0xdf (0x7b0d773c140f in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #4: <unknown function> + 0xef5e4 (0x7b0dce2705e4 in /venv/multimodal/bin/../lib/libstdc++.so.6)
-frame #5: <unknown function> + 0x9caa4 (0x7b0dd6719aa4 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #6: __clone + 0x44 (0x7b0dd67a6a64 in /lib/x86_64-linux-gnu/libc.so.6)
-
-Exception raised from run at /pytorch/torch/csrc/distributed/c10d/ProcessGroupNCCL.cpp:2063 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x7b0dd577cb80 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libc10.so)
-frame #1: <unknown function> + 0xe34731 (0x7b0d77397731 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #2: <unknown function> + 0x9504a1 (0x7b0d76eb34a1 in /venv/multimodal/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
-frame #3: <unknown function> + 0xef5e4 (0x7b0dce2705e4 in /venv/multimodal/bin/../lib/libstdc++.so.6)
-frame #4: <unknown function> + 0x9caa4 (0x7b0dd6719aa4 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #5: __clone + 0x44 (0x7b0dd67a6a64 in /lib/x86_64-linux-gnu/libc.so.6)
-
-E0120 20:58:29.015000 2362760 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: -6) local_rank: 1 (pid: 2362966) of binary: /venv/multimodal/bin/python3.11
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 1278, in <module>
+[rank0]:     main()
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 1246, in main
+[rank0]:     checkpoint_manager.save_checkpoint(
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/utils/checkpoint_utils.py", line 133, in save_checkpoint
+[rank0]:     torch.save(checkpoint, checkpoint_path)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/serialization.py", line 966, in save
+[rank0]:     with _open_zipfile_writer(f) as opened_zipfile:
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/serialization.py", line 798, in __exit__
+[rank0]:     self.file_like.write_end_of_file()
+[rank0]: RuntimeError: [enforce fail at inline_container.cc:664] . unexpected pos 1532462656 vs 1532462544
+[rank0]:[W120 21:55:07.385485314 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+[rank0]:[W120 21:55:08.367391551 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
+W0120 21:55:10.403000 2462752 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 2462972 closing signal SIGTERM
+E0120 21:55:12.572000 2462752 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 0 (pid: 2462971) of binary: /venv/multimodal/bin/python3.11
 Traceback (most recent call last):
   File "/venv/multimodal/bin/accelerate", line 7, in <module>
     sys.exit(main())
@@ -596,18 +151,18 @@ Traceback (most recent call last):
   File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
     raise ChildFailedError(
 torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
-========================================================
+============================================================
 scripts/train_lora_model.py FAILED
---------------------------------------------------------
+------------------------------------------------------------
 Failures:
   <NO_OTHER_FAILURES>
---------------------------------------------------------
+------------------------------------------------------------
 Root Cause (first observed failure):
 [0]:
-  time      : 2026-01-20_20:58:29
+  time      : 2026-01-20_21:55:10
   host      : 8c8dadf7e27a
-  rank      : 1 (local_rank: 1)
-  exitcode  : -6 (pid: 2362966)
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2462971)
   error_file: <N/A>
-  traceback : Signal 6 (SIGABRT) received by PID 2362966
-========================================================
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
