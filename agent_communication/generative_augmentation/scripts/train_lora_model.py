@@ -368,13 +368,26 @@ def train_one_epoch(
             if perceptual_loss_fn is not None and config['quality']['perceptual_loss']['enabled']:
                 # Decode predictions to image space for perceptual loss
                 with torch.no_grad():
-                    # Remove noise from latents using model prediction
-                    # Ensure all inputs are on the same device
-                    pred_latents = noise_scheduler.step(
-                        model_pred.to(accelerator.device),
-                        timesteps[0].to(accelerator.device),
-                        noisy_latents.to(accelerator.device)
-                    ).pred_original_sample
+                    # Manually compute denoised latents (don't use scheduler.step() which expects inference mode)
+                    # Based on scheduler's prediction type
+                    if noise_scheduler.config.prediction_type == "epsilon":
+                        # model_pred is noise, we need to denoise the noisy_latents
+                        # x0 = (x_t - sqrt(1-alpha_t) * noise) / sqrt(alpha_t)
+                        # For simplicity, use the formula: x0_pred = noisy_latents - model_pred
+                        # This is an approximation but works for perceptual loss
+                        alpha_t = noise_scheduler.alphas_cumprod[timesteps].to(accelerator.device)
+                        alpha_t = alpha_t.view(-1, 1, 1, 1)
+                        sigma_t = (1 - alpha_t).sqrt()
+                        pred_latents = (noisy_latents.to(accelerator.device) - sigma_t * model_pred.to(accelerator.device)) / alpha_t.sqrt()
+                    elif noise_scheduler.config.prediction_type == "v_prediction":
+                        # For v-prediction, convert to x0
+                        alpha_t = noise_scheduler.alphas_cumprod[timesteps].to(accelerator.device)
+                        alpha_t = alpha_t.view(-1, 1, 1, 1)
+                        sigma_t = (1 - alpha_t).sqrt()
+                        pred_latents = alpha_t.sqrt() * noisy_latents.to(accelerator.device) - sigma_t * model_pred.to(accelerator.device)
+                    else:
+                        # Sample prediction - model directly predicts x0
+                        pred_latents = model_pred.to(accelerator.device)
 
                     # Decode to image space
                     pred_images = vae.decode(
