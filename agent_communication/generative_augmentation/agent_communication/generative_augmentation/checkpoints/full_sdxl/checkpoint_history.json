@@ -1,28 +1,6 @@
 {
   "checkpoint_history": [
     {
-      "epoch": 9,
-      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0009.pt",
-      "metrics": {
-        "train_loss": 1.1005884007652207,
-        "val_loss": 0.11973751838215524,
-        "fid": 348.0767517089844,
-        "ssim_mean": 0.44573732271790506,
-        "ssim_std": 0.1016969376321207,
-        "lpips_mean": 0.7498083961009979,
-        "lpips_std": 0.034911940933911895,
-        "is_mean": 2.8628146648406982,
-        "is_std": 0.4190923273563385,
-        "ssim_I": 0.3949619110892801,
-        "lpips_I": 0.7668494687360876,
-        "ssim_P": 0.4307394465979408,
-        "lpips_P": 0.7427104746594149,
-        "ssim_R": 0.4361297534778714,
-        "lpips_R": 0.7791222222149372
-      },
-      "timestamp": "2026-01-20T16:33:01.822822"
-    },
-    {
       "epoch": 19,
       "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0019.pt",
       "metrics": {
@@ -65,6 +43,12 @@
         "lpips_R": 0.7368137836456299
       },
       "timestamp": "2026-01-20T20:14:09.592648"
+    },
+    {
+      "epoch": 199,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0199.pt",
+      "metrics": null,
+      "timestamp": "2026-01-20T20:47:02.495373"
     }
   ],
   "best_checkpoint": null,
