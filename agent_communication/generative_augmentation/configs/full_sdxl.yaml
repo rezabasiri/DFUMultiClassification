@@ -94,14 +94,14 @@ quality:
 
 checkpointing:
   output_dir: "agent_communication/generative_augmentation/checkpoints/full_sdxl"
-  save_every_n_epochs: 20  # Save checkpoint every 20 epochs
+  save_every_n_epochs: 10  # Save checkpoint every 10 epochs
   keep_last_n_checkpoints: 3
   save_best_only: false
   resume_from_checkpoint: null
   save_optimizer_state: true
 
 metrics:
-  compute_every_n_epochs: 20  # FID every 20 epochs
+  compute_every_n_epochs: 10  # FID every 10 epochs
   num_samples_for_metrics: 50
   generation_batch_size: 4  # Generate images in batches to avoid OOM at 512x512
   fid:
@@ -120,8 +120,8 @@ metrics:
 
 logging:
   logging_dir: "agent_communication/generative_augmentation/reports/full_sdxl_logs"
-  log_every_n_steps: 50  # Log every 50 steps
-  save_samples_every_n_epochs: 60  # Save samples every 60 epochs
+  log_every_n_steps: 10  # Log every 10 steps
+  save_samples_every_n_epochs: 10  # Save samples every 10 epochs
   num_samples_to_save: 16
   use_tensorboard: true
   use_wandb: false
@@ -143,7 +143,6 @@ reproducibility:
 validation:
   # NOTE: val_loss is computed every epoch for early stopping to work properly
   # validate_every_n_epochs is kept for backward compatibility but no longer used
-  validate_every_n_epochs: 10  # (unused - val_loss computed every epoch)
   generate_samples: true  # Enable sample generation
   num_validation_samples: 4
   compare_to_real: true
