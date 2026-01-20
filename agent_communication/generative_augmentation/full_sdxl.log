@@ -293,3 +293,69 @@ Epoch 17/200
   Step 1/303 - Loss: 1.1482, LR: 9.96e-05
   Step 100/303 - Loss: 1.0920, LR: 9.96e-05
   Step 200/303 - Loss: 1.0925, LR: 9.96e-05
+  Step 300/303 - Loss: 1.1027, LR: 9.96e-05
+  Epoch 17 complete - Loss: 1.1021, LR: 9.96e-05
+Train loss: 1.1021
+  Validation: 54 batches - Loss: 0.1252
+Val loss: 0.1252
+
+Epoch 18/200
+  Step 1/303 - Loss: 1.0558, LR: 9.96e-05
+  Step 100/303 - Loss: 1.1019, LR: 9.96e-05
+  Step 200/303 - Loss: 1.1044, LR: 9.96e-05
+  Step 300/303 - Loss: 1.1029, LR: 9.95e-05
+  Epoch 18 complete - Loss: 1.1024, LR: 9.95e-05
+Train loss: 1.1024
+  Validation: 54 batches - Loss: 0.1208
+Val loss: 0.1208
+
+Epoch 19/200
+  Step 1/303 - Loss: 1.0747, LR: 9.95e-05
+  Step 100/303 - Loss: 1.0761, LR: 9.95e-05
+  Step 200/303 - Loss: 1.0902, LR: 9.95e-05
+  Step 300/303 - Loss: 1.0857, LR: 9.95e-05
+  Epoch 19 complete - Loss: 1.0851, LR: 9.95e-05
+Train loss: 1.0851
+  Validation: 54 batches - Loss: 0.1169
+Val loss: 0.1169
+
+Epoch 20/200
+  Step 1/303 - Loss: 0.9720, LR: 9.95e-05
+  Step 100/303 - Loss: 1.0803, LR: 9.95e-05
+  Step 200/303 - Loss: 1.0894, LR: 9.94e-05
+  Step 300/303 - Loss: 1.0937, LR: 9.94e-05
+  Epoch 20 complete - Loss: 1.0933, LR: 9.94e-05
+Train loss: 1.0933
+  Validation: 54 batches - Loss: 0.1295
+Val loss: 0.1295
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.3984, LPIPS=0.7715
+Phase P: SSIM=0.4165, LPIPS=0.7454
+Phase R: SSIM=0.3798, LPIPS=0.7725
+==================================================
+Quality Metrics:
+==================================================
+FID: 323.98 (lower is better, < 50 is good)
+SSIM: 0.4232 ± 0.1007 (higher is better, > 0.7 is good)
+LPIPS: 0.7473 ± 0.0379 (lower is better, < 0.3 is good)
+IS: 2.65 ± 0.31 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 323.98
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0019.pt
+
+Epoch 21/200
+  Step 1/303 - Loss: 1.3534, LR: 9.94e-05
