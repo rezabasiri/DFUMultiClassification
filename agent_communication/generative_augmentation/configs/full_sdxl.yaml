@@ -120,7 +120,7 @@ metrics:
 
 logging:
   logging_dir: "agent_communication/generative_augmentation/reports/full_sdxl_logs"
-  log_every_n_steps: 10  # Log every 10 steps
+  log_every_n_steps: 50  # Log every 50 steps
   save_samples_every_n_epochs: 10  # Save samples every 10 epochs
   num_samples_to_save: 16
   use_tensorboard: true
