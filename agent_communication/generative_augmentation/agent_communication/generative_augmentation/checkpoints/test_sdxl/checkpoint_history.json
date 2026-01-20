@@ -3,24 +3,14 @@
     {
       "epoch": 19,
       "path": "agent_communication/generative_augmentation/checkpoints/test_sdxl/checkpoint_epoch_0019.pt",
-      "metrics": {
-        "train_loss": 5.274746227264404,
-        "val_loss": 0.23853810131549835,
-        "fid": 451.7779846191406,
-        "ssim_mean": 0.12210071995854378,
-        "ssim_std": 0.03231870361955245,
-        "lpips_mean": 0.6771133041381836,
-        "lpips_std": 0.024666361992450578,
-        "is_mean": 1.6404459476470947,
-        "is_std": 0.11603417247533798
-      },
-      "timestamp": "2026-01-19T14:52:02.701205"
+      "metrics": null,
+      "timestamp": "2026-01-19T14:52:11.289478"
     },
     {
       "epoch": 19,
       "path": "agent_communication/generative_augmentation/checkpoints/test_sdxl/checkpoint_epoch_0019.pt",
       "metrics": null,
-      "timestamp": "2026-01-19T14:52:11.289478"
+      "timestamp": "2026-01-20T13:10:59.866467"
     }
   ],
   "best_checkpoint": null,
