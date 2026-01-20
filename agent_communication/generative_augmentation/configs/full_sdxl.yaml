@@ -19,7 +19,7 @@ data:
   modality: "rgb"
   phase: "all"  # Use all phases (I=860, P=1678, R=322) = 2860 images total
   data_percentage: 100  # Use 100% of images from each phase (balanced sampling)
-  train_val_split: 0.85  # 85% train, 15% validation
+  train_val_split: 0.90  # 90% train, 10% validation
   split_seed: 42
   augmentation:
     enabled: true
@@ -94,14 +94,14 @@ prompts:
 quality:
   perceptual_loss:
     enabled: true
-    weight: 0.1
+    weight: 0.6
     vgg_layer: 16
   ema:
     enabled: true
     decay: 0.9999
     use_ema_weights_for_inference: true
   guidance_scale: 12.0  # Increased from 7.5 for stronger prompt adherence in medical domain
-  inference_steps_training: 30
+  inference_steps_training: 50
   inference_steps_production: 50
 
 checkpointing:
