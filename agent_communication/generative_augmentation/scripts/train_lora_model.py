@@ -1210,14 +1210,28 @@ def main():
         )
 
         # Check early stopping - include val_loss in metrics dict (every epoch)
+        should_stop = False
         if early_stopping is not None:
             early_stop_metrics = {'val_loss': val_loss}
             if val_metrics is not None:
                 early_stop_metrics.update(val_metrics)
             if early_stopping.update(epoch, early_stop_metrics):
+                should_stop = True
                 if accelerator.is_main_process:
                     print("Early stopping triggered")
-                break
+
+        # CRITICAL: Broadcast early stop decision to all processes
+        # This prevents rank 0 from breaking while rank 1 continues
+        if accelerator.num_processes > 1:
+            import torch.distributed as dist
+            # Create tensor for broadcasting (1 = stop, 0 = continue)
+            stop_tensor = torch.tensor([1 if should_stop else 0], device=accelerator.device)
+            dist.broadcast(stop_tensor, src=0)
+            should_stop = stop_tensor.item() == 1
+
+        # All processes break together
+        if should_stop:
+            break
 
         # Save checkpoint (also save at first epoch to enable early resume)
         if epoch == 0 or (epoch + 1) % config['checkpointing']['save_every_n_epochs'] == 0:
