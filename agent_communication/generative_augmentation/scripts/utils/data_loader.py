@@ -44,7 +44,9 @@ class WoundDataset(Dataset):
         prompt: Optional[str] = None,
         phase_prompts: Optional[Dict[str, str]] = None,
         augmentation: Optional[Dict] = None,
-        cache_latents: bool = False
+        cache_latents: bool = False,
+        data_percentage: float = 100.0,
+        sample_seed: int = 42
     ):
         """
         Initialize wound dataset
@@ -60,6 +62,8 @@ class WoundDataset(Dataset):
                 Example: {'I': 'inflammatory phase...', 'P': 'proliferative phase...', 'R': 'remodeling phase...'}
             augmentation: Dict of augmentation parameters
             cache_latents: Whether to pre-compute and cache VAE latents (faster but more memory)
+            data_percentage: Percentage of data to use (1-100), sampled equally from each phase
+            sample_seed: Random seed for reproducible sampling when data_percentage < 100
         """
         self.data_root = Path(data_root)
         self.modality = modality
@@ -69,6 +73,8 @@ class WoundDataset(Dataset):
         self.prompt = prompt
         self.phase_prompts = phase_prompts
         self.cache_latents = cache_latents
+        self.data_percentage = data_percentage
+        self.sample_seed = sample_seed
 
         # Find all image files and track their phases
         self.image_paths = []
@@ -81,23 +87,47 @@ class WoundDataset(Dataset):
                 raise ValueError(f"Modality directory not found: {modality_dir}")
 
             phase_counts = {}
-            for phase_dir in modality_dir.iterdir():
+            phase_counts_sampled = {}
+
+            for phase_dir in sorted(modality_dir.iterdir()):  # Sort for deterministic order
                 if phase_dir.is_dir():
                     phase_name = phase_dir.name  # 'I', 'P', or 'R'
                     phase_images = []
                     for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
                         phase_images.extend(list(phase_dir.glob(ext)))
 
+                    # Sort for deterministic ordering
+                    phase_images = sorted(phase_images, key=lambda x: x.name)
+                    phase_counts[phase_name] = len(phase_images)
+
+                    # Apply data_percentage sampling per phase (balanced)
+                    if data_percentage < 100.0:
+                        n_samples = max(1, int(len(phase_images) * data_percentage / 100.0))
+                        random.seed(sample_seed)
+                        phase_images = random.sample(phase_images, n_samples)
+
                     self.image_paths.extend(phase_images)
                     self.image_phases.extend([phase_name] * len(phase_images))
-                    phase_counts[phase_name] = len(phase_images)
+                    phase_counts_sampled[phase_name] = len(phase_images)
 
             if len(self.image_paths) == 0:
                 raise ValueError(f"No images found in any phase under {modality_dir}")
 
-            print(f"Found {len(self.image_paths)} images for {modality}/all phases")
-            for p, count in sorted(phase_counts.items()):
-                print(f"  Phase {p}: {count} images")
+            total_original = sum(phase_counts.values())
+            total_sampled = sum(phase_counts_sampled.values())
+
+            if data_percentage < 100.0:
+                print(f"Using {data_percentage}% of data: {total_sampled}/{total_original} images for {modality}/all phases")
+            else:
+                print(f"Found {total_sampled} images for {modality}/all phases")
+
+            for p in sorted(phase_counts.keys()):
+                orig = phase_counts[p]
+                sampled = phase_counts_sampled[p]
+                if data_percentage < 100.0:
+                    print(f"  Phase {p}: {sampled}/{orig} images ({100*sampled/orig:.1f}%)")
+                else:
+                    print(f"  Phase {p}: {sampled} images")
         else:
             # Load from specific phase
             image_dir = self.data_root / modality / phase
@@ -107,13 +137,26 @@ class WoundDataset(Dataset):
             for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
                 self.image_paths.extend(list(image_dir.glob(ext)))
 
+            # Sort for deterministic ordering
+            self.image_paths = sorted(self.image_paths, key=lambda x: x.name)
+            original_count = len(self.image_paths)
+
+            # Apply data_percentage sampling
+            if data_percentage < 100.0:
+                n_samples = max(1, int(len(self.image_paths) * data_percentage / 100.0))
+                random.seed(sample_seed)
+                self.image_paths = random.sample(self.image_paths, n_samples)
+
             # All images have the same phase
             self.image_phases = [phase] * len(self.image_paths)
 
             if len(self.image_paths) == 0:
                 raise ValueError(f"No images found in {image_dir}")
 
-            print(f"Found {len(self.image_paths)} images for {modality}/{phase}")
+            if data_percentage < 100.0:
+                print(f"Using {data_percentage}% of data: {len(self.image_paths)}/{original_count} images for {modality}/{phase}")
+            else:
+                print(f"Found {len(self.image_paths)} images for {modality}/{phase}")
 
         # Setup data augmentation
         self.setup_augmentation(augmentation)
@@ -249,7 +292,8 @@ def create_dataloaders(
     augmentation: Optional[Dict] = None,
     num_workers: int = 4,
     pin_memory: bool = True,
-    max_samples: Optional[int] = None
+    max_samples: Optional[int] = None,
+    data_percentage: float = 100.0
 ) -> Tuple[DataLoader, DataLoader, int, int]:
     """
     Create train and validation dataloaders
@@ -269,6 +313,7 @@ def create_dataloaders(
         num_workers: Number of dataloader workers
         pin_memory: Whether to pin memory for faster GPU transfer
         max_samples: Optional limit on total samples (for testing)
+        data_percentage: Percentage of data to use (1-100), sampled equally from each phase
 
     Returns:
         (train_loader, val_loader, train_size, val_size)
@@ -282,7 +327,9 @@ def create_dataloaders(
         tokenizer=tokenizer,
         prompt=prompt,
         phase_prompts=phase_prompts,
-        augmentation=augmentation
+        augmentation=augmentation,
+        data_percentage=data_percentage,
+        sample_seed=split_seed
     )
 
     # Limit samples if requested (for testing)
@@ -358,25 +405,64 @@ def load_reference_images(
     image_paths = []
 
     if phase.lower() == 'all':
-        # Load from all available phase directories
+        # Load BALANCED samples from each phase directory
+        # This ensures consistent comparison across epochs and runs
         modality_dir = Path(data_root) / modality
-        for phase_dir in modality_dir.iterdir():
-            if phase_dir.is_dir():
-                for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
-                    image_paths.extend(list(phase_dir.glob(ext)))
+        phase_dirs = sorted([d for d in modality_dir.iterdir() if d.is_dir()])
+
+        if len(phase_dirs) == 0:
+            raise ValueError(f"No phase directories found in {modality_dir}")
+
+        # Calculate samples per phase (equal distribution)
+        if num_images is not None:
+            samples_per_phase = num_images // len(phase_dirs)
+            remainder = num_images % len(phase_dirs)
+        else:
+            samples_per_phase = None
+            remainder = 0
+
+        phase_counts = {}
+        for i, phase_dir in enumerate(phase_dirs):
+            phase_name = phase_dir.name
+            phase_images = []
+            for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
+                phase_images.extend(list(phase_dir.glob(ext)))
+
+            # Sort for deterministic ordering before sampling
+            phase_images = sorted(phase_images, key=lambda x: x.name)
+
+            # Sample from this phase
+            if samples_per_phase is not None:
+                # Add one extra to first 'remainder' phases for even distribution
+                n_samples = samples_per_phase + (1 if i < remainder else 0)
+                n_samples = min(n_samples, len(phase_images))
+                random.seed(seed)  # Reset seed for each phase for reproducibility
+                phase_images = random.sample(phase_images, n_samples)
+
+            image_paths.extend(phase_images)
+            phase_counts[phase_name] = len(phase_images)
+
         image_dir = modality_dir  # For error message
+
+        if verbose:
+            print(f"Loading balanced reference images from {modality_dir}:")
+            for p, count in sorted(phase_counts.items()):
+                print(f"  Phase {p}: {count} images")
     else:
         image_dir = Path(data_root) / modality / phase
         for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
             image_paths.extend(list(image_dir.glob(ext)))
 
+        # Sort for deterministic ordering
+        image_paths = sorted(image_paths, key=lambda x: x.name)
+
+        # Sample subset if requested
+        if num_images is not None and num_images < len(image_paths):
+            random.seed(seed)
+            image_paths = random.sample(image_paths, num_images)
+
     if len(image_paths) == 0:
         raise ValueError(f"No images found in {image_dir}")
-
-    # Sample subset if requested
-    if num_images is not None and num_images < len(image_paths):
-        random.seed(seed)
-        image_paths = random.sample(image_paths, num_images)
 
     # Load and preprocess images
     transform = transforms.Compose([
@@ -395,9 +481,79 @@ def load_reference_images(
     images_tensor = torch.stack(images)
 
     if verbose:
-        print(f"Loaded {len(images)} reference images from {image_dir}")
+        print(f"Loaded {len(images)} reference images total")
 
     return images_tensor
+
+
+def load_reference_images_by_phase(
+    data_root: str,
+    modality: str,
+    resolution: int,
+    num_images_per_phase: int = 17,
+    seed: int = 42,
+    verbose: bool = True
+) -> Dict[str, torch.Tensor]:
+    """
+    Load reference images separated by phase for per-phase metrics computation
+
+    Args:
+        data_root: Root directory containing wound images
+        modality: Imaging modality
+        resolution: Target resolution
+        num_images_per_phase: Number of images to load per phase
+        seed: Random seed for sampling
+        verbose: Whether to print progress messages
+
+    Returns:
+        Dictionary mapping phase name to tensor of images [N, C, H, W] in [0, 1] range
+    """
+    modality_dir = Path(data_root) / modality
+    phase_dirs = sorted([d for d in modality_dir.iterdir() if d.is_dir()])
+
+    if len(phase_dirs) == 0:
+        raise ValueError(f"No phase directories found in {modality_dir}")
+
+    transform = transforms.Compose([
+        transforms.Resize(resolution, antialias=True),
+        transforms.CenterCrop(resolution),
+        transforms.ToTensor()  # [0, 1] range
+    ])
+
+    phase_images = {}
+
+    for phase_dir in phase_dirs:
+        phase_name = phase_dir.name
+        image_paths = []
+        for ext in ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']:
+            image_paths.extend(list(phase_dir.glob(ext)))
+
+        if len(image_paths) == 0:
+            if verbose:
+                print(f"Warning: No images found for phase {phase_name}")
+            continue
+
+        # Sort for deterministic ordering before sampling
+        image_paths = sorted(image_paths, key=lambda x: x.name)
+
+        # Sample subset
+        n_samples = min(num_images_per_phase, len(image_paths))
+        random.seed(seed)
+        image_paths = random.sample(image_paths, n_samples)
+
+        # Load images
+        images = []
+        for image_path in image_paths:
+            image = Image.open(image_path).convert('RGB')
+            image_tensor = transform(image)
+            images.append(image_tensor)
+
+        phase_images[phase_name] = torch.stack(images)
+
+        if verbose:
+            print(f"Loaded {n_samples} reference images for phase {phase_name}")
+
+    return phase_images
 
 
 def collate_fn(examples: List[Dict]) -> Dict[str, torch.Tensor]:
