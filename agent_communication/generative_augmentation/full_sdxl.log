@@ -69,3 +69,4 @@ Epoch 1/200
   Step 1/339 - Loss: 2.8014, LR: 0.00e+00
   Step 50/339 - Loss: 4.1536, LR: 2.00e-05
   Step 100/339 - Loss: 3.8185, LR: 4.00e-05
+  Step 150/339 - Loss: 3.9137, LR: 6.00e-05
