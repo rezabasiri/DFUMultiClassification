@@ -341,19 +341,60 @@ def create_dataloaders(
         dataset = torch.utils.data.Subset(dataset, indices)
         total_size = max_samples
 
-    # Split into train/val
-    train_size = int(train_val_split * total_size)
-    val_size = total_size - train_size
+    # Stratified split: ensure each phase has proportional representation in train/val
+    # This is important for fair evaluation across imbalanced classes (I, P, R)
+    if phase.lower() == 'all' and hasattr(dataset, 'image_phases'):
+        # Get phase labels for stratified splitting
+        phase_labels = dataset.image_phases
 
-    # Use random_split with seed for reproducibility
-    generator = torch.Generator().manual_seed(split_seed)
-    train_dataset, val_dataset = random_split(
-        dataset,
-        [train_size, val_size],
-        generator=generator
-    )
+        # Group indices by phase
+        phase_indices = {}
+        for idx, phase_label in enumerate(phase_labels):
+            if phase_label not in phase_indices:
+                phase_indices[phase_label] = []
+            phase_indices[phase_label].append(idx)
 
-    print(f"Dataset split: {train_size} train, {val_size} validation")
+        train_indices = []
+        val_indices = []
+
+        # Split each phase separately to maintain class balance
+        random.seed(split_seed)
+        for phase_name in sorted(phase_indices.keys()):
+            indices = phase_indices[phase_name]
+            random.shuffle(indices)
+
+            n_train = int(len(indices) * train_val_split)
+            train_indices.extend(indices[:n_train])
+            val_indices.extend(indices[n_train:])
+
+        # Create subsets
+        train_dataset = torch.utils.data.Subset(dataset, train_indices)
+        val_dataset = torch.utils.data.Subset(dataset, val_indices)
+
+        train_size = len(train_indices)
+        val_size = len(val_indices)
+
+        # Print stratified split details
+        print(f"Stratified split: {train_size} train, {val_size} validation")
+        for phase_name in sorted(phase_indices.keys()):
+            phase_total = len(phase_indices[phase_name])
+            phase_train = int(phase_total * train_val_split)
+            phase_val = phase_total - phase_train
+            print(f"  Phase {phase_name}: {phase_train} train, {phase_val} val ({100*phase_train/phase_total:.1f}%/{100*phase_val/phase_total:.1f}%)")
+    else:
+        # Fallback to random split for single-phase datasets
+        train_size = int(train_val_split * total_size)
+        val_size = total_size - train_size
+
+        # Use random_split with seed for reproducibility
+        generator = torch.Generator().manual_seed(split_seed)
+        train_dataset, val_dataset = random_split(
+            dataset,
+            [train_size, val_size],
+            generator=generator
+        )
+
+        print(f"Dataset split: {train_size} train, {val_size} validation")
 
     # Create dataloaders
     train_loader = DataLoader(
