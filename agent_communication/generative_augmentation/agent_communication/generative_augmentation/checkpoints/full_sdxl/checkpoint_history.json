@@ -3,22 +3,6 @@
     {
       "epoch": 2,
       "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0002.pt",
-      "metrics": {
-        "train_loss": 22.72549479348319,
-        "val_loss": 0.34887194633483887,
-        "fid": 379.69012451171875,
-        "ssim_mean": 0.07244721613824368,
-        "ssim_std": 0.025342921634742062,
-        "lpips_mean": 0.2959630638360977,
-        "lpips_std": 0.039703772859316575,
-        "is_mean": 1.0,
-        "is_std": 4.5056875563886933e-08
-      },
-      "timestamp": "2026-01-19T17:16:44.262687"
-    },
-    {
-      "epoch": 2,
-      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0002.pt",
       "metrics": null,
       "timestamp": "2026-01-19T17:16:53.316737"
     },
@@ -43,6 +27,28 @@
         "lpips_R": 0.7791222222149372
       },
       "timestamp": "2026-01-20T16:33:01.822822"
+    },
+    {
+      "epoch": 19,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0019.pt",
+      "metrics": {
+        "train_loss": 1.093261158702397,
+        "val_loss": 0.12954937066468927,
+        "fid": 323.9833068847656,
+        "ssim_mean": 0.4232007107138634,
+        "ssim_std": 0.10073521134776914,
+        "lpips_mean": 0.7473312306404114,
+        "lpips_std": 0.037856579702509136,
+        "is_mean": 2.6459615230560303,
+        "is_std": 0.31221315264701843,
+        "ssim_I": 0.3983677713310017,
+        "lpips_I": 0.7715129571802476,
+        "ssim_P": 0.4165082424879074,
+        "lpips_P": 0.7454184924854952,
+        "ssim_R": 0.37978750467300415,
+        "lpips_R": 0.7725094556808472
+      },
+      "timestamp": "2026-01-20T18:23:16.154946"
     }
   ],
   "best_checkpoint": null,
