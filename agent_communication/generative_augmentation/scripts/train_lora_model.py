@@ -55,8 +55,9 @@ from accelerate.utils import ProjectConfiguration
 from peft import LoraConfig, get_peft_model
 
 # Local utilities
+from typing import Tuple, Dict
 from quality_metrics import QualityMetrics
-from data_loader import create_dataloaders, load_reference_images
+from data_loader import create_dataloaders, load_reference_images, load_reference_images_by_phase
 from training_utils import (
     PerceptualLoss,
     EMAModel,
@@ -543,12 +544,14 @@ def generate_validation_samples(
     text_encoder_2=None,
     tokenizer_2=None,
     is_sdxl=False
-) -> torch.Tensor:
+) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
     """
-    Generate sample images for visual inspection
+    Generate sample images for visual inspection using phase-specific prompts
 
     Returns:
-        Tensor of generated images [N, C, H, W] in [0, 1] range
+        Tuple of:
+        - Tensor of all generated images [N, C, H, W] in [0, 1] range
+        - Dictionary mapping phase name to tensor of images for that phase
     """
     # Use EMA model if requested
     if use_ema and ema_model is not None:
@@ -583,48 +586,105 @@ def generate_validation_samples(
     pipeline = pipeline.to(accelerator.device)
     pipeline.set_progress_bar_config(disable=True)
 
-    # Generate samples in batches to avoid OOM at high resolutions
-    prompt = config['prompts']['positive']
     negative_prompt = config['prompts']['negative']
 
     # Use configurable generation batch size (default 4 for 512x512 on 24GB GPU)
     gen_batch_size = config.get('metrics', {}).get('generation_batch_size', 4)
 
+    # Check if we have phase-specific prompts
+    phase_prompts = config['prompts'].get('phase_prompts', None)
+
     all_images = []
-    for i in range(0, num_samples, gen_batch_size):
-        batch_size = min(gen_batch_size, num_samples - i)
-        batch_images = pipeline(
-            prompt=[prompt] * batch_size,
-            negative_prompt=[negative_prompt] * batch_size,
-            num_inference_steps=config['quality']['inference_steps_training'],
-            guidance_scale=config['quality']['guidance_scale'],
-            height=config['model']['resolution'],
-            width=config['model']['resolution']
-        ).images
-        all_images.extend(batch_images)
+    phase_images = {}  # Dictionary to store images by phase
 
-        # Clear cache between batches
-        torch.cuda.empty_cache()
+    if phase_prompts is not None and len(phase_prompts) > 0:
+        # Generate images using phase-specific prompts (balanced across phases)
+        phases = sorted(phase_prompts.keys())  # e.g., ['I', 'P', 'R']
+        samples_per_phase = num_samples // len(phases)
+        remainder = num_samples % len(phases)
 
-    images = all_images
+        print(f"Generating {num_samples} images across {len(phases)} phases...")
 
-    # Convert PIL images to tensor
+        for i, phase in enumerate(phases):
+            # Distribute remainder across first phases
+            n_samples_this_phase = samples_per_phase + (1 if i < remainder else 0)
+            if n_samples_this_phase == 0:
+                continue
+
+            prompt = phase_prompts[phase]
+            phase_image_list = []
+
+            print(f"  Phase {phase}: generating {n_samples_this_phase} images...")
+
+            for j in range(0, n_samples_this_phase, gen_batch_size):
+                batch_size = min(gen_batch_size, n_samples_this_phase - j)
+                batch_images = pipeline(
+                    prompt=[prompt] * batch_size,
+                    negative_prompt=[negative_prompt] * batch_size,
+                    num_inference_steps=config['quality']['inference_steps_training'],
+                    guidance_scale=config['quality']['guidance_scale'],
+                    height=config['model']['resolution'],
+                    width=config['model']['resolution']
+                ).images
+                phase_image_list.extend(batch_images)
+
+                # Clear cache between batches
+                torch.cuda.empty_cache()
+
+            all_images.extend(phase_image_list)
+
+            # Convert phase images to tensor and store
+            import torchvision.transforms as T
+            to_tensor = T.ToTensor()
+            phase_images[phase] = torch.stack([to_tensor(img) for img in phase_image_list])
+    else:
+        # Fallback: use single prompt (backward compatibility)
+        prompt = config['prompts']['positive']
+
+        for i in range(0, num_samples, gen_batch_size):
+            batch_size = min(gen_batch_size, num_samples - i)
+            batch_images = pipeline(
+                prompt=[prompt] * batch_size,
+                negative_prompt=[negative_prompt] * batch_size,
+                num_inference_steps=config['quality']['inference_steps_training'],
+                guidance_scale=config['quality']['guidance_scale'],
+                height=config['model']['resolution'],
+                width=config['model']['resolution']
+            ).images
+            all_images.extend(batch_images)
+
+            # Clear cache between batches
+            torch.cuda.empty_cache()
+
+    # Convert all images to tensor
     import torchvision.transforms as T
     to_tensor = T.ToTensor()
-    image_tensors = torch.stack([to_tensor(img) for img in images])
+    image_tensors = torch.stack([to_tensor(img) for img in all_images])
 
-    # Save samples
+    # Save samples (organized by phase if available)
     if accelerator.is_main_process:
         save_dir = Path(config['logging']['logging_dir']) / "samples"
         save_dir.mkdir(parents=True, exist_ok=True)
 
         from torchvision.utils import save_image
+
+        # Save all images in a grid
         save_image(
             image_tensors,
             save_dir / f"epoch_{epoch:04d}.png",
             nrow=4,
             normalize=True
         )
+
+        # Also save per-phase samples if available
+        if len(phase_images) > 0:
+            for phase, phase_tensor in phase_images.items():
+                save_image(
+                    phase_tensor,
+                    save_dir / f"epoch_{epoch:04d}_phase_{phase}.png",
+                    nrow=4,
+                    normalize=True
+                )
 
     # CRITICAL: Delete pipeline and move all model components back to CPU
     # The pipeline holds references to all models on GPU
@@ -649,7 +709,7 @@ def generate_validation_samples(
     gc.collect()
     torch.cuda.empty_cache()
 
-    return image_tensors
+    return image_tensors, phase_images
 
 
 def main():
@@ -753,7 +813,8 @@ def main():
         augmentation=config['data']['augmentation'],
         num_workers=config['hardware']['num_workers'],
         pin_memory=config['hardware']['pin_memory'],
-        max_samples=config['data'].get('max_samples', None)
+        max_samples=config['data'].get('max_samples', None),
+        data_percentage=config['data'].get('data_percentage', 100.0)
     )
 
     # TESTING: Limit dataset size if max_train_samples is specified
@@ -920,15 +981,40 @@ def main():
             epoch == 0 or (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0
         )
         if should_compute_metrics:
-            # Load reference images for this metrics computation (freed after each computation to save GPU memory)
-            reference_images = load_reference_images(
-                data_root=config['data']['data_root'],
-                modality=config['data']['modality'],
-                phase=config['data']['phase'],
-                resolution=config['model']['resolution'],
-                num_images=config['validation']['num_real_samples_for_comparison'],
-                verbose=accelerator.is_main_process
-            ).to(accelerator.device)
+            # Check if we're using phase-specific generation
+            phase_prompts = config['prompts'].get('phase_prompts', None)
+            use_per_phase_metrics = phase_prompts is not None and config['data']['phase'].lower() == 'all'
+
+            if use_per_phase_metrics:
+                # Load reference images BY PHASE for per-phase comparison
+                num_samples = config['validation']['num_real_samples_for_comparison']
+                num_phases = len(phase_prompts)
+                samples_per_phase = num_samples // num_phases
+
+                reference_images_by_phase = load_reference_images_by_phase(
+                    data_root=config['data']['data_root'],
+                    modality=config['data']['modality'],
+                    resolution=config['model']['resolution'],
+                    num_images_per_phase=samples_per_phase,
+                    verbose=accelerator.is_main_process
+                )
+                # Move to device
+                for phase in reference_images_by_phase:
+                    reference_images_by_phase[phase] = reference_images_by_phase[phase].to(accelerator.device)
+
+                # Also create combined reference for overall metrics
+                reference_images = torch.cat(list(reference_images_by_phase.values()), dim=0)
+            else:
+                # Load reference images (balanced across phases if phase='all')
+                reference_images = load_reference_images(
+                    data_root=config['data']['data_root'],
+                    modality=config['data']['modality'],
+                    phase=config['data']['phase'],
+                    resolution=config['model']['resolution'],
+                    num_images=config['validation']['num_real_samples_for_comparison'],
+                    verbose=accelerator.is_main_process
+                ).to(accelerator.device)
+                reference_images_by_phase = None
 
             # Move quality metrics models to GPU (all processes need them)
             quality_metrics.fid_metric.to(accelerator.device)
@@ -938,6 +1024,7 @@ def main():
             torch.cuda.empty_cache()
 
             generated_images = None
+            generated_images_by_phase = None
 
             # ALL PROCESSES: Offload training models to CPU to free GPU memory
             # This is critical because ALL processes need GPU memory for FID computation
@@ -975,7 +1062,8 @@ def main():
                 print("Computing quality metrics...")
 
                 # Generate samples (will reload models to GPU inside the function)
-                generated_images = generate_validation_samples(
+                # Returns tuple: (all_images_tensor, dict of phase->images_tensor)
+                generated_images, generated_images_by_phase = generate_validation_samples(
                     epoch=epoch,
                     unet_lora=unet_lora,
                     vae=vae,
@@ -1008,7 +1096,7 @@ def main():
                 # Broadcast from rank 0 to all other ranks
                 torch.distributed.broadcast(generated_images, src=0)
 
-            # ALL processes compute FID (required for distributed sync)
+            # ALL processes compute overall FID (required for distributed sync)
             val_metrics = quality_metrics.compute_all_metrics(
                 generated_images=generated_images,
                 real_images=reference_images,
@@ -1016,13 +1104,41 @@ def main():
                 verbose=accelerator.is_main_process
             )
 
+            # Compute per-phase metrics on main process only (no distributed sync needed for SSIM/LPIPS)
+            if use_per_phase_metrics and accelerator.is_main_process and generated_images_by_phase is not None:
+                print("\nPer-phase metrics:")
+                print("=" * 50)
+                for phase in sorted(generated_images_by_phase.keys()):
+                    if phase in reference_images_by_phase:
+                        gen_phase = generated_images_by_phase[phase].to(accelerator.device)
+                        ref_phase = reference_images_by_phase[phase]
+
+                        # Compute SSIM and LPIPS for this phase
+                        mean_ssim, _ = quality_metrics.compute_ssim_batch(gen_phase, ref_phase)
+                        mean_lpips, _ = quality_metrics.compute_lpips_batch(gen_phase, ref_phase)
+
+                        print(f"Phase {phase}: SSIM={mean_ssim:.4f}, LPIPS={mean_lpips:.4f}")
+
+                        # Store in val_metrics
+                        val_metrics[f'ssim_{phase}'] = mean_ssim
+                        val_metrics[f'lpips_{phase}'] = mean_lpips
+
+                        del gen_phase
+                        torch.cuda.empty_cache()
+                print("=" * 50)
+
             # Clean up memory before restoring models
             del generated_images  # Free generated images (no longer needed)
+            if generated_images_by_phase is not None:
+                del generated_images_by_phase
 
             # Free reference_images on ALL processes to reclaim GPU memory
             if reference_images is not None:
                 del reference_images
                 reference_images = None
+            if use_per_phase_metrics and reference_images_by_phase is not None:
+                del reference_images_by_phase
+                reference_images_by_phase = None
 
             # Move quality metrics models to CPU to free GPU memory (ALL processes)
             quality_metrics.fid_metric.to('cpu')

@@ -1,4 +1,4 @@
-# SDXL 1.0 Base - 512x512 (Full training run with all images)
+# SDXL 1.0 Base - 512x512 (Full run with 100% of images)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
   resolution: 512
@@ -15,7 +15,8 @@ data:
   data_root: "/workspace/DFUMultiClassification/data/diffusion"  # New organized data
   modality: "rgb"
   phase: "all"  # Use all phases (I=860, P=1678, R=322) = 2860 images total
-  train_val_split: 0.95  # 2717 train, 143 validation
+  data_percentage: 100  # Use 100% of images from each phase (balanced sampling)
+  train_val_split: 0.85  # 85% train, 15% validation
   split_seed: 42
   augmentation:
     enabled: true
@@ -55,29 +56,37 @@ prompts:
   # Model learns to associate each phase with its visual characteristics
   phase_prompts:
     I: >
-      Medical photograph of diabetic foot ulcer in inflammatory phase,
-      acute wound with redness erythema and swelling edema,
-      early wound response, tissue inflammation, wound debridement stage,
-      clinical documentation, high resolution, professional medical imaging
+      Realistic clinical photograph of human foot with diabetic foot ulcer in inflammatory phase,
+      acute open wound showing redness erythema and swelling edema around wound margins,
+      early wound response with tissue inflammation, wound debridement stage,
+      real patient foot anatomy with toes and skin texture visible,
+      professional medical documentation, high resolution, sharp focus, clinical lighting
     P: >
-      Medical photograph of diabetic foot ulcer in proliferative phase,
-      granulation tissue formation, pink red wound bed, new tissue growth,
-      active healing, collagen deposition, angiogenesis visible,
-      clinical documentation, high resolution, professional medical imaging
+      Realistic clinical photograph of human foot with diabetic foot ulcer in proliferative phase,
+      active granulation tissue formation with pink red moist wound bed,
+      new tissue growth and collagen deposition, visible angiogenesis,
+      healing wound on real patient foot with natural skin and anatomical features,
+      professional medical documentation, high resolution, sharp focus, clinical lighting
     R: >
-      Medical photograph of diabetic foot ulcer in remodeling phase,
-      mature scar tissue, wound contraction, healed tissue,
-      epithelialization complete, late stage healing, tissue maturation,
-      clinical documentation, high resolution, professional medical imaging
+      Realistic clinical photograph of human foot with diabetic foot ulcer in remodeling phase,
+      mature scar tissue with wound contraction and epithelialization,
+      late stage healing with tissue maturation and skin regrowth,
+      healed or healing wound on real patient foot with natural anatomy,
+      professional medical documentation, high resolution, sharp focus, clinical lighting
   # Fallback positive prompt (used if phase_prompts not available)
   positive: >
-    Medical photograph of diabetic foot ulcer wound,
-    clinical documentation, high resolution, detailed tissue texture,
-    wound healing assessment, professional medical imaging
+    Realistic clinical photograph of human foot with diabetic foot ulcer wound,
+    real patient anatomy with visible toes skin texture and natural foot features,
+    professional medical documentation, high resolution, sharp focus,
+    detailed wound and tissue texture, clinical lighting
   negative: >
-    blurry, out of focus, low quality, jpeg artifacts,
-    unrealistic colors, smooth skin, healthy tissue,
-    artificial, cartoon, text, watermark, drawing
+    blurry, out of focus, low quality, jpeg artifacts, noise, grainy,
+    cartoon, illustration, drawing, painting, artistic, stylized, anime,
+    artificial, fake, CGI, 3D render, digital art, unrealistic,
+    smooth plastic skin, mannequin, doll, toy,
+    healthy unblemished skin, no wound, perfect skin,
+    text, watermark, logo, signature, border, frame,
+    cropped, partial foot, extreme close-up without context
 
 quality:
   perceptual_loss:
@@ -120,7 +129,7 @@ metrics:
 
 logging:
   logging_dir: "agent_communication/generative_augmentation/reports/full_sdxl_logs"
-  log_every_n_steps: 50  # Log every 50 steps
+  log_every_n_steps: 100  # Log every 100 steps
   save_samples_every_n_epochs: 10  # Save samples every 10 epochs
   num_samples_to_save: 16
   use_tensorboard: true
