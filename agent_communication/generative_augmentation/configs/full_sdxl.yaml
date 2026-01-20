@@ -5,10 +5,13 @@ model:
   training_method: "lora"
 
 lora:
-  rank: 32  # Increased from 16 for more capacity
-  alpha: 64  # 2x rank
+  rank: 64  # Increased from 32 to 64 for better medical domain adaptation
+  alpha: 128  # 2x rank
   dropout: 0.1
-  target_modules: ["to_q", "to_k", "to_v", "to_out.0"]
+  # CRITICAL: Added feed-forward modules to learn wound-specific textures
+  # Attention modules (to_q, to_k, to_v) = spatial relationships
+  # Feed-forward modules (ff.net) = visual features/textures
+  target_modules: ["to_q", "to_k", "to_v", "to_out.0", "ff.net.0.proj", "ff.net.2"]
   bias: "none"
 
 data:
@@ -97,7 +100,7 @@ quality:
     enabled: true
     decay: 0.9999
     use_ema_weights_for_inference: true
-  guidance_scale: 7.5
+  guidance_scale: 12.0  # Increased from 7.5 for stronger prompt adherence in medical domain
   inference_steps_training: 30
   inference_steps_production: 50
 
