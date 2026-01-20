@@ -1,15 +1,15 @@
-2026-01-20 09:31:46.084181: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-20 09:31:46.084239: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-20 09:31:46.085434: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-20 09:31:46.091056: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-20 13:38:40.715054: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-20 13:38:40.715116: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-20 13:38:40.716312: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-20 13:38:40.721971: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-20 09:31:46.116400: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-20 09:31:46.116458: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-20 09:31:46.117561: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-20 09:31:46.123157: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2026-01-20 13:38:40.759299: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-20 13:38:40.759367: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-20 13:38:40.760552: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-20 13:38:40.766248: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-20 09:31:46.778935: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-2026-01-20 09:31:46.820944: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-20 13:38:41.411060: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2026-01-20 13:38:41.458292: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
 ================================================================================
 Training Configuration: configs/full_sdxl.yaml
 Phase: all
@@ -55,9 +55,9 @@ Stratified split: 2430 train, 430 validation
   Phase P: 1426 train, 252 val (85.0%/15.0%)
   Phase R: 273 train, 49 val (84.8%/15.2%)
 Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
-Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
 Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
@@ -71,14 +71,14 @@ Total epochs: 200
 Effective batch size: 16
 
 Epoch 1/200
-  Step 1/303 - Loss: 2.7563, LR: 0.00e+00
-  Step 100/303 - Loss: 3.8777, LR: 4.00e-05
-  Step 200/303 - Loss: 3.9154, LR: 8.00e-05
-  Step 300/303 - Loss: 3.8593, LR: 1.00e-04
-  Epoch 1 complete - Loss: 3.8422, LR: 1.00e-04
-Train loss: 3.8422
-  Validation: 54 batches - Loss: 0.1368
-Val loss: 0.1368
+  Step 1/303 - Loss: 0.9917, LR: 0.00e+00
+  Step 100/303 - Loss: 1.2027, LR: 4.00e-05
+  Step 200/303 - Loss: 1.1653, LR: 8.00e-05
+  Step 300/303 - Loss: 1.1611, LR: 1.00e-04
+  Epoch 1 complete - Loss: 1.1620, LR: 1.00e-04
+Train loss: 1.1620
+  Validation: 54 batches - Loss: 0.1267
+Val loss: 0.1267
 Loaded 16 reference images for phase I
 Loaded 16 reference images for phase P
 Loaded 16 reference images for phase R
@@ -96,103 +96,200 @@ Computing Inception Score...
 
 Per-phase metrics:
 ==================================================
-Phase I: SSIM=0.3427, LPIPS=0.8028
-Phase P: SSIM=0.3478, LPIPS=0.7873
-Phase R: SSIM=0.3845, LPIPS=0.7853
+Phase I: SSIM=0.3739, LPIPS=0.7899
+Phase P: SSIM=0.3610, LPIPS=0.7729
+Phase R: SSIM=0.3858, LPIPS=0.7841
 ==================================================
 Quality Metrics:
 ==================================================
-FID: 375.10 (lower is better, < 50 is good)
-SSIM: 0.3746 ± 0.0997 (higher is better, > 0.7 is good)
-LPIPS: 0.7811 ± 0.0344 (lower is better, < 0.3 is good)
-IS: 2.71 ± 0.32 (higher is better, > 2.0 is good)
+FID: 362.06 (lower is better, < 50 is good)
+SSIM: 0.3913 ± 0.0976 (higher is better, > 0.7 is good)
+LPIPS: 0.7716 ± 0.0293 (lower is better, < 0.3 is good)
+IS: 2.65 ± 0.43 (higher is better, > 2.0 is good)
 ==================================================
-Val FID: 375.10
+Val FID: 362.06
   Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0000.pt
   Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0000.pt
 
 Epoch 2/200
-  Step 1/303 - Loss: 2.0255, LR: 1.00e-04
-  Step 100/303 - Loss: 3.8501, LR: 1.00e-04
-  Step 200/303 - Loss: 4.0291, LR: 1.00e-04
-  Step 300/303 - Loss: 3.9378, LR: 1.00e-04
-  Epoch 2 complete - Loss: 3.9380, LR: 1.00e-04
-Train loss: 3.9380
-  Validation: 54 batches - Loss: 0.1235
-Val loss: 0.1235
+  Step 1/303 - Loss: 1.0841, LR: 1.00e-04
+  Step 100/303 - Loss: 1.1034, LR: 1.00e-04
+  Step 200/303 - Loss: 1.1125, LR: 1.00e-04
+  Step 300/303 - Loss: 1.1116, LR: 1.00e-04
+  Epoch 2 complete - Loss: 1.1112, LR: 1.00e-04
+Train loss: 1.1112
+  Validation: 54 batches - Loss: 0.1230
+Val loss: 0.1230
 
 Epoch 3/200
-  Step 1/303 - Loss: 2.1445, LR: 1.00e-04
-  Step 100/303 - Loss: 4.4838, LR: 1.00e-04
-  Step 200/303 - Loss: 4.2413, LR: 1.00e-04
-  Step 300/303 - Loss: 3.9932, LR: 1.00e-04
-  Epoch 3 complete - Loss: 3.9835, LR: 1.00e-04
-Train loss: 3.9835
-  Validation: 54 batches - Loss: 0.1267
-Val loss: 0.1267
+  Step 1/303 - Loss: 1.0879, LR: 1.00e-04
+  Step 100/303 - Loss: 1.1306, LR: 1.00e-04
+  Step 200/303 - Loss: 1.1210, LR: 1.00e-04
+  Step 300/303 - Loss: 1.1209, LR: 1.00e-04
+  Epoch 3 complete - Loss: 1.1210, LR: 1.00e-04
+Train loss: 1.1210
+  Validation: 54 batches - Loss: 0.1127
+Val loss: 0.1127
 
 Epoch 4/200
-  Step 1/303 - Loss: 3.0397, LR: 1.00e-04
-  Step 100/303 - Loss: 3.8626, LR: 1.00e-04
-  Step 200/303 - Loss: 3.6941, LR: 1.00e-04
-  Step 300/303 - Loss: 3.8591, LR: 1.00e-04
-  Epoch 4 complete - Loss: 3.8703, LR: 1.00e-04
-Train loss: 3.8703
-  Validation: 54 batches - Loss: 0.1268
-Val loss: 0.1268
+  Step 1/303 - Loss: 0.9617, LR: 1.00e-04
+  Step 100/303 - Loss: 1.1205, LR: 1.00e-04
+  Step 200/303 - Loss: 1.1204, LR: 1.00e-04
+  Step 300/303 - Loss: 1.1120, LR: 1.00e-04
+  Epoch 4 complete - Loss: 1.1114, LR: 1.00e-04
+Train loss: 1.1114
+  Validation: 54 batches - Loss: 0.1220
+Val loss: 0.1220
 
 Epoch 5/200
-  Step 1/303 - Loss: 1.2198, LR: 1.00e-04
-[rank0]: Traceback (most recent call last):
-[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 1251, in <module>
-[rank0]:     main()
-[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 936, in main
-[rank0]:     train_loss = train_one_epoch(
-[rank0]:                  ^^^^^^^^^^^^^^^^
-[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 373, in train_one_epoch
-[rank0]:     pred_latents = noise_scheduler.step(
-[rank0]:                    ^^^^^^^^^^^^^^^^^^^^^
-[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/diffusers/schedulers/scheduling_ddpm.py", line 464, in step
-[rank0]:     prev_t = self.previous_timestep(t)
-[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
-[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/diffusers/schedulers/scheduling_ddpm.py", line 627, in previous_timestep
-[rank0]:     index = (self.timesteps == timestep).nonzero(as_tuple=True)[0][0]
-[rank0]:             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
-[rank0]: IndexError: index 0 is out of bounds for dimension 0 with size 0
-[rank0]:[W120 10:46:23.260197003 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
-[rank0]:[W120 10:46:24.323150289 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())
-W0120 10:46:26.318000 2329696 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 2329901 closing signal SIGTERM
-E0120 10:46:26.320000 2329696 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 0 (pid: 2329900) of binary: /venv/multimodal/bin/python3.11
-Traceback (most recent call last):
-  File "/venv/multimodal/bin/accelerate", line 7, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/accelerate/commands/accelerate_cli.py", line 50, in main
-    args.func(args)
-  File "/venv/multimodal/lib/python3.11/site-packages/accelerate/commands/launch.py", line 1272, in launch_command
-    multi_gpu_launcher(args)
-  File "/venv/multimodal/lib/python3.11/site-packages/accelerate/commands/launch.py", line 899, in multi_gpu_launcher
-    distrib_run.run(args)
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/run.py", line 927, in run
-    elastic_launch(
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
-    return launch_agent(self._config, self._entrypoint, list(args))
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
-    raise ChildFailedError(
-torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
-============================================================
-scripts/train_lora_model.py FAILED
-------------------------------------------------------------
-Failures:
-  <NO_OTHER_FAILURES>
-------------------------------------------------------------
-Root Cause (first observed failure):
-[0]:
-  time      : 2026-01-20_10:46:26
-  host      : 8c8dadf7e27a
-  rank      : 0 (local_rank: 0)
-  exitcode  : 1 (pid: 2329900)
-  error_file: <N/A>
-  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
-============================================================
+  Step 1/303 - Loss: 1.0271, LR: 1.00e-04
+  Step 100/303 - Loss: 1.1321, LR: 1.00e-04
+  Step 200/303 - Loss: 1.1150, LR: 1.00e-04
+  Step 300/303 - Loss: 1.1177, LR: 1.00e-04
+  Epoch 5 complete - Loss: 1.1181, LR: 1.00e-04
+Train loss: 1.1181
+  Validation: 54 batches - Loss: 0.1288
+Val loss: 0.1288
+
+Epoch 6/200
+  Step 1/303 - Loss: 1.0010, LR: 1.00e-04
+  Step 100/303 - Loss: 1.1179, LR: 1.00e-04
+  Step 200/303 - Loss: 1.1081, LR: 1.00e-04
+  Step 300/303 - Loss: 1.1109, LR: 1.00e-04
+  Epoch 6 complete - Loss: 1.1103, LR: 1.00e-04
+Train loss: 1.1103
+  Validation: 54 batches - Loss: 0.1263
+Val loss: 0.1263
+
+Epoch 7/200
+  Step 1/303 - Loss: 1.0067, LR: 1.00e-04
+  Step 100/303 - Loss: 1.0809, LR: 1.00e-04
+  Step 200/303 - Loss: 1.1004, LR: 9.99e-05
+  Step 300/303 - Loss: 1.1034, LR: 9.99e-05
+  Epoch 7 complete - Loss: 1.1035, LR: 9.99e-05
+Train loss: 1.1035
+  Validation: 54 batches - Loss: 0.1140
+Val loss: 0.1140
+
+Epoch 8/200
+  Step 1/303 - Loss: 1.0704, LR: 9.99e-05
+  Step 100/303 - Loss: 1.1094, LR: 9.99e-05
+  Step 200/303 - Loss: 1.1016, LR: 9.99e-05
+  Step 300/303 - Loss: 1.1091, LR: 9.99e-05
+  Epoch 8 complete - Loss: 1.1105, LR: 9.99e-05
+Train loss: 1.1105
+  Validation: 54 batches - Loss: 0.1044
+Val loss: 0.1044
+
+Epoch 9/200
+  Step 1/303 - Loss: 1.1976, LR: 9.99e-05
+  Step 100/303 - Loss: 1.0958, LR: 9.99e-05
+  Step 200/303 - Loss: 1.0888, LR: 9.99e-05
+  Step 300/303 - Loss: 1.0900, LR: 9.99e-05
+  Epoch 9 complete - Loss: 1.0899, LR: 9.99e-05
+Train loss: 1.0899
+  Validation: 54 batches - Loss: 0.1191
+Val loss: 0.1191
+
+Epoch 10/200
+  Step 1/303 - Loss: 0.9679, LR: 9.99e-05
+  Step 100/303 - Loss: 1.1204, LR: 9.99e-05
+  Step 200/303 - Loss: 1.1098, LR: 9.99e-05
+  Step 300/303 - Loss: 1.1021, LR: 9.99e-05
+  Epoch 10 complete - Loss: 1.1006, LR: 9.99e-05
+Train loss: 1.1006
+  Validation: 54 batches - Loss: 0.1197
+Val loss: 0.1197
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.3950, LPIPS=0.7668
+Phase P: SSIM=0.4307, LPIPS=0.7427
+Phase R: SSIM=0.4361, LPIPS=0.7791
+==================================================
+Quality Metrics:
+==================================================
+FID: 348.08 (lower is better, < 50 is good)
+SSIM: 0.4457 ± 0.1017 (higher is better, > 0.7 is good)
+LPIPS: 0.7498 ± 0.0349 (lower is better, < 0.3 is good)
+IS: 2.86 ± 0.42 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 348.08
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0009.pt
+
+Epoch 11/200
+  Step 1/303 - Loss: 1.0578, LR: 9.99e-05
+  Step 100/303 - Loss: 1.1083, LR: 9.99e-05
+  Step 200/303 - Loss: 1.1105, LR: 9.98e-05
+  Step 300/303 - Loss: 1.1058, LR: 9.98e-05
+  Epoch 11 complete - Loss: 1.1069, LR: 9.98e-05
+Train loss: 1.1069
+  Validation: 54 batches - Loss: 0.1325
+Val loss: 0.1325
+
+Epoch 12/200
+  Step 1/303 - Loss: 1.1265, LR: 9.98e-05
+  Step 100/303 - Loss: 1.0817, LR: 9.98e-05
+  Step 200/303 - Loss: 1.0864, LR: 9.98e-05
+  Step 300/303 - Loss: 1.0904, LR: 9.98e-05
+  Epoch 12 complete - Loss: 1.0898, LR: 9.98e-05
+Train loss: 1.0898
+  Validation: 54 batches - Loss: 0.1161
+Val loss: 0.1161
+
+Epoch 13/200
+  Step 1/303 - Loss: 1.1992, LR: 9.98e-05
+  Step 100/303 - Loss: 1.1070, LR: 9.98e-05
+  Step 200/303 - Loss: 1.1106, LR: 9.98e-05
+  Step 300/303 - Loss: 1.1088, LR: 9.98e-05
+  Epoch 13 complete - Loss: 1.1085, LR: 9.98e-05
+Train loss: 1.1085
+  Validation: 54 batches - Loss: 0.1097
+Val loss: 0.1097
+
+Epoch 14/200
+  Step 1/303 - Loss: 1.0552, LR: 9.98e-05
+  Step 100/303 - Loss: 1.1118, LR: 9.98e-05
+  Step 200/303 - Loss: 1.0947, LR: 9.97e-05
+  Step 300/303 - Loss: 1.0845, LR: 9.97e-05
+  Epoch 14 complete - Loss: 1.0858, LR: 9.97e-05
+Train loss: 1.0858
+  Validation: 54 batches - Loss: 0.1171
+Val loss: 0.1171
+
+Epoch 15/200
+  Step 1/303 - Loss: 1.0508, LR: 9.97e-05
+  Step 100/303 - Loss: 1.1035, LR: 9.97e-05
+  Step 200/303 - Loss: 1.1014, LR: 9.97e-05
+  Step 300/303 - Loss: 1.0920, LR: 9.97e-05
+  Epoch 15 complete - Loss: 1.0930, LR: 9.97e-05
+Train loss: 1.0930
+  Validation: 54 batches - Loss: 0.1297
+Val loss: 0.1297
+
+Epoch 16/200
+  Step 1/303 - Loss: 1.1289, LR: 9.97e-05
+  Step 100/303 - Loss: 1.1203, LR: 9.97e-05
+  Step 200/303 - Loss: 1.1130, LR: 9.97e-05
+  Step 300/303 - Loss: 1.1076, LR: 9.96e-05
+  Epoch 16 complete - Loss: 1.1070, LR: 9.96e-05
+Train loss: 1.1070
+  Validation: 54 batches - Loss: 0.1274
+Val loss: 0.1274
+
+Epoch 17/200
+  Step 1/303 - Loss: 1.1482, LR: 9.96e-05
+  Step 100/303 - Loss: 1.0920, LR: 9.96e-05
+  Step 200/303 - Loss: 1.0925, LR: 9.96e-05
