@@ -583,18 +583,30 @@ def generate_validation_samples(
     pipeline = pipeline.to(accelerator.device)
     pipeline.set_progress_bar_config(disable=True)
 
-    # Generate samples
+    # Generate samples in batches to avoid OOM at high resolutions
     prompt = config['prompts']['positive']
     negative_prompt = config['prompts']['negative']
 
-    images = pipeline(
-        prompt=[prompt] * num_samples,
-        negative_prompt=[negative_prompt] * num_samples,
-        num_inference_steps=config['quality']['inference_steps_training'],
-        guidance_scale=config['quality']['guidance_scale'],
-        height=config['model']['resolution'],
-        width=config['model']['resolution']
-    ).images
+    # Use configurable generation batch size (default 4 for 512x512 on 24GB GPU)
+    gen_batch_size = config.get('metrics', {}).get('generation_batch_size', 4)
+
+    all_images = []
+    for i in range(0, num_samples, gen_batch_size):
+        batch_size = min(gen_batch_size, num_samples - i)
+        batch_images = pipeline(
+            prompt=[prompt] * batch_size,
+            negative_prompt=[negative_prompt] * batch_size,
+            num_inference_steps=config['quality']['inference_steps_training'],
+            guidance_scale=config['quality']['guidance_scale'],
+            height=config['model']['resolution'],
+            width=config['model']['resolution']
+        ).images
+        all_images.extend(batch_images)
+
+        # Clear cache between batches
+        torch.cuda.empty_cache()
+
+    images = all_images
 
     # Convert PIL images to tensor
     import torchvision.transforms as T
@@ -651,8 +663,8 @@ def main():
     parser.add_argument(
         "--resume",
         type=str,
-        default=None,
-        help="Resume from checkpoint ('latest', 'best', or path to checkpoint)"
+        default="auto",
+        help="Resume from checkpoint ('auto' to auto-detect, 'latest', 'best', path to checkpoint, or 'none' to start fresh)"
     )
 
     args = parser.parse_args()
@@ -816,11 +828,28 @@ def main():
 
     metrics_tracker = MetricsTracker()
 
-    # Resume from checkpoint if requested
+    # Resume from checkpoint (auto-detect by default)
     start_epoch = 0
-    if args.resume:
+    resume_path = args.resume
+
+    # Handle auto-detection of checkpoint
+    if resume_path == "auto":
+        # Check if latest checkpoint exists
+        latest_checkpoint = checkpoint_manager.get_latest_checkpoint()
+        if latest_checkpoint is not None:
+            resume_path = "latest"
+            if accelerator.is_main_process:
+                print(f"Auto-detected existing checkpoint, resuming from latest...")
+        else:
+            resume_path = None  # No checkpoint to resume from
+            if accelerator.is_main_process:
+                print("No existing checkpoint found, starting fresh training...")
+    elif resume_path == "none":
+        resume_path = None  # Explicitly start fresh
+
+    if resume_path is not None:
         checkpoint = checkpoint_manager.load_checkpoint(
-            checkpoint_path=args.resume,
+            checkpoint_path=resume_path,
             unet_lora=accelerator.unwrap_model(unet_lora),
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
@@ -828,7 +857,8 @@ def main():
             load_optimizer=True
         )
         start_epoch = checkpoint.get('epoch', 0) + 1
-        print(f"Resumed from epoch {start_epoch}")
+        if accelerator.is_main_process:
+            print(f"Resumed from epoch {start_epoch}")
 
     # Training loop
     if accelerator.is_main_process:
@@ -862,203 +892,206 @@ def main():
         if accelerator.is_main_process:
             print(f"Train loss: {train_loss:.4f}")
 
-        # Validate
-        if (epoch + 1) % config['validation']['validate_every_n_epochs'] == 0:
-            # NOTE: Validation uses the current model weights (not EMA) because EMA is
-            # kept on CPU to save GPU memory. EMA is only moved to GPU for sample generation.
-            val_loss = validate(
-                unet_lora=unet_lora,
-                vae=vae,
-                text_encoder=text_encoder,
-                noise_scheduler=noise_scheduler,
-                val_loader=val_loader,
-                accelerator=accelerator,
-                config=config,
-                use_ema=False,  # Don't use EMA for validation (EMA is on CPU)
-                ema_model=None,
-                text_encoder_2=text_encoder_2,
-                is_sdxl=is_sdxl
-            )
+        # Validate every epoch (needed for early stopping to work properly)
+        # NOTE: Validation uses the current model weights (not EMA) because EMA is
+        # kept on CPU to save GPU memory. EMA is only moved to GPU for sample generation.
+        val_loss = validate(
+            unet_lora=unet_lora,
+            vae=vae,
+            text_encoder=text_encoder,
+            noise_scheduler=noise_scheduler,
+            val_loader=val_loader,
+            accelerator=accelerator,
+            config=config,
+            use_ema=False,  # Don't use EMA for validation (EMA is on CPU)
+            ema_model=None,
+            text_encoder_2=text_encoder_2,
+            is_sdxl=is_sdxl
+        )
 
-            # Generate validation samples and compute metrics
-            # NOTE: ALL processes must participate in FID computation due to distributed sync in torchmetrics
-            val_metrics = None
-            if config['validation']['compare_to_real'] and (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0:
-                # Load reference images for this metrics computation (freed after each computation to save GPU memory)
-                reference_images = load_reference_images(
-                    data_root=config['data']['data_root'],
-                    modality=config['data']['modality'],
-                    phase=config['data']['phase'],
-                    resolution=config['model']['resolution'],
-                    num_images=config['validation']['num_real_samples_for_comparison'],
-                    verbose=accelerator.is_main_process
-                ).to(accelerator.device)
+        if accelerator.is_main_process:
+            print(f"Val loss: {val_loss:.4f}")
 
-                # Move quality metrics models to GPU (all processes need them)
-                quality_metrics.fid_metric.to(accelerator.device)
-                quality_metrics.is_metric.to(accelerator.device)
-                quality_metrics.lpips_metric.to(accelerator.device)
-                quality_metrics.ssim_metric.to(accelerator.device)
+        # Generate validation samples and compute metrics (expensive, run less frequently)
+        # NOTE: ALL processes must participate in FID computation due to distributed sync in torchmetrics
+        # Also run at first epoch to verify the entire pipeline works before long training
+        val_metrics = None
+        should_compute_metrics = config['validation']['compare_to_real'] and (
+            epoch == 0 or (epoch + 1) % config['metrics']['compute_every_n_epochs'] == 0
+        )
+        if should_compute_metrics:
+            # Load reference images for this metrics computation (freed after each computation to save GPU memory)
+            reference_images = load_reference_images(
+                data_root=config['data']['data_root'],
+                modality=config['data']['modality'],
+                phase=config['data']['phase'],
+                resolution=config['model']['resolution'],
+                num_images=config['validation']['num_real_samples_for_comparison'],
+                verbose=accelerator.is_main_process
+            ).to(accelerator.device)
+
+            # Move quality metrics models to GPU (all processes need them)
+            quality_metrics.fid_metric.to(accelerator.device)
+            quality_metrics.is_metric.to(accelerator.device)
+            quality_metrics.lpips_metric.to(accelerator.device)
+            quality_metrics.ssim_metric.to(accelerator.device)
+            torch.cuda.empty_cache()
+
+            generated_images = None
+
+            # ALL PROCESSES: Offload training models to CPU to free GPU memory
+            # This is critical because ALL processes need GPU memory for FID computation
+            import gc
+
+            # Get the original device
+            original_device = accelerator.device
+
+            # Move large models to CPU (all processes)
+            # CRITICAL: Offload ALL models including EMA to free GPU memory for metrics
+            unwrapped_unet = accelerator.unwrap_model(unet_lora)
+            unwrapped_unet.to('cpu')
+            torch.cuda.empty_cache()  # Free memory immediately after each offload
+
+            vae.to('cpu')
+            torch.cuda.empty_cache()
+
+            text_encoder.to('cpu')
+            torch.cuda.empty_cache()
+
+            if text_encoder_2 is not None:
+                text_encoder_2.to('cpu')
                 torch.cuda.empty_cache()
 
-                generated_images = None
+            # NOTE: EMA model is NOT offloaded here because it will be kept on CPU
+            # during training and only moved to GPU during sample generation.
+            # This saves GPU memory for the training models.
 
-                # ALL PROCESSES: Offload training models to CPU to free GPU memory
-                # This is critical because ALL processes need GPU memory for FID computation
-                import gc
+            # Clear GPU cache and run garbage collection
+            gc.collect()
+            torch.cuda.empty_cache()
 
-                # Get the original device
-                original_device = accelerator.device
+            # Only main process generates samples
+            if accelerator.is_main_process:
+                print("Computing quality metrics...")
 
-                # Move large models to CPU (all processes)
-                # CRITICAL: Offload ALL models including EMA to free GPU memory for metrics
-                unwrapped_unet = accelerator.unwrap_model(unet_lora)
-                unwrapped_unet.to('cpu')
-                torch.cuda.empty_cache()  # Free memory immediately after each offload
-
-                vae.to('cpu')
-                torch.cuda.empty_cache()
-
-                text_encoder.to('cpu')
-                torch.cuda.empty_cache()
-
-                if text_encoder_2 is not None:
-                    text_encoder_2.to('cpu')
-                    torch.cuda.empty_cache()
-
-                # NOTE: EMA model is NOT offloaded here because it will be kept on CPU
-                # during training and only moved to GPU during sample generation.
-                # This saves GPU memory for the training models.
-
-                # Clear GPU cache and run garbage collection
-                gc.collect()
-                torch.cuda.empty_cache()
-
-                # Only main process generates samples
-                if accelerator.is_main_process:
-                    print("Computing quality metrics...")
-
-                    # Generate samples (will reload models to GPU inside the function)
-                    generated_images = generate_validation_samples(
-                        epoch=epoch,
-                        unet_lora=unet_lora,
-                        vae=vae,
-                        text_encoder=text_encoder,
-                        tokenizer=tokenizer,
-                        noise_scheduler=noise_scheduler,
-                        accelerator=accelerator,
-                        config=config,
-                        num_samples=config['metrics']['num_samples_for_metrics'],
-                        use_ema=config['quality']['ema'].get('use_ema_weights_for_inference', False),
-                        ema_model=ema_model,
-                        text_encoder_2=text_encoder_2,
-                        tokenizer_2=tokenizer_2,
-                        is_sdxl=is_sdxl
-                    )
-
-                # CRITICAL: Broadcast generated images to all processes
-                # This is required because torchmetrics FID.compute() synchronizes across all processes
-                if accelerator.num_processes > 1:
-                    # Create placeholder on non-main processes
-                    if not accelerator.is_main_process:
-                        generated_images = torch.zeros(
-                            (config['metrics']['num_samples_for_metrics'], 3, config['model']['resolution'], config['model']['resolution']),
-                            device=accelerator.device
-                        )
-                    else:
-                        # Move generated images to GPU for NCCL broadcast (NCCL doesn't support CPU)
-                        generated_images = generated_images.to(accelerator.device)
-
-                    # Broadcast from rank 0 to all other ranks
-                    torch.distributed.broadcast(generated_images, src=0)
-
-                # ALL processes compute FID (required for distributed sync)
-                val_metrics = quality_metrics.compute_all_metrics(
-                    generated_images=generated_images,
-                    real_images=reference_images,
-                    compute_is=config['metrics']['inception_score']['enabled'],
-                    verbose=accelerator.is_main_process
+                # Generate samples (will reload models to GPU inside the function)
+                generated_images = generate_validation_samples(
+                    epoch=epoch,
+                    unet_lora=unet_lora,
+                    vae=vae,
+                    text_encoder=text_encoder,
+                    tokenizer=tokenizer,
+                    noise_scheduler=noise_scheduler,
+                    accelerator=accelerator,
+                    config=config,
+                    num_samples=config['metrics']['num_samples_for_metrics'],
+                    use_ema=config['quality']['ema'].get('use_ema_weights_for_inference', False),
+                    ema_model=ema_model,
+                    text_encoder_2=text_encoder_2,
+                    tokenizer_2=tokenizer_2,
+                    is_sdxl=is_sdxl
                 )
 
-                # Clean up memory before restoring models
-                del generated_images  # Free generated images (no longer needed)
+            # CRITICAL: Broadcast generated images to all processes
+            # This is required because torchmetrics FID.compute() synchronizes across all processes
+            if accelerator.num_processes > 1:
+                # Create placeholder on non-main processes
+                if not accelerator.is_main_process:
+                    generated_images = torch.zeros(
+                        (config['metrics']['num_samples_for_metrics'], 3, config['model']['resolution'], config['model']['resolution']),
+                        device=accelerator.device
+                    )
+                else:
+                    # Move generated images to GPU for NCCL broadcast (NCCL doesn't support CPU)
+                    generated_images = generated_images.to(accelerator.device)
 
-                # Free reference_images on ALL processes to reclaim GPU memory
-                if reference_images is not None:
-                    del reference_images
-                    reference_images = None
+                # Broadcast from rank 0 to all other ranks
+                torch.distributed.broadcast(generated_images, src=0)
 
-                # Move quality metrics models to CPU to free GPU memory (ALL processes)
-                quality_metrics.fid_metric.to('cpu')
-                quality_metrics.is_metric.to('cpu')
-                quality_metrics.lpips_metric.to('cpu')
-                quality_metrics.ssim_metric.to('cpu')
-
-                # Aggressive memory cleanup
-                torch.cuda.empty_cache()
-                torch.cuda.synchronize()
-                import gc
-                gc.collect()
-                torch.cuda.empty_cache()
-
-                # All processes sync BEFORE restoring models
-                accelerator.wait_for_everyone()
-
-                # Only main process prints metrics
-                if accelerator.is_main_process:
-                    print(quality_metrics.format_metrics(val_metrics))
-                    val_fid = val_metrics.get('fid', 0)
-                    print(f"Val loss: {val_loss:.4f}, Val FID: {val_fid:.2f}")
-
-                # ALL PROCESSES: Restore training models to GPU
-                torch.cuda.empty_cache()
-                torch.cuda.synchronize()
-                gc.collect()
-                torch.cuda.empty_cache()
-
-                # Move models back to GPU one at a time
-                unwrapped_unet.to(original_device)
-                torch.cuda.empty_cache()
-
-                vae.to(original_device)
-                torch.cuda.empty_cache()
-
-                text_encoder.to(original_device)
-                torch.cuda.empty_cache()
-
-                if text_encoder_2 is not None:
-                    text_encoder_2.to(original_device)
-                    torch.cuda.empty_cache()
-
-                # NOTE: EMA stays on CPU - it's only loaded to GPU during sample generation
-
-                # DON'T move quality metrics back to GPU yet - keep them on CPU to save memory
-                # They'll be moved to GPU again next time we need them
-            else:
-                if accelerator.is_main_process:
-                    print(f"Val loss: {val_loss:.4f}")
-
-            # Update metrics tracker
-            metrics_tracker.update(
-                epoch=epoch,
-                train_loss=train_loss,
-                val_loss=val_loss,
-                val_metrics=val_metrics,
-                learning_rate=optimizer.param_groups[0]['lr']
+            # ALL processes compute FID (required for distributed sync)
+            val_metrics = quality_metrics.compute_all_metrics(
+                generated_images=generated_images,
+                real_images=reference_images,
+                compute_is=config['metrics']['inception_score']['enabled'],
+                verbose=accelerator.is_main_process
             )
 
-            # Check early stopping - include val_loss in metrics dict
-            if early_stopping is not None:
-                early_stop_metrics = {'val_loss': val_loss}
-                if val_metrics is not None:
-                    early_stop_metrics.update(val_metrics)
-                if early_stopping.update(epoch, early_stop_metrics):
-                    if accelerator.is_main_process:
-                        print("Early stopping triggered")
-                    break
+            # Clean up memory before restoring models
+            del generated_images  # Free generated images (no longer needed)
 
-        # Save checkpoint
-        if (epoch + 1) % config['checkpointing']['save_every_n_epochs'] == 0:
+            # Free reference_images on ALL processes to reclaim GPU memory
+            if reference_images is not None:
+                del reference_images
+                reference_images = None
+
+            # Move quality metrics models to CPU to free GPU memory (ALL processes)
+            quality_metrics.fid_metric.to('cpu')
+            quality_metrics.is_metric.to('cpu')
+            quality_metrics.lpips_metric.to('cpu')
+            quality_metrics.ssim_metric.to('cpu')
+
+            # Aggressive memory cleanup
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            import gc
+            gc.collect()
+            torch.cuda.empty_cache()
+
+            # All processes sync BEFORE restoring models
+            accelerator.wait_for_everyone()
+
+            # Only main process prints metrics
+            if accelerator.is_main_process:
+                print(quality_metrics.format_metrics(val_metrics))
+                val_fid = val_metrics.get('fid', 0)
+                print(f"Val FID: {val_fid:.2f}")
+
+            # ALL PROCESSES: Restore training models to GPU
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            gc.collect()
+            torch.cuda.empty_cache()
+
+            # Move models back to GPU one at a time
+            unwrapped_unet.to(original_device)
+            torch.cuda.empty_cache()
+
+            vae.to(original_device)
+            torch.cuda.empty_cache()
+
+            text_encoder.to(original_device)
+            torch.cuda.empty_cache()
+
+            if text_encoder_2 is not None:
+                text_encoder_2.to(original_device)
+                torch.cuda.empty_cache()
+
+            # NOTE: EMA stays on CPU - it's only loaded to GPU during sample generation
+
+            # DON'T move quality metrics back to GPU yet - keep them on CPU to save memory
+            # They'll be moved to GPU again next time we need them
+
+        # Update metrics tracker (every epoch since we validate every epoch)
+        metrics_tracker.update(
+            epoch=epoch,
+            train_loss=train_loss,
+            val_loss=val_loss,
+            val_metrics=val_metrics,
+            learning_rate=optimizer.param_groups[0]['lr']
+        )
+
+        # Check early stopping - include val_loss in metrics dict (every epoch)
+        if early_stopping is not None:
+            early_stop_metrics = {'val_loss': val_loss}
+            if val_metrics is not None:
+                early_stop_metrics.update(val_metrics)
+            if early_stopping.update(epoch, early_stop_metrics):
+                if accelerator.is_main_process:
+                    print("Early stopping triggered")
+                break
+
+        # Save checkpoint (also save at first epoch to enable early resume)
+        if epoch == 0 or (epoch + 1) % config['checkpointing']['save_every_n_epochs'] == 0:
             if accelerator.is_main_process:
                 # Prepare metrics for checkpoint
                 checkpoint_metrics = {'train_loss': train_loss}

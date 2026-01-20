@@ -103,6 +103,7 @@ checkpointing:
 metrics:
   compute_every_n_epochs: 20  # FID every 20 epochs
   num_samples_for_metrics: 50
+  generation_batch_size: 4  # Generate images in batches to avoid OOM at 512x512
   fid:
     enabled: true
     target_threshold: 50.0
@@ -140,7 +141,9 @@ reproducibility:
   deterministic: false
 
 validation:
-  validate_every_n_epochs: 10  # Validate every 10 epochs
+  # NOTE: val_loss is computed every epoch for early stopping to work properly
+  # validate_every_n_epochs is kept for backward compatibility but no longer used
+  validate_every_n_epochs: 10  # (unused - val_loss computed every epoch)
   generate_samples: true  # Enable sample generation
   num_validation_samples: 4
   compare_to_real: true
