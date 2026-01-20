@@ -359,3 +359,131 @@ Val FID: 323.98
 
 Epoch 21/200
   Step 1/303 - Loss: 1.3534, LR: 9.94e-05
+  Step 100/303 - Loss: 1.1015, LR: 9.94e-05
+  Step 200/303 - Loss: 1.0959, LR: 9.94e-05
+  Step 300/303 - Loss: 1.0975, LR: 9.94e-05
+  Epoch 21 complete - Loss: 1.0972, LR: 9.94e-05
+Train loss: 1.0972
+  Validation: 54 batches - Loss: 0.1029
+Val loss: 0.1029
+
+Epoch 22/200
+  Step 1/303 - Loss: 0.9145, LR: 9.94e-05
+  Step 100/303 - Loss: 1.0821, LR: 9.93e-05
+  Step 200/303 - Loss: 1.0926, LR: 9.93e-05
+  Step 300/303 - Loss: 1.0868, LR: 9.93e-05
+  Epoch 22 complete - Loss: 1.0883, LR: 9.93e-05
+Train loss: 1.0883
+  Validation: 54 batches - Loss: 0.1213
+Val loss: 0.1213
+
+Epoch 23/200
+  Step 1/303 - Loss: 1.1690, LR: 9.93e-05
+  Step 100/303 - Loss: 1.0914, LR: 9.93e-05
+  Step 200/303 - Loss: 1.0905, LR: 9.93e-05
+  Step 300/303 - Loss: 1.0852, LR: 9.92e-05
+  Epoch 23 complete - Loss: 1.0835, LR: 9.92e-05
+Train loss: 1.0835
+  Validation: 54 batches - Loss: 0.1241
+Val loss: 0.1241
+
+Epoch 24/200
+  Step 1/303 - Loss: 1.1927, LR: 9.92e-05
+  Step 100/303 - Loss: 1.0926, LR: 9.92e-05
+  Step 200/303 - Loss: 1.0878, LR: 9.92e-05
+  Step 300/303 - Loss: 1.0863, LR: 9.92e-05
+  Epoch 24 complete - Loss: 1.0870, LR: 9.92e-05
+Train loss: 1.0870
+  Validation: 54 batches - Loss: 0.1169
+Val loss: 0.1169
+
+Epoch 25/200
+  Step 1/303 - Loss: 1.2519, LR: 9.92e-05
+  Step 100/303 - Loss: 1.0931, LR: 9.91e-05
+  Step 200/303 - Loss: 1.0988, LR: 9.91e-05
+  Step 300/303 - Loss: 1.0916, LR: 9.91e-05
+  Epoch 25 complete - Loss: 1.0908, LR: 9.91e-05
+Train loss: 1.0908
+  Validation: 54 batches - Loss: 0.1283
+Val loss: 0.1283
+
+Epoch 26/200
+  Step 1/303 - Loss: 1.0526, LR: 9.91e-05
+  Step 100/303 - Loss: 1.0834, LR: 9.91e-05
+  Step 200/303 - Loss: 1.0949, LR: 9.90e-05
+  Step 300/303 - Loss: 1.0952, LR: 9.90e-05
+  Epoch 26 complete - Loss: 1.0965, LR: 9.90e-05
+Train loss: 1.0965
+  Validation: 54 batches - Loss: 0.1191
+Val loss: 0.1191
+
+Epoch 27/200
+  Step 1/303 - Loss: 1.0649, LR: 9.90e-05
+  Step 100/303 - Loss: 1.0937, LR: 9.90e-05
+  Step 200/303 - Loss: 1.0852, LR: 9.90e-05
+  Step 300/303 - Loss: 1.0770, LR: 9.89e-05
+  Epoch 27 complete - Loss: 1.0768, LR: 9.89e-05
+Train loss: 1.0768
+  Validation: 54 batches - Loss: 0.1240
+Val loss: 0.1240
+
+Epoch 28/200
+  Step 1/303 - Loss: 1.1286, LR: 9.89e-05
+  Step 100/303 - Loss: 1.0908, LR: 9.89e-05
+  Step 200/303 - Loss: 1.1010, LR: 9.89e-05
+  Step 300/303 - Loss: 1.0932, LR: 9.89e-05
+  Epoch 28 complete - Loss: 1.0947, LR: 9.89e-05
+Train loss: 1.0947
+  Validation: 54 batches - Loss: 0.1139
+Val loss: 0.1139
+
+Epoch 29/200
+  Step 1/303 - Loss: 0.9088, LR: 9.89e-05
+  Step 100/303 - Loss: 1.0691, LR: 9.88e-05
+  Step 200/303 - Loss: 1.0858, LR: 9.88e-05
+  Step 300/303 - Loss: 1.0825, LR: 9.88e-05
+  Epoch 29 complete - Loss: 1.0833, LR: 9.88e-05
+Train loss: 1.0833
+  Validation: 54 batches - Loss: 0.1401
+Val loss: 0.1401
+
+Epoch 30/200
+  Step 1/303 - Loss: 1.1103, LR: 9.88e-05
+  Step 100/303 - Loss: 1.1164, LR: 9.87e-05
+  Step 200/303 - Loss: 1.1104, LR: 9.87e-05
+  Step 300/303 - Loss: 1.1072, LR: 9.87e-05
+  Epoch 30 complete - Loss: 1.1066, LR: 9.87e-05
+Train loss: 1.1066
+  Validation: 54 batches - Loss: 0.1363
+Val loss: 0.1363
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.4616, LPIPS=0.7375
+Phase P: SSIM=0.4810, LPIPS=0.7036
+Phase R: SSIM=0.5008, LPIPS=0.7368
+==================================================
+Quality Metrics:
+==================================================
+FID: 301.59 (lower is better, < 50 is good)
+SSIM: 0.5049 ± 0.0769 (higher is better, > 0.7 is good)
+LPIPS: 0.7129 ± 0.0326 (lower is better, < 0.3 is good)
+IS: 2.62 ± 0.49 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 301.59
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0029.pt
+
+Epoch 31/200
+  Step 1/303 - Loss: 0.9033, LR: 9.87e-05
