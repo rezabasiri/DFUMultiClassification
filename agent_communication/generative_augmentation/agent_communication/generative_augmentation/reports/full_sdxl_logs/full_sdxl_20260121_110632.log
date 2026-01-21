@@ -1,0 +1,383 @@
+Logging to: agent_communication/generative_augmentation/reports/full_sdxl_logs/full_sdxl_20260121_110632.log
+================================================================================
+Training Configuration: configs/full_sdxl.yaml
+Phase: all
+Modality: rgb
+Resolution: 256
+================================================================================
+Loading base model: stabilityai/stable-diffusion-xl-base-1.0
+Detected SDXL model - loading dual text encoders
+Enabled gradient checkpointing
+LoRA Configuration:
+  Rank: 128
+  Alpha: 256
+  Trainable parameters: 334,888,960 (11.54%)
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Enabled perceptual loss
+Enabled EMA (on CPU to save GPU memory)
+Using phase-specific prompts for conditioning
+Loaded 2884 bounding boxes from /workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+/venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
+  warnings.warn(*args, **kwargs)
+
+Starting training...
+Training on 5 GPUs
+Total epochs: 300
+Effective batch size: 80
+
+Epoch 1/300
+  Step 1/257 - Loss: 0.5903, LR: 0.00e+00
+  Step 100/257 - Loss: 3.2362, LR: 6.00e-07
+  Step 200/257 - Loss: 3.1192, LR: 1.25e-06
+  Epoch 1 complete - Loss: 3.0970, LR: 1.65e-06
+Train loss: 3.0970
+  Validation: 29 batches - Loss: 0.1785
+Val loss: 0.1785
+Creating fresh reference images from source data with bbox-aware cropping...
+Loaded 2884 bounding boxes for reference images
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Saved 16 reference images for phase I to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_I.pt
+Saved 16 reference images for phase P to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_P.pt
+Saved 16 reference images for phase R to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_R.pt
+Saved reference image grid to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_images_grid.png
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+/venv/multimodal/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.1704, LPIPS=0.7648
+Phase P: SSIM=0.1694, LPIPS=0.7580
+Phase R: SSIM=0.1857, LPIPS=0.7352
+==================================================
+Quality Metrics:
+==================================================
+FID: 431.31 (lower is better, < 50 is good)
+SSIM: 0.1881 ± 0.0466 (higher is better, > 0.7 is good)
+LPIPS: 0.7376 ± 0.0167 (lower is better, < 0.3 is good)
+IS: 2.20 ± 0.21 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 431.31
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+
+Epoch 2/300
+  Step 1/257 - Loss: 4.5698, LR: 1.65e-06
+  Step 100/257 - Loss: 3.0252, LR: 2.25e-06
+  Step 200/257 - Loss: 2.9443, LR: 2.90e-06
+  Epoch 2 complete - Loss: 2.7570, LR: 3.30e-06
+Train loss: 2.7570
+  Validation: 29 batches - Loss: 0.1963
+Val loss: 0.1963
+
+Epoch 3/300
+  Step 1/257 - Loss: 3.1365, LR: 3.30e-06
+  Step 100/257 - Loss: 2.1533, LR: 3.90e-06
+  Step 200/257 - Loss: 2.0089, LR: 4.55e-06
+  Epoch 3 complete - Loss: 1.9313, LR: 4.95e-06
+Train loss: 1.9313
+  Validation: 29 batches - Loss: 0.1355
+Val loss: 0.1355
+
+Epoch 4/300
+  Step 1/257 - Loss: 1.7844, LR: 4.95e-06
+  Step 100/257 - Loss: 1.7302, LR: 5.00e-06
+  Step 200/257 - Loss: 1.6712, LR: 5.00e-06
+  Epoch 4 complete - Loss: 1.6705, LR: 5.00e-06
+Train loss: 1.6705
+  Validation: 29 batches - Loss: 0.1191
+Val loss: 0.1191
+
+Epoch 5/300
+  Step 1/257 - Loss: 1.7997, LR: 5.00e-06
+  Step 100/257 - Loss: 1.5076, LR: 5.00e-06
+  Step 200/257 - Loss: 1.5518, LR: 5.00e-06
+  Epoch 5 complete - Loss: 1.5596, LR: 5.00e-06
+Train loss: 1.5596
+  Validation: 29 batches - Loss: 0.1594
+Val loss: 0.1594
+
+Epoch 6/300
+  Step 1/257 - Loss: 1.7040, LR: 5.00e-06
+  Step 100/257 - Loss: 1.5054, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4830, LR: 5.00e-06
+  Epoch 6 complete - Loss: 1.4944, LR: 5.00e-06
+Train loss: 1.4944
+  Validation: 29 batches - Loss: 0.1769
+Val loss: 0.1769
+
+Epoch 7/300
+  Step 1/257 - Loss: 1.2357, LR: 5.00e-06
+  Step 100/257 - Loss: 1.5994, LR: 5.00e-06
+  Step 200/257 - Loss: 1.5862, LR: 5.00e-06
+  Epoch 7 complete - Loss: 1.5780, LR: 5.00e-06
+Train loss: 1.5780
+  Validation: 29 batches - Loss: 0.1291
+Val loss: 0.1291
+
+Epoch 8/300
+  Step 1/257 - Loss: 1.7649, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4733, LR: 5.00e-06
+  Step 200/257 - Loss: 1.5166, LR: 5.00e-06
+  Epoch 8 complete - Loss: 1.5148, LR: 5.00e-06
+Train loss: 1.5148
+  Validation: 29 batches - Loss: 0.1195
+Val loss: 0.1195
+
+Epoch 9/300
+  Step 1/257 - Loss: 0.7411, LR: 5.00e-06
+  Step 100/257 - Loss: 1.5625, LR: 5.00e-06
+  Step 200/257 - Loss: 1.5266, LR: 5.00e-06
+  Epoch 9 complete - Loss: 1.5253, LR: 5.00e-06
+Train loss: 1.5253
+  Validation: 29 batches - Loss: 0.1244
+Val loss: 0.1244
+
+Epoch 10/300
+  Step 1/257 - Loss: 1.1257, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4744, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4998, LR: 5.00e-06
+  Epoch 10 complete - Loss: 1.4842, LR: 5.00e-06
+Train loss: 1.4842
+  Validation: 29 batches - Loss: 0.1039
+Val loss: 0.1039
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.1809, LPIPS=0.7637
+Phase P: SSIM=0.1483, LPIPS=0.7569
+Phase R: SSIM=0.1740, LPIPS=0.7448
+==================================================
+Quality Metrics:
+==================================================
+FID: 440.58 (lower is better, < 50 is good)
+SSIM: 0.1790 ± 0.0420 (higher is better, > 0.7 is good)
+LPIPS: 0.7402 ± 0.0192 (lower is better, < 0.3 is good)
+IS: 2.34 ± 0.21 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 440.58
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0010.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0010.pt
+
+Epoch 11/300
+  Step 1/257 - Loss: 0.5775, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4502, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4998, LR: 5.00e-06
+  Epoch 11 complete - Loss: 1.4770, LR: 5.00e-06
+Train loss: 1.4770
+  Validation: 29 batches - Loss: 0.1471
+Val loss: 0.1471
+
+Epoch 12/300
+  Step 1/257 - Loss: 0.8451, LR: 5.00e-06
+  Step 100/257 - Loss: 1.5683, LR: 5.00e-06
+  Step 200/257 - Loss: 1.5269, LR: 5.00e-06
+  Epoch 12 complete - Loss: 1.5108, LR: 5.00e-06
+Train loss: 1.5108
+  Validation: 29 batches - Loss: 0.1277
+Val loss: 0.1277
+
+Epoch 13/300
+  Step 1/257 - Loss: 2.1519, LR: 5.00e-06
+  Step 100/257 - Loss: 1.5572, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4796, LR: 5.00e-06
+  Epoch 13 complete - Loss: 1.4490, LR: 5.00e-06
+Train loss: 1.4490
+  Validation: 29 batches - Loss: 0.1343
+Val loss: 0.1343
+
+Epoch 14/300
+  Step 1/257 - Loss: 1.0876, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4123, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4506, LR: 5.00e-06
+  Epoch 14 complete - Loss: 1.4284, LR: 5.00e-06
+Train loss: 1.4284
+  Validation: 29 batches - Loss: 0.1365
+Val loss: 0.1365
+
+Epoch 15/300
+  Step 1/257 - Loss: 2.1824, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4304, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4308, LR: 5.00e-06
+  Epoch 15 complete - Loss: 1.4254, LR: 5.00e-06
+Train loss: 1.4254
+  Validation: 29 batches - Loss: 0.1205
+Val loss: 0.1205
+
+Epoch 16/300
+  Step 1/257 - Loss: 1.2129, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4452, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4416, LR: 5.00e-06
+  Epoch 16 complete - Loss: 1.4329, LR: 5.00e-06
+Train loss: 1.4329
+  Validation: 29 batches - Loss: 0.1263
+Val loss: 0.1263
+
+Epoch 17/300
+  Step 1/257 - Loss: 1.0271, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4307, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4483, LR: 5.00e-06
+  Epoch 17 complete - Loss: 1.4597, LR: 5.00e-06
+Train loss: 1.4597
+  Validation: 29 batches - Loss: 0.1390
+Val loss: 0.1390
+
+Epoch 18/300
+  Step 1/257 - Loss: 2.4570, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4249, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4114, LR: 5.00e-06
+  Epoch 18 complete - Loss: 1.4189, LR: 5.00e-06
+Train loss: 1.4189
+  Validation: 29 batches - Loss: 0.1429
+Val loss: 0.1429
+
+Epoch 19/300
+  Step 1/257 - Loss: 2.3939, LR: 5.00e-06
+  Step 100/257 - Loss: 1.3423, LR: 5.00e-06
+  Step 200/257 - Loss: 1.3594, LR: 5.00e-06
+  Epoch 19 complete - Loss: 1.3443, LR: 5.00e-06
+Train loss: 1.3443
+  Validation: 29 batches - Loss: 0.1163
+Val loss: 0.1163
+
+Epoch 20/300
+  Step 1/257 - Loss: 1.3947, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4275, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4278, LR: 5.00e-06
+  Epoch 20 complete - Loss: 1.4394, LR: 5.00e-06
+Train loss: 1.4394
+  Validation: 29 batches - Loss: 0.1253
+Val loss: 0.1253
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.1750, LPIPS=0.7627
+Phase P: SSIM=0.1648, LPIPS=0.7568
+Phase R: SSIM=0.1744, LPIPS=0.7393
+==================================================
+Quality Metrics:
+==================================================
+FID: 443.03 (lower is better, < 50 is good)
+SSIM: 0.1847 ± 0.0445 (higher is better, > 0.7 is good)
+LPIPS: 0.7396 ± 0.0175 (lower is better, < 0.3 is good)
+IS: 2.35 ± 0.15 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 443.03
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0019.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0020.pt
+
+Epoch 21/300
+  Step 1/257 - Loss: 1.4538, LR: 5.00e-06
+  Step 100/257 - Loss: 1.3853, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4205, LR: 5.00e-06
+  Epoch 21 complete - Loss: 1.4488, LR: 5.00e-06
+Train loss: 1.4488
+  Validation: 29 batches - Loss: 0.1245
+Val loss: 0.1245
+
+Epoch 22/300
+  Step 1/257 - Loss: 1.3579, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4180, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4507, LR: 5.00e-06
+  Epoch 22 complete - Loss: 1.4377, LR: 5.00e-06
+Train loss: 1.4377
+  Validation: 29 batches - Loss: 0.1374
+Val loss: 0.1374
+
+Epoch 23/300
+  Step 1/257 - Loss: 2.0167, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4387, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4113, LR: 5.00e-06
+  Epoch 23 complete - Loss: 1.3815, LR: 5.00e-06
+Train loss: 1.3815
+  Validation: 29 batches - Loss: 0.1625
+Val loss: 0.1625
+
+Epoch 24/300
+  Step 1/257 - Loss: 1.0744, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4676, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4223, LR: 5.00e-06
+  Epoch 24 complete - Loss: 1.4217, LR: 5.00e-06
+Train loss: 1.4217
+  Validation: 29 batches - Loss: 0.1411
+Val loss: 0.1411
+
+Epoch 25/300
+  Step 1/257 - Loss: 1.3894, LR: 5.00e-06
+  Step 100/257 - Loss: 1.3750, LR: 5.00e-06
+  Step 200/257 - Loss: 1.3898, LR: 5.00e-06
+  Epoch 25 complete - Loss: 1.4155, LR: 5.00e-06
+Train loss: 1.4155
+  Validation: 29 batches - Loss: 0.1503
+Val loss: 0.1503
+
+Epoch 26/300
+  Step 1/257 - Loss: 2.0258, LR: 5.00e-06
+  Step 100/257 - Loss: 1.5004, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4520, LR: 5.00e-06
+  Epoch 26 complete - Loss: 1.4322, LR: 5.00e-06
+Train loss: 1.4322
+  Validation: 29 batches - Loss: 0.1500
+Val loss: 0.1500
+
+Epoch 27/300
+  Step 1/257 - Loss: 0.8166, LR: 5.00e-06
+  Step 100/257 - Loss: 1.4724, LR: 5.00e-06
+  Step 200/257 - Loss: 1.4644, LR: 5.00e-06
+  Epoch 27 complete - Loss: 1.4769, LR: 5.00e-06
+Train loss: 1.4769
+  Validation: 29 batches - Loss: 0.1252
+Val loss: 0.1252
+
+Epoch 28/300
+  Step 1/257 - Loss: 1.9313, LR: 5.00e-06
