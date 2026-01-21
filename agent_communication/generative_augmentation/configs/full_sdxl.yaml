@@ -101,7 +101,7 @@ checkpointing:
 metrics:
   compute_every_n_epochs: 5  # FID every 10 epochs
   num_samples_for_metrics: 50
-  generation_batch_size: 4  # Generate images in batches to avoid OOM at 512x512
+  generation_batch_size: 1  # Generate images in batches to avoid OOM at 512x512
   fid:
     enabled: true
     target_threshold: 50.0
@@ -127,7 +127,7 @@ logging:
 hardware:
   multi_gpu: true
   num_gpus: 5
-  mixed_precision: "bf16"  # BF16 for RTX 4090 - no gradient scaling issues
+  mixed_precision: "no"  # FP32 - testing if BF16 precision causes NaN at higher LR
   gradient_checkpointing: true
   use_xformers: false  # SDXL attention dim incompatible
   enable_cpu_offload: true  # Offload optimizer states to CPU for additional memory savings
