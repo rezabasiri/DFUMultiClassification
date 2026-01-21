@@ -124,3 +124,41 @@ Val loss: 0.1115
 
 Epoch 5/300
   Step 1/128 - Loss: 0.1965, LR: 1.00e-06
+  Step 50/128 - Loss: 0.1535, LR: 1.00e-06
+  Step 100/128 - Loss: 0.1438, LR: 1.00e-06
+  Epoch 5 complete - Loss: 0.1470, LR: 1.00e-06
+Train loss: 0.1470
+  Validation: 15 batches - Loss: 0.1145
+Val loss: 0.1145
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.3477, LPIPS=0.9064
+Phase P: SSIM=0.3132, LPIPS=0.9463
+Phase R: SSIM=0.3228, LPIPS=1.0142
+==================================================
+Quality Metrics:
+==================================================
+FID: 453.04 (lower is better, < 50 is good)
+SSIM: 0.3398 ± 0.0840 (higher is better, > 0.7 is good)
+LPIPS: 0.9171 ± 0.0565 (lower is better, < 0.3 is good)
+IS: 3.46 ± 0.31 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 453.04
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0005.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0005.pt
+
+Epoch 6/300
+  Step 1/128 - Loss: 0.1812, LR: 1.00e-06
