@@ -5,9 +5,9 @@ model:
   training_method: "lora"
 
 lora:
-  rank: 64  # Increased from 32 to 64 for better medical domain adaptation
-  alpha: 128  # 2x rank
-  dropout: 0.1
+  rank: 128  # MAXIMUM rank for best medical domain adaptation
+  alpha: 256  # 2x rank
+  dropout: 0.05  # Reduced dropout for maximum capacity
   # CRITICAL: Added feed-forward modules to learn wound-specific textures
   # Attention modules (to_q, to_k, to_v) = spatial relationships
   # Feed-forward modules (ff.net) = visual features/textures
@@ -37,7 +37,7 @@ training:
   gradient_accumulation_steps: 2  # Effective batch size = 4 * 2 * 2 GPUs = 16
   learning_rate: 1.0e-4  # Higher for LoRA
   lr_scheduler: "cosine"  # Cosine annealing
-  lr_warmup_steps: 250  # ~5% of total steps (halved due to larger batch)
+  lr_warmup_steps: 500  # Increased for rank-128 stability
   lr_num_cycles: 1
   optimizer: "adamw"
   adam_beta1: 0.9
@@ -94,7 +94,7 @@ prompts:
 quality:
   perceptual_loss:
     enabled: true
-    weight: 0.6
+    weight: 0.4  # Balanced weight - not too dominant over diffusion loss
     vgg_layer: 16
   ema:
     enabled: true
@@ -107,7 +107,7 @@ quality:
 checkpointing:
   output_dir: "agent_communication/generative_augmentation/checkpoints/full_sdxl"
   save_every_n_epochs: 10  # Save checkpoint every 10 epochs
-  keep_last_n_checkpoints: 3
+  keep_last_n_checkpoints: 2  # Keep only 2 checkpoints: best + last
   save_best_only: false
   resume_from_checkpoint: null
   save_optimizer_state: true
