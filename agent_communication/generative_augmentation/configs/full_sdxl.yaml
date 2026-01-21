@@ -38,7 +38,7 @@ data:
 training:
   batch_size_per_gpu: 4  # Moderate batch size
   gradient_accumulation_steps: 4  # REQUIRED - prevents NaN by slowing LR ramp. Effective batch = 4 * 4 * 5 GPUs = 80
-  learning_rate: 1.0e-5  # 10x higher - full fine-tuning needs meaningful updates (typical: 1e-5 to 2e-5)
+  learning_rate: 5.0e-6  # Lowered from 1e-5 to prevent NaN gradients (still 5x higher than original 1e-6)
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_steps: 100  # Short warmup - reach target LR in ~1 epoch, not 4 epochs
   lr_num_cycles: 1
@@ -84,8 +84,8 @@ quality:
     vgg_layer: 16
   ema:
     enabled: true
-    decay: 0.999  # Faster EMA - updated from 0.9999 (too slow for early training visibility)
-    use_ema_weights_for_inference: true
+    decay: 0.99  # FAST EMA (was 0.999) - 63% new weights after epoch 1, not 12%
+    use_ema_weights_for_inference: false  # DISABLED - use main model to see actual learning, not EMA
   guidance_scale: 3.0  # REDUCED from 12.0 - lower guidance = less prompt reliance, more training data learning
   inference_steps_training: 50
   inference_steps_production: 50
