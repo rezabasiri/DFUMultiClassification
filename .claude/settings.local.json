@@ -69,7 +69,8 @@
       "Bash(do)",
       "Bash(du:*)",
       "Bash(xargs du:*)",
-      "Bash(pip freeze:*)"
+      "Bash(pip freeze:*)",
+      "Bash(kill:*)"
     ]
   }
 }
