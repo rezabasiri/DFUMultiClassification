@@ -70,7 +70,9 @@
       "Bash(du:*)",
       "Bash(xargs du:*)",
       "Bash(pip freeze:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(accelerate config --help:*)",
+      "Bash(top:*)"
     ]
   }
 }

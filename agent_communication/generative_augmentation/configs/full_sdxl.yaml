@@ -1,7 +1,7 @@
 # SDXL 1.0 Base - 256x256 (Full Fine-tuning)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
-  resolution: 128  # Reduced to 128 for memory constraints with full fine-tuning
+  resolution: 512  # Ideal resolution for SDXL - testing with DeepSpeed ZeRO-2
   training_method: "full"  # Full fine-tuning for maximum quality (like successful SD 1.5 approach)
 
 lora:
@@ -36,8 +36,8 @@ data:
     bbox_margin_range: [0.05, 0.15]  # Add 5-15% random margin around bbox
 
 training:
-  batch_size_per_gpu: 1  # Minimal batch size for memory optimization
-  gradient_accumulation_steps: 16  # Effective batch = 1 * 16 * 5 GPUs = 80
+  batch_size_per_gpu: 12  # Aggressive increase - GPU at 41%
+  gradient_accumulation_steps: 1  # Effective batch = 12 * 1 * 5 GPUs = 60
   learning_rate: 5.0e-6  # Lower for full fine-tuning (typical: 1e-6 to 1e-5)
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_steps: 100  # Reduced from 500 - reaches target LR in ~5 epochs instead of 24
@@ -136,7 +136,7 @@ metrics:
 
 logging:
   logging_dir: "agent_communication/generative_augmentation/reports/full_sdxl_logs"
-  log_every_n_steps: 100  # Log every 100 steps
+  log_every_n_steps: 10  # Log every 10 steps (42 steps/epoch with batch 12)
   save_samples_every_n_epochs: 10  # Save samples every 10 epochs
   num_samples_to_save: 16
   use_tensorboard: true
@@ -145,7 +145,7 @@ logging:
 hardware:
   multi_gpu: true
   num_gpus: 5
-  mixed_precision: "fp16"  # Enable fp16 to reduce memory usage by ~50%
+  mixed_precision: "bf16"  # BF16 for RTX 4090 - no gradient scaling issues
   gradient_checkpointing: true
   use_xformers: false  # SDXL attention dim incompatible
   enable_cpu_offload: true  # Offload optimizer states to CPU for additional memory savings

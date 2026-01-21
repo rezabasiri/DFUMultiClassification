@@ -178,11 +178,20 @@ def load_base_models(config: dict, accelerator: Accelerator):
         if is_sdxl:
             print("Detected SDXL model - loading dual text encoders")
 
+    # Determine weight dtype based on mixed precision setting
+    mixed_precision = config['hardware']['mixed_precision']
+    if mixed_precision == 'fp16':
+        weight_dtype = torch.float16
+    elif mixed_precision == 'bf16':
+        weight_dtype = torch.bfloat16
+    else:
+        weight_dtype = torch.float32
+
     # Load VAE
     vae = AutoencoderKL.from_pretrained(
         model_id,
         subfolder="vae",
-        torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+        torch_dtype=weight_dtype
     )
 
     # Load text encoder(s)
@@ -191,18 +200,18 @@ def load_base_models(config: dict, accelerator: Accelerator):
         text_encoder = CLIPTextModel.from_pretrained(
             model_id,
             subfolder="text_encoder",
-            torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+            torch_dtype=weight_dtype
         )
         text_encoder_2 = CLIPTextModelWithProjection.from_pretrained(
             model_id,
             subfolder="text_encoder_2",
-            torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+            torch_dtype=weight_dtype
         )
     else:
         text_encoder = CLIPTextModel.from_pretrained(
             model_id,
             subfolder="text_encoder",
-            torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+            torch_dtype=weight_dtype
         )
         text_encoder_2 = None
 
@@ -227,7 +236,7 @@ def load_base_models(config: dict, accelerator: Accelerator):
     unet = UNet2DConditionModel.from_pretrained(
         model_id,
         subfolder="unet",
-        torch_dtype=torch.float16 if config['hardware']['mixed_precision'] == 'fp16' else torch.float32
+        torch_dtype=weight_dtype
     )
 
     # Load noise scheduler
