@@ -824,6 +824,7 @@ def main():
         prompt=single_prompt,
         phase_prompts=phase_prompts,
         augmentation=config['data']['augmentation'],
+        bbox_file=config['data'].get('bbox_file', None),
         num_workers=config['hardware']['num_workers'],
         pin_memory=config['hardware']['pin_memory'],
         max_samples=config['data'].get('max_samples', None),

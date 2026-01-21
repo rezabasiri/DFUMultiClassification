@@ -1,8 +1,8 @@
-# SDXL 1.0 Base - 256x256 (half-Full run with 100% of images)
+# SDXL 1.0 Base - 256x256 (Full Fine-tuning)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
   resolution: 256 #change to 512 for full resolution
-  training_method: "lora"
+  training_method: "full"  # Full fine-tuning for maximum quality (like successful SD 1.5 approach)
 
 lora:
   rank: 128  # MAXIMUM rank for best medical domain adaptation
@@ -16,6 +16,7 @@ lora:
 
 data:
   data_root: "/workspace/DFUMultiClassification/data/diffusion"  # New organized data
+  bbox_file: "/workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv"  # Bbox annotations
   modality: "rgb"
   phase: "all"  # Use all phases (I=860, P=1678, R=322) = 2860 images total
   data_percentage: 100  # Use 100% of images from each phase (balanced sampling)
@@ -27,17 +28,19 @@ data:
     vertical_flip: true
     rotation_degrees: 15
     color_jitter:
-      brightness: 0.2
-      contrast: 0.2
-      saturation: 0.2
-      hue: 0.05
+      brightness: 0.05  # Reduced - wounds have class-specific colors
+      contrast: 0.05    # Reduced - preserve tissue appearance
+      saturation: 0.05  # Reduced - wound phases have distinct coloration
+      hue: 0.01         # Minimal - critical for phase identification
+    bbox_crop_prob: 0.5  # 50% chance to crop to wound bbox (vs full image)
+    bbox_margin_range: [0.05, 0.15]  # Add 5-15% random margin around bbox
 
 training:
-  batch_size_per_gpu: 4  # Increased for better GPU utilization (~20GB/24GB)
-  gradient_accumulation_steps: 4  # Effective batch size = 4 * 4 * 5 GPUs = 80
-  learning_rate: 1.0e-4  # Higher for LoRA
+  batch_size_per_gpu: 2  # Reduced for full fine-tuning (more memory intensive)
+  gradient_accumulation_steps: 8  # Effective batch size = 2 * 8 * 5 GPUs = 80
+  learning_rate: 5.0e-6  # Lower for full fine-tuning (typical: 1e-6 to 1e-5)
   lr_scheduler: "cosine"  # Cosine annealing
-  lr_warmup_steps: 500  # Increased for rank-128 stability
+  lr_warmup_steps: 500  # Gradual warmup for stability
   lr_num_cycles: 1
   optimizer: "adamw"
   adam_beta1: 0.9
@@ -45,7 +48,7 @@ training:
   adam_weight_decay: 0.01
   adam_epsilon: 1.0e-8
   max_grad_norm: 1.0
-  max_epochs: 200  # 2860 images * 200 epochs / 16 batch = 35,750 steps
+  max_epochs: 50  # Full fine-tuning converges faster than LoRA
   early_stopping:
     enabled: true
     patience: 30  # Stop if no improvement for 30 epochs
@@ -94,7 +97,7 @@ prompts:
 quality:
   perceptual_loss:
     enabled: true
-    weight: 0.4  # Balanced weight - not too dominant over diffusion loss
+    weight: 0.1  # Lower for full fine-tuning (diffusion loss is primary)
     vgg_layer: 16
   ema:
     enabled: true
@@ -159,3 +162,6 @@ validation:
   num_validation_samples: 4
   compare_to_real: true
   num_real_samples_for_comparison: 50
+  save_reference_images: true  # Save reference images once at start
+  num_reference_images_per_phase: 16  # Randomly sample per phase
+  reference_images_seed: 42  # For reproducible sampling
