@@ -32,7 +32,7 @@ data:
       contrast: 0.05    # Reduced - preserve tissue appearance
       saturation: 0.05  # Reduced - wound phases have distinct coloration
       hue: 0.01         # Minimal - critical for phase identification
-    bbox_crop_prob: 0.5  # 50% chance to crop to wound bbox (vs full image)
+    bbox_crop_prob: 1.0  # 100% bbox crop - only show wound area, exclude images without bbox
     bbox_margin_range: [0.05, 0.15]  # Add 5-15% random margin around bbox
 
 training:
@@ -58,33 +58,33 @@ training:
 
 prompts:
   enabled: true
-  # Phase-specific prompts for multi-phase training
+  # Phase-specific prompts for multi-phase training - WOUND-ONLY FOCUS
   # Model learns to associate each phase with its visual characteristics
   phase_prompts:
     I: >
-      Realistic clinical photograph of human foot with diabetic foot ulcer in inflammatory phase,
-      acute open wound showing redness erythema and swelling edema around wound margins,
-      early wound response with tissue inflammation, wound debridement stage,
-      real patient foot anatomy with toes and skin texture visible,
+      Close-up clinical photograph of diabetic foot ulcer wound in inflammatory phase,
+      acute open wound with redness erythema and swelling edema around wound margins,
+      early wound response showing tissue inflammation and wound debridement stage,
+      detailed wound bed texture with surrounding inflamed tissue,
       professional medical documentation, high resolution, sharp focus, clinical lighting
     P: >
-      Realistic clinical photograph of human foot with diabetic foot ulcer in proliferative phase,
+      Close-up clinical photograph of diabetic foot ulcer wound in proliferative phase,
       active granulation tissue formation with pink red moist wound bed,
-      new tissue growth and collagen deposition, visible angiogenesis,
-      healing wound on real patient foot with natural skin and anatomical features,
+      new tissue growth and collagen deposition showing visible angiogenesis,
+      detailed wound healing texture with tissue proliferation,
       professional medical documentation, high resolution, sharp focus, clinical lighting
     R: >
-      Realistic clinical photograph of human foot with diabetic foot ulcer in remodeling phase,
+      Close-up clinical photograph of diabetic foot ulcer wound in remodeling phase,
       mature scar tissue with wound contraction and epithelialization,
-      late stage healing with tissue maturation and skin regrowth,
-      healed or healing wound on real patient foot with natural anatomy,
+      late stage healing showing tissue maturation and skin regrowth,
+      detailed wound closure with remodeled tissue texture,
       professional medical documentation, high resolution, sharp focus, clinical lighting
   # Fallback positive prompt (used if phase_prompts not available)
   positive: >
-    Realistic clinical photograph of human foot with diabetic foot ulcer wound,
-    real patient anatomy with visible toes skin texture and natural foot features,
+    Close-up clinical photograph of diabetic foot ulcer wound,
+    detailed wound bed and surrounding tissue texture,
     professional medical documentation, high resolution, sharp focus,
-    detailed wound and tissue texture, clinical lighting
+    clinical lighting
   negative: >
     blurry, out of focus, low quality, jpeg artifacts, noise, grainy,
     cartoon, illustration, drawing, painting, artistic, stylized, anime,
@@ -92,7 +92,8 @@ prompts:
     smooth plastic skin, mannequin, doll, toy,
     healthy unblemished skin, no wound, perfect skin,
     text, watermark, logo, signature, border, frame,
-    cropped, partial foot, extreme close-up without context
+    feet, toes, body parts, limbs, person, full body, distant view,
+    extreme wide shot, background clutter, unrelated objects
 
 quality:
   perceptual_loss:

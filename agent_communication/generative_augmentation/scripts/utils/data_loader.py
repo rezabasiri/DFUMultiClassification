@@ -119,6 +119,22 @@ class WoundDataset(Dataset):
                     self.image_phases.extend([phase_name] * len(phase_images))
                     phase_counts_sampled[phase_name] = len(phase_images)
 
+            # Filter out images without bbox if bbox_crop_prob is 1.0 (100% crop mode)
+            if augmentation and augmentation.get('bbox_crop_prob', 0.0) >= 1.0 and self.bboxes:
+                original_count = len(self.image_paths)
+                filtered_paths = []
+                filtered_phases = []
+                for img_path, img_phase in zip(self.image_paths, self.image_phases):
+                    if img_path.name in self.bboxes:
+                        filtered_paths.append(img_path)
+                        filtered_phases.append(img_phase)
+
+                self.image_paths = filtered_paths
+                self.image_phases = filtered_phases
+                excluded_count = original_count - len(self.image_paths)
+                if excluded_count > 0:
+                    print(f"Excluded {excluded_count} images without bbox coordinates (100% crop mode)")
+
             if len(self.image_paths) == 0:
                 raise ValueError(f"No images found in any phase under {modality_dir}")
 
@@ -158,6 +174,16 @@ class WoundDataset(Dataset):
 
             # All images have the same phase
             self.image_phases = [phase] * len(self.image_paths)
+
+            # Filter out images without bbox if bbox_crop_prob is 1.0 (100% crop mode)
+            if augmentation and augmentation.get('bbox_crop_prob', 0.0) >= 1.0 and self.bboxes:
+                before_filter = len(self.image_paths)
+                filtered_paths = [p for p in self.image_paths if p.name in self.bboxes]
+                self.image_paths = filtered_paths
+                self.image_phases = [phase] * len(self.image_paths)
+                excluded_count = before_filter - len(self.image_paths)
+                if excluded_count > 0:
+                    print(f"Excluded {excluded_count} images without bbox coordinates (100% crop mode)")
 
             if len(self.image_paths) == 0:
                 raise ValueError(f"No images found in {image_dir}")
