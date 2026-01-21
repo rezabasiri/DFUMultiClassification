@@ -413,10 +413,11 @@ def train_one_epoch(
 
                 # Create time_ids (original_size, crops_coords_top_left, target_size)
                 # Format: [original_h, original_w, crops_top, crops_left, target_h, target_w]
+                # MUST be float dtype - using long causes NaN in SDXL UNet
                 resolution = config['model']['resolution']
                 time_ids = torch.tensor([
                     [resolution, resolution, 0, 0, resolution, resolution]
-                ]).repeat(batch_size, 1).to(accelerator.device, dtype=torch.long)
+                ], dtype=torch.float32).repeat(batch_size, 1).to(accelerator.device)
 
                 added_cond_kwargs = {
                     "text_embeds": pooled_embeds.to(accelerator.device),
@@ -587,11 +588,11 @@ def validate(
             # Get pooled embeddings from second text encoder
             pooled_embeds = encoder_output_2[0]
 
-            # Create time_ids
+            # Create time_ids (MUST be float dtype - using long causes NaN)
             resolution = config['model']['resolution']
             time_ids = torch.tensor([
                 [resolution, resolution, 0, 0, resolution, resolution]
-            ]).repeat(batch_size, 1).to(accelerator.device, dtype=torch.long)
+            ], dtype=torch.float32).repeat(batch_size, 1).to(accelerator.device)
 
             added_cond_kwargs = {
                 "text_embeds": pooled_embeds.to(accelerator.device),
