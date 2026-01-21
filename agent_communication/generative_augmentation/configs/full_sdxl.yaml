@@ -38,9 +38,9 @@ data:
 training:
   batch_size_per_gpu: 4  # Moderate batch size
   gradient_accumulation_steps: 4  # REQUIRED - prevents NaN by slowing LR ramp. Effective batch = 4 * 4 * 5 GPUs = 80
-  learning_rate: 1.0e-6  # Standard for full fine-tuning of large models
+  learning_rate: 1.0e-5  # 10x higher - full fine-tuning needs meaningful updates (typical: 1e-5 to 2e-5)
   lr_scheduler: "cosine"  # Cosine annealing
-  lr_warmup_steps: 500  # Long warmup for stability
+  lr_warmup_steps: 100  # Short warmup - reach target LR in ~1 epoch, not 4 epochs
   lr_num_cycles: 1
   optimizer: "adamw"
   adam_beta1: 0.9
@@ -102,7 +102,7 @@ quality:
     vgg_layer: 16
   ema:
     enabled: true
-    decay: 0.9999
+    decay: 0.999  # Faster EMA - updated from 0.9999 (too slow for early training visibility)
     use_ema_weights_for_inference: true
   guidance_scale: 12.0  # Increased from 7.5 for stronger prompt adherence in medical domain
   inference_steps_training: 50
