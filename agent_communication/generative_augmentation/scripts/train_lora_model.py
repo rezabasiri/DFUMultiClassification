@@ -749,10 +749,10 @@ def generate_validation_samples(
 
         from torchvision.utils import save_image
 
-        # Save all images in a grid
+        # Save all images in a grid (use epoch + 1 to match displayed epoch number)
         save_image(
             image_tensors,
-            save_dir / f"epoch_{epoch:04d}.png",
+            save_dir / f"epoch_{epoch + 1:04d}.png",
             nrow=4,
             normalize=True
         )
@@ -762,7 +762,7 @@ def generate_validation_samples(
             for phase, phase_tensor in phase_images.items():
                 save_image(
                     phase_tensor,
-                    save_dir / f"epoch_{epoch:04d}_phase_{phase}.png",
+                    save_dir / f"epoch_{epoch + 1:04d}_phase_{phase}.png",
                     nrow=4,
                     normalize=True
                 )
