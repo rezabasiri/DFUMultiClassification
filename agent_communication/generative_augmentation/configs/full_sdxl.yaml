@@ -48,7 +48,7 @@ training:
   adam_weight_decay: 0.01
   adam_epsilon: 1.0e-8
   max_grad_norm: 1.0
-  max_epochs: 50  # Full fine-tuning converges faster than LoRA
+  max_epochs: 300  # High limit, early stopping will end training when converged
   early_stopping:
     enabled: true
     patience: 30  # Stop if no improvement for 30 epochs

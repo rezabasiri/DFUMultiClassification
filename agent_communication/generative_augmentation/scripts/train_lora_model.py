@@ -28,8 +28,70 @@ Usage:
 import os
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
-import argparse
+# Enable unbuffered output for live logging
 import sys
+os.environ['PYTHONUNBUFFERED'] = '1'
+
+
+class TeeLogger:
+    """Tee output to both console and log file with live flushing"""
+    def __init__(self, log_file, stream):
+        self.log_file = log_file
+        self.stream = stream
+        self.encoding = getattr(stream, 'encoding', 'utf-8')
+
+    def write(self, message):
+        self.stream.write(message)
+        self.stream.flush()
+        if self.log_file:
+            self.log_file.write(message)
+            self.log_file.flush()
+
+    def flush(self):
+        self.stream.flush()
+        if self.log_file:
+            self.log_file.flush()
+
+    def fileno(self):
+        return self.stream.fileno()
+
+
+def setup_logging(config_path: str, logging_dir: str):
+    """Setup automatic logging to file based on config name"""
+    from pathlib import Path
+    from datetime import datetime
+
+    # Create logging directory
+    log_dir = Path(logging_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate log filename from config name
+    config_name = Path(config_path).stem  # e.g., "full_sdxl" from "full_sdxl.yaml"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_filename = f"{config_name}_{timestamp}.log"
+    log_path = log_dir / log_filename
+
+    # Also create a "latest" symlink for easy access
+    latest_link = log_dir / f"{config_name}_latest.log"
+
+    # Open log file
+    log_file = open(log_path, 'w', buffering=1)  # Line buffered
+
+    # Tee stdout and stderr to both console and file
+    sys.stdout = TeeLogger(log_file, sys.__stdout__)
+    sys.stderr = TeeLogger(log_file, sys.__stderr__)
+
+    # Update symlink to latest log
+    try:
+        if latest_link.exists() or latest_link.is_symlink():
+            latest_link.unlink()
+        latest_link.symlink_to(log_path.name)
+    except OSError:
+        pass  # Symlink creation may fail on some systems
+
+    return log_path
+
+import argparse
 from pathlib import Path
 import yaml
 import torch
@@ -753,6 +815,12 @@ def main():
 
     # Setup accelerator first (needed for is_main_process checks)
     accelerator = setup_accelerator(config)
+
+    # Setup automatic logging (only on main process to avoid duplicate logs)
+    log_path = None
+    if accelerator.is_main_process:
+        log_path = setup_logging(args.config, config['logging']['logging_dir'])
+        print(f"Logging to: {log_path}")
 
     # Only print from main process to avoid duplicates
     if accelerator.is_main_process:
