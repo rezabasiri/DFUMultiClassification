@@ -1,0 +1,74 @@
+{
+  "checkpoint_history": [
+    {
+      "epoch": 0,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0000.pt",
+      "metrics": {
+        "train_loss": 6.300581357932165,
+        "val_loss": 0.1245096026816302,
+        "fid": 359.3066711425781,
+        "ssim_mean": 0.38420445561408995,
+        "ssim_std": 0.11040318513997632,
+        "lpips_mean": 0.7741479194164276,
+        "lpips_std": 0.02349449804542917,
+        "is_mean": 2.5038933753967285,
+        "is_std": 0.4127953350543976,
+        "ssim_I": 0.35045671725974364,
+        "lpips_I": 0.788412704187281,
+        "ssim_P": 0.3594612777233124,
+        "lpips_P": 0.7862518534940832,
+        "ssim_R": 0.37015021964907646,
+        "lpips_R": 0.7918765060603619
+      },
+      "timestamp": "2026-01-20T22:43:06.315557"
+    },
+    {
+      "epoch": 9,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0009.pt",
+      "metrics": {
+        "train_loss": 5.965607120983326,
+        "val_loss": 0.10332983627449721,
+        "fid": 339.390625,
+        "ssim_mean": 0.436501045525074,
+        "ssim_std": 0.0943171948424625,
+        "lpips_mean": 0.7588097429275513,
+        "lpips_std": 0.028439673384241977,
+        "is_mean": 2.5273430347442627,
+        "is_std": 0.270041286945343,
+        "ssim_I": 0.3849030373727574,
+        "lpips_I": 0.7774544428376591,
+        "ssim_P": 0.3736349291661206,
+        "lpips_P": 0.7699907211696401,
+        "ssim_R": 0.4722506683319807,
+        "lpips_R": 0.7764780297875404
+      },
+      "timestamp": "2026-01-21T01:34:43.151776"
+    },
+    {
+      "epoch": 19,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0019.pt",
+      "metrics": {
+        "train_loss": 5.774523434237899,
+        "val_loss": 0.12116165976557466,
+        "fid": 322.5767822265625,
+        "ssim_mean": 0.44402974128723144,
+        "ssim_std": 0.10866206741906202,
+        "lpips_mean": 0.7384946346282959,
+        "lpips_std": 0.03515874715490116,
+        "is_mean": 2.666795492172241,
+        "is_std": 0.3257265090942383,
+        "ssim_I": 0.4054407977006015,
+        "lpips_I": 0.7509809802560246,
+        "ssim_P": 0.39206285511746125,
+        "lpips_P": 0.7408638877027175,
+        "ssim_R": 0.4687499850988388,
+        "lpips_R": 0.7719616033136845
+      },
+      "timestamp": "2026-01-21T03:40:16.129722"
+    }
+  ],
+  "best_checkpoint": null,
+  "best_score": Infinity,
+  "monitor_metric": "val_fid",
+  "monitor_mode": "min"
+}
