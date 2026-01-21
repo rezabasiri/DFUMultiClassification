@@ -1,7 +1,7 @@
 # SDXL 1.0 Base - 256x256 (Full Fine-tuning)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
-  resolution: 256  # Increased from 128 - closer to pretrained 1024, better quality
+  resolution: 128  # Reduced to 128 for memory constraints with full fine-tuning
   training_method: "full"  # Full fine-tuning for maximum quality (like successful SD 1.5 approach)
 
 lora:
@@ -36,8 +36,8 @@ data:
     bbox_margin_range: [0.05, 0.15]  # Add 5-15% random margin around bbox
 
 training:
-  batch_size_per_gpu: 2  # Full fine-tuning requires more memory per sample
-  gradient_accumulation_steps: 8  # Effective batch = 2 * 8 * 5 GPUs = 80
+  batch_size_per_gpu: 1  # Minimal batch size for memory optimization
+  gradient_accumulation_steps: 16  # Effective batch = 1 * 16 * 5 GPUs = 80
   learning_rate: 5.0e-6  # Lower for full fine-tuning (typical: 1e-6 to 1e-5)
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_steps: 100  # Reduced from 500 - reaches target LR in ~5 epochs instead of 24
@@ -145,10 +145,10 @@ logging:
 hardware:
   multi_gpu: true
   num_gpus: 5
-  mixed_precision: "no"  # fp16 causes errors
+  mixed_precision: "fp16"  # Enable fp16 to reduce memory usage by ~50%
   gradient_checkpointing: true
   use_xformers: false  # SDXL attention dim incompatible
-  enable_cpu_offload: false
+  enable_cpu_offload: true  # Offload optimizer states to CPU for additional memory savings
   num_workers: 4  # Reduced from 8 to avoid potential deadlock
   pin_memory: true
 
