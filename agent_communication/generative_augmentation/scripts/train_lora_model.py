@@ -57,7 +57,13 @@ from peft import LoraConfig, get_peft_model
 # Local utilities
 from typing import Tuple, Dict
 from quality_metrics import QualityMetrics
-from data_loader import create_dataloaders, load_reference_images, load_reference_images_by_phase
+from data_loader import (
+    create_dataloaders,
+    load_reference_images,
+    load_reference_images_by_phase,
+    save_reference_images_to_disk,
+    load_reference_images_from_disk
+)
 from training_utils import (
     PerceptualLoss,
     EMAModel,
@@ -1005,13 +1011,58 @@ def main():
                 num_phases = len(phase_prompts)
                 samples_per_phase = num_samples // num_phases
 
-                reference_images_by_phase = load_reference_images_by_phase(
-                    data_root=config['data']['data_root'],
-                    modality=config['data']['modality'],
-                    resolution=config['model']['resolution'],
-                    num_images_per_phase=samples_per_phase,
-                    verbose=accelerator.is_main_process
-                )
+                # Check if we should save/load reference images from disk
+                save_reference = config['validation'].get('save_reference_images', False)
+                reference_save_dir = Path(config['logging']['logging_dir']) / "reference_images"
+
+                if save_reference and epoch == 0:
+                    # First epoch: try to load from disk, or create and save
+                    reference_images_by_phase = load_reference_images_from_disk(
+                        save_dir=str(reference_save_dir),
+                        phases=list(phase_prompts.keys()),
+                        verbose=accelerator.is_main_process
+                    )
+
+                    if reference_images_by_phase is None:
+                        # Not found on disk, load from source with bbox cropping
+                        if accelerator.is_main_process:
+                            print("Loading reference images from source data with bbox-aware cropping...")
+
+                        reference_images_by_phase = load_reference_images_by_phase(
+                            data_root=config['data']['data_root'],
+                            modality=config['data']['modality'],
+                            resolution=config['model']['resolution'],
+                            num_images_per_phase=config['validation'].get('num_reference_images_per_phase', samples_per_phase),
+                            seed=config['validation'].get('reference_images_seed', 42),
+                            bbox_file=config['data'].get('bbox_file', None),
+                            bbox_crop_prob=config['data']['augmentation'].get('bbox_crop_prob', 0.5),
+                            bbox_margin_range=config['data']['augmentation'].get('bbox_margin_range', [0.05, 0.15]),
+                            verbose=accelerator.is_main_process
+                        )
+
+                        # Save to disk (only main process)
+                        if accelerator.is_main_process:
+                            save_reference_images_to_disk(
+                                reference_images_by_phase,
+                                save_dir=str(reference_save_dir),
+                                verbose=True
+                            )
+                    else:
+                        if accelerator.is_main_process:
+                            print(f"Loaded reference images from disk: {reference_save_dir}")
+                else:
+                    # Non-first epoch or save_reference disabled: load fresh each time
+                    reference_images_by_phase = load_reference_images_by_phase(
+                        data_root=config['data']['data_root'],
+                        modality=config['data']['modality'],
+                        resolution=config['model']['resolution'],
+                        num_images_per_phase=samples_per_phase,
+                        bbox_file=config['data'].get('bbox_file', None),
+                        bbox_crop_prob=config['data']['augmentation'].get('bbox_crop_prob', 0.5),
+                        bbox_margin_range=config['data']['augmentation'].get('bbox_margin_range', [0.05, 0.15]),
+                        verbose=accelerator.is_main_process
+                    )
+
                 # Move to device
                 for phase in reference_images_by_phase:
                     reference_images_by_phase[phase] = reference_images_by_phase[phase].to(accelerator.device)
