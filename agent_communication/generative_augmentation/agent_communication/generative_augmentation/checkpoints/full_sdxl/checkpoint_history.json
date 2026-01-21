@@ -1,0 +1,30 @@
+{
+  "checkpoint_history": [
+    {
+      "epoch": 0,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0000.pt",
+      "metrics": {
+        "train_loss": 12.055731002241373,
+        "val_loss": 0.14076588836808998,
+        "fid": 431.4163513183594,
+        "ssim_mean": 0.16412534072995186,
+        "ssim_std": 0.03175315076515585,
+        "lpips_mean": 0.7307090795040131,
+        "lpips_std": 0.020256202055913823,
+        "is_mean": 1.8951371908187866,
+        "is_std": 0.09533572196960449,
+        "ssim_I": 0.16246776589575937,
+        "lpips_I": 0.7490809033898747,
+        "ssim_P": 0.14390674321090474,
+        "lpips_P": 0.7391383086933809,
+        "ssim_R": 0.15711868274956942,
+        "lpips_R": 0.7405302599072456
+      },
+      "timestamp": "2026-01-21T07:38:49.066233"
+    }
+  ],
+  "best_checkpoint": null,
+  "best_score": Infinity,
+  "monitor_metric": "val_fid",
+  "monitor_mode": "min"
+}

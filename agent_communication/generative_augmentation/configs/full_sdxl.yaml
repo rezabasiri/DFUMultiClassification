@@ -34,7 +34,7 @@ data:
 
 training:
   batch_size_per_gpu: 4  # Increased for better GPU utilization (~20GB/24GB)
-  gradient_accumulation_steps: 2  # Effective batch size = 4 * 2 * 2 GPUs = 16
+  gradient_accumulation_steps: 4  # Effective batch size = 4 * 4 * 5 GPUs = 80
   learning_rate: 1.0e-4  # Higher for LoRA
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_steps: 500  # Increased for rank-128 stability
@@ -140,7 +140,7 @@ logging:
 
 hardware:
   multi_gpu: true
-  num_gpus: 2
+  num_gpus: 5
   mixed_precision: "no"  # fp16 causes errors
   gradient_checkpointing: true
   use_xformers: false  # SDXL attention dim incompatible
