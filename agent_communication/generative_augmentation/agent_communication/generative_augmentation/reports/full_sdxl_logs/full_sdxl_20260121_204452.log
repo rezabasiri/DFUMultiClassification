@@ -1,0 +1,100 @@
+Logging to: agent_communication/generative_augmentation/reports/full_sdxl_logs/full_sdxl_20260121_204452.log
+================================================================================
+Training Configuration: configs/full_sdxl.yaml
+Phase: all
+Modality: rgb
+Resolution: 512
+================================================================================
+Loading base model: stabilityai/stable-diffusion-xl-base-1.0
+Detected SDXL model - loading dual text encoders
+Enabled gradient checkpointing
+Full Fine-tuning:
+  Trainable parameters: 2,567,463,684 (100.00%)
+Enabled EMA (on CPU to save GPU memory)
+Using phase-specific prompts for conditioning
+Loaded 2884 bounding boxes from /workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
+Installed CUDA version 12.1 does not match the version torch was compiled with 12.8 but since the APIs are compatible, accepting this combination
+Before initializing optimizer states
+MA 13.03 GB         Max_MA 14.84 GB         CA 14.85 GB         Max_CA 15 GB 
+CPU Virtual Memory:  used = 103.38 GB, percent = 20.5%
+After initializing optimizer states
+MA 13.03 GB         Max_MA 13.03 GB         CA 14.85 GB         Max_CA 15 GB 
+CPU Virtual Memory:  used = 109.7 GB, percent = 21.8%
+After initializing ZeRO optimizer
+MA 13.03 GB         Max_MA 13.03 GB         CA 14.85 GB         Max_CA 15 GB 
+CPU Virtual Memory:  used = 109.94 GB, percent = 21.8%
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+/venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
+  warnings.warn(*args, **kwargs)
+
+Starting training...
+Training on 5 GPUs
+Total epochs: 300
+Effective batch size: 80
+
+Epoch 1/300
+  Step 1/128 - Loss: 0.2638, LR: 0.00e+00
+  Step 50/128 - Loss: 0.1031, LR: 3.00e-06
+  Step 100/128 - Loss: 0.1029, LR: 5.00e-06
+  Epoch 1 complete - Loss: 0.1041, LR: 5.00e-06
+Train loss: 0.1041
+  Validation: 15 batches - Loss: 0.0828
+Val loss: 0.0828
+Creating fresh reference images from source data with bbox-aware cropping...
+Loaded 2884 bounding boxes for reference images
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Saved 16 reference images for phase I to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_I.pt
+Saved 16 reference images for phase P to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_P.pt
+Saved 16 reference images for phase R to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_R.pt
+Saved reference image grid to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_images_grid.png
+Computing quality metrics...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 1432, in <module>
+[rank0]:     main()
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 1233, in main
+[rank0]:     generated_images, generated_images_by_phase = generate_validation_samples(
+[rank0]:                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 677, in generate_validation_samples
+[rank0]:     pipeline = pipeline.to(accelerator.device)
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/diffusers/pipelines/pipeline_utils.py", line 545, in to
+[rank0]:     module.to(device, dtype)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/diffusers/models/modeling_utils.py", line 1435, in to
+[rank0]:     return super().to(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1371, in to
+[rank0]:     return self._apply(convert)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 930, in _apply
+[rank0]:     module._apply(fn)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 930, in _apply
+[rank0]:     module._apply(fn)
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 930, in _apply
+[rank0]:     module._apply(fn)
+[rank0]:   [Previous line repeated 2 more times]
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 957, in _apply
+[rank0]:     param_applied = fn(param)
+[rank0]:                     ^^^^^^^^^
+[rank0]:   File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1357, in convert
+[rank0]:     return t.to(
+[rank0]:            ^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 23.65 GiB of which 6.06 MiB is free. Process 3834400 has 23.63 GiB memory in use. Of the allocated memory 22.99 GiB is allocated by PyTorch, and 11.55 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
