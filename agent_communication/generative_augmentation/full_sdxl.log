@@ -1,23 +1,31 @@
-2026-01-20 22:18:26.731419: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-20 22:18:26.731478: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-20 22:18:26.732861: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-20 22:18:26.738933: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-20 22:18:26.761201: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-20 22:18:26.761255: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-20 22:18:26.762516: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-20 22:18:26.768277: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-20 22:18:27.429395: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-2026-01-20 22:18:27.452257: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Using RTX 4000 series which doesn't support faster communication speedups. Ensuring P2P and IB communications are disabled.
+2026-01-21 07:30:03.096726: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-21 07:30:03.096773: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-21 07:30:03.097461: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-21 07:30:03.107119: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-21 07:30:03.107165: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-21 07:30:03.107852: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-21 07:30:03.118226: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-21 07:30:03.118272: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-21 07:30:03.118920: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-21 07:30:03.142805: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-21 07:30:03.142805: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-21 07:30:03.142855: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-21 07:30:03.142855: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-21 07:30:03.143485: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-21 07:30:03.143485: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+Detected kernel version 5.4.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
 ================================================================================
 Training Configuration: configs/full_sdxl.yaml
 Phase: all
 Modality: rgb
-Resolution: 512
+Resolution: 256
 ================================================================================
 Loading base model: stabilityai/stable-diffusion-xl-base-1.0
 Detected SDXL model - loading dual text encoders
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
 `torch_dtype` is deprecated! Use `dtype` instead!
 `torch_dtype` is deprecated! Use `dtype` instead!
 Enabled gradient checkpointing
@@ -25,95 +33,36 @@ Enabled gradient checkpointing
   warnings.warn(
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
-LoRA Configuration:
-  Rank: 64
-  Alpha: 128
-  Trainable parameters: 167,444,480 (6.12%)
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
   warnings.warn(
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
-Downloading: "https://download.pytorch.org/models/vgg16-397923af.pth" to /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth
-
-  0%|                                                                            | 0.00/528M [00:00<?, ?B/s]
-  1%|▍                                                                  | 3.75M/528M [00:00<00:14, 39.2MB/s]Downloading: "https://download.pytorch.org/models/vgg16-397923af.pth" to /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth
-
-  3%|██▎                                                                 | 18.0M/528M [00:00<00:05, 104MB/s]
-  6%|████▏                                                               | 32.4M/528M [00:00<00:04, 125MB/s]
-  9%|██████                                                              | 46.8M/528M [00:00<00:03, 135MB/s]
- 12%|███████▉                                                            | 61.2M/528M [00:00<00:03, 141MB/s]
-  0%|                                                                            | 0.00/528M [00:00<?, ?B/s]
- 14%|█████████▊                                                          | 75.8M/528M [00:00<00:03, 144MB/s]
-  1%|▌                                                                  | 4.62M/528M [00:00<00:11, 48.0MB/s]
- 17%|███████████▌                                                        | 90.1M/528M [00:00<00:03, 146MB/s]
-  4%|██▌                                                                 | 19.8M/528M [00:00<00:04, 112MB/s]
- 20%|█████████████▋                                                       | 105M/528M [00:00<00:03, 148MB/s]
-  7%|████▍                                                               | 34.5M/528M [00:00<00:03, 131MB/s]
- 23%|███████████████▌                                                     | 119M/528M [00:00<00:02, 148MB/s]
-  9%|██████▍                                                             | 49.5M/528M [00:00<00:03, 141MB/s]
- 25%|█████████████████▍                                                   | 133M/528M [00:01<00:02, 149MB/s]
- 12%|████████▎                                                           | 64.5M/528M [00:00<00:03, 146MB/s]
- 28%|███████████████████▎                                                 | 148M/528M [00:01<00:02, 149MB/s]
- 15%|██████████▏                                                         | 79.5M/528M [00:00<00:03, 150MB/s]
- 31%|█████████████████████▏                                               | 162M/528M [00:01<00:02, 150MB/s]
- 18%|████████████▏                                                       | 94.5M/528M [00:00<00:02, 152MB/s]
- 33%|███████████████████████                                              | 176M/528M [00:01<00:02, 150MB/s]
- 21%|██████████████▎                                                      | 110M/528M [00:00<00:02, 154MB/s]
- 36%|████████████████████████▉                                            | 191M/528M [00:01<00:02, 149MB/s]
- 24%|████████████████▎                                                    | 125M/528M [00:00<00:02, 156MB/s]
- 39%|██████████████████████████▊                                          | 205M/528M [00:01<00:02, 150MB/s]
- 27%|██████████████████▎                                                  | 140M/528M [00:01<00:02, 157MB/s]
- 42%|████████████████████████████▊                                        | 220M/528M [00:01<00:02, 151MB/s]
- 29%|████████████████████▎                                                | 155M/528M [00:01<00:02, 157MB/s]
- 44%|██████████████████████████████▋                                      | 235M/528M [00:01<00:02, 152MB/s]
- 32%|██████████████████████▎                                              | 170M/528M [00:01<00:02, 158MB/s]
- 47%|████████████████████████████████▌                                    | 249M/528M [00:01<00:01, 152MB/s]
- 35%|████████████████████████▎                                            | 186M/528M [00:01<00:02, 158MB/s]
- 50%|██████████████████████████████████▍                                  | 264M/528M [00:01<00:01, 152MB/s]
- 38%|██████████████████████████▏                                          | 201M/528M [00:01<00:02, 158MB/s]
- 53%|████████████████████████████████████▍                                | 279M/528M [00:02<00:01, 152MB/s]
- 41%|████████████████████████████▏                                        | 216M/528M [00:01<00:02, 158MB/s]
- 56%|██████████████████████████████████████▎                              | 293M/528M [00:02<00:01, 152MB/s]
- 44%|██████████████████████████████▏                                      | 231M/528M [00:01<00:01, 158MB/s]
- 58%|████████████████████████████████████████▏                            | 308M/528M [00:02<00:01, 153MB/s]
- 47%|████████████████████████████████▏                                    | 246M/528M [00:01<00:01, 158MB/s]
- 61%|██████████████████████████████████████████▏                          | 322M/528M [00:02<00:01, 152MB/s]
- 50%|██████████████████████████████████▏                                  | 262M/528M [00:01<00:01, 159MB/s]
- 64%|████████████████████████████████████████████                         | 337M/528M [00:02<00:01, 152MB/s]
- 52%|████████████████████████████████████▏                                | 277M/528M [00:01<00:01, 159MB/s]
- 67%|█████████████████████████████████████████████▉                       | 352M/528M [00:02<00:01, 150MB/s]
- 55%|██████████████████████████████████████▏                              | 292M/528M [00:02<00:01, 159MB/s]
- 69%|███████████████████████████████████████████████▊                     | 366M/528M [00:02<00:01, 150MB/s]
- 58%|████████████████████████████████████████▏                            | 308M/528M [00:02<00:01, 160MB/s]
- 72%|█████████████████████████████████████████████████▋                   | 380M/528M [00:02<00:01, 149MB/s]
- 61%|██████████████████████████████████████████▎                          | 323M/528M [00:02<00:01, 160MB/s]
- 75%|███████████████████████████████████████████████████▌                 | 395M/528M [00:02<00:00, 149MB/s]
- 64%|████████████████████████████████████████████▎                        | 339M/528M [00:02<00:01, 160MB/s]
- 77%|█████████████████████████████████████████████████████▍               | 409M/528M [00:02<00:00, 149MB/s]
- 67%|██████████████████████████████████████████████▎                      | 354M/528M [00:02<00:01, 160MB/s]
- 80%|███████████████████████████████████████████████████████▎             | 423M/528M [00:03<00:00, 148MB/s]
- 70%|████████████████████████████████████████████████▎                    | 369M/528M [00:02<00:01, 160MB/s]
- 83%|█████████████████████████████████████████████████████████▏           | 437M/528M [00:03<00:00, 148MB/s]
- 73%|██████████████████████████████████████████████████▎                  | 385M/528M [00:02<00:00, 160MB/s]
- 86%|███████████████████████████████████████████████████████████          | 452M/528M [00:03<00:00, 148MB/s]
- 76%|████████████████████████████████████████████████████▎                | 400M/528M [00:02<00:00, 160MB/s]
- 88%|████████████████████████████████████████████████████████████▉        | 466M/528M [00:03<00:00, 148MB/s]
- 79%|██████████████████████████████████████████████████████▎              | 416M/528M [00:02<00:00, 160MB/s]
- 91%|██████████████████████████████████████████████████████████████▊      | 480M/528M [00:03<00:00, 148MB/s]
- 82%|████████████████████████████████████████████████████████▎            | 431M/528M [00:02<00:00, 160MB/s]
- 94%|████████████████████████████████████████████████████████████████▋    | 494M/528M [00:03<00:00, 148MB/s]
- 85%|██████████████████████████████████████████████████████████▎          | 446M/528M [00:03<00:00, 161MB/s]
- 96%|██████████████████████████████████████████████████████████████████▌  | 509M/528M [00:03<00:00, 149MB/s]
- 87%|████████████████████████████████████████████████████████████▎        | 462M/528M [00:03<00:00, 160MB/s]
- 99%|████████████████████████████████████████████████████████████████████▍| 523M/528M [00:03<00:00, 150MB/s]
-100%|█████████████████████████████████████████████████████████████████████| 528M/528M [00:03<00:00, 147MB/s]
-
- 90%|██████████████████████████████████████████████████████████████▎      | 477M/528M [00:03<00:00, 159MB/s]
- 93%|████████████████████████████████████████████████████████████████▎    | 492M/528M [00:03<00:00, 159MB/s]
- 96%|██████████████████████████████████████████████████████████████████▎  | 508M/528M [00:03<00:00, 159MB/s]
- 99%|████████████████████████████████████████████████████████████████████▎| 523M/528M [00:03<00:00, 160MB/s]
-100%|█████████████████████████████████████████████████████████████████████| 528M/528M [00:03<00:00, 156MB/s]
+LoRA Configuration:
+  Rank: 128
+  Alpha: 256
+  Trainable parameters: 334,888,960 (11.54%)
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
 Enabled perceptual loss
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
 Found 2860 images for rgb/all phases
   Phase I: 860 images
   Phase P: 1678 images
@@ -134,101 +83,59 @@ Stratified split: 2573 train, 287 validation
   Phase I: 774 train, 86 val (90.0%/10.0%)
   Phase P: 1510 train, 168 val (90.0%/10.0%)
   Phase R: 289 train, 33 val (89.8%/10.2%)
-Downloading: "https://github.com/toshas/torch-fidelity/releases/download/v0.2.0/weights-inception-2015-12-05-6726825d.pth" to /root/.cache/torch/hub/checkpoints/weights-inception-2015-12-05-6726825d.pth
-Downloading: "https://github.com/toshas/torch-fidelity/releases/download/v0.2.0/weights-inception-2015-12-05-6726825d.pth" to /root/.cache/torch/hub/checkpoints/weights-inception-2015-12-05-6726825d.pth
-
-  0%|                                                                           | 0.00/91.2M [00:00<?, ?B/s]
-  0%|                                                                           | 0.00/91.2M [00:00<?, ?B/s]
- 10%|██████▍                                                           | 8.88M/91.2M [00:00<00:00, 92.6MB/s]
-  6%|███▉                                                              | 5.38M/91.2M [00:00<00:01, 56.3MB/s]
- 15%|█████████▊                                                        | 13.5M/91.2M [00:00<00:01, 73.2MB/s]
- 19%|████████████▊                                                     | 17.8M/91.2M [00:00<00:01, 57.0MB/s]
- 22%|██████████████▊                                                   | 20.5M/91.2M [00:00<00:01, 39.0MB/s]
- 26%|█████████████████▎                                                | 24.0M/91.2M [00:00<00:01, 43.9MB/s]
- 33%|█████████████████████▊                                            | 30.1M/91.2M [00:00<00:01, 52.3MB/s]
- 33%|█████████████████████▉                                            | 30.4M/91.2M [00:00<00:01, 49.8MB/s]
- 44%|█████████████████████████████                                     | 40.1M/91.2M [00:00<00:00, 61.4MB/s]
- 44%|█████████████████████████████                                     | 40.1M/91.2M [00:00<00:00, 63.0MB/s]
- 55%|████████████████████████████████████▎                             | 50.1M/91.2M [00:00<00:00, 69.3MB/s]
- 55%|████████████████████████████████████▎                             | 50.1M/91.2M [00:00<00:00, 69.9MB/s]
- 66%|███████████████████████████████████████████▌                      | 60.1M/91.2M [00:00<00:00, 76.1MB/s]
- 66%|███████████████████████████████████████████▌                      | 60.1M/91.2M [00:00<00:00, 76.6MB/s]
- 77%|██████████████████████████████████████████████████▋               | 70.1M/91.2M [00:01<00:00, 80.5MB/s]
- 77%|██████████████████████████████████████████████████▋               | 70.1M/91.2M [00:01<00:00, 80.8MB/s]
- 88%|█████████████████████████████████████████████████████████▉        | 80.1M/91.2M [00:01<00:00, 82.2MB/s]
- 88%|█████████████████████████████████████████████████████████▉        | 80.1M/91.2M [00:01<00:00, 81.9MB/s]
- 99%|█████████████████████████████████████████████████████████████████▏| 90.1M/91.2M [00:01<00:00, 84.6MB/s]
- 99%|█████████████████████████████████████████████████████████████████▏| 90.1M/91.2M [00:01<00:00, 84.4MB/s]
-100%|██████████████████████████████████████████████████████████████████| 91.2M/91.2M [00:01<00:00, 72.1MB/s]
-
-100%|██████████████████████████████████████████████████████████████████| 91.2M/91.2M [00:01<00:00, 72.1MB/s]
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
 Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
 Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
 /venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
   warnings.warn(msg)
-Downloading: "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth" to /root/.cache/torch/hub/checkpoints/alexnet-owt-7be5be79.pth
-Downloading: "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth" to /root/.cache/torch/hub/checkpoints/alexnet-owt-7be5be79.pth
-
-  0%|                                                                            | 0.00/233M [00:00<?, ?B/s]
-  0%|                                                                            | 0.00/233M [00:00<?, ?B/s]
-  1%|▋                                                                  | 2.50M/233M [00:00<00:09, 26.0MB/s]
-  2%|█▏                                                                 | 4.00M/233M [00:00<00:05, 41.3MB/s]
-  4%|██▉                                                                | 10.4M/233M [00:00<00:04, 56.1MB/s]
-  7%|████▌                                                              | 15.9M/233M [00:00<00:02, 92.6MB/s]
- 11%|███████▍                                                            | 25.4M/233M [00:00<00:02, 102MB/s]
- 13%|████████▌                                                           | 29.2M/233M [00:00<00:01, 114MB/s]
- 18%|████████████▍                                                       | 42.6M/233M [00:00<00:01, 124MB/s]
- 17%|███████████▊                                                        | 40.4M/233M [00:00<00:01, 124MB/s]
- 24%|████████████████                                                    | 55.0M/233M [00:00<00:01, 134MB/s]
- 24%|████████████████▏                                                   | 55.6M/233M [00:00<00:01, 128MB/s]
- 30%|████████████████████▍                                               | 70.0M/233M [00:00<00:01, 142MB/s]
- 30%|████████████████████▏                                               | 69.1M/233M [00:00<00:01, 132MB/s]
- 36%|████████████████████████▊                                           | 85.0M/233M [00:00<00:01, 147MB/s]
- 35%|████████████████████████                                            | 82.5M/233M [00:00<00:01, 135MB/s]
- 43%|█████████████████████████████▋                                       | 100M/233M [00:00<00:00, 150MB/s]
- 41%|████████████████████████████                                        | 96.0M/233M [00:00<00:01, 137MB/s]
- 49%|██████████████████████████████████                                   | 115M/233M [00:00<00:00, 153MB/s]
- 47%|████████████████████████████████▍                                    | 109M/233M [00:00<00:00, 138MB/s]
- 56%|██████████████████████████████████████▋                              | 130M/233M [00:01<00:00, 154MB/s]
- 53%|████████████████████████████████████▎                                | 123M/233M [00:01<00:00, 139MB/s]
- 62%|███████████████████████████████████████████                          | 146M/233M [00:01<00:00, 155MB/s]
- 58%|████████████████████████████████████████▎                            | 136M/233M [00:01<00:00, 139MB/s]
- 64%|████████████████████████████████████████████▎                        | 150M/233M [00:01<00:00, 139MB/s]
- 69%|███████████████████████████████████████████████▌                     | 161M/233M [00:01<00:00, 156MB/s]
- 70%|████████████████████████████████████████████████▎                    | 163M/233M [00:01<00:00, 139MB/s]
- 76%|████████████████████████████████████████████████████                 | 176M/233M [00:01<00:00, 157MB/s]
- 76%|████████████████████████████████████████████████████▏                | 176M/233M [00:01<00:00, 139MB/s]
- 82%|████████████████████████████████████████████████████████▌            | 191M/233M [00:01<00:00, 157MB/s]
- 81%|████████████████████████████████████████████████████████▏            | 190M/233M [00:01<00:00, 139MB/s]
- 88%|████████████████████████████████████████████████████████████▉        | 206M/233M [00:01<00:00, 156MB/s]
- 95%|█████████████████████████████████████████████████████████████████▍   | 221M/233M [00:01<00:00, 156MB/s]
- 87%|████████████████████████████████████████████████████████████▏        | 203M/233M [00:01<00:00, 139MB/s]
-100%|█████████████████████████████████████████████████████████████████████| 233M/233M [00:01<00:00, 144MB/s]
-
- 93%|████████████████████████████████████████████████████████████████     | 216M/233M [00:01<00:00, 139MB/s]
- 99%|████████████████████████████████████████████████████████████████████ | 230M/233M [00:01<00:00, 140MB/s]
-100%|█████████████████████████████████████████████████████████████████████| 233M/233M [00:01<00:00, 133MB/s]
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 /venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
   warnings.warn(*args, **kwargs)
 Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
 
 Starting training...
-Training on 2 GPUs
+Training on 5 GPUs
 Total epochs: 200
-Effective batch size: 16
+Effective batch size: 80
 
 Epoch 1/200
-  Step 1/321 - Loss: 4.4045, LR: 0.00e+00
-  Step 100/321 - Loss: 6.6130, LR: 4.00e-05
-  Step 200/321 - Loss: 6.3677, LR: 8.00e-05
-  Step 300/321 - Loss: 6.3057, LR: 1.00e-04
-  Epoch 1 complete - Loss: 6.3006, LR: 1.00e-04
-Train loss: 6.3006
-  Validation: 36 batches - Loss: 0.1245
-Val loss: 0.1245
+  Step 1/128 - Loss: 5.4475, LR: 0.00e+00
+  Step 100/128 - Loss: 13.1349, LR: 2.50e-05
+  Epoch 1 complete - Loss: 12.0557, LR: 3.20e-05
+Train loss: 12.0557
+  Validation: 15 batches - Loss: 0.1408
+Val loss: 0.1408
 Loaded 16 reference images for phase I
 Loaded 16 reference images for phase P
 Loaded 16 reference images for phase R
@@ -246,389 +153,19 @@ Computing Inception Score...
 
 Per-phase metrics:
 ==================================================
-Phase I: SSIM=0.3505, LPIPS=0.7884
-Phase P: SSIM=0.3595, LPIPS=0.7863
-Phase R: SSIM=0.3702, LPIPS=0.7919
+Phase I: SSIM=0.1625, LPIPS=0.7491
+Phase P: SSIM=0.1439, LPIPS=0.7391
+Phase R: SSIM=0.1571, LPIPS=0.7405
 ==================================================
 Quality Metrics:
 ==================================================
-FID: 359.31 (lower is better, < 50 is good)
-SSIM: 0.3842 ± 0.1104 (higher is better, > 0.7 is good)
-LPIPS: 0.7741 ± 0.0235 (lower is better, < 0.3 is good)
-IS: 2.50 ± 0.41 (higher is better, > 2.0 is good)
+FID: 431.42 (lower is better, < 50 is good)
+SSIM: 0.1641 ± 0.0318 (higher is better, > 0.7 is good)
+LPIPS: 0.7307 ± 0.0203 (lower is better, < 0.3 is good)
+IS: 1.90 ± 0.10 (higher is better, > 2.0 is good)
 ==================================================
-Val FID: 359.31
+Val FID: 431.42
   Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0000.pt
 
 Epoch 2/200
-  Step 1/321 - Loss: 5.3592, LR: 1.00e-04
-  Step 100/321 - Loss: 6.0471, LR: 1.00e-04
-  Step 200/321 - Loss: 6.0845, LR: 1.00e-04
-  Step 300/321 - Loss: 6.0738, LR: 1.00e-04
-  Epoch 2 complete - Loss: 6.0754, LR: 1.00e-04
-Train loss: 6.0754
-  Validation: 36 batches - Loss: 0.1006
-Val loss: 0.1006
-
-Epoch 3/200
-  Step 1/321 - Loss: 6.4333, LR: 1.00e-04
-  Step 100/321 - Loss: 6.0248, LR: 1.00e-04
-  Step 200/321 - Loss: 6.0806, LR: 1.00e-04
-  Step 300/321 - Loss: 6.0580, LR: 1.00e-04
-  Epoch 3 complete - Loss: 6.0691, LR: 1.00e-04
-Train loss: 6.0691
-  Validation: 36 batches - Loss: 0.1324
-Val loss: 0.1324
-
-Epoch 4/200
-  Step 1/321 - Loss: 5.3978, LR: 1.00e-04
-  Step 100/321 - Loss: 6.0920, LR: 1.00e-04
-  Step 200/321 - Loss: 5.9479, LR: 1.00e-04
-  Step 300/321 - Loss: 6.0035, LR: 1.00e-04
-  Epoch 4 complete - Loss: 5.9848, LR: 1.00e-04
-Train loss: 5.9848
-  Validation: 36 batches - Loss: 0.1248
-Val loss: 0.1248
-
-Epoch 5/200
-  Step 1/321 - Loss: 8.0266, LR: 1.00e-04
-  Step 100/321 - Loss: 5.8761, LR: 1.00e-04
-  Step 200/321 - Loss: 5.9334, LR: 1.00e-04
-  Step 300/321 - Loss: 5.9672, LR: 1.00e-04
-  Epoch 5 complete - Loss: 5.9520, LR: 1.00e-04
-Train loss: 5.9520
-  Validation: 36 batches - Loss: 0.0991
-Val loss: 0.0991
-
-Epoch 6/200
-  Step 1/321 - Loss: 5.3046, LR: 1.00e-04
-  Step 100/321 - Loss: 6.0826, LR: 1.00e-04
-  Step 200/321 - Loss: 6.0170, LR: 1.00e-04
-  Step 300/321 - Loss: 6.0316, LR: 1.00e-04
-  Epoch 6 complete - Loss: 6.0202, LR: 1.00e-04
-Train loss: 6.0202
-  Validation: 36 batches - Loss: 0.1284
-Val loss: 0.1284
-
-Epoch 7/200
-  Step 1/321 - Loss: 4.5487, LR: 1.00e-04
-  Step 100/321 - Loss: 5.9862, LR: 1.00e-04
-  Step 200/321 - Loss: 5.9471, LR: 9.99e-05
-  Step 300/321 - Loss: 5.9717, LR: 9.99e-05
-  Epoch 7 complete - Loss: 5.9792, LR: 9.99e-05
-Train loss: 5.9792
-  Validation: 36 batches - Loss: 0.1196
-Val loss: 0.1196
-
-Epoch 8/200
-  Step 1/321 - Loss: 6.3245, LR: 9.99e-05
-  Step 100/321 - Loss: 6.1242, LR: 9.99e-05
-  Step 200/321 - Loss: 6.0260, LR: 9.99e-05
-  Step 300/321 - Loss: 6.0003, LR: 9.99e-05
-  Epoch 8 complete - Loss: 5.9706, LR: 9.99e-05
-Train loss: 5.9706
-  Validation: 36 batches - Loss: 0.1211
-Val loss: 0.1211
-
-Epoch 9/200
-  Step 1/321 - Loss: 7.1246, LR: 9.99e-05
-  Step 100/321 - Loss: 5.9929, LR: 9.99e-05
-  Step 200/321 - Loss: 5.8684, LR: 9.99e-05
-  Step 300/321 - Loss: 5.9234, LR: 9.99e-05
-  Epoch 9 complete - Loss: 5.9539, LR: 9.99e-05
-Train loss: 5.9539
-  Validation: 36 batches - Loss: 0.1035
-Val loss: 0.1035
-
-Epoch 10/200
-  Step 1/321 - Loss: 6.2783, LR: 9.99e-05
-  Step 100/321 - Loss: 5.9522, LR: 9.99e-05
-  Step 200/321 - Loss: 5.9945, LR: 9.99e-05
-  Step 300/321 - Loss: 5.9803, LR: 9.99e-05
-  Epoch 10 complete - Loss: 5.9656, LR: 9.99e-05
-Train loss: 5.9656
-  Validation: 36 batches - Loss: 0.1033
-Val loss: 0.1033
-Loaded 16 reference images for phase I
-Loaded 16 reference images for phase P
-Loaded 16 reference images for phase R
-Computing quality metrics...
-Generating 50 images across 3 phases...
-  Phase I: generating 17 images...
-  Phase P: generating 17 images...
-  Phase R: generating 16 images...
-Computing FID...
-Computing SSIM...
-Computing LPIPS...
-Computing Inception Score...
-
-Per-phase metrics:
-==================================================
-Phase I: SSIM=0.3849, LPIPS=0.7775
-Phase P: SSIM=0.3736, LPIPS=0.7700
-Phase R: SSIM=0.4723, LPIPS=0.7765
-==================================================
-Quality Metrics:
-==================================================
-FID: 339.39 (lower is better, < 50 is good)
-SSIM: 0.4365 ± 0.0943 (higher is better, > 0.7 is good)
-LPIPS: 0.7588 ± 0.0284 (lower is better, < 0.3 is good)
-IS: 2.53 ± 0.27 (higher is better, > 2.0 is good)
-==================================================
-Val FID: 339.39
-  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0009.pt
-
-Epoch 11/200
-  Step 1/321 - Loss: 6.8470, LR: 9.99e-05
-  Step 100/321 - Loss: 5.8712, LR: 9.99e-05
-  Step 200/321 - Loss: 5.9052, LR: 9.98e-05
-  Step 300/321 - Loss: 6.0100, LR: 9.98e-05
-  Epoch 11 complete - Loss: 5.9818, LR: 9.98e-05
-Train loss: 5.9818
-  Validation: 36 batches - Loss: 0.1230
-Val loss: 0.1230
-
-Epoch 12/200
-  Step 1/321 - Loss: 6.3493, LR: 9.98e-05
-  Step 100/321 - Loss: 5.9798, LR: 9.98e-05
-  Step 200/321 - Loss: 5.9301, LR: 9.98e-05
-  Step 300/321 - Loss: 5.9108, LR: 9.98e-05
-  Epoch 12 complete - Loss: 5.8990, LR: 9.98e-05
-Train loss: 5.8990
-  Validation: 36 batches - Loss: 0.1121
-Val loss: 0.1121
-
-Epoch 13/200
-  Step 1/321 - Loss: 6.3706, LR: 9.98e-05
-  Step 100/321 - Loss: 5.8823, LR: 9.98e-05
-  Step 200/321 - Loss: 5.9099, LR: 9.98e-05
-  Step 300/321 - Loss: 5.8777, LR: 9.98e-05
-  Epoch 13 complete - Loss: 5.8868, LR: 9.98e-05
-Train loss: 5.8868
-  Validation: 36 batches - Loss: 0.1207
-Val loss: 0.1207
-
-Epoch 14/200
-  Step 1/321 - Loss: 6.5213, LR: 9.98e-05
-  Step 100/321 - Loss: 5.8565, LR: 9.98e-05
-  Step 200/321 - Loss: 5.9489, LR: 9.97e-05
-  Step 300/321 - Loss: 5.9239, LR: 9.97e-05
-  Epoch 14 complete - Loss: 5.9251, LR: 9.97e-05
-Train loss: 5.9251
-  Validation: 36 batches - Loss: 0.1206
-Val loss: 0.1206
-
-Epoch 15/200
-  Step 1/321 - Loss: 6.7547, LR: 9.97e-05
-  Step 100/321 - Loss: 5.8422, LR: 9.97e-05
-  Step 200/321 - Loss: 5.9157, LR: 9.97e-05
-  Step 300/321 - Loss: 5.9488, LR: 9.97e-05
-  Epoch 15 complete - Loss: 5.9305, LR: 9.97e-05
-Train loss: 5.9305
-  Validation: 36 batches - Loss: 0.1219
-Val loss: 0.1219
-
-Epoch 16/200
-  Step 1/321 - Loss: 6.5823, LR: 9.97e-05
-  Step 100/321 - Loss: 5.8552, LR: 9.97e-05
-  Step 200/321 - Loss: 5.9328, LR: 9.97e-05
-  Step 300/321 - Loss: 5.9291, LR: 9.96e-05
-  Epoch 16 complete - Loss: 5.9284, LR: 9.96e-05
-Train loss: 5.9284
-  Validation: 36 batches - Loss: 0.0999
-Val loss: 0.0999
-
-Epoch 17/200
-  Step 1/321 - Loss: 6.5046, LR: 9.96e-05
-  Step 100/321 - Loss: 5.7628, LR: 9.96e-05
-  Step 200/321 - Loss: 5.7630, LR: 9.96e-05
-  Step 300/321 - Loss: 5.8018, LR: 9.96e-05
-  Epoch 17 complete - Loss: 5.8106, LR: 9.96e-05
-Train loss: 5.8106
-  Validation: 36 batches - Loss: 0.1185
-Val loss: 0.1185
-
-Epoch 18/200
-  Step 1/321 - Loss: 6.7466, LR: 9.96e-05
-  Step 100/321 - Loss: 5.8015, LR: 9.96e-05
-  Step 200/321 - Loss: 5.7945, LR: 9.96e-05
-  Step 300/321 - Loss: 5.8249, LR: 9.95e-05
-  Epoch 18 complete - Loss: 5.8345, LR: 9.95e-05
-Train loss: 5.8345
-  Validation: 36 batches - Loss: 0.1216
-Val loss: 0.1216
-
-Epoch 19/200
-  Step 1/321 - Loss: 5.8412, LR: 9.95e-05
-  Step 100/321 - Loss: 5.8124, LR: 9.95e-05
-  Step 200/321 - Loss: 5.8415, LR: 9.95e-05
-  Step 300/321 - Loss: 5.8704, LR: 9.95e-05
-  Epoch 19 complete - Loss: 5.8713, LR: 9.95e-05
-Train loss: 5.8713
-  Validation: 36 batches - Loss: 0.1102
-Val loss: 0.1102
-
-Epoch 20/200
-  Step 1/321 - Loss: 5.6352, LR: 9.95e-05
-  Step 100/321 - Loss: 5.7714, LR: 9.95e-05
-  Step 200/321 - Loss: 5.7933, LR: 9.94e-05
-  Step 300/321 - Loss: 5.7832, LR: 9.94e-05
-  Epoch 20 complete - Loss: 5.7745, LR: 9.94e-05
-Train loss: 5.7745
-  Validation: 36 batches - Loss: 0.1212
-Val loss: 0.1212
-Loaded 16 reference images for phase I
-Loaded 16 reference images for phase P
-Loaded 16 reference images for phase R
-Computing quality metrics...
-Generating 50 images across 3 phases...
-  Phase I: generating 17 images...
-  Phase P: generating 17 images...
-  Phase R: generating 16 images...
-Computing FID...
-Computing SSIM...
-Computing LPIPS...
-Computing Inception Score...
-
-Per-phase metrics:
-==================================================
-Phase I: SSIM=0.4054, LPIPS=0.7510
-Phase P: SSIM=0.3921, LPIPS=0.7409
-Phase R: SSIM=0.4687, LPIPS=0.7720
-==================================================
-Quality Metrics:
-==================================================
-FID: 322.58 (lower is better, < 50 is good)
-SSIM: 0.4440 ± 0.1087 (higher is better, > 0.7 is good)
-LPIPS: 0.7385 ± 0.0352 (lower is better, < 0.3 is good)
-IS: 2.67 ± 0.33 (higher is better, > 2.0 is good)
-==================================================
-Val FID: 322.58
-  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0019.pt
-
-Epoch 21/200
-  Step 1/321 - Loss: 6.4434, LR: 9.94e-05
-  Step 100/321 - Loss: 5.8831, LR: 9.94e-05
-  Step 200/321 - Loss: 5.8366, LR: 9.94e-05
-  Step 300/321 - Loss: 5.7984, LR: 9.94e-05
-  Epoch 21 complete - Loss: 5.7928, LR: 9.94e-05
-Train loss: 5.7928
-  Validation: 36 batches - Loss: 0.1221
-Val loss: 0.1221
-
-Epoch 22/200
-  Step 1/321 - Loss: 6.4797, LR: 9.94e-05
-  Step 100/321 - Loss: 5.8989, LR: 9.93e-05
-  Step 200/321 - Loss: 5.8909, LR: 9.93e-05
-  Step 300/321 - Loss: 5.9026, LR: 9.93e-05
-  Epoch 22 complete - Loss: 5.8853, LR: 9.93e-05
-Train loss: 5.8853
-  Validation: 36 batches - Loss: 0.1067
-Val loss: 0.1067
-
-Epoch 23/200
-  Step 1/321 - Loss: 5.9996, LR: 9.93e-05
-  Step 100/321 - Loss: 5.9976, LR: 9.93e-05
-  Step 200/321 - Loss: 5.9363, LR: 9.93e-05
-  Step 300/321 - Loss: 5.9129, LR: 9.92e-05
-  Epoch 23 complete - Loss: 5.8698, LR: 9.92e-05
-Train loss: 5.8698
-  Validation: 36 batches - Loss: 0.1151
-Val loss: 0.1151
-
-Epoch 24/200
-  Step 1/321 - Loss: 6.9768, LR: 9.92e-05
-  Step 100/321 - Loss: 5.6942, LR: 9.92e-05
-  Step 200/321 - Loss: 5.8036, LR: 9.92e-05
-  Step 300/321 - Loss: 5.7692, LR: 9.92e-05
-  Epoch 24 complete - Loss: 5.7997, LR: 9.92e-05
-Train loss: 5.7997
-  Validation: 36 batches - Loss: 0.1151
-Val loss: 0.1151
-
-Epoch 25/200
-  Step 1/321 - Loss: 3.7193, LR: 9.92e-05
-  Step 100/321 - Loss: 5.8103, LR: 9.91e-05
-  Step 200/321 - Loss: 5.9017, LR: 9.91e-05
-  Step 300/321 - Loss: 5.8878, LR: 9.91e-05
-  Epoch 25 complete - Loss: 5.8796, LR: 9.91e-05
-Train loss: 5.8796
-  Validation: 36 batches - Loss: 0.1213
-Val loss: 0.1213
-
-Epoch 26/200
-  Step 1/321 - Loss: 5.4297, LR: 9.91e-05
-  Step 100/321 - Loss: 6.0307, LR: 9.91e-05
-  Step 200/321 - Loss: 5.9904, LR: 9.90e-05
-  Step 300/321 - Loss: 5.9327, LR: 9.90e-05
-  Epoch 26 complete - Loss: 5.9399, LR: 9.90e-05
-Train loss: 5.9399
-  Validation: 36 batches - Loss: 0.1112
-Val loss: 0.1112
-
-Epoch 27/200
-  Step 1/321 - Loss: 5.4045, LR: 9.90e-05
-  Step 100/321 - Loss: 5.6506, LR: 9.90e-05
-  Step 200/321 - Loss: 5.7862, LR: 9.90e-05
-  Step 300/321 - Loss: 5.8734, LR: 9.89e-05
-  Epoch 27 complete - Loss: 5.9097, LR: 9.89e-05
-Train loss: 5.9097
-  Validation: 36 batches - Loss: 0.1255
-Val loss: 0.1255
-
-Epoch 28/200
-  Step 1/321 - Loss: 4.0118, LR: 9.89e-05
-  Step 100/321 - Loss: 5.8572, LR: 9.89e-05
-  Step 200/321 - Loss: 5.8972, LR: 9.89e-05
-  Step 300/321 - Loss: 5.8178, LR: 9.89e-05
-  Epoch 28 complete - Loss: 5.8275, LR: 9.89e-05
-Train loss: 5.8275
-  Validation: 36 batches - Loss: 0.1381
-Val loss: 0.1381
-
-Epoch 29/200
-  Step 1/321 - Loss: 4.3273, LR: 9.89e-05
-  Step 100/321 - Loss: 5.7056, LR: 9.88e-05
-  Step 200/321 - Loss: 5.7131, LR: 9.88e-05
-  Step 300/321 - Loss: 5.8254, LR: 9.88e-05
-  Epoch 29 complete - Loss: 5.8344, LR: 9.88e-05
-Train loss: 5.8344
-  Validation: 36 batches - Loss: 0.1034
-Val loss: 0.1034
-
-Epoch 30/200
-  Step 1/321 - Loss: 7.4347, LR: 9.88e-05
-  Step 100/321 - Loss: 5.9076, LR: 9.87e-05
-  Step 200/321 - Loss: 5.9665, LR: 9.87e-05
-  Step 300/321 - Loss: 5.9363, LR: 9.87e-05
-  Epoch 30 complete - Loss: 5.9318, LR: 9.87e-05
-Train loss: 5.9318
-  Validation: 36 batches - Loss: 0.1196
-Val loss: 0.1196
-Loaded 16 reference images for phase I
-Loaded 16 reference images for phase P
-Loaded 16 reference images for phase R
-Computing quality metrics...
-Generating 50 images across 3 phases...
-  Phase I: generating 17 images...
-  Phase P: generating 17 images...
-  Phase R: generating 16 images...
-Computing FID...
-Computing SSIM...
-Computing LPIPS...
-Computing Inception Score...
-
-Per-phase metrics:
-==================================================
-Phase I: SSIM=0.4783, LPIPS=0.7279
-Phase P: SSIM=0.4241, LPIPS=0.7195
-Phase R: SSIM=0.4998, LPIPS=0.7477
-==================================================
-Quality Metrics:
-==================================================
-FID: 284.35 (lower is better, < 50 is good)
-SSIM: 0.4867 ± 0.0918 (higher is better, > 0.7 is good)
-LPIPS: 0.7177 ± 0.0317 (lower is better, < 0.3 is good)
-IS: 2.45 ± 0.24 (higher is better, > 2.0 is good)
-==================================================
-Val FID: 284.35
+  Step 1/128 - Loss: 8.4444, LR: 3.20e-05
