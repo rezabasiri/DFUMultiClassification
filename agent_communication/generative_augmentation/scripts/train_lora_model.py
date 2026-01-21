@@ -1005,9 +1005,11 @@ def main():
             ema_model=ema_model,
             load_optimizer=True
         )
-        start_epoch = checkpoint.get('epoch', 0) + 1
+        # Checkpoint stores 1-indexed epoch, convert to 0-indexed for loop
+        # Resume continues from saved epoch (e.g., checkpoint_epoch_0001.pt -> start at epoch index 1)
+        start_epoch = checkpoint.get('epoch', 1)
         if accelerator.is_main_process:
-            print(f"Resumed from epoch {start_epoch}")
+            print(f"Resumed from checkpoint epoch {start_epoch}, continuing training...")
 
     # Training loop
     if accelerator.is_main_process:
@@ -1083,43 +1085,51 @@ def main():
                 save_reference = config['validation'].get('save_reference_images', False)
                 reference_save_dir = Path(config['logging']['logging_dir']) / "reference_images"
 
-                if save_reference and epoch == 0:
-                    # First epoch: try to load from disk, or create and save
+                if epoch == 0:
+                    # First epoch: ALWAYS create fresh reference images (resolution/settings may have changed)
+                    if accelerator.is_main_process:
+                        print("Creating fresh reference images from source data with bbox-aware cropping...")
+
+                    reference_images_by_phase = load_reference_images_by_phase(
+                        data_root=config['data']['data_root'],
+                        modality=config['data']['modality'],
+                        resolution=config['model']['resolution'],
+                        num_images_per_phase=config['validation'].get('num_reference_images_per_phase', samples_per_phase),
+                        seed=config['validation'].get('reference_images_seed', 42),
+                        bbox_file=config['data'].get('bbox_file', None),
+                        bbox_crop_prob=config['data']['augmentation'].get('bbox_crop_prob', 0.5),
+                        bbox_margin_range=config['data']['augmentation'].get('bbox_margin_range', [0.05, 0.15]),
+                        verbose=accelerator.is_main_process
+                    )
+
+                    # Save to disk for subsequent epochs (only main process)
+                    if save_reference and accelerator.is_main_process:
+                        save_reference_images_to_disk(
+                            reference_images_by_phase,
+                            save_dir=str(reference_save_dir),
+                            verbose=True
+                        )
+                elif save_reference:
+                    # Subsequent epochs with save_reference enabled: load from disk cache
                     reference_images_by_phase = load_reference_images_from_disk(
                         save_dir=str(reference_save_dir),
                         phases=list(phase_prompts.keys()),
                         verbose=accelerator.is_main_process
                     )
-
                     if reference_images_by_phase is None:
-                        # Not found on disk, load from source with bbox cropping
-                        if accelerator.is_main_process:
-                            print("Loading reference images from source data with bbox-aware cropping...")
-
+                        # Fallback if disk cache missing
                         reference_images_by_phase = load_reference_images_by_phase(
                             data_root=config['data']['data_root'],
                             modality=config['data']['modality'],
                             resolution=config['model']['resolution'],
-                            num_images_per_phase=config['validation'].get('num_reference_images_per_phase', samples_per_phase),
-                            seed=config['validation'].get('reference_images_seed', 42),
+                            num_images_per_phase=samples_per_phase,
                             bbox_file=config['data'].get('bbox_file', None),
                             bbox_crop_prob=config['data']['augmentation'].get('bbox_crop_prob', 0.5),
                             bbox_margin_range=config['data']['augmentation'].get('bbox_margin_range', [0.05, 0.15]),
                             verbose=accelerator.is_main_process
                         )
-
-                        # Save to disk (only main process)
-                        if accelerator.is_main_process:
-                            save_reference_images_to_disk(
-                                reference_images_by_phase,
-                                save_dir=str(reference_save_dir),
-                                verbose=True
-                            )
-                    else:
-                        if accelerator.is_main_process:
-                            print(f"Loaded reference images from disk: {reference_save_dir}")
                 else:
-                    # Non-first epoch or save_reference disabled: load fresh each time
+                    # save_reference disabled: load fresh each time
                     reference_images_by_phase = load_reference_images_by_phase(
                         data_root=config['data']['data_root'],
                         modality=config['data']['modality'],
@@ -1364,7 +1374,7 @@ def main():
                     checkpoint_metrics.update(val_metrics)
 
                 checkpoint_manager.save_checkpoint(
-                    epoch=epoch,
+                    epoch=epoch + 1,  # Use 1-indexed epoch numbers for checkpoint filenames
                     unet_lora=accelerator.unwrap_model(unet_lora),
                     optimizer=optimizer,
                     lr_scheduler=lr_scheduler,
@@ -1379,7 +1389,7 @@ def main():
     # Save final checkpoint
     if accelerator.is_main_process:
         checkpoint_manager.save_checkpoint(
-            epoch=config['training']['max_epochs'] - 1,
+            epoch=epoch + 1,  # Use actual final epoch (1-indexed)
             unet_lora=accelerator.unwrap_model(unet_lora),
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
