@@ -846,8 +846,22 @@ def main():
     if text_encoder_2 is not None:
         text_encoder_2 = text_encoder_2.to(accelerator.device)
 
-    # Setup LoRA
-    unet_lora = setup_lora(unet, config, accelerator)
+    # Setup training method: LoRA or Full Fine-tuning
+    training_method = config['model'].get('training_method', 'lora').lower()
+
+    if training_method == 'full':
+        # Full fine-tuning: train entire UNet (100% parameters)
+        unet_lora = unet
+        unet_lora.requires_grad_(True)  # Enable gradients for all parameters
+
+        if accelerator.is_main_process:
+            trainable_params = sum(p.numel() for p in unet_lora.parameters() if p.requires_grad)
+            total_params = sum(p.numel() for p in unet_lora.parameters())
+            print(f"Full Fine-tuning:")
+            print(f"  Trainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
+    else:
+        # LoRA training (parameter-efficient fine-tuning)
+        unet_lora = setup_lora(unet, config, accelerator)
 
     # Setup perceptual loss
     perceptual_loss_fn = None
