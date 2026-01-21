@@ -1,0 +1,46 @@
+Logging to: agent_communication/generative_augmentation/reports/full_sdxl_logs/full_sdxl_20260121_104039.log
+================================================================================
+Training Configuration: configs/full_sdxl.yaml
+Phase: all
+Modality: rgb
+Resolution: 256
+================================================================================
+Loading base model: stabilityai/stable-diffusion-xl-base-1.0
+Detected SDXL model - loading dual text encoders
+Enabled gradient checkpointing
+LoRA Configuration:
+  Rank: 128
+  Alpha: 256
+  Trainable parameters: 334,888,960 (11.54%)
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Enabled perceptual loss
+Enabled EMA (on CPU to save GPU memory)
+Using phase-specific prompts for conditioning
+Loaded 2884 bounding boxes from /workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+/venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
+  warnings.warn(*args, **kwargs)
+
+Starting training...
+Training on 5 GPUs
+Total epochs: 300
+Effective batch size: 80
+
+Epoch 1/300
+  Step 1/257 - Loss: 0.5903, LR: 0.00e+00
+  Step 100/257 - Loss: 3.2368, LR: 6.00e-07
