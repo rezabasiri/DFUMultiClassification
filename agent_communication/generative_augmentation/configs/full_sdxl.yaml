@@ -58,33 +58,15 @@ training:
 
 prompts:
   enabled: true
-  # Phase-specific prompts for multi-phase training - WOUND-ONLY FOCUS
-  # Model learns to associate each phase with its visual characteristics
+  # MINIMAL prompts - force model to learn from training data, not pretrained knowledge
+  # Detailed prompts cause SDXL to generate from pretrained "clinical photo" knowledge
+  # Simple prompts force reliance on learned features from training images
   phase_prompts:
-    I: >
-      Close-up clinical photograph of diabetic foot ulcer wound in inflammatory phase,
-      acute open wound with redness erythema and swelling edema around wound margins,
-      early wound response showing tissue inflammation and wound debridement stage,
-      detailed wound bed texture with surrounding inflamed tissue,
-      professional medical documentation, high resolution, sharp focus, clinical lighting
-    P: >
-      Close-up clinical photograph of diabetic foot ulcer wound in proliferative phase,
-      active granulation tissue formation with pink red moist wound bed,
-      new tissue growth and collagen deposition showing visible angiogenesis,
-      detailed wound healing texture with tissue proliferation,
-      professional medical documentation, high resolution, sharp focus, clinical lighting
-    R: >
-      Close-up clinical photograph of diabetic foot ulcer wound in remodeling phase,
-      mature scar tissue with wound contraction and epithelialization,
-      late stage healing showing tissue maturation and skin regrowth,
-      detailed wound closure with remodeled tissue texture,
-      professional medical documentation, high resolution, sharp focus, clinical lighting
+    I: "diabetic foot ulcer, inflammatory phase"
+    P: "diabetic foot ulcer, proliferative phase"
+    R: "diabetic foot ulcer, remodeling phase"
   # Fallback positive prompt (used if phase_prompts not available)
-  positive: >
-    Close-up clinical photograph of diabetic foot ulcer wound,
-    detailed wound bed and surrounding tissue texture,
-    professional medical documentation, high resolution, sharp focus,
-    clinical lighting
+  positive: "diabetic foot ulcer"
   negative: >
     blurry, out of focus, low quality, jpeg artifacts, noise, grainy,
     cartoon, illustration, drawing, painting, artistic, stylized, anime,
@@ -97,14 +79,14 @@ prompts:
 
 quality:
   perceptual_loss:
-    enabled: true # Enable perceptual loss to enhance feature fidelity
-    weight: 0.01  # Very low weight - diffusion loss must be primary, not VGG features
+    enabled: false  # DISABLED - VGG trained on ImageNet pushes toward "natural" style, not medical realism
+    weight: 0.01
     vgg_layer: 16
   ema:
     enabled: true
     decay: 0.999  # Faster EMA - updated from 0.9999 (too slow for early training visibility)
     use_ema_weights_for_inference: true
-  guidance_scale: 12.0  # Increased from 7.5 for stronger prompt adherence in medical domain
+  guidance_scale: 3.0  # REDUCED from 12.0 - lower guidance = less prompt reliance, more training data learning
   inference_steps_training: 50
   inference_steps_production: 50
 
