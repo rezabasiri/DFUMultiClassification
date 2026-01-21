@@ -60,6 +60,7 @@ results/modality_*.csv
 *.log
 !agent_communication/image_backbone/*.log
 !agent_communication/generative_augmentation/*.log
+!agent_communication/generative_augmentation/agent_communication/generative_augmentation/reports/full_sdxl_logs/*.log
 device*
 
 # raw data
