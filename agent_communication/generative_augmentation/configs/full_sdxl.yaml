@@ -1,7 +1,7 @@
-# SDXL 1.0 Base - 256x256 (Full Fine-tuning)
+# SDXL 1.0 Base - 128x128 (half-Full Fine-tuning)
 model:
   base_model: "stabilityai/stable-diffusion-xl-base-1.0"
-  resolution: 256 #change to 512 for full resolution
+  resolution: 128 #change to 512 for full resolution
   training_method: "full"  # Full fine-tuning for maximum quality (like successful SD 1.5 approach)
 
 lora:
@@ -36,8 +36,8 @@ data:
     bbox_margin_range: [0.05, 0.15]  # Add 5-15% random margin around bbox
 
 training:
-  batch_size_per_gpu: 2  # Reduced for full fine-tuning (more memory intensive)
-  gradient_accumulation_steps: 8  # Effective batch size = 2 * 8 * 5 GPUs = 80
+  batch_size_per_gpu: 24  # Reduced for full fine-tuning (more memory intensive)
+  gradient_accumulation_steps: 4 
   learning_rate: 5.0e-6  # Lower for full fine-tuning (typical: 1e-6 to 1e-5)
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_steps: 500  # Gradual warmup for stability
