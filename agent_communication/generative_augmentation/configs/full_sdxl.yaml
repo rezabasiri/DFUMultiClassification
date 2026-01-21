@@ -36,11 +36,11 @@ data:
     bbox_margin_range: [0.05, 0.15]  # Add 5-15% random margin around bbox
 
 training:
-  batch_size_per_gpu: 12  # Aggressive increase - GPU at 41%
-  gradient_accumulation_steps: 1  # Effective batch = 12 * 1 * 5 GPUs = 60
-  learning_rate: 1.0e-6  # Very low for full fine-tuning of 2.5B params - 5e-6 caused NaN
+  batch_size_per_gpu: 4  # Moderate batch size
+  gradient_accumulation_steps: 4  # REQUIRED - prevents NaN by slowing LR ramp. Effective batch = 4 * 4 * 5 GPUs = 80
+  learning_rate: 1.0e-6  # Standard for full fine-tuning of large models
   lr_scheduler: "cosine"  # Cosine annealing
-  lr_warmup_steps: 100  # Reduced from 500 - reaches target LR in ~5 epochs instead of 24
+  lr_warmup_steps: 500  # Long warmup for stability
   lr_num_cycles: 1
   optimizer: "adamw"
   adam_beta1: 0.9
@@ -97,7 +97,7 @@ prompts:
 
 quality:
   perceptual_loss:
-    enabled: false  # DISABLED - causes NaN with BF16 full fine-tuning due to VAE decode instability
+    enabled: true  # DISABLED - causes NaN with BF16 due to VAE decode numerical instability
     weight: 0.01  # Very low weight - diffusion loss must be primary, not VGG features
     vgg_layer: 16
   ema:
@@ -110,14 +110,14 @@ quality:
 
 checkpointing:
   output_dir: "agent_communication/generative_augmentation/checkpoints/full_sdxl"
-  save_every_n_epochs: 10  # Save checkpoint every 10 epochs
+  save_every_n_epochs: 5  # Save checkpoint every 10 epochs
   keep_last_n_checkpoints: 2  # Keep only 2 checkpoints: best + last
   save_best_only: false
   resume_from_checkpoint: null
   save_optimizer_state: true
 
 metrics:
-  compute_every_n_epochs: 10  # FID every 10 epochs
+  compute_every_n_epochs: 5  # FID every 10 epochs
   num_samples_for_metrics: 50
   generation_batch_size: 2  # Generate images in batches to avoid OOM at 512x512
   fid:
@@ -136,8 +136,8 @@ metrics:
 
 logging:
   logging_dir: "agent_communication/generative_augmentation/reports/full_sdxl_logs"
-  log_every_n_steps: 10  # Log every 10 steps (42 steps/epoch with batch 12)
-  save_samples_every_n_epochs: 10  # Save samples every 10 epochs
+  log_every_n_steps: 50 
+  save_samples_every_n_epochs: 5  # Save samples every 5 epochs
   num_samples_to_save: 16
   use_tensorboard: true
   use_wandb: false
