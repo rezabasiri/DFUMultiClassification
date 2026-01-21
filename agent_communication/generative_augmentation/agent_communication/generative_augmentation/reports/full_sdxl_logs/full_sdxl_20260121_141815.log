@@ -1,0 +1,181 @@
+Logging to: agent_communication/generative_augmentation/reports/full_sdxl_logs/full_sdxl_20260121_141815.log
+================================================================================
+Training Configuration: configs/full_sdxl.yaml
+Phase: all
+Modality: rgb
+Resolution: 128
+================================================================================
+Loading base model: stabilityai/stable-diffusion-xl-base-1.0
+Detected SDXL model - loading dual text encoders
+Enabled gradient checkpointing
+LoRA Configuration:
+  Rank: 128
+  Alpha: 256
+  Trainable parameters: 334,888,960 (11.54%)
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Enabled perceptual loss
+Enabled EMA (on CPU to save GPU memory)
+Using phase-specific prompts for conditioning
+Loaded 2884 bounding boxes from /workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+/venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
+  warnings.warn(*args, **kwargs)
+
+Starting training...
+Training on 5 GPUs
+Total epochs: 300
+Effective batch size: 480
+
+Epoch 1/300
+  Step 1/21 - Loss: 5.3058, LR: 0.00e+00
+  Epoch 1 complete - Loss: 5.3825, LR: 3.00e-07
+Train loss: 5.3825
+  Validation: 3 batches - Loss: 0.3054
+Val loss: 0.3054
+Creating fresh reference images from source data with bbox-aware cropping...
+Loaded 2884 bounding boxes for reference images
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Saved 16 reference images for phase I to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_I.pt
+Saved 16 reference images for phase P to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_P.pt
+Saved 16 reference images for phase R to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_R.pt
+Saved reference image grid to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_images_grid.png
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+/venv/multimodal/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.1297, LPIPS=0.7958
+Phase P: SSIM=0.1218, LPIPS=0.7744
+Phase R: SSIM=0.1215, LPIPS=0.8371
+==================================================
+Quality Metrics:
+==================================================
+FID: 399.65 (lower is better, < 50 is good)
+SSIM: 0.1334 ± 0.0289 (higher is better, > 0.7 is good)
+LPIPS: 0.7769 ± 0.0233 (lower is better, < 0.3 is good)
+IS: 1.68 ± 0.06 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 399.65
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+
+Epoch 2/300
+  Step 1/21 - Loss: 5.4495, LR: 3.00e-07
+  Epoch 2 complete - Loss: 5.2961, LR: 6.00e-07
+Train loss: 5.2961
+  Validation: 3 batches - Loss: 0.2854
+Val loss: 0.2854
+
+Epoch 3/300
+  Step 1/21 - Loss: 5.4679, LR: 6.00e-07
+  Epoch 3 complete - Loss: 5.5183, LR: 9.00e-07
+Train loss: 5.5183
+  Validation: 3 batches - Loss: 0.2980
+Val loss: 0.2980
+
+Epoch 4/300
+  Step 1/21 - Loss: 5.5932, LR: 9.00e-07
+  Epoch 4 complete - Loss: 5.2556, LR: 1.20e-06
+Train loss: 5.2556
+  Validation: 3 batches - Loss: 0.2336
+Val loss: 0.2336
+
+Epoch 5/300
+  Step 1/21 - Loss: 4.6750, LR: 1.20e-06
+  Epoch 5 complete - Loss: 5.1867, LR: 1.50e-06
+Train loss: 5.1867
+  Validation: 3 batches - Loss: 0.2574
+Val loss: 0.2574
+
+Epoch 6/300
+  Step 1/21 - Loss: 4.2350, LR: 1.50e-06
+  Epoch 6 complete - Loss: 5.3011, LR: 1.80e-06
+Train loss: 5.3011
+  Validation: 3 batches - Loss: 0.2432
+Val loss: 0.2432
+
+Epoch 7/300
+  Step 1/21 - Loss: 4.4344, LR: 1.80e-06
+  Epoch 7 complete - Loss: 5.2160, LR: 2.10e-06
+Train loss: 5.2160
+  Validation: 3 batches - Loss: 0.2660
+Val loss: 0.2660
+
+Epoch 8/300
+  Step 1/21 - Loss: 5.2422, LR: 2.10e-06
+  Epoch 8 complete - Loss: 4.9905, LR: 2.40e-06
+Train loss: 4.9905
+  Validation: 3 batches - Loss: 0.2313
+Val loss: 0.2313
+
+Epoch 9/300
+  Step 1/21 - Loss: 4.9444, LR: 2.40e-06
+  Epoch 9 complete - Loss: 4.6789, LR: 2.70e-06
+Train loss: 4.6789
+  Validation: 3 batches - Loss: 0.2635
+Val loss: 0.2635
+
+Epoch 10/300
+  Step 1/21 - Loss: 5.8616, LR: 2.70e-06
+  Epoch 10 complete - Loss: 4.7577, LR: 3.00e-06
+Train loss: 4.7577
+  Validation: 3 batches - Loss: 0.2232
+Val loss: 0.2232
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.1307, LPIPS=0.7984
+Phase P: SSIM=0.1188, LPIPS=0.7723
+Phase R: SSIM=0.1442, LPIPS=0.8286
+==================================================
+Quality Metrics:
+==================================================
+FID: 403.01 (lower is better, < 50 is good)
+SSIM: 0.1414 ± 0.0371 (higher is better, > 0.7 is good)
+LPIPS: 0.7762 ± 0.0232 (lower is better, < 0.3 is good)
+IS: 1.80 ± 0.08 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 403.01
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0010.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0010.pt
+
+Epoch 11/300
+  Step 1/21 - Loss: 4.3906, LR: 3.00e-06
