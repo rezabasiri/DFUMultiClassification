@@ -4,12 +4,13 @@ Data loading utilities for wound image dataset
 Handles:
 - Loading wound images from disk
 - Train/validation splitting
-- Data augmentation
+- Data augmentation (including bbox-aware cropping)
 - Preprocessing for Stable Diffusion training
 """
 
 import os
 import random
+import csv
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 import numpy as np
@@ -44,6 +45,7 @@ class WoundDataset(Dataset):
         prompt: Optional[str] = None,
         phase_prompts: Optional[Dict[str, str]] = None,
         augmentation: Optional[Dict] = None,
+        bbox_file: Optional[str] = None,
         cache_latents: bool = False,
         data_percentage: float = 100.0,
         sample_seed: int = 42
@@ -60,7 +62,8 @@ class WoundDataset(Dataset):
             prompt: Text prompt for conditional generation (used when phase != 'all')
             phase_prompts: Dict mapping phase to prompt (used when phase == 'all')
                 Example: {'I': 'inflammatory phase...', 'P': 'proliferative phase...', 'R': 'remodeling phase...'}
-            augmentation: Dict of augmentation parameters
+            augmentation: Dict of augmentation parameters (including bbox_crop_prob)
+            bbox_file: Path to bounding box CSV file (optional, for bbox-aware augmentation)
             cache_latents: Whether to pre-compute and cache VAE latents (faster but more memory)
             data_percentage: Percentage of data to use (1-100), sampled equally from each phase
             sample_seed: Random seed for reproducible sampling when data_percentage < 100
@@ -75,6 +78,12 @@ class WoundDataset(Dataset):
         self.cache_latents = cache_latents
         self.data_percentage = data_percentage
         self.sample_seed = sample_seed
+        self.augmentation = augmentation  # Store for __getitem__ access
+
+        # Load bounding boxes if provided
+        self.bboxes = {}
+        if bbox_file is not None:
+            self.bboxes = self._load_bboxes(bbox_file)
 
         # Find all image files and track their phases
         self.image_paths = []
@@ -225,6 +234,87 @@ class WoundDataset(Dataset):
 
         self.transform = transforms.Compose(transforms_list)
 
+    def _load_bboxes(self, bbox_file: str) -> Dict[str, Tuple[int, int, int, int]]:
+        """
+        Load bounding boxes from CSV file
+
+        Args:
+            bbox_file: Path to CSV file with columns: Filename, Xmin, Ymin, Xmax, Ymax
+
+        Returns:
+            Dict mapping filename to (xmin, ymin, xmax, ymax)
+        """
+        bboxes = {}
+        bbox_path = Path(bbox_file)
+
+        if not bbox_path.exists():
+            print(f"Warning: Bbox file not found: {bbox_file}. Skipping bbox augmentation.")
+            return bboxes
+
+        try:
+            with open(bbox_path, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    filename = row['Filename']
+                    xmin = int(row['Xmin'])
+                    ymin = int(row['Ymin'])
+                    xmax = int(row['Xmax'])
+                    ymax = int(row['Ymax'])
+                    bboxes[filename] = (xmin, ymin, xmax, ymax)
+
+            print(f"Loaded {len(bboxes)} bounding boxes from {bbox_file}")
+        except Exception as e:
+            print(f"Warning: Failed to load bbox file: {e}. Skipping bbox augmentation.")
+
+        return bboxes
+
+    def _apply_bbox_crop(self, image: Image.Image, image_path: Path) -> Image.Image:
+        """
+        Apply bbox-aware cropping to image
+
+        Args:
+            image: PIL Image
+            image_path: Path to image file
+
+        Returns:
+            Cropped PIL Image (or original if no bbox or not cropping)
+        """
+        # Check if we should apply bbox crop
+        if not self.augmentation or not self.augmentation.get('enabled', False):
+            return image
+
+        bbox_crop_prob = self.augmentation.get('bbox_crop_prob', 0.0)
+        if bbox_crop_prob == 0.0 or random.random() > bbox_crop_prob:
+            return image  # Don't crop this time
+
+        # Get bbox for this image
+        filename = image_path.name
+        if filename not in self.bboxes:
+            return image  # No bbox available
+
+        xmin, ymin, xmax, ymax = self.bboxes[filename]
+
+        # Add random margin
+        margin_range = self.augmentation.get('bbox_margin_range', [0.0, 0.0])
+        margin_pct = random.uniform(margin_range[0], margin_range[1])
+
+        bbox_width = xmax - xmin
+        bbox_height = ymax - ymin
+        margin_x = int(bbox_width * margin_pct)
+        margin_y = int(bbox_height * margin_pct)
+
+        # Expand bbox with margin, clipping to image bounds
+        img_width, img_height = image.size
+        crop_xmin = max(0, xmin - margin_x)
+        crop_ymin = max(0, ymin - margin_y)
+        crop_xmax = min(img_width, xmax + margin_x)
+        crop_ymax = min(img_height, ymax + margin_y)
+
+        # Crop image
+        cropped = image.crop((crop_xmin, crop_ymin, crop_xmax, crop_ymax))
+
+        return cropped
+
     def tokenize_prompt(self, prompt: str) -> torch.Tensor:
         """
         Tokenize text prompt using CLIP tokenizer
@@ -262,6 +352,9 @@ class WoundDataset(Dataset):
         image_path = self.image_paths[idx]
         image = Image.open(image_path).convert('RGB')
 
+        # Apply bbox crop if enabled (before other transforms)
+        image = self._apply_bbox_crop(image, image_path)
+
         # Apply transformations
         pixel_values = self.transform(image)
 
@@ -290,6 +383,7 @@ def create_dataloaders(
     prompt: Optional[str] = None,
     phase_prompts: Optional[Dict[str, str]] = None,
     augmentation: Optional[Dict] = None,
+    bbox_file: Optional[str] = None,
     num_workers: int = 4,
     pin_memory: bool = True,
     max_samples: Optional[int] = None,
@@ -309,7 +403,8 @@ def create_dataloaders(
         split_seed: Random seed for split
         prompt: Text prompt for conditional generation (single phase)
         phase_prompts: Dict mapping phase to prompt (for multi-phase training)
-        augmentation: Dict of augmentation parameters
+        augmentation: Dict of augmentation parameters (including bbox_crop_prob)
+        bbox_file: Path to bounding box CSV file (optional)
         num_workers: Number of dataloader workers
         pin_memory: Whether to pin memory for faster GPU transfer
         max_samples: Optional limit on total samples (for testing)
@@ -328,6 +423,7 @@ def create_dataloaders(
         prompt=prompt,
         phase_prompts=phase_prompts,
         augmentation=augmentation,
+        bbox_file=bbox_file,
         data_percentage=data_percentage,
         sample_seed=split_seed
     )
