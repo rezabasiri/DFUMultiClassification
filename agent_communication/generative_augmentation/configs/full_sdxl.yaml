@@ -119,7 +119,7 @@ checkpointing:
 metrics:
   compute_every_n_epochs: 5  # FID every 10 epochs
   num_samples_for_metrics: 50
-  generation_batch_size: 2  # Generate images in batches to avoid OOM at 512x512
+  generation_batch_size: 4  # Generate images in batches to avoid OOM at 512x512
   fid:
     enabled: true
     target_threshold: 50.0
