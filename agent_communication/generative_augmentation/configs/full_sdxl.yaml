@@ -97,7 +97,7 @@ prompts:
 
 quality:
   perceptual_loss:
-    enabled: true
+    enabled: false  # DISABLED - causes NaN with BF16 full fine-tuning due to VAE decode instability
     weight: 0.01  # Very low weight - diffusion loss must be primary, not VGG features
     vgg_layer: 16
   ema:
