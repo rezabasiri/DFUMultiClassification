@@ -1,0 +1,96 @@
+Logging to: agent_communication/generative_augmentation/reports/full_sdxl_logs/full_sdxl_20260121_194609.log
+================================================================================
+Training Configuration: configs/full_sdxl.yaml
+Phase: all
+Modality: rgb
+Resolution: 512
+================================================================================
+Loading base model: stabilityai/stable-diffusion-xl-base-1.0
+Detected SDXL model - loading dual text encoders
+Enabled gradient checkpointing
+Full Fine-tuning:
+  Trainable parameters: 2,567,463,684 (100.00%)
+Enabled EMA (on CPU to save GPU memory)
+Using phase-specific prompts for conditioning
+Loaded 2884 bounding boxes from /workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
+Installed CUDA version 12.1 does not match the version torch was compiled with 12.8 but since the APIs are compatible, accepting this combination
+Before initializing optimizer states
+MA 6.52 GB         Max_MA 7.42 GB         CA 7.44 GB         Max_CA 7 GB 
+CPU Virtual Memory:  used = 74.99 GB, percent = 14.9%
+After initializing optimizer states
+MA 6.52 GB         Max_MA 6.52 GB         CA 7.44 GB         Max_CA 7 GB 
+CPU Virtual Memory:  used = 77.99 GB, percent = 15.5%
+After initializing ZeRO optimizer
+MA 6.52 GB         Max_MA 6.52 GB         CA 7.44 GB         Max_CA 7 GB 
+CPU Virtual Memory:  used = 78.04 GB, percent = 15.5%
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+/venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
+  warnings.warn(*args, **kwargs)
+
+Starting training...
+Training on 5 GPUs
+Total epochs: 300
+Effective batch size: 80
+
+Epoch 1/300
+  Step 1/128 - Loss: 0.2664, LR: 0.00e+00
+  Step 50/128 - Loss: 0.1034, LR: 3.00e-06
+  Step 100/128 - Loss: 0.1039, LR: 5.00e-06
+  Epoch 1 complete - Loss: 0.1048, LR: 5.00e-06
+Train loss: 0.1048
+  Validation: 15 batches - Loss: 0.0829
+Val loss: 0.0829
+Creating fresh reference images from source data with bbox-aware cropping...
+Loaded 2884 bounding boxes for reference images
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Saved 16 reference images for phase I to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_I.pt
+Saved 16 reference images for phase P to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_P.pt
+Saved 16 reference images for phase R to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_R.pt
+Saved reference image grid to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_images_grid.png
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.7815, LPIPS=0.5907
+Phase P: SSIM=0.7659, LPIPS=0.6365
+Phase R: SSIM=0.7657, LPIPS=0.6806
+==================================================
+Quality Metrics:
+==================================================
+FID: 256.12 (lower is better, < 50 is good)
+SSIM: 0.7897 ± 0.0727 (higher is better, > 0.7 is good)
+LPIPS: 0.6180 ± 0.1258 (lower is better, < 0.3 is good)
+IS: 3.99 ± 0.69 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 256.12
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+
+Epoch 2/300
+  Step 1/128 - Loss: 0.1309, LR: 5.00e-06
+  Step 50/128 - Loss: nan, LR: 5.00e-06
+  Step 100/128 - Loss: nan, LR: 5.00e-06
