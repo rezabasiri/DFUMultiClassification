@@ -629,6 +629,9 @@ def load_reference_images_by_phase(
     resolution: int,
     num_images_per_phase: int = 17,
     seed: int = 42,
+    bbox_file: Optional[str] = None,
+    bbox_crop_prob: float = 0.5,
+    bbox_margin_range: List[float] = [0.05, 0.15],
     verbose: bool = True
 ) -> Dict[str, torch.Tensor]:
     """
@@ -640,6 +643,9 @@ def load_reference_images_by_phase(
         resolution: Target resolution
         num_images_per_phase: Number of images to load per phase
         seed: Random seed for sampling
+        bbox_file: Optional path to bbox CSV for bbox-aware cropping
+        bbox_crop_prob: Probability of applying bbox crop (0.0-1.0)
+        bbox_margin_range: [min, max] margin percentage around bbox
         verbose: Whether to print progress messages
 
     Returns:
@@ -651,6 +657,27 @@ def load_reference_images_by_phase(
     if len(phase_dirs) == 0:
         raise ValueError(f"No phase directories found in {modality_dir}")
 
+    # Load bboxes if provided
+    bboxes = {}
+    if bbox_file is not None:
+        bbox_path = Path(bbox_file)
+        if bbox_path.exists():
+            try:
+                with open(bbox_path, 'r') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        filename = row['Filename']
+                        xmin = int(row['Xmin'])
+                        ymin = int(row['Ymin'])
+                        xmax = int(row['Xmax'])
+                        ymax = int(row['Ymax'])
+                        bboxes[filename] = (xmin, ymin, xmax, ymax)
+                if verbose:
+                    print(f"Loaded {len(bboxes)} bounding boxes for reference images")
+            except Exception as e:
+                if verbose:
+                    print(f"Warning: Failed to load bbox file: {e}")
+
     transform = transforms.Compose([
         transforms.Resize(resolution, antialias=True),
         transforms.CenterCrop(resolution),
@@ -658,6 +685,7 @@ def load_reference_images_by_phase(
     ])
 
     phase_images = {}
+    random.seed(seed)  # Set seed for reproducible bbox cropping decisions
 
     for phase_dir in phase_dirs:
         phase_name = phase_dir.name
@@ -678,10 +706,34 @@ def load_reference_images_by_phase(
         random.seed(seed)
         image_paths = random.sample(image_paths, n_samples)
 
-        # Load images
+        # Load images with optional bbox cropping
         images = []
         for image_path in image_paths:
             image = Image.open(image_path).convert('RGB')
+
+            # Apply bbox crop if enabled and bbox available
+            if bbox_crop_prob > 0 and random.random() < bbox_crop_prob:
+                filename = image_path.name
+                if filename in bboxes:
+                    xmin, ymin, xmax, ymax = bboxes[filename]
+
+                    # Add random margin
+                    margin_pct = random.uniform(bbox_margin_range[0], bbox_margin_range[1])
+                    bbox_width = xmax - xmin
+                    bbox_height = ymax - ymin
+                    margin_x = int(bbox_width * margin_pct)
+                    margin_y = int(bbox_height * margin_pct)
+
+                    # Expand bbox with margin, clipping to image bounds
+                    img_width, img_height = image.size
+                    crop_xmin = max(0, xmin - margin_x)
+                    crop_ymin = max(0, ymin - margin_y)
+                    crop_xmax = min(img_width, xmax + margin_x)
+                    crop_ymax = min(img_height, ymax + margin_y)
+
+                    # Crop image
+                    image = image.crop((crop_xmin, crop_ymin, crop_xmax, crop_ymax))
+
             image_tensor = transform(image)
             images.append(image_tensor)
 
@@ -691,6 +743,121 @@ def load_reference_images_by_phase(
             print(f"Loaded {n_samples} reference images for phase {phase_name}")
 
     return phase_images
+
+
+def save_reference_images_to_disk(
+    reference_images_by_phase: Dict[str, torch.Tensor],
+    save_dir: str,
+    verbose: bool = True
+) -> None:
+    """
+    Save reference images to disk for reuse across training sessions
+
+    Args:
+        reference_images_by_phase: Dict mapping phase to tensor [N, C, H, W] in [0, 1] range
+        save_dir: Directory to save images
+        verbose: Whether to print progress
+    """
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    # Save tensors as .pt files
+    for phase_name, images in reference_images_by_phase.items():
+        tensor_path = save_path / f"reference_{phase_name}.pt"
+        torch.save(images.cpu(), tensor_path)
+        if verbose:
+            print(f"Saved {len(images)} reference images for phase {phase_name} to {tensor_path}")
+
+    # Save combined grid visualization
+    try:
+        from torchvision.utils import make_grid
+        import PIL.Image as PILImage
+
+        all_images = []
+        for phase_name in sorted(reference_images_by_phase.keys()):
+            all_images.append(reference_images_by_phase[phase_name])
+
+        combined = torch.cat(all_images, dim=0)
+        # Create grid (8 images per row)
+        grid = make_grid(combined, nrow=8, normalize=False, pad_value=1.0)
+
+        # Convert to PIL and save
+        grid_np = (grid.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
+        grid_image = PILImage.fromarray(grid_np)
+        grid_path = save_path / "reference_images_grid.png"
+        grid_image.save(grid_path)
+
+        if verbose:
+            print(f"Saved reference image grid to {grid_path}")
+
+        # Save per-phase grids too
+        for phase_name, images in reference_images_by_phase.items():
+            phase_grid = make_grid(images, nrow=4, normalize=False, pad_value=1.0)
+            phase_grid_np = (phase_grid.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
+            phase_grid_image = PILImage.fromarray(phase_grid_np)
+            phase_grid_path = save_path / f"reference_{phase_name}_grid.png"
+            phase_grid_image.save(phase_grid_path)
+
+    except Exception as e:
+        if verbose:
+            print(f"Warning: Could not save reference image grids: {e}")
+
+
+def load_reference_images_from_disk(
+    save_dir: str,
+    phases: Optional[List[str]] = None,
+    verbose: bool = True
+) -> Optional[Dict[str, torch.Tensor]]:
+    """
+    Load reference images from disk
+
+    Args:
+        save_dir: Directory containing saved images
+        phases: Optional list of phase names to load (e.g., ['I', 'P', 'R'])
+                If None, attempts to load all available phases
+        verbose: Whether to print progress
+
+    Returns:
+        Dict mapping phase to tensor [N, C, H, W] in [0, 1] range, or None if not found
+    """
+    save_path = Path(save_dir)
+
+    if not save_path.exists():
+        if verbose:
+            print(f"Reference image directory not found: {save_dir}")
+        return None
+
+    # Auto-detect phases if not provided
+    if phases is None:
+        phase_files = list(save_path.glob("reference_*.pt"))
+        if len(phase_files) == 0:
+            if verbose:
+                print(f"No reference image files found in {save_dir}")
+            return None
+        phases = [f.stem.replace("reference_", "") for f in phase_files]
+
+    # Load each phase
+    reference_images_by_phase = {}
+    for phase_name in phases:
+        tensor_path = save_path / f"reference_{phase_name}.pt"
+        if not tensor_path.exists():
+            if verbose:
+                print(f"Warning: Reference images not found for phase {phase_name}")
+            continue
+
+        try:
+            images = torch.load(tensor_path)
+            reference_images_by_phase[phase_name] = images
+            if verbose:
+                print(f"Loaded {len(images)} reference images for phase {phase_name}")
+        except Exception as e:
+            if verbose:
+                print(f"Warning: Failed to load reference images for phase {phase_name}: {e}")
+
+    if len(reference_images_by_phase) == 0:
+        return None
+
+    return reference_images_by_phase
 
 
 def collate_fn(examples: List[Dict]) -> Dict[str, torch.Tensor]:
