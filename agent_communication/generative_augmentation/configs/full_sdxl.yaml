@@ -38,7 +38,7 @@ data:
 training:
   batch_size_per_gpu: 12  # Aggressive increase - GPU at 41%
   gradient_accumulation_steps: 1  # Effective batch = 12 * 1 * 5 GPUs = 60
-  learning_rate: 5.0e-6  # Lower for full fine-tuning (typical: 1e-6 to 1e-5)
+  learning_rate: 1.0e-6  # Very low for full fine-tuning of 2.5B params - 5e-6 caused NaN
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_steps: 100  # Reduced from 500 - reaches target LR in ~5 epochs instead of 24
   lr_num_cycles: 1
