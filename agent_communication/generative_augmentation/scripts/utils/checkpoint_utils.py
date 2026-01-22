@@ -102,9 +102,8 @@ class CheckpointManager:
             'timestamp': datetime.now().isoformat(),
         }
 
-        # Add optimizer and scheduler if requested
+        # Add scheduler state (optimizer is saved per-rank separately for DeepSpeed)
         if self.save_optimizer:
-            checkpoint['optimizer_state'] = optimizer.state_dict()
             checkpoint['lr_scheduler_state'] = lr_scheduler.state_dict()
 
         # Add EMA if available
@@ -211,10 +210,8 @@ class CheckpointManager:
         self,
         checkpoint_path: Optional[str] = None,
         unet_lora=None,
-        optimizer=None,
         lr_scheduler=None,
         ema_model=None,
-        load_optimizer: bool = True,
         strict: bool = True
     ) -> Dict:
         """
@@ -246,20 +243,15 @@ class CheckpointManager:
         print(f"Loading checkpoint from: {checkpoint_path}")
 
         # Load checkpoint
-        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
 
         # Load UNet LoRA weights
         if unet_lora is not None and 'unet_lora_state' in checkpoint:
             unet_lora.load_state_dict(checkpoint['unet_lora_state'], strict=strict)
             print("  Loaded UNet LoRA weights")
 
-        # Load optimizer
-        if optimizer is not None and load_optimizer and 'optimizer_state' in checkpoint:
-            optimizer.load_state_dict(checkpoint['optimizer_state'])
-            print("  Loaded optimizer state")
-
         # Load scheduler
-        if lr_scheduler is not None and load_optimizer and 'lr_scheduler_state' in checkpoint:
+        if lr_scheduler is not None and 'lr_scheduler_state' in checkpoint:
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler_state'])
             print("  Loaded scheduler state")
 
