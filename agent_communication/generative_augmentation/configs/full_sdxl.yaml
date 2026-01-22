@@ -36,9 +36,9 @@ data:
     bbox_margin_range: [0.05, 0.15]  # Add 5-15% random margin around bbox
 
 training:
-  batch_size_per_gpu: 4  # Moderate batch size
-  gradient_accumulation_steps: 4  # REQUIRED - prevents NaN by slowing LR ramp. Effective batch = 4 * 4 * 5 GPUs = 80
-  learning_rate: 2.0e-6  # Lowered from 5e-6 - BF16 causes NaN at higher LR
+  batch_size_per_gpu: 2  # Moderate batch size
+  gradient_accumulation_steps: 6  # REQUIRED - prevents NaN by slowing LR ramp.
+  learning_rate: 1.0e-5  # Lowered from 5e-6 - BF16 causes NaN at higher LR
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_steps: 100  # Short warmup - reach target LR in ~1 epoch, not 4 epochs
   lr_num_cycles: 1
@@ -62,9 +62,9 @@ prompts:
   # Detailed prompts cause SDXL to generate from pretrained "clinical photo" knowledge
   # Simple prompts force reliance on learned features from training images
   phase_prompts:
-    I: "diabetic foot ulcer, inflammatory phase"
-    P: "diabetic foot ulcer, proliferative phase"
-    R: "diabetic foot ulcer, remodeling phase"
+    I: "realistic close up of a diabetic foot ulcer, inflammatory phase"
+    P: "realistic close up of a diabetic foot ulcer, proliferative phase"
+    R: "realistic close up of a diabetic foot ulcer, remodeling phase"
   # Fallback positive prompt (used if phase_prompts not available)
   positive: "diabetic foot ulcer"
   negative: >
