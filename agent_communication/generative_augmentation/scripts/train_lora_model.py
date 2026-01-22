@@ -352,7 +352,9 @@ def train_one_epoch(
     perceptual_loss_fn=None,
     ema_model=None,
     text_encoder_2=None,
-    is_sdxl=False
+    is_sdxl=False,
+    tokenizer=None,
+    tokenizer_2=None
 ) -> float:
     """
     Train for one epoch
@@ -389,16 +391,49 @@ def train_one_epoch(
             # Add noise to latents
             noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
-            # Get text embeddings
+            # Get text embeddings with optional prompt dropout (CFG training)
+            prompt_dropout = config['training'].get('prompt_dropout', 0.0)
             input_ids = batch['input_ids'].to(text_encoder.device)
+
+            # Apply prompt dropout: randomly replace some prompts with unconditional (empty) embeddings
+            if prompt_dropout > 0 and tokenizer is not None:
+                dropout_mask = torch.rand(batch_size) < prompt_dropout
+                if dropout_mask.any():
+                    # Create unconditional (empty string) input_ids
+                    uncond_input = tokenizer(
+                        "",
+                        padding="max_length",
+                        max_length=tokenizer.model_max_length,
+                        truncation=True,
+                        return_tensors="pt"
+                    ).input_ids.to(input_ids.device)
+                    # Replace dropped samples with unconditional input
+                    for i in range(batch_size):
+                        if dropout_mask[i]:
+                            input_ids[i] = uncond_input[0]
+
             encoder_hidden_states = text_encoder(input_ids)[0]
 
             # SDXL-specific: Concatenate embeddings and compute pooled embeddings/time_ids
             added_cond_kwargs = None
             if is_sdxl and text_encoder_2 is not None:
 
-                # Get hidden states from second text encoder
+                # Get hidden states from second text encoder (apply same dropout mask)
                 input_ids_2 = batch['input_ids'].to(text_encoder_2.device)
+
+                # Apply prompt dropout to second encoder as well
+                if prompt_dropout > 0 and tokenizer_2 is not None and dropout_mask.any():
+                    uncond_input_2 = tokenizer_2(
+                        "",
+                        padding="max_length",
+                        max_length=tokenizer_2.model_max_length,
+                        truncation=True,
+                        return_tensors="pt"
+                    ).input_ids.to(input_ids_2.device)
+                    for i in range(batch_size):
+                        if dropout_mask[i]:
+                            input_ids_2[i] = uncond_input_2[0]
+
                 encoder_output_2 = text_encoder_2(input_ids_2, output_hidden_states=True)
                 encoder_hidden_states_2 = encoder_output_2.hidden_states[-2]  # Penultimate layer
 
@@ -926,7 +961,8 @@ def main():
         num_workers=config['hardware']['num_workers'],
         pin_memory=config['hardware']['pin_memory'],
         max_samples=config['data'].get('max_samples', None),
-        data_percentage=config['data'].get('data_percentage', 100.0)
+        data_percentage=config['data'].get('data_percentage', 100.0),
+        class_weights=config['data'].get('class_weights', None)
     )
 
     # TESTING: Limit dataset size if max_train_samples is specified
@@ -960,11 +996,20 @@ def main():
 
     # Setup learning rate scheduler
     num_training_steps = len(train_loader) * config['training']['max_epochs']
+
+    # Support both lr_warmup_ratio (percentage) and lr_warmup_steps (fixed value)
+    if 'lr_warmup_ratio' in config['training']:
+        num_warmup_steps = int(num_training_steps * config['training']['lr_warmup_ratio'])
+        if accelerator.is_main_process:
+            print(f"Warmup: {config['training']['lr_warmup_ratio']*100:.1f}% of {num_training_steps} steps = {num_warmup_steps} steps")
+    else:
+        num_warmup_steps = config['training'].get('lr_warmup_steps', 0)
+
     lr_scheduler = get_lr_scheduler(
         optimizer,
         scheduler_type=config['training']['lr_scheduler'],
         num_training_steps=num_training_steps,
-        num_warmup_steps=config['training']['lr_warmup_steps'],
+        num_warmup_steps=num_warmup_steps,
         num_cycles=config['training'].get('lr_num_cycles', 1)
     )
 
@@ -1019,6 +1064,20 @@ def main():
                 print("No existing checkpoint found, starting fresh training...")
     elif resume_path == "none":
         resume_path = None  # Explicitly start fresh
+        # Clean up old checkpoints when explicitly starting fresh
+        if accelerator.is_main_process:
+            checkpoint_dir = Path(config['checkpointing']['output_dir'])
+            if checkpoint_dir.exists():
+                import glob
+                old_checkpoints = list(checkpoint_dir.glob("checkpoint_*.pt"))
+                if old_checkpoints:
+                    for ckpt in old_checkpoints:
+                        ckpt.unlink()
+                    print(f"Cleaned up {len(old_checkpoints)} old checkpoints from {checkpoint_dir}")
+                # Also clean history file
+                history_file = checkpoint_dir / "checkpoint_history.json"
+                if history_file.exists():
+                    history_file.unlink()
 
     if resume_path is not None:
         checkpoint = checkpoint_manager.load_checkpoint(
@@ -1061,7 +1120,9 @@ def main():
             perceptual_loss_fn=perceptual_loss_fn,
             ema_model=ema_model,
             text_encoder_2=text_encoder_2,
-            is_sdxl=is_sdxl
+            is_sdxl=is_sdxl,
+            tokenizer=tokenizer,
+            tokenizer_2=tokenizer_2
         )
 
         if accelerator.is_main_process:

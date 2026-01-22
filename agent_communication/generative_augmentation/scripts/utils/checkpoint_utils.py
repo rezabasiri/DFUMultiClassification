@@ -282,9 +282,20 @@ class CheckpointManager:
         return checkpoint
 
     def get_latest_checkpoint(self) -> Optional[str]:
-        """Get path to latest checkpoint"""
+        """Get path to latest checkpoint, handling broken symlinks"""
         latest_path = self.output_dir / "checkpoint_latest.pt"
         if latest_path.exists():
+            return str(latest_path)
+
+        # Fallback: if symlink is broken, find the latest epoch checkpoint
+        if latest_path.is_symlink():
+            latest_path.unlink()  # Remove broken symlink
+
+        epoch_checkpoints = sorted(self.output_dir.glob("checkpoint_epoch_*.pt"))
+        if epoch_checkpoints:
+            # Re-create symlink to latest
+            latest = epoch_checkpoints[-1]
+            latest_path.symlink_to(latest.name)
             return str(latest_path)
         return None
 
