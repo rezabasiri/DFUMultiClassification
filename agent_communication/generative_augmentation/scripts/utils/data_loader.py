@@ -12,12 +12,12 @@ import os
 import random
 import csv
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Union
 import numpy as np
 from PIL import Image
 
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split, WeightedRandomSampler
 import torchvision.transforms as transforms
 from transformers import CLIPTokenizer
 
@@ -413,7 +413,8 @@ def create_dataloaders(
     num_workers: int = 4,
     pin_memory: bool = True,
     max_samples: Optional[int] = None,
-    data_percentage: float = 100.0
+    data_percentage: float = 100.0,
+    class_weights: Optional[Union[Dict[str, float], str]] = None
 ) -> Tuple[DataLoader, DataLoader, int, int]:
     """
     Create train and validation dataloaders
@@ -435,6 +436,10 @@ def create_dataloaders(
         pin_memory: Whether to pin memory for faster GPU transfer
         max_samples: Optional limit on total samples (for testing)
         data_percentage: Percentage of data to use (1-100), sampled equally from each phase
+        class_weights: Balanced sampling weights. Can be:
+            - "auto": Compute weights inversely proportional to class frequency
+            - Dict: {'I': 1.0, 'P': 0.51, 'R': 2.67} for explicit weights
+            - None: No balanced sampling (default shuffle)
 
     Returns:
         (train_loader, val_loader, train_size, val_size)
@@ -462,6 +467,9 @@ def create_dataloaders(
         indices = torch.randperm(total_size, generator=generator)[:max_samples].tolist()
         dataset = torch.utils.data.Subset(dataset, indices)
         total_size = max_samples
+
+    # Initialize train_indices for use in balanced sampling
+    train_indices = None
 
     # Stratified split: ensure each phase has proportional representation in train/val
     # This is important for fair evaluation across imbalanced classes (I, P, R)
@@ -518,11 +526,55 @@ def create_dataloaders(
 
         print(f"Dataset split: {train_size} train, {val_size} validation")
 
-    # Create dataloaders
+    # Create dataloaders with optional balanced sampling
+    train_sampler = None
+    shuffle_train = True
+
+    if class_weights is not None and phase.lower() == 'all' and train_indices is not None:
+        # Get phase labels from original dataset (before any Subset wrapping)
+        original_dataset = dataset
+        while isinstance(original_dataset, torch.utils.data.Subset):
+            original_dataset = original_dataset.dataset
+
+        # Compute class weights dynamically if set to "auto"
+        if class_weights == "auto":
+            # Count samples per phase in training set
+            phase_counts = {}
+            for idx in train_indices:
+                phase_label = original_dataset.image_phases[idx]
+                phase_counts[phase_label] = phase_counts.get(phase_label, 0) + 1
+
+            # Compute weights inversely proportional to class frequency
+            # weight = max_count / class_count (so minority classes get higher weights)
+            max_count = max(phase_counts.values())
+            computed_weights = {p: max_count / count for p, count in phase_counts.items()}
+            print(f"Auto-computed class weights from data:")
+            print(f"  Phase counts: {phase_counts}")
+            print(f"  Weights: {computed_weights}")
+        else:
+            computed_weights = class_weights
+
+        # Create weighted sampler for balanced sampling across phases
+        sample_weights = []
+        for idx in train_indices:
+            phase_label = original_dataset.image_phases[idx]
+            weight = computed_weights.get(phase_label, 1.0)
+            sample_weights.append(weight)
+
+        sample_weights = torch.tensor(sample_weights, dtype=torch.float64)
+        train_sampler = WeightedRandomSampler(
+            weights=sample_weights,
+            num_samples=len(sample_weights),
+            replacement=True  # Sample with replacement for proper weighting
+        )
+        shuffle_train = False  # Cannot shuffle when using sampler
+        print(f"Using balanced sampling with WeightedRandomSampler")
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=shuffle_train,
+        sampler=train_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
         drop_last=True  # Drop incomplete batches for stable training
