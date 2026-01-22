@@ -1068,12 +1068,11 @@ def main():
         if accelerator.is_main_process:
             checkpoint_dir = Path(config['checkpointing']['output_dir'])
             if checkpoint_dir.exists():
-                import glob
                 old_checkpoints = list(checkpoint_dir.glob("checkpoint_*.pt"))
                 if old_checkpoints:
                     for ckpt in old_checkpoints:
                         ckpt.unlink()
-                    print(f"Cleaned up {len(old_checkpoints)} old checkpoints from {checkpoint_dir}")
+                    print(f"Cleaned up {len(old_checkpoints)} checkpoints from {checkpoint_dir}")
                 # Also clean history file
                 history_file = checkpoint_dir / "checkpoint_history.json"
                 if history_file.exists():
@@ -1083,10 +1082,8 @@ def main():
         checkpoint = checkpoint_manager.load_checkpoint(
             checkpoint_path=resume_path,
             unet_lora=accelerator.unwrap_model(unet_lora),
-            optimizer=optimizer,
             lr_scheduler=lr_scheduler,
-            ema_model=ema_model,
-            load_optimizer=True
+            ema_model=ema_model
         )
         # Checkpoint stores 1-indexed epoch, convert to 0-indexed for loop
         # Resume continues from saved epoch (e.g., checkpoint_epoch_0001.pt -> start at epoch index 1)
