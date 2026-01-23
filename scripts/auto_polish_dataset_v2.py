@@ -213,35 +213,54 @@ class BayesianDatasetPolisher:
 
     def _calculate_phase2_batch_size(self):
         """
-        Calculate appropriate batch size for Phase 2 based on number of image modalities.
+        Calculate appropriate batch size for Phase 2 based on weighted image modalities.
 
         Phase 1 tests ONE modality at a time with GLOBAL_BATCH_SIZE.
         Phase 2 tests MULTIPLE modalities simultaneously, requiring proportional reduction.
+
+        Modality weights (based on memory usage):
+        - depth_rgb: 1.0 (full RGB image)
+        - depth_map: 0.6 (single channel)
+        - thermal_map: 0.6 (single channel)
+        - thermal_rgb: 1.0 (full RGB image)
 
         Returns:
             int: Adjusted batch size for Phase 2
         """
         from src.utils.production_config import GLOBAL_BATCH_SIZE
 
-        # Count image modalities (exclude metadata which is small)
-        image_modalities = [m for m in self.modalities if m != 'metadata']
-        num_image_modalities = len(image_modalities)
+        # Define memory weights for each modality type
+        MODALITY_WEIGHTS = {
+            'depth_rgb': 1.0,     # Full RGB image (3 channels)
+            'thermal_rgb': 1.0,   # Full RGB image (3 channels)
+            'depth_map': 0.6,     # Single channel (1 channel)
+            'thermal_map': 0.6,   # Single channel (1 channel)
+            'metadata': 0.0       # Negligible memory (exclude from calculation)
+        }
 
-        if num_image_modalities == 0:
+        # Calculate total weighted units
+        image_modalities = [m for m in self.modalities if m != 'metadata']
+        total_weight = sum(MODALITY_WEIGHTS.get(m, 1.0) for m in image_modalities)
+
+        if total_weight == 0:
             # Metadata only - use full batch size
             return GLOBAL_BATCH_SIZE
 
-        # Divide batch size by number of image modalities to maintain similar memory usage
-        adjusted_batch_size = max(16, GLOBAL_BATCH_SIZE // num_image_modalities)
+        # Divide batch size by total weighted units to maintain similar memory usage
+        adjusted_batch_size = max(16, int(GLOBAL_BATCH_SIZE / total_weight))
 
         print(f"\n{'='*80}")
         print("BATCH SIZE ADJUSTMENT FOR PHASE 2")
         print(f"{'='*80}")
         print(f"Phase 1 batch size (1 modality at a time): {GLOBAL_BATCH_SIZE}")
         print(f"Phase 2 modalities: {self.modalities}")
-        print(f"  Image modalities: {image_modalities} (count: {num_image_modalities})")
-        print(f"  Adjusted batch size: {GLOBAL_BATCH_SIZE} / {num_image_modalities} = {adjusted_batch_size}")
-        print(f"  Memory reduction: ~{num_image_modalities}x less per batch")
+        print(f"  Image modalities with weights:")
+        for m in image_modalities:
+            weight = MODALITY_WEIGHTS.get(m, 1.0)
+            print(f"    - {m}: {weight} units")
+        print(f"  Total weight: {total_weight:.1f} units")
+        print(f"  Adjusted batch size: {GLOBAL_BATCH_SIZE} / {total_weight:.1f} = {adjusted_batch_size}")
+        print(f"  Memory reduction: ~{total_weight:.1f}x less per batch")
         print(f"{'='*80}\n")
 
         return adjusted_batch_size
@@ -921,13 +940,30 @@ class BayesianDatasetPolisher:
                     try:
                         os.chdir(project_root)
                         cmd_str = ' '.join(str(arg) for arg in cmd)
-                        return_code = os.system(f"{cmd_str} >/dev/null 2>&1")
+
+                        # Redirect output to consolidated log file in misclassifications directory
+                        from src.utils.config import get_output_paths
+                        output_paths = get_output_paths(self.result_dir)
+                        detailed_log = os.path.join(output_paths['misclassifications'], 'phase1_detailed.log')
+
+                        # Append separator showing which modality/run is starting
+                        with open(detailed_log, 'a') as log_f:
+                            log_f.write(f"\n{'='*80}\n")
+                            log_f.write(f"MODALITY: {modality_name} | RUN: {run_idx}/{self.phase1_n_runs}\n")
+                            log_f.write(f"{'='*80}\n")
+
+                        # Show output in real-time AND append to log file
+                        return_code = os.system(f"{cmd_str} 2>&1 | tee -a {detailed_log}")
                     finally:
                         os.chdir(original_cwd)
 
                     if return_code != 0:
                         print(f"\n❌ Training failed on {modality_name} run {run_idx}")
                         return False
+
+                    # After each run completes, update baseline file
+                    print(f"\n📊 Updating baseline after {modality_name} run {run_idx}...")
+                    self._update_baseline_continuously()
 
             # Clear environment variable
             if 'CROSS_VAL_RANDOM_SEED' in os.environ:
@@ -994,6 +1030,61 @@ class BayesianDatasetPolisher:
             with open(config_path, 'w') as f:
                 f.write(original_config)
             backup_path.unlink(missing_ok=True)
+
+    def _update_baseline_continuously(self):
+        """
+        Continuously update the baseline file as each modality completes.
+        This allows monitoring progress during Phase 1.
+        """
+        from src.utils.config import get_output_paths
+        output_paths = get_output_paths(self.result_dir)
+        baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+
+        # Load existing baselines if file exists
+        existing_baselines = {}
+        if os.path.exists(baseline_file):
+            try:
+                with open(baseline_file, 'r') as f:
+                    existing_baselines = json.load(f)
+            except:
+                pass
+
+        # Read latest results from CSV
+        csv_files = [
+            os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv'),
+            os.path.join(self.result_dir, 'csv', 'modality_combination_results.csv')
+        ]
+
+        new_baselines = {}
+        for csv_file in csv_files:
+            if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
+                try:
+                    df = pd.read_csv(csv_file)
+                    for _, row in df.iterrows():
+                        modality = row.get('Modalities', 'unknown')
+                        f1_I = float(row.get('I F1-score (Mean)', 0.0))
+                        f1_P = float(row.get('P F1-score (Mean)', 0.0))
+                        f1_R = float(row.get('R F1-score (Mean)', 0.0))
+                        new_baselines[modality] = {
+                            'modality': modality,
+                            'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                            'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                            'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                            'f1_I': f1_I,
+                            'f1_P': f1_P,
+                            'f1_R': f1_R,
+                            'min_f1': min(f1_I, f1_P, f1_R)
+                        }
+                    break
+                except Exception as e:
+                    pass
+
+        # Merge with existing baselines (new results take precedence)
+        existing_baselines.update(new_baselines)
+
+        if existing_baselines:
+            with open(baseline_file, 'w') as f:
+                json.dump(existing_baselines, f, indent=2)
 
     def _save_phase1_baseline(self):
         """
@@ -1810,9 +1901,10 @@ class BayesianDatasetPolisher:
                 with open(self.phase2_log_file, 'a') as f:
                     f.write(eval_header)
 
-                # Add timeout to prevent infinite hangs (60 minutes max per evaluation)
+                # Add timeout to prevent infinite hangs (4 hours max per evaluation)
+                # Phase 2 with multiple modalities takes ~75-100 mins for 5-fold CV
                 # Redirect to cumulative log (append mode)
-                return_code = os.system(f"timeout 3600 {cmd_str} >> {self.phase2_log_file} 2>&1")
+                return_code = os.system(f"timeout 14400 {cmd_str} >> {self.phase2_log_file} 2>&1")
 
             finally:
                 # Restore original directory

@@ -1,0 +1,126 @@
+================================================================================
+AUTOMATED BACKBONE COMPARISON - COPY-PASTE FOR USER
+================================================================================
+
+PURPOSE: Test different CNN backbones (SimpleCNN vs EfficientNetB0/B1/B3) for
+         RGB and map image branches to find optimal architecture
+
+WHAT'S BEING TESTED:
+  - RGB images (depth_rgb, thermal_rgb): SimpleCNN, EfficientNetB0, B1, B3
+  - Map images (depth_map, thermal_map): SimpleCNN, EfficientNetB0, B1
+  - Total: 12 combinations (4 RGB × 3 MAP)
+
+CONFIGURATION:
+  - Data: 30% (for quick testing)
+  - Image size: 32x32
+  - Outlier removal: 15% (enabled)
+  - Augmentation: Disabled
+  - Mode: Single GPU, fresh resume
+
+EXPECTED TIME: ~3 hours total (~15 min per test)
+
+================================================================================
+STEPS TO RUN (Choose ONE option)
+================================================================================
+
+OPTION 1: AUTOMATED SCRIPT (RECOMMENDED)
+-----------------------------------------
+This runs all 12 tests automatically and generates a report.
+
+1. Git pull:
+   git pull origin claude/run-dataset-polishing-X1NHe
+
+2. Run automated test script:
+   python agent_communication/image_backbone/test_backbones.py
+
+3. Wait for completion (~3 hours)
+
+4. Results will be saved to:
+   agent_communication/image_backbone/BACKBONE_RESULTS.txt
+
+5. Commit and push results:
+   git add agent_communication/image_backbone/BACKBONE_RESULTS.txt
+   git commit -m "docs: Backbone comparison results"
+   git push -u origin claude/run-dataset-polishing-X1NHe
+
+OPTION 2: MANUAL TESTING (if script fails)
+-------------------------------------------
+Run tests manually by editing production_config.py and running main.py.
+
+For each combination:
+  1. Edit src/utils/production_config.py:
+     RGB_BACKBONE = 'SimpleCNN'  # or EfficientNetB0, B1, B3
+     MAP_BACKBONE = 'SimpleCNN'  # or EfficientNetB0, B1
+
+  2. Run training:
+     python src/main.py --mode search --device-mode single --resume-mode fresh --data-percentage 30
+
+  3. Record results (Kappa, Accuracy, F1, runtime)
+
+  4. Repeat for all 12 combinations
+
+================================================================================
+WHAT TO REPORT
+================================================================================
+
+The automated script will generate a report with:
+  - Summary table (all 12 tests)
+  - Best performers (by Kappa, Accuracy, speed)
+  - Baseline comparison (vs SimpleCNN/SimpleCNN)
+  - Percent improvements/degradations
+
+Example output:
+  #    RGB Backbone      MAP Backbone      Kappa    Accuracy   F1 Macro   Time (min)
+  1    SimpleCNN         SimpleCNN         0.2841   0.5487     0.4821     10.2
+  2    SimpleCNN         EfficientNetB0    0.2976   0.5561     0.4937     12.5
+  3    EfficientNetB0    EfficientNetB0    0.3124   0.5678     0.5012     15.8
+  ...
+
+Best Kappa: 0.3124 - RGB=EfficientNetB0, MAP=EfficientNetB0
+Best Accuracy: 0.5678 - RGB=EfficientNetB0, MAP=EfficientNetB0
+
+Baseline (SimpleCNN/SimpleCNN): Kappa 0.2841
+  EfficientNetB0/EfficientNetB0: Kappa 0.3124 (+0.0283, +10.0%)
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+ERROR: "No module named 'tensorflow.keras.applications.EfficientNetB0'"
+  → TensorFlow version too old, update: pip install tensorflow>=2.11
+
+ERROR: "Unable to download ImageNet weights"
+  → Network issue, try again or use local weights
+
+ERROR: Training hangs or OOM
+  → Reduce batch size in production_config.py: GLOBAL_BATCH_SIZE = 16
+
+SCRIPT CRASHES mid-test:
+  → Check BACKBONE_RESULTS.txt for partial results
+  → Manually test remaining combinations
+  → Report crash details in bug report
+
+================================================================================
+EXPECTED BASELINE (30% data, no prior results)
+================================================================================
+
+Since we're using 30% data (vs 100% in previous tests), baseline will be different.
+  - Previous 100% data: Kappa 0.2976
+  - Expected 30% data: Kappa 0.24-0.28 (lower, less training data)
+
+This is NORMAL and expected. We're comparing relative improvements, not absolute scores.
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+Improvement > 3% Kappa:
+  → Adopt the better backbone (worth the complexity)
+
+Improvement 1-3% Kappa:
+  → Marginal, consider trade-offs (model size, speed)
+
+Improvement < 1% Kappa:
+  → Not worth complexity, keep SimpleCNN
+
+================================================================================

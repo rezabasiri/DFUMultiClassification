@@ -1,0 +1,44 @@
+================================================================================
+RF Hyperparameter Tuning Test @ 100% Data
+================================================================================
+
+Original data: 890 samples
+Class distribution: Counter({1: 496, 0: 276, 2: 118})
+
+Applying 'combined' sampling strategy...
+After undersampling: Counter({0: 276, 1: 276, 2: 118})
+After oversampling: Counter({0: 276, 1: 276, 2: 276})
+Final data: 828 samples
+
+================================================================================
+Testing RF Configurations (3-fold CV)
+================================================================================
+
+Baseline (Current):
+  n_estimators=300, max_depth=None
+  Training Kappa: 0.9982
+
+Reduced Complexity:
+  n_estimators=100, max_depth=10
+  Training Kappa: 0.9312
+
+Minimal Complexity:
+  n_estimators=50, max_depth=5
+  Training Kappa: 0.5072
+
+================================================================================
+Results Summary
+================================================================================
+Configuration                  Kappa     Improvement
+--------------------------------------------------------------------------------
+Baseline (Current)            0.9982            0.0%
+Reduced Complexity            0.9312           -6.7%
+Minimal Complexity            0.5072          -49.2%
+
+================================================================================
+Conclusions
+================================================================================
+✅ Current RF hyperparameters are optimal
+   The '50% beats 100%' issue is NOT due to RF overfitting
+
+================================================================================

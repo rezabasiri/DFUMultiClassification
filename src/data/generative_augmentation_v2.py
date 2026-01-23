@@ -5,15 +5,91 @@ import torch
 from torch.nn import functional as F
 import torchvision.transforms as transforms
 from diffusers import StableDiffusionPipeline
+from diffusers.utils import logging as diffusers_logging
 import random
 import tensorflow as tf
 import traceback
 import numpy as np
 import threading
 
+from src.utils.production_config import (
+    IMAGE_SIZE,
+    USE_GENERATIVE_AUGMENTATION,
+    GENERATIVE_AUG_PROB,
+    GENERATIVE_AUG_MIX_RATIO,
+    GENERATIVE_AUG_INFERENCE_STEPS,
+    GENERATIVE_AUG_BATCH_LIMIT,
+    GENERATIVE_AUG_MAX_MODELS,
+    GENERATIVE_AUG_PHASES
+)
+
+# Disable all progress bars comprehensively - MUST come before any diffusers imports
+os.environ['TQDM_DISABLE'] = '1'  # Disable tqdm globally
+
+# Monkey-patch tqdm to make it a no-op before diffusers uses it
+import sys
+class DummyTqdm:
+    """Dummy tqdm that does nothing"""
+    def __init__(self, *args, **kwargs):
+        self.iterable = kwargs.get('iterable', args[0] if args else None)
+    def __iter__(self):
+        return iter(self.iterable) if self.iterable is not None else iter([])
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        pass
+    def update(self, *args, **kwargs):
+        pass
+    def close(self):
+        pass
+    def set_description(self, *args, **kwargs):
+        pass
+
+# Replace tqdm in all its import locations
+sys.modules['tqdm'] = type(sys)('tqdm')
+sys.modules['tqdm'].tqdm = DummyTqdm
+sys.modules['tqdm.auto'] = type(sys)('tqdm.auto')
+sys.modules['tqdm.auto'].tqdm = DummyTqdm
+
+diffusers_logging.disable_progress_bar()  # Disable diffusers progress bars
+diffusers_logging.set_verbosity_error()  # Only show errors from diffusers
+
+# Suppress TensorFlow GeneratorDatasetOp warning
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TF warnings (keep errors)
+tf.get_logger().setLevel('ERROR')  # Only show TF errors
+
+class GeneratedImageCounter:
+    """Thread-safe counter for tracking generated images"""
+    def __init__(self):
+        self.count = 0
+        self.lock = threading.Lock()
+        self.print_interval = 10  # Print every N images
+
+    def increment(self, batch_size=1):
+        """Increment counter and optionally print update"""
+        with self.lock:
+            self.count += batch_size
+            if self.count % self.print_interval == 0 or batch_size > 1:
+                print(f"  Generated images: {self.count}", flush=True)
+
+    def reset(self):
+        """Reset counter to 0"""
+        with self.lock:
+            self.count = 0
+
+    def get_count(self):
+        """Get current count"""
+        with self.lock:
+            return self.count
+
+# Global counter instance
+_gen_image_counter = GeneratedImageCounter()
+
 class AugmentationConfig:
     def __init__(self):
         # Per-modality settings
+        # Note: depth_rgb setting acts as master switch for generative augmentation
+        # Both depth_rgb and thermal_rgb use the same RGB models (rgb_I, rgb_P, rgb_R)
         self.modality_settings = {
             'depth_rgb': {
                 'regular_augmentations': {
@@ -25,7 +101,7 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.15},
                 },
                 'generative_augmentations': {
-                    'enabled': False
+                    'enabled': USE_GENERATIVE_AUGMENTATION  # Master switch from production_config
                 }
             },
             'thermal_rgb': {
@@ -38,7 +114,7 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.15},
                 },
                 'generative_augmentations': {
-                    'enabled': False
+                    'enabled': False  # Controlled by depth_rgb setting
                 }
             },
             'thermal_map': {
@@ -51,7 +127,7 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.1},
                 },
                 'generative_augmentations': {
-                    'enabled': False  # Disable generative augmentations
+                    'enabled': False  # Map modalities not using generative aug in original implementation
                 }
             },
             'depth_map': {
@@ -64,19 +140,19 @@ class AugmentationConfig:
                     'gaussian_noise': {'enabled': True, 'stddev': 0.1},
                 },
                 'generative_augmentations': {
-                    'enabled': False
+                    'enabled': False  # Map modalities not using generative aug in original implementation
                 }
             }
         }
-        
-        # Global generative settings
+
+        # Global generative settings (from production_config)
         self.generative_settings = {
-            'output_size': {'height': 64, 'width': 64},
-            'prob': 0.50,
-            'mix_ratio_range': (0.01, 0.05),
-            'inference_steps': 10, #200,
-            'batch_size_limit': 30, # Limit batch size for generative augmentation
-            'max_loaded_models': 3, # Limit number of loaded models
+            'output_size': {'height': IMAGE_SIZE, 'width': IMAGE_SIZE},
+            'prob': GENERATIVE_AUG_PROB,
+            'mix_ratio_range': GENERATIVE_AUG_MIX_RATIO,
+            'inference_steps': GENERATIVE_AUG_INFERENCE_STEPS,
+            'batch_size_limit': GENERATIVE_AUG_BATCH_LIMIT,
+            'max_loaded_models': GENERATIVE_AUG_MAX_MODELS,
         }
 
 def resize_and_pad_generated_images(generated_images, target_shape):
@@ -143,39 +219,40 @@ def augment_image(image, modality, seed, config):
     # Early returns
     if not config.modality_settings[modality]['regular_augmentations']['enabled']:
         return image
-    
+
     if len(tf.shape(image)) != 4 or tf.shape(image)[-1] != 3:
         return image
-    
+
     # Get seed value
     seed_val = tf.get_static_value(seed)
     if seed_val is None:
         seed_val = 42
-    
-    # Try augmentation
+
+    # Try augmentation - run on CPU to avoid deterministic GPU issues with AdjustContrastv2
     try:
         settings = config.modality_settings[modality]['regular_augmentations']
-        if modality in ['depth_rgb', 'thermal_rgb']:
-            augmented = tf.map_fn(
-                lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
-                image,
-                fn_output_signature=tf.float32
-            )
-        else:
-            augmented = tf.map_fn(
-                lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
-                image,
-                fn_output_signature=tf.float32
-            )
-        
+        with tf.device('/CPU:0'):
+            if modality in ['depth_rgb', 'thermal_rgb']:
+                augmented = tf.map_fn(
+                    lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
+                    image,
+                    fn_output_signature=tf.float32
+                )
+            else:
+                augmented = tf.map_fn(
+                    lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
+                    image,
+                    fn_output_signature=tf.float32
+                )
+
         augmented = tf.ensure_shape(augmented, [
-            None, 
+            None,
             config.generative_settings['output_size']['height'],
-            config.generative_settings['output_size']['width'], 
+            config.generative_settings['output_size']['width'],
             3
         ])
         return augmented  # Return the augmented image if successful
-        
+
     except Exception as e:
         print(f"Error in augment_image: {str(e)}")
         return image
@@ -456,8 +533,11 @@ class GenerativeAugmentationManager:
                     num_images_per_prompt=batch_size,
                     num_inference_steps=self.config.generative_settings['inference_steps'],
                     height=self.config.generative_settings['output_size']['height'],
-                    width=self.config.generative_settings['output_size']['width']
+                    width=self.config.generative_settings['output_size']['width'],
+                    disable_progress_bar=True  # Explicitly disable progress bar
                 ).images
+            # Update generated image counter
+            _gen_image_counter.increment(batch_size)
             # Convert PIL images to normalized numpy arrays
             tensors = [np.array(img).astype(np.float32) / 255.0 for img in output]
             return tf.convert_to_tensor(np.stack(tensors), dtype=tf.float32)
@@ -468,14 +548,23 @@ class GenerativeAugmentationManager:
             return None
 
     def should_generate(self, modality):
-        
+
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return False
-        
-        # Get current phase from the calling context. ##! FOR TESTING PURPOSES ONLY Limiting to phase I, may need to comment out for actual use
-        if not hasattr(self, 'current_phase') or self.current_phase != 'I':
+
+        # Check if current phase is in the enabled phases list (configurable via GENERATIVE_AUG_PHASES)
+        if not hasattr(self, 'current_phase'):
             return False
-        
+
+        # current_phase is a TensorFlow string tensor, need to decode it for comparison
+        try:
+            phase_str = self.current_phase if isinstance(self.current_phase, str) else self.current_phase.numpy().decode('utf-8')
+        except:
+            return False
+
+        if phase_str not in GENERATIVE_AUG_PHASES:
+            return False
+
         return (self.config.modality_settings[modality]['generative_augmentations']['enabled'] and
                 tf.random.uniform([], 0, 1) < self.config.generative_settings['prob'])
 

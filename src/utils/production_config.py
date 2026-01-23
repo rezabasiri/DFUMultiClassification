@@ -25,14 +25,105 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (128x128 pixels for better detail)
-# IMAGE_SIZE = 64  # Image dimensions (64x64 pixels)
-GLOBAL_BATCH_SIZE = 3200  # Total batch size across all GPU replicas (for 2x RTX 5090 32GB VRAM with 128x128 images)
-N_EPOCHS = 300  # Quick speed test (normally 120 for full training)
+IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
+N_EPOCHS = 300  # Full training epochs
+
+# EPOCH SETTINGS - Understanding the different epoch parameters:
+# ----------------------------------------------------------------
+# N_EPOCHS: Total training budget for the entire training process
+#   - For pre-training (image-only models): Uses N_EPOCHS epochs
+#   - For Stage 1 (frozen image branch): Uses STAGE1_EPOCHS epochs
+#   - For Stage 2 (fine-tuning): Uses (N_EPOCHS - STAGE1_EPOCHS) epochs
+#   - Production: 300 epochs total
+#   - Quick test: 50 epochs total (agent_communication/generative_augmentation/test_generative_aug.py)
+#
+# STAGE1_EPOCHS: Number of epochs for Stage 1 fusion training (frozen image branch)
+#   - Only used in two-stage fusion training
+#   - Image branch is frozen, only fusion layers train
+#   - Typically ~10% of N_EPOCHS (30 out of 300)
+#   - Production: 50 epochs
+#   - Quick test: 25 epochs
+#
+# LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
+#   - Defines how long to explore different learning rates
+#   - Should match N_EPOCHS for full training
+#   - Production: 300 epochs
+#   - Quick test: 50 epochs (auto-set to match N_EPOCHS in test script)
+#
+# Example production timeline (N_EPOCHS=300, STAGE1_EPOCHS=30):
+#   1. Pre-training: 0-300 epochs (trains image-only model)
+#   2. Stage 1: 0-30 epochs (frozen image, train fusion)
+#   3. Stage 2: 30-300 epochs (fine-tune everything)
+
+# Image backbone selection (for backbone comparison experiments)
+# Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
+# Best combination from 20-test comparison: B3+B1 (Kappa=0.3295, 79.7% improvement over baseline)
+RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_rgb)
+MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
+
+# Fusion-specific training parameters
+STAGE1_EPOCHS = 50  # Stage 1 fusion training epochs (frozen image branch)
+DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
+
+# Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
+# Options: 'random', 'smote', 'combined', 'combined_smote'
+#   'random': Simple oversampling to MAX class (Kappa ~0.10) - NOT RECOMMENDED
+#   'smote': SMOTE synthetic oversampling to MAX class (Kappa ~0.14)
+#   'combined': Undersample majority + oversample minority to MIDDLE class (Kappa ~0.17) - RECOMMENDED
+#   'combined_smote': Undersample majority + SMOTE minority to MIDDLE class - NOT for fusion (creates synthetic samples without images)
+# For production with 15% outlier removal: Expected Kappa 0.27 ± 0.08
+SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
 
 # Early stopping and learning rate
-EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
-REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR (increased for longer training)
+EARLY_STOP_PATIENCE = 30  # Epochs to wait before stopping (increased for longer training)
+REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for longer training)
+
+# =============================================================================
+# Data Cleaning and Outlier Detection
+# =============================================================================
+
+# Multimodal outlier detection (Isolation Forest on joint feature space)
+OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
+OUTLIER_CONTAMINATION = 0.15  # Expected proportion of outliers (0.0-1.0)
+OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
+
+# General augmentation (applied during training only, not validation)
+# RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15
+# Map images: brightness ±40%, contrast 0.6-1.4x, gaussian noise σ=0.1 (no saturation)
+# Applied with 60% probability, different settings for RGB vs maps
+USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augmentation
+
+# Generative augmentation (Stable Diffusion-based synthetic data generation)
+# Uses fine-tuned SD models per modality/phase from results/GenerativeAug_Models/models_5_7/
+# Only applies to RGB images (depth_rgb, thermal_rgb use rgb_I/P/R models)
+# Model mapping: thermal_rgb→rgb, depth_rgb→rgb, thermal_map→thermal_map, depth_map→depth_map
+USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation (48 GB models required)
+GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD models
+GENERATIVE_AUG_PROB = 0.05  # Probability of applying generative augmentation (0.0-1.0) - Reduced from 0.50 for better quality/quantity balance
+GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
+GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (10=fast, 50=quality) - Increased from 10 for better image quality
+GENERATIVE_AUG_BATCH_LIMIT = 64  # Max batch size for generative aug (GPU memory constraint)
+GENERATIVE_AUG_MAX_MODELS = 3  # Max SD models loaded in GPU memory simultaneously
+GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for: 'I'=Inflammatory, 'P'=Proliferative, 'R'=Remodeling (use ['I'] for testing only Phase I)
+
+# Misclassification tracking (for iterative data polishing)
+# Options: 'none', 'both', 'valid', 'train'
+#   'none': Disable tracking (fastest, default for production)
+#   'both': Track from both train and validation sets
+#   'valid': Track only from validation set
+#   'train': Track only from training set (not recommended)
+TRACK_MISCLASS = 'none'  # Misclassification tracking mode
+
+# Misclassification filtering thresholds (for core-data mode)
+# Lower threshold = exclude more misclassified samples
+# Set to None to use auto-optimized values from bayesian_optimization_results.json
+THRESHOLD_I = None  # Inflammatory class threshold
+THRESHOLD_P = None  # Proliferative class threshold
+THRESHOLD_R = None  # Remodeling class threshold (typically higher to protect minority)
+
+# Core dataset mode (uses optimized thresholds from auto_polish_dataset_v2.py)
+USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
 
 # =============================================================================
 # Verbosity and Progress Tracking
@@ -68,12 +159,12 @@ GATING_VERBOSE = 0  # Training verbosity (0=silent, 1=progress bar, 2=epoch)
 
 # Callbacks - ReduceLROnPlateau
 GATING_REDUCE_LR_FACTOR = 0.5  # Factor to reduce learning rate
-GATING_REDUCE_LR_PATIENCE = 5  # Epochs to wait before reducing LR
+GATING_REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR
 GATING_REDUCE_LR_MIN_LR = 1e-9  # Minimum learning rate
 GATING_REDUCE_LR_MIN_DELTA = 2e-3  # Minimum change to qualify as improvement
 
 # Callbacks - EarlyStopping
-GATING_EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping
+GATING_EARLY_STOP_PATIENCE = 30  # Epochs to wait before stopping
 GATING_EARLY_STOP_MIN_DELTA = 2e-2  # Minimum change to qualify as improvement
 GATING_EARLY_STOP_VERBOSE = 2  # Verbosity level
 
@@ -95,7 +186,7 @@ HIERARCHICAL_VERBOSE = 2  # Training verbosity
 
 # Callbacks - ReduceLROnPlateau
 HIERARCHICAL_REDUCE_LR_FACTOR = 0.5  # Factor to reduce learning rate
-HIERARCHICAL_REDUCE_LR_PATIENCE = 7  # Epochs to wait before reducing LR
+HIERARCHICAL_REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR
 HIERARCHICAL_REDUCE_LR_MIN_LR = 1e-12  # Minimum learning rate
 
 # Focal loss for hierarchical gating
@@ -108,7 +199,7 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
 LR_SCHEDULE_MIN_LR = 1e-14  # Minimum learning rate
-LR_SCHEDULE_EXPLORATION_EPOCHS = 10  # Number of exploration epochs
+LR_SCHEDULE_EXPLORATION_EPOCHS = 300  # Number of exploration epochs
 LR_SCHEDULE_CYCLE_LENGTH = 30  # Initial cycle length
 LR_SCHEDULE_CYCLE_MULTIPLIER = 2.0  # Factor to multiply cycle length
 
@@ -209,8 +300,8 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),  # Temporary: Phase 2 evaluation
-]
+    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
+] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
 RESULTS_CSV_FILENAME = 'modality_combination_results.csv'  # Output CSV filename

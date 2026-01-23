@@ -1,0 +1,158 @@
+📝 Logging to: results/misclassifications/optimization_run_20260104_123226.log
+
+/Users/rezabasiri/env/multimodal/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+🚀 Starting Phase 1: Misclassification Detection
+
+
+======================================================================
+PHASE 1: MISCLASSIFICATION DETECTION
+======================================================================
+Dataset: 647 samples (100% of 647)
+Min after filtering: 323 samples (50%)
+Testing 1 modalities individually: ['metadata']
+Running 10 runs per modality (total 10 runs)
+Misclassification counts: max=30 (mode=both, runs=10, folds=3)
+CV folds=3, verbosity=silent
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+======================================================================
+Testing modality: metadata (10 runs)
+======================================================================
+Phase 1 Progress (metadata):   0%|          | 0/10 [00:00<?, ?run/s]
+📊 Updating baseline after metadata run 1...
+Phase 1 Progress (metadata):  10%|#         | 1/10 [00:38<05:44, 38.28s/run]
+📊 Updating baseline after metadata run 2...
+Phase 1 Progress (metadata):  20%|##        | 2/10 [01:15<04:58, 37.37s/run]
+📊 Updating baseline after metadata run 3...
+Phase 1 Progress (metadata):  30%|###       | 3/10 [01:52<04:20, 37.23s/run]
+📊 Updating baseline after metadata run 4...
+Phase 1 Progress (metadata):  40%|####      | 4/10 [02:33<03:52, 38.77s/run]
+📊 Updating baseline after metadata run 5...
+Phase 1 Progress (metadata):  50%|#####     | 5/10 [03:17<03:23, 40.60s/run]
+📊 Updating baseline after metadata run 6...
+Phase 1 Progress (metadata):  60%|######    | 6/10 [03:54<02:37, 39.43s/run]
+📊 Updating baseline after metadata run 7...
+Phase 1 Progress (metadata):  70%|#######   | 7/10 [04:33<01:57, 39.32s/run]
+📊 Updating baseline after metadata run 8...
+Phase 1 Progress (metadata):  80%|########  | 8/10 [05:16<01:21, 40.55s/run]
+📊 Updating baseline after metadata run 9...
+Phase 1 Progress (metadata):  90%|######### | 9/10 [05:55<00:40, 40.10s/run]
+📊 Updating baseline after metadata run 10...
+Phase 1 Progress (metadata): 100%|##########| 10/10 [06:33<00:00, 39.29s/run]Phase 1 Progress (metadata): 100%|##########| 10/10 [06:33<00:00, 39.31s/run]
+
+======================================================================
+✅ PHASE 1 COMPLETE
+======================================================================
+
+💾 Saved Phase 1 misclassification data:
+   - frequent_misclassifications_saved.csv (total)
+   - frequent_misclassifications_metadata_saved.csv
+🔒 Locked Phase 1 data - Phase 2 training won't contaminate counts
+
+Misclassification Summary:
+  Total unique misclassified samples: 647
+  Max count observed: 30
+
+  By class:
+    I: 203 samples, counts 17-26, median=20.0
+    P: 368 samples, counts 23-30, median=30.0
+    R: 76 samples, counts 7-19, median=14.5
+
+💾 Saved Phase 1 baseline metrics: /Users/rezabasiri/Documents/Githubs/DFUMultiClassification/results/misclassifications/phase1_baseline.json
+   Baselines for 1 modalities preserved
+   CSV backup: /Users/rezabasiri/Documents/Githubs/DFUMultiClassification/results/misclassifications_saved/phase1_modality_results.csv
+
+======================================================================
+PHASE 1 BASELINE PERFORMANCE (Before Optimization)
+======================================================================
+
+  metadata:
+    Macro F1: 0.2450
+    Weighted F1: 0.1858
+    Per-class F1: I=0.4520, P=0.0466, R=0.2364
+    Min F1: 0.0466
+    Kappa: 0.1023
+
+  📊 Using best baseline for optimization: metadata
+     Weighted F1: 0.1858, Per-class F1: I=0.4520, P=0.0466, R=0.2364
+
+🚀 Starting Phase 2: Bayesian Threshold Optimization
+
+
+======================================================================
+PHASE 2: BAYESIAN THRESHOLD OPTIMIZATION
+======================================================================
+
+  📊 Balancing Strategy:
+     Rarest class: R (76 samples)
+     Target after 70% retention: 54 samples per class
+     Calculated retention rates for balance:
+       I: 26.6% of 203 → ~54 samples
+       P: 14.7% of 368 → ~54 samples
+       R: 71.1% of 76 → ~54 samples
+
+======================================================================
+AUTOMATIC THRESHOLD CALCULATION (Balanced Dataset Strategy)
+======================================================================
+  Minority class retention target: 70%
+
+  Class I:
+    Original samples: 203 (892 images)
+    Target retention for balance: 26.6%
+    Misclass count range: 17-26, median=20.0
+    Min threshold for retention: 20
+    Actual retention at this threshold: 92/203 (45.3%) ≈ 404 images
+
+  Class P:
+    Original samples: 368 (1880 images)
+    Target retention for balance: 14.7%
+    Misclass count range: 23-30, median=30.0
+    Min threshold for retention: 31
+    Actual retention at this threshold: 368/368 (100.0%) ≈ 1880 images
+    ⚠️  WARNING: Threshold 31 exceeds max count 30
+       Cannot achieve retention - all samples have high misclass counts
+
+  Class R:
+    Original samples: 76 (335 images)
+    Target retention for balance: 71.1%
+    Misclass count range: 7-19, median=14.5
+    Min threshold for retention: 17
+    Actual retention at this threshold: 60/76 (78.9%) ≈ 264 images
+
+======================================================================
+⚠️  SKIPPING PHASE 2 OPTIMIZATION
+======================================================================
+
+Reason: Cannot achieve 70% retention with 3-fold CV.
+
+With 3-fold CV, each class needs ≥6 samples.
+Rarest class (R) has 76 samples.
+Minimum retention needed: 7.9%
+
+Possible solutions:
+  1. Increase --min-minority-retention to 0.08 or higher
+  2. Reduce --phase2-cv-folds to 3 or lower
+  3. Use NO filtering: python src/main.py --mode search --cv_folds 3
+
+======================================================================
+⚠️  OPTIMIZATION SKIPPED
+======================================================================
+
+Cannot achieve 70% retention for minority class.
+Recommendation: Use NO filtering for training:
+   python src/main.py --mode search --cv_folds 5
+
+Or reduce --min-minority-retention to allow more aggressive filtering.

@@ -1,0 +1,68 @@
+COMPLETE VALIDATION - Phase 2 Winner Implementation
+======================================================
+
+READ FIRST: agent_communication/rf_improvement/VALIDATION_INSTRUCTIONS.md (full details)
+
+QUICK START:
+
+STEP 1: Modify Production Config
+---------------------------------
+File: src/utils/production_config.py
+Find: included_modalities = ...
+Change to: included_modalities = [('metadata',),]
+Save.
+
+STEP 2: Run Production Test (20-30 min)
+----------------------------------------
+cd /Users/rezabasiri/Documents/Githubs/DFUMultiClassification
+/Users/rezabasiri/env/multimodal/bin/python src/main.py --mode search --cv_folds 5 --verbosity 2 --resume_mode fresh
+
+Look for:
+- "Feature selection: 42 → 40 features"
+- "Top 5 features: ['Height (cm)', 'Onset (Days)', ...]"
+- Final results in results/csv/modality_results_averaged.csv
+
+Expected: Kappa ~0.20 ± 0.05 (vs baseline 0.176)
+
+STEP 3: Run Bayesian Optimizer (30-40 min)
+-------------------------------------------
+/Users/rezabasiri/env/multimodal/bin/python agent_communication/rf_improvement/solution_6_bayesian_optimization_fixed.py
+
+Look for:
+- Search space: max_depth: Integer(8, 15)
+- Best params: should be close to 500 trees, depth ~10
+- Final Kappa ≥ 0.176
+
+Expected: Should match or beat baseline
+
+REPORT FORMAT:
+--------------
+TEST 1: Production Pipeline
+Status: [Success/Failed]
+Kappa: [value] ± [std]
+Feature selection: [Yes/No - check for "42 → 40" message]
+Top 5 features: [list]
+Improvement vs 0.176: [delta]
+
+TEST 2: Bayesian Optimizer
+Status: [Success/Failed]
+Kappa: [value] ± [std]
+Best params:
+  n_estimators: [value]
+  max_depth: [value] (should be 8-15)
+  min_samples_split: [value]
+Improvement vs 0.176: [delta]
+
+COMPARISON:
+Baseline: 0.176
+Test 1: [value] ([delta])
+Test 2: [value] ([delta])
+Best: [which test won]
+
+SUCCESS CRITERIA:
+✅ Test 1: Kappa ≥ 0.19 with feature selection working
+✅ Test 2: Kappa ≥ 0.176 with depth in [8, 15]
+
+If any issues, check VALIDATION_INSTRUCTIONS.md for troubleshooting.
+
+Total runtime: ~50-70 minutes for both tests.

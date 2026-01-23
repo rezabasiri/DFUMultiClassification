@@ -14,12 +14,16 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 from src.utils.config import get_project_paths, get_data_paths
 from src.utils.verbosity import vprint
+from src.data.generative_augmentation_v2 import augment_image, AugmentationConfig
 
 # Get paths
 directory, result_dir, root = get_project_paths()
 data_paths = get_data_paths(root)
 depth_folder = data_paths['depth_folder']
 thermal_folder = data_paths['thermal_folder']
+
+# Create augmentation config for general augmentation
+_augmentation_config = AugmentationConfig()
 
 def extract_info_from_filename(filename):
     match = re.search(r'_P(\d{3})(\d{2})(\d)', filename)
@@ -394,9 +398,14 @@ def load_and_preprocess_image(filepath, bb_data, modality, target_size=(224, 224
             try:
                 # Apply augmentations if requested
                 if augment:
-                    img_tensor = augment_image(img_tensor, modality, 
-                                            tf.random.uniform([], maxval=1000000, dtype=tf.int32))
-                
+                    # Add batch dimension for augmentation (expects 4D: [batch, height, width, channels])
+                    img_tensor_batched = tf.expand_dims(img_tensor, 0)
+                    img_tensor_batched = augment_image(img_tensor_batched, modality,
+                                                      tf.random.uniform([], maxval=1000000, dtype=tf.int32),
+                                                      _augmentation_config)
+                    # Remove batch dimension
+                    img_tensor = tf.squeeze(img_tensor_batched, 0)
+
                 if modality in ['depth_rgb', 'thermal_rgb']:
                     # Normalize image
                     img_tensor = img_tensor / 255.

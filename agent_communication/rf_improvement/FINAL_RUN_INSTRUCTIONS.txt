@@ -1,0 +1,66 @@
+FINAL VALIDATION - Quick Start Instructions
+============================================
+
+READ FIRST: agent_communication/rf_improvement/FINAL_VALIDATION.md (full details)
+
+STEP 1: Modify Production Config
+---------------------------------
+File: src/utils/production_config.py
+Find: included_modalities = ...
+Change to: included_modalities = [('metadata',),]
+Save.
+
+STEP 2: Run Production Pipeline (25-35 min)
+--------------------------------------------
+cd /Users/rezabasiri/Documents/Githubs/DFUMultiClassification
+/Users/rezabasiri/env/multimodal/bin/python src/main.py --mode search --cv_folds 5 --verbosity 2 --resume_mode fresh
+
+STEP 3: Verify Output
+---------------------
+Look for:
+✓ "Feature selection: 42 → 40 features"
+✓ "Top 5 features: ['Height (cm)', 'Onset (Days)', ...]"
+✓ RF parameters: 646 trees, depth 14, min_samples_split 19
+✓ Final Kappa in results/csv/modality_results_averaged.csv
+
+Expected: Kappa 0.20-0.21 ± 0.05
+
+REPORT FORMAT:
+--------------
+FINAL VALIDATION - Production Pipeline with All Phase 2 Improvements
+
+Status: [Success/Failed]
+Kappa: [value] ± [std]
+Accuracy: [value]%
+F1 Macro: [value]
+
+Per-class F1:
+  - Class I: [value]
+  - Class P: [value]
+  - Class R: [value]
+
+Improvement vs baseline (0.176): [delta] ([percentage]%)
+
+Implementation Verification:
+✓ Dynamic feature selection: [Yes/No - "42 → 40" message seen]
+✓ KNN k=3 imputation: [Yes/No]
+✓ Bayesian RF parameters: [Yes/No - 646 trees, depth 14]
+✓ Top 5 features: [list]
+
+Validation Fold Results:
+  Fold 1: Kappa = [value]
+  Fold 2: Kappa = [value]
+  Fold 3: Kappa = [value]
+  Fold 4: Kappa = [value]
+  Fold 5: Kappa = [value]
+
+SUCCESS CRITERIA:
+✅ Kappa ≥ 0.19 with all improvements verified → TASK COMPLETE
+
+If Kappa ≥ 0.19 AND all checks pass:
+  ✅ PRODUCTION READY - CLOSE TASK
+
+If Kappa < 0.19 or errors occur:
+  ❌ Debug and report detailed logs
+
+Total runtime: ~25-35 minutes

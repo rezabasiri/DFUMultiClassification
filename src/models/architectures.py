@@ -68,27 +68,33 @@ def create_image_branch(input_shape, modality):
     return image_input, attention_output
 
 def create_metadata_branch(input_shape, index):
+    """Metadata branch with MINIMAL processing (preserves RF probabilities)
+
+    Design Philosophy (from main_original.py):
+    - RF produces 3 probabilities (rf_prob_I, rf_prob_P, rf_prob_R)
+    - These should pass through with minimal transformation
+    - Preserves probability information for fusion with other modalities
+    - Prevents overfitting on just 3 input values
+
+    Architecture: Cast → BatchNorm (that's it!)
+    - NO dense layers (they cause overfitting)
+    - NO dropout (unnecessary for 3 probabilities)
+    - NO attention (minimal trainable weights)
+    """
     metadata_input = Input(shape=input_shape, name=f'metadata_input')
-    
-    x = Dense(256, activation='relu', use_bias=False, name=f'metadata_dense_1_{index}')(metadata_input)
-    x = tf.keras.layers.BatchNormalization(name=f'metadata_BN_1_{index}')(x)
-    x = tf.keras.layers.Dropout(0.25, name=f'metadata_DP_1_{index}')(x)
-    x = Dense(128, activation='relu', use_bias=False, name=f'metadata_dense_2_{index}')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'metadata_BN_2_{index}')(x)
-    x = tf.keras.layers.Dropout(0.15, name=f'metadata_DP_2_{index}')(x)
-    x = Dense(64, activation='relu', use_bias=False, name=f'metadata_dense_3_{index}')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'metadata_BN_3_{index}')(x)
-    
-    # Project to same dimension as image branches for consistent fusion
-    x = Dense(64, activation='relu', use_bias=False, name=f'metadata_projection_{index}')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'metadata_BN_proj_{index}')(x)
-    
-    # Apply modular attention
-    modular_attention = OptimizedModularAttention(name=f'metadata_modular_attention_{index}')
-    x = modular_attention(x)
-    
+
+    # Add minimal processing - preserve RF probability information
+    x = tf.keras.layers.Lambda(lambda x: tf.cast(x, tf.float32), name=f'metadata_cast_{index}')(metadata_input)
+    x = tf.keras.layers.BatchNormalization(name=f'metadata_BN_{index}')(x)
+
+    # REMOVED extensive layers that were causing overfitting:
+    # - Dense(256) → BN → Dropout(0.25)  [REMOVED]
+    # - Dense(128) → BN → Dropout(0.15)  [REMOVED]
+    # - Dense(64) → BN                   [REMOVED]
+    # - Dense(64) → BN                   [REMOVED]
+    # - Modular Attention                [REMOVED]
+
     return metadata_input, x
-    # return metadata_input, x
 class OptimizedModularAttention(Layer):
     """Optimized version of ModularAttention"""
     def __init__(self, **kwargs):

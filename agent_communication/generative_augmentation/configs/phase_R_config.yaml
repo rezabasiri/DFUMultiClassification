@@ -1,0 +1,285 @@
+# Training Configuration for Phase R (Remodeling) - 128x128 Resolution
+# High-quality wound generation using Stable Diffusion XL 1.0 + LoRA
+
+# ==============================================================================
+# Model Configuration
+# ==============================================================================
+model:
+  # Base model: SDXL 1.0 (2.6B params, officially supported, not deprecated)
+  # Note: SD 2.1 was deprecated by Stability AI in 2025, SDXL provides superior quality
+  base_model: "stabilityai/stable-diffusion-xl-base-1.0"
+
+  # Resolution: 128x128 for better detail than 64x64
+  resolution: 128
+
+  # Training method: LoRA (Low-Rank Adaptation)
+  training_method: "lora"  # Options: "lora", "full", "dreambooth"
+
+# ==============================================================================
+# LoRA Configuration (only used if training_method = "lora")
+# ==============================================================================
+lora:
+  # Rank: Controls capacity of LoRA adaptation (higher = more capacity)
+  # Common values: 8, 16, 32, 64. Recommended: 16 for medical images
+  rank: 16
+
+  # Alpha: Scaling factor for LoRA weights (typically 2x rank)
+  alpha: 32
+
+  # Dropout: Regularization to prevent overfitting (0.0 = no dropout)
+  dropout: 0.1
+
+  # Target modules: Which UNet layers to adapt
+  # ["to_q", "to_k", "to_v"] = attention query, key, value projections
+  # ["to_out.0"] = attention output projection
+  target_modules: ["to_q", "to_k", "to_v", "to_out.0"]
+
+  # Bias: How to handle bias terms ("none", "all", "lora_only")
+  bias: "none"
+
+# ==============================================================================
+# Data Configuration
+# ==============================================================================
+data:
+  # Path to wound images for this phase
+  # Expected structure: data_root/rgb/R/*.png
+  data_root: "data/DFU_Updated"
+
+  # Modality: Which imaging modality to use
+  modality: "rgb"  # Options: "rgb", "depth_map", "thermal_map"
+
+  # Phase: Healing phase
+  phase: "R"  # Remodeling phase
+
+  # Train/validation split ratio
+  train_val_split: 0.85  # 85% train, 15% validation
+
+  # Random seed for reproducible splits
+  split_seed: 42
+
+  # Data augmentation during training (helps with small datasets)
+  augmentation:
+    enabled: true
+    horizontal_flip: true
+    vertical_flip: false  # Wounds have natural orientation
+    rotation_degrees: 15  # Random rotation ±15 degrees
+    color_jitter:
+      brightness: 0.1
+      contrast: 0.1
+      saturation: 0.1
+      hue: 0.05
+
+# ==============================================================================
+# Training Configuration
+# ==============================================================================
+training:
+  # Batch size per GPU (total batch = batch_size_per_gpu * num_gpus)
+  # Note: SDXL is larger than SD2.1, reduced from 8 to 4 per GPU
+  batch_size_per_gpu: 4
+
+  # Gradient accumulation steps (effective_batch = batch_size * accumulation)
+  gradient_accumulation_steps: 4  # Effective batch = 4 * 4 * 2 GPUs = 32
+
+  # Learning rate
+  learning_rate: 1.0e-5
+
+  # Learning rate scheduler
+  lr_scheduler: "cosine"  # Options: "constant", "linear", "cosine", "cosine_with_restarts"
+  lr_warmup_steps: 100  # Warmup for first 100 steps
+  lr_num_cycles: 1  # For cosine scheduler
+
+  # Optimizer
+  optimizer: "adamw"  # Options: "adam", "adamw", "adamw8bit"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 0.01
+  adam_epsilon: 1.0e-8
+
+  # Max gradient norm for clipping (prevents exploding gradients)
+  max_grad_norm: 1.0
+
+  # Training epochs
+  max_epochs: 100
+
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 10  # Stop if no improvement for 10 epochs
+    min_delta: 0.01  # Minimum improvement in FID score
+    monitor: "val_fid"  # Metric to monitor ("val_fid", "val_loss")
+    mode: "min"  # "min" for FID/loss, "max" for accuracy
+
+# ==============================================================================
+# Prompting Configuration
+# ==============================================================================
+prompts:
+  # Use class-conditional prompts (vs unconditional generation)
+  enabled: true
+
+  # Positive prompt template for Phase R (Remodeling)
+  positive: >
+    Medical photograph of diabetic foot ulcer in remodeling phase,
+    showing wound contraction and epithelialization, scar tissue formation,
+    mature healing process, healed wound margins, clinical documentation,
+    high detail, realistic medical imaging, proper wound closure
+
+  # Negative prompt (things to avoid)
+  negative: >
+    blurry, out of focus, low quality, jpeg artifacts, noise,
+    oversaturated, unrealistic colors, smooth skin, healthy tissue,
+    artificial, cartoon, drawing, painting, illustration, 3d render,
+    text, watermark, signature, logo, border,
+    limbs, body parts, face, person, background clutter,
+    unrealistic wound edges, unnatural textures, distorted,
+    open wound, fresh wound, acute inflammation
+
+# ==============================================================================
+# Quality Enhancement
+# ==============================================================================
+quality:
+  # Perceptual loss (uses VGG features for better visual quality)
+  perceptual_loss:
+    enabled: true
+    weight: 0.1  # Multiplier for perceptual loss (vs diffusion loss)
+    vgg_layer: 16  # Which VGG layer to use (16 = conv3_3)
+
+  # EMA (Exponential Moving Average) - smoother, better quality models
+  ema:
+    enabled: true
+    decay: 0.9999  # EMA decay rate (higher = slower update)
+    use_ema_weights_for_inference: true  # Use EMA weights for validation
+
+  # Guidance scale for classifier-free guidance
+  guidance_scale: 12.0  # Higher = stronger prompt adherence (7.5 default, 12-15 recommended)
+
+  # Inference steps during training (for validation)
+  inference_steps_training: 50  # Faster validation
+
+  # Inference steps for production use (higher = better quality)
+  inference_steps_production: 100
+
+# ==============================================================================
+# Checkpointing
+# ==============================================================================
+checkpointing:
+  # Output directory for checkpoints
+  output_dir: "agent_communication/generative_augmentation/checkpoints/phase_R"
+
+  # Save checkpoint every N epochs
+  save_every_n_epochs: 5
+
+  # Keep only last N checkpoints (saves disk space)
+  keep_last_n_checkpoints: 3
+
+  # Always keep best checkpoint (by validation FID)
+  save_best_only: false  # If true, only saves when validation improves
+
+  # Resume from checkpoint
+  resume_from_checkpoint: null  # Path to checkpoint, or "latest", or null
+
+  # Save optimizer and scheduler states (needed for exact resume)
+  save_optimizer_state: true
+
+# ==============================================================================
+# Quality Metrics
+# ==============================================================================
+metrics:
+  # Compute metrics every N epochs
+  compute_every_n_epochs: 1
+
+  # Number of samples to generate for metric computation
+  num_samples_for_metrics: 100
+
+  # FID (Fréchet Inception Distance) - lower is better
+  fid:
+    enabled: true
+    target_threshold: 50.0  # Good quality if FID < 50
+
+  # SSIM (Structural Similarity Index) - higher is better
+  ssim:
+    enabled: true
+    target_threshold: 0.70  # Good quality if SSIM > 0.70
+
+  # LPIPS (Learned Perceptual Image Patch Similarity) - lower is better
+  lpips:
+    enabled: true
+    target_threshold: 0.30  # Good quality if LPIPS < 0.30
+    network: "alex"  # Options: "alex", "vgg", "squeeze"
+
+  # Inception Score (IS) - higher is better
+  inception_score:
+    enabled: true
+    target_threshold: 2.0  # Good quality if IS > 2.0
+
+# ==============================================================================
+# Logging & Monitoring
+# ==============================================================================
+logging:
+  # Logging directory
+  logging_dir: "agent_communication/generative_augmentation/reports/phase_R_logs"
+
+  # Log every N steps
+  log_every_n_steps: 50
+
+  # Save training samples every N epochs (for visual inspection)
+  save_samples_every_n_epochs: 5
+  num_samples_to_save: 16
+
+  # Tensorboard logging
+  use_tensorboard: true
+
+  # Weights & Biases logging (optional)
+  use_wandb: false
+  wandb_project: "dfu-wound-generation"
+  wandb_run_name: "phase_R_128x128_lora"
+
+# ==============================================================================
+# Hardware Configuration
+# ==============================================================================
+hardware:
+  # Multi-GPU training
+  multi_gpu: true
+  num_gpus: 2  # Number of GPUs to use (auto-detect if null)
+
+  # Mixed precision training (fp16 for faster training, less memory)
+  mixed_precision: "fp16"  # Options: "no", "fp16", "bf16"
+
+  # Gradient checkpointing (saves memory at cost of ~20% slower training)
+  gradient_checkpointing: true
+
+  # xFormers (memory-efficient attention, highly recommended)
+  use_xformers: true
+
+  # CPU offloading (use if running out of GPU memory)
+  enable_cpu_offload: false
+
+  # Number of dataloader workers
+  num_workers: 4
+
+  # Pin memory for faster GPU transfer
+  pin_memory: true
+
+# ==============================================================================
+# Reproducibility
+# ==============================================================================
+reproducibility:
+  # Random seed for reproducibility
+  seed: 42
+
+  # Deterministic mode (slower but fully reproducible)
+  deterministic: false
+
+# ==============================================================================
+# Validation
+# ==============================================================================
+validation:
+  # Run validation every N epochs
+  validate_every_n_epochs: 1
+
+  # Generate samples during validation for visual inspection
+  generate_samples: true
+  num_validation_samples: 8
+
+  # Compare against real images
+  compare_to_real: true
+  num_real_samples_for_comparison: 50

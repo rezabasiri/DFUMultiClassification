@@ -13,7 +13,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, classification_report
-from imblearn.over_sampling import RandomOverSampler
+from imblearn.over_sampling import RandomOverSampler, SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
@@ -25,6 +25,9 @@ from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn
 directory, result_dir, root = get_project_paths()
 data_paths = get_data_paths(root)
 output_paths = get_output_paths(result_dir)
+
+# Module-level cache for selected features (stores features per run for train/valid consistency)
+_selected_features_cache = {}
 
 
 def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
@@ -73,6 +76,17 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     for patient, cls in patient_classes.items():
         class_patients[cls].append(patient)
 
+    # Check if stratification is feasible
+    vprint("\n" + "=" * 80, level=1)
+    vprint("STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK", level=1)
+    vprint("=" * 80, level=1)
+    for cls, patients in class_patients.items():
+        vprint(f"Class {cls}: {len(patients)} patients", level=1)
+        if len(patients) < n_folds:
+            vprint(f"  ⚠ WARNING: Class {cls} has fewer patients ({len(patients)}) than folds ({n_folds})", level=1)
+            vprint(f"  Some folds will have 0 patients from this class in validation set", level=1)
+    vprint("=" * 80 + "\n", level=1)
+
     # Shuffle patients within each class
     for cls in class_patients:
         np.random.shuffle(class_patients[cls])
@@ -113,11 +127,19 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         # Check all classes present
         train_classes = set(train_data['Healing Phase Abs'].unique())
         valid_classes = set(valid_data['Healing Phase Abs'].unique())
+        all_classes = {0, 1, 2}
 
         if len(train_classes) < 3 or len(valid_classes) < 3:
-            vprint(f"Warning: Fold {fold_idx + 1} missing classes (train: {train_classes}, valid: {valid_classes})", level=1)
+            missing_train = all_classes - train_classes
+            missing_valid = all_classes - valid_classes
+            vprint(f"⚠ WARNING: Fold {fold_idx + 1} missing classes:", level=1)
+            if missing_train:
+                vprint(f"  Train set missing: {missing_train} (may cause training issues)", level=1)
+            if missing_valid:
+                vprint(f"  Valid set missing: {missing_valid} (may affect validation metrics)", level=1)
+            vprint(f"  Cause: Insufficient patients in minority class for {n_folds}-fold CV", level=1)
         elif max_diff > max_imbalance:
-            vprint(f"Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
+            vprint(f"⚠ Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
 
         fold_splits.append((train_patients, valid_patients))
 
@@ -219,11 +241,11 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
                 
                 img_path = os.path.join(base_folders[modality_str], filename_str)
                 img_tensor = load_and_preprocess_image(
-                    img_path, 
+                    img_path,
                     bb_coords_float,
                     modality_str,
                     target_size=(image_size, image_size),
-                    augment=False
+                    augment=is_training  # Enable augmentation for training data only
                 )
                 
                 # Convert TensorFlow tensor to numpy array
@@ -651,14 +673,16 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
         # Choose sampling strategy
         if not mix:
-            # Simple oversampling strategy (default with mix=False)
-            vprint("Using simple random oversampling...", level=2)
+            # Import SAMPLING_STRATEGY config parameter
+            from src.utils.production_config import SAMPLING_STRATEGY
+
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
             vprint("Original class distribution (ordered):", level=2)
             if get_verbosity() == 2:
                 for class_idx in [0, 1, 2]:  # Explicit ordering
                     print(f"Class {class_idx}: {counts[class_idx]}")
+
             # Calculate alpha values from original distribution
             # Use inverse of frequency (uncapped) normalized to sum to 3
             total_samples = sum(counts.values())
@@ -670,9 +694,194 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Normalize to sum=3.0 (as recommended)
             alpha_sum = sum(alpha_values)
             alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
-            
-            oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
-            X_resampled, y_resampled = oversampler.fit_resample(X, y)
+
+            # Apply selected sampling strategy
+            if SAMPLING_STRATEGY == 'combined':
+                # Combined sampling: undersample majority, then oversample minority
+                # Balances to MIDDLE class count (fewer duplicates than pure oversampling)
+                vprint("Using combined sampling (under + over)...", level=2)
+
+                # Step 1: Undersample majority class (P) to match middle class (I)
+                intermediate_target = {
+                    count_items[1][1]: count_items[1][0],  # I stays same
+                    count_items[2][1]: count_items[1][0],  # P reduced to match I
+                    count_items[0][1]: counts[count_items[0][1]]  # R stays same (smallest)
+                }
+
+                undersampler = RandomUnderSampler(
+                    sampling_strategy=intermediate_target,
+                    random_state=42 + run * (run + 3)
+                )
+                X_under, y_under = undersampler.fit_resample(X, y)
+
+                # Print after undersampling
+                under_counts = Counter(y_under)
+                vprint("\nAfter undersampling (ordered):", level=2)
+                if get_verbosity() == 2:
+                    for class_idx in [0, 1, 2]:
+                        print(f"Class {class_idx}: {under_counts[class_idx]}")
+
+                # Step 2: Oversample minority class (R) to match others
+                final_target = {
+                    count_items[1][1]: count_items[1][0],  # I stays same
+                    count_items[2][1]: count_items[1][0],  # P stays reduced
+                    count_items[0][1]: count_items[1][0]   # R boosted to match
+                }
+
+                oversampler = RandomOverSampler(
+                    sampling_strategy=final_target,
+                    random_state=42 + run * (run + 3)
+                )
+                X_resampled, y_resampled = oversampler.fit_resample(X_under, y_under)
+
+            elif SAMPLING_STRATEGY == 'combined_smote':
+                # Combined + SMOTE: Best of both worlds!
+                # Undersample majority, then SMOTE minority (balances to MIDDLE class with synthetic samples)
+                vprint("Using combined + SMOTE (under + synthetic over)...", level=2)
+
+                # Step 1: Undersample majority class (P) to match middle class (I)
+                intermediate_target = {
+                    count_items[1][1]: count_items[1][0],  # I stays same
+                    count_items[2][1]: count_items[1][0],  # P reduced to match I
+                    count_items[0][1]: counts[count_items[0][1]]  # R stays same (smallest)
+                }
+
+                undersampler = RandomUnderSampler(
+                    sampling_strategy=intermediate_target,
+                    random_state=42 + run * (run + 3)
+                )
+                X_under, y_under = undersampler.fit_resample(X, y)
+
+                # Print after undersampling
+                under_counts = Counter(y_under)
+                vprint("\nAfter undersampling (ordered):", level=2)
+                if get_verbosity() == 2:
+                    for class_idx in [0, 1, 2]:
+                        print(f"Class {class_idx}: {under_counts[class_idx]}")
+
+                # Step 2: SMOTE minority class (R) to match others
+                vprint("Applying SMOTE to minority class...", level=2)
+
+                # SMOTE requires numeric-only data with no NaN
+                # Select only numeric columns
+                numeric_cols = X_under.select_dtypes(include=[np.number]).columns.tolist()
+                non_numeric_cols = [col for col in X_under.columns if col not in numeric_cols]
+                X_under_numeric = X_under[numeric_cols].copy()
+
+                # Fill NaN with column median (SMOTE can't handle NaN)
+                X_under_numeric = X_under_numeric.fillna(X_under_numeric.median())
+
+                oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
+                X_resampled_numeric, y_resampled = oversampler.fit_resample(X_under_numeric, y_under)
+
+                # Reconstruct X_resampled with synthetic values for new samples
+                X_resampled = pd.DataFrame(X_resampled_numeric, columns=numeric_cols)
+                n_original = len(X_under)
+                n_synthetic = len(X_resampled) - n_original
+                for col in non_numeric_cols:
+                    original_vals = X_under[col].values.tolist()
+                    synthetic_vals = [f'SYN_{i}' for i in range(n_synthetic)]
+                    X_resampled[col] = original_vals + synthetic_vals
+
+            elif SAMPLING_STRATEGY == 'reduced_combined':
+                # REDUCED_COMBINED: Reduce oversampling to minimize duplicates
+                # Strategy:
+                # 1. Find target = midpoint between R and MIDDLE class
+                # 2. Undersample P and I to target
+                # 3. Oversample R to target (creates fewer duplicates)
+                # Example: I=276, P=496, R=118
+                # - Target = (276 + 118) / 2 = 197
+                # - Result: I=197, P=197, R=197
+                # - R duplicates: 79 (vs 158 with 'combined')
+                vprint("Using reduced_combined sampling (fewer duplicates, better RF generalization)...", level=2)
+
+                # Get class counts
+                class_counts = Counter(y)
+                count_I = class_counts[0]
+                count_P = class_counts[1]
+                count_R = class_counts[2]
+
+                # Find middle count (I is typically middle)
+                sorted_counts = sorted([count_I, count_P, count_R])
+                middle_count = sorted_counts[1]  # Middle value
+                min_count = sorted_counts[0]     # Smallest (R)
+
+                # Target: midpoint between R and MIDDLE
+                target_count = (middle_count + min_count) // 2
+
+                vprint(f"  Original: I={count_I}, P={count_P}, R={count_R}", level=2)
+                vprint(f"  Target count: {target_count} (reduces duplicates by ~50%)", level=2)
+
+                # Undersample I and P to target, oversample R to target
+                sampling_strategy_under = {}
+                sampling_strategy_over = {}
+
+                # For each class, decide whether to under or over sample
+                for cls, count in class_counts.items():
+                    if count > target_count:
+                        sampling_strategy_under[cls] = target_count
+                    else:
+                        sampling_strategy_over[cls] = target_count
+
+                # Step 1: Undersample larger classes
+                if sampling_strategy_under:
+                    undersampler = RandomUnderSampler(
+                        sampling_strategy=sampling_strategy_under,
+                        random_state=42 + run * (run + 3)
+                    )
+                    X_temp, y_temp = undersampler.fit_resample(X, y)
+                else:
+                    X_temp, y_temp = X, y
+
+                # Step 2: Oversample smaller classes
+                if sampling_strategy_over:
+                    oversampler = RandomOverSampler(
+                        sampling_strategy=sampling_strategy_over,
+                        random_state=42 + run * (run + 3)
+                    )
+                    X_resampled, y_resampled = oversampler.fit_resample(X_temp, y_temp)
+                else:
+                    X_resampled, y_resampled = X_temp, y_temp
+
+                # Count duplicates created
+                final_counts = Counter(y_resampled)
+                duplicates_created = target_count - min_count
+                vprint(f"  After sampling: I={final_counts[0]}, P={final_counts[1]}, R={final_counts[2]}", level=2)
+                vprint(f"  R duplicates: {duplicates_created} ({duplicates_created/target_count*100:.1f}% of R samples)", level=2)
+
+            elif SAMPLING_STRATEGY == 'smote':
+                # SMOTE: Synthetic Minority Over-sampling Technique
+                # Generates synthetic samples instead of duplicating existing ones
+                # Fixes RF overfitting issue with 100% data (RF Kappa 0.09 → 0.15-0.20 expected)
+                vprint("Using SMOTE (synthetic oversampling)...", level=2)
+
+                # SMOTE requires numeric-only data with no NaN
+                # Select only numeric columns
+                numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()
+                non_numeric_cols = [col for col in X.columns if col not in numeric_cols]
+                X_numeric = X[numeric_cols].copy()
+
+                # Fill NaN with column median (SMOTE can't handle NaN)
+                X_numeric = X_numeric.fillna(X_numeric.median())
+
+                oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
+                X_resampled_numeric, y_resampled = oversampler.fit_resample(X_numeric, y)
+
+                # Reconstruct X_resampled with synthetic IDs for new samples
+                X_resampled = pd.DataFrame(X_resampled_numeric, columns=numeric_cols)
+                # Add non-numeric columns with synthetic values for new samples
+                n_original = len(X)
+                n_synthetic = len(X_resampled) - n_original
+                for col in non_numeric_cols:
+                    original_vals = X[col].values.tolist()
+                    synthetic_vals = [f'SYN_{i}' for i in range(n_synthetic)]
+                    X_resampled[col] = original_vals + synthetic_vals
+
+            else:  # 'random' or default
+                # Simple random duplication (original baseline method)
+                vprint("Using simple random oversampling...", level=2)
+                oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
+                X_resampled, y_resampled = oversampler.fit_resample(X, y)
 
             resampled_df = pd.DataFrame(X_resampled, columns=X.columns)
             resampled_df['Healing Phase Abs'] = y_resampled
@@ -820,7 +1029,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                                                                         'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']+['Healing Phase Abs']]
                 
                 # numeric_columns = split_data.select_dtypes(include=[np.number]).columns
-                imputer = KNNImputer(n_neighbors=5)
+                # Use k=3 for better performance (validated: Kappa 0.201 vs 0.176 with k=5)
+                imputer = KNNImputer(n_neighbors=3)
                 source_df[columns_to_impute] = imputer.fit_transform(source_df[columns_to_impute])
                 metadata_df[columns_to_impute] = imputer.transform(metadata_df[columns_to_impute])
                 
@@ -835,22 +1045,88 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 scaler = StandardScaler()
                 source_df[columns_to_impute] = scaler.fit_transform(source_df[columns_to_impute])
                 metadata_df[columns_to_impute] = scaler.transform(metadata_df[columns_to_impute])
-                
+
+                # Feature selection: Select top k features using Mutual Information (validated: k=40)
+                # This is done on TRAINING data only to avoid data leakage
+                if is_training:
+                    from sklearn.feature_selection import mutual_info_classif
+
+                    # CRITICAL: Exclude identifiers before feature selection (prevent data leakage)
+                    # These columns are needed for tracking but should NOT be used as ML features
+                    exclude_from_selection = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                    feature_candidates = [col for col in columns_to_impute if col not in exclude_from_selection]
+
+                    # Compute MI on training data (using only valid feature candidates)
+                    X_train_fs = source_df[feature_candidates].values
+
+                    # Handle labels: might be strings ('I', 'P', 'R') or numeric (0, 1, 2) after oversampling
+                    y_train_raw = source_df['Healing Phase Abs']
+
+                    # Convert to numeric if needed
+                    if y_train_raw.dtype == object or y_train_raw.dtype.name == 'string':
+                        # String labels: map to numeric
+                        y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
+                    else:
+                        # Already numeric
+                        y_train_fs = y_train_raw.values
+
+                    # CRITICAL: Validate no NaN - crash if found (don't hide errors!)
+                    if np.isnan(y_train_fs).any():
+                        nan_count = np.isnan(y_train_fs).sum()
+                        unique_vals = source_df['Healing Phase Abs'].unique()
+                        raise ValueError(
+                            f"Feature selection failed: {nan_count} NaN values in labels!\n"
+                            f"Unique label values: {unique_vals}\n"
+                            f"Label dtype: {source_df['Healing Phase Abs'].dtype}\n"
+                            f"This indicates a data preprocessing bug that must be fixed."
+                        )
+
+                    mi_scores = mutual_info_classif(X_train_fs, y_train_fs, random_state=42)
+
+                    # Select top 40 features (validated in Phase 2)
+                    k_features = 40
+                    top_k_indices = np.argsort(mi_scores)[-k_features:]
+                    selected_features = [feature_candidates[i] for i in top_k_indices]
+
+                    vprint(f"Feature selection: {len(feature_candidates)} → {k_features} features", level=2)
+                    vprint(f"Top 5 features: {[feature_candidates[i] for i in np.argsort(mi_scores)[-5:][::-1]]}", level=2)
+
+                    # Store selected features in module-level cache for validation split
+                    _selected_features_cache[run] = selected_features
+                else:
+                    # Use same features selected from training
+                    selected_features = _selected_features_cache[run]
+                    vprint(f"Using {len(selected_features)} features from training selection", level=2)
+
+                # Apply feature selection to both source and metadata dataframes
+                # Keep Patient#, Appt#, DFU#, Healing Phase Abs for processing (if they exist)
+                keep_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                # Only keep columns that actually exist (Appt# and DFU# may have been dropped in features_to_drop)
+                available_keep_cols = [col for col in keep_cols if col in source_df.columns]
+                source_df = source_df[available_keep_cols + selected_features]
+                metadata_df = metadata_df[available_keep_cols + selected_features]
+                columns_to_impute = selected_features  # Update for subsequent processing
+
                 # Random Forest processing
                 if is_training:
                     try:
                         import tensorflow_decision_forests as tfdf
                         vprint("Using TensorFlow Decision Forests", level=2)
                         
-                        # Create models
+                        # Create models with Bayesian-optimized hyperparameters (validated Kappa=0.205)
+                        # Optimized via end-to-end 3-class Kappa maximization
                         rf_model1 = tfdf.keras.RandomForestModel(
-                            num_trees=300,
+                            num_trees=646,      # Optimized from 500 (Bayesian search)
+                            max_depth=14,       # Optimized from 10 (deeper trees capture patterns)
+                            min_examples=19,    # Optimized from 10 (more conservative splitting)
                             task=tfdf.keras.Task.CLASSIFICATION,
                             random_seed=42 + run * (run + 3),
                             verbose=0
                         )
                         rf_model2 = tfdf.keras.RandomForestModel(
-                            num_trees=300,
+                            num_trees=646,
+                            max_depth=14,
+                            min_examples=19,
                             task=tfdf.keras.Task.CLASSIFICATION,
                             random_seed=42 + run * (run + 3),
                             verbose=0
@@ -877,18 +1153,18 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         # print("\nWeight1 unique values:", train_df['weight1'].unique())
                         # print("Weight2 unique values:", train_df['weight2'].unique())
                         
-                        # Remove unnecessary columns
-                        cols_to_drop = ['Patient#', 'Healing Phase Abs']
-                        
+                        # Remove identifiers and labels (keep for tracking but don't train on them)
+                        cols_to_drop = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+
                         # Create datasets
                         dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                            train_df.drop(columns=cols_to_drop + ['label_bin2', 'weight2']),
+                            train_df.drop(columns=cols_to_drop + ['label_bin2', 'weight2'], errors='ignore'),
                             label='label_bin1',
                             weight='weight1'
                         )
-                        
+
                         dataset2 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                            train_df.drop(columns=cols_to_drop + ['label_bin1', 'weight1']),
+                            train_df.drop(columns=cols_to_drop + ['label_bin1', 'weight1'], errors='ignore'),
                             label='label_bin2',
                             weight='weight2'
                         )
@@ -899,22 +1175,30 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     except ImportError:
                         vprint("Using Scikit-learn RandomForestClassifier")
                         from sklearn.ensemble import RandomForestClassifier
+                        # Bayesian-optimized hyperparameters (validated Kappa=0.205 ± 0.057)
+                        # Optimized via end-to-end 3-class Kappa maximization
                         rf_model1 = RandomForestClassifier(
-                            n_estimators=300,
+                            n_estimators=646,       # Optimized from 500 (Bayesian search)
+                            max_depth=14,           # Optimized from 10 (deeper trees capture patterns)
+                            min_samples_split=19,   # Optimized from 10 (more conservative splitting)
+                            min_samples_leaf=2,     # Optimized (prevents overfitting on leaves)
+                            max_features='log2',    # Optimized from 'sqrt' (better feature diversity)
                             random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary1,
-                            n_jobs=-1,
-                            # max_features=None
+                            n_jobs=-1
                         )
                         rf_model2 = RandomForestClassifier(
-                            n_estimators=300, #100,
+                            n_estimators=646,
+                            max_depth=14,
+                            min_samples_split=19,
+                            min_samples_leaf=2,
+                            max_features='log2',
                             random_state=42 + run * (run + 3),
                             class_weight=class_weight_dict_binary2,
-                            n_jobs=-1,
-                            # max_features=None
+                            n_jobs=-1
                         )
-                        # Prepare features for RF
-                        X = metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1)
+                        # Prepare features for RF (drop identifiers - keep for tracking but don't train on them)
+                        X = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
                         # y = split_data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
                         y = metadata_df['Healing Phase Abs']
                         y_bin1 = (y > 0).astype(int)
@@ -925,10 +1209,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 try:
                     import tensorflow_decision_forests as tfdf
                     dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                        metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1),
+                        metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore'),
                         label=None  # No label needed for prediction
                     )
-                    
+
                     # Get predictions
                     with tf.device('/CPU:0'):
                         pred1 = rf_model1.predict(dataset1)
@@ -940,16 +1224,24 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         prob1 = np.squeeze(pred1)
                         prob2 = np.squeeze(pred2)
                 except ImportError:
-                    dataset = metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1)
+                    dataset = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
                     # dataset_pd = tf_to_pd(dataset)
                     prob1 = rf_model1.predict_proba(dataset)[:, 1]
                     prob2 = rf_model2.predict_proba(dataset)[:, 1]
                 
-                # Calculate final probabilities
-                prob_I = 1 - prob1
-                prob_P = prob1 * (1 - prob2)
-                prob_R = prob2
-                
+                # Calculate final probabilities (unnormalized)
+                prob_I_unnorm = 1 - prob1
+                prob_P_unnorm = prob1 * (1 - prob2)
+                prob_R_unnorm = prob2
+
+                # CRITICAL FIX: Normalize probabilities to sum to 1.0
+                # Bug: prob_I + prob_P + prob_R = 1 + prob2(1 - prob1) != 1.0
+                # Without normalization, fusion gets Kappa=-0.007 (worse than random!)
+                total = prob_I_unnorm + prob_P_unnorm + prob_R_unnorm
+                prob_I = prob_I_unnorm / total
+                prob_P = prob_P_unnorm / total
+                prob_R = prob_R_unnorm / total
+
                 # Store RF probabilities in the DataFrame
                 split_data['rf_prob_I'] = prob_I
                 split_data['rf_prob_P'] = prob_P
@@ -979,12 +1271,28 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     if 'metadata' in selected_modalities:
         # Note: StandardScaler is already imported at module level (line 14)
 
-        # Identify numeric columns to normalize (exclude images, labels, identifiers)
+        # Identify numeric columns to normalize (exclude images, labels, identifiers, data leakage)
+        # CRITICAL: Exclude Phase Confidence (%) - it's the model's own confidence (DATA LEAKAGE!)
+        # Full exclusion list matches main_original.py:1110
         exclude_cols = [
+            # Core identifiers and target
             'Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs',
+            # Data leakage columns (from main_original.py:1110)
+            'ID', 'Location', 'Healing Phase', 'Phase Confidence (%)',
+            'Appt Days',
+            'Type of Pain', 'Type of Pain2', 'Type of Pain_Grouped2', 'Type of Pain Grouped',
+            'Peri-Ulcer Temperature (°C)', 'Wound Centre Temperature (°C)',
+            'Dressing', 'Dressing Grouped',
+            'No Offloading', 'Offloading: Therapeutic Footwear',
+            'Offloading: Scotcast Boot or RCW', 'Offloading: Half Shoes or Sandals',
+            'Offloading: Total Contact Cast', 'Offloading: Crutches, Walkers or Wheelchairs',
+            'Offloading Score',
+            # Image modalities and coordinates
             'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
             'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
-            'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax'
+            'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax',
+            # RF probabilities (must not be normalized - they're already in [0,1])
+            'rf_prob_I', 'rf_prob_P', 'rf_prob_R'
         ]
 
         # Get numeric columns from train_data
