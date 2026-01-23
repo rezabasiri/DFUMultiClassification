@@ -1,0 +1,221 @@
+================================================================================
+PHASE 7: FINAL VALIDATION - Confirm Seed 789 + Explicit Outlier Removal
+================================================================================
+
+Goal: Prove the "implicit outlier removal" hypothesis and determine optimal
+      production configuration.
+
+Timeline: ~3-4 hours total
+
+Strategy:
+  Phase 7a: Confirm seed 789 @ 50% achieves Kappa ~0.279 (30 min)
+  Phase 7b: Explicit outlier removal @ 100% with Isolation Forest (2.5 hours)
+
+Hypothesis: If we explicitly remove outliers from 100% data, performance should
+            match 50% seed 789 (Kappa ~0.27), proving 50% works via implicit
+            outlier removal.
+
+================================================================================
+PHASE 7a: CONFIRM SEED 789 PERFORMANCE
+================================================================================
+
+Verify seed 789 @ 50% is reproducible (Kappa ~0.279 expected)
+
+Commands:
+---------
+cd /workspace/DFUMultiClassification
+
+# Verify src/main.py line ~1849 has seed 789:
+#   data = data.sample(frac=data_percentage / 100, random_state=789).reset_index(drop=True)
+
+# Run confirmation
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi --data_percentage 50 \
+  2>&1 | tee agent_communication/fusion_fix/run_fusion_32x32_50pct_seed789_confirm.txt
+
+Expected: Kappa 0.27-0.29 (matching Phase 6 result of 0.279)
+
+Success criteria:
+  ✅ Kappa within 0.02 of 0.279 (0.26-0.30 acceptable)
+  ✅ All folds > 0.22
+  ✅ CV < 20%
+
+⚠️  If results don't match: Report to cloud agent before proceeding!
+
+================================================================================
+PHASE 7b: EXPLICIT OUTLIER REMOVAL (3 tests)
+================================================================================
+
+Strategy:
+  - Metadata-only outlier detection (fast, targets RF bottleneck)
+  - Per-class Isolation Forest (handles class imbalance)
+  - Test 3 contamination rates: 5%, 10%, 15%
+  - ⚠️  MINORITY CLASS PROTECTION: R class capped at 10% max, 20% hard limit
+
+-------------------------------------------------------------------------------
+STEP 1: RUN OUTLIER DETECTION (5 min)
+-------------------------------------------------------------------------------
+
+python agent_communication/fusion_fix/detect_outliers.py \
+  2>&1 | tee agent_communication/fusion_fix/run_outlier_detection.txt
+
+What this does:
+  1. Loads 100% metadata (890 samples: I=276, P=496, R=118)
+  2. Per-class Isolation Forest with 5%, 10%, 15% contamination
+  3. ⚠️  Protects R class: Max 10% contamination, 20% hard limit
+  4. Saves 3 cleaned datasets to data/cleaned/
+  5. Saves outlier lists for analysis
+
+Expected output:
+  5% contamination:  ~40 outliers removed (R: max 12 = 10%)
+  10% contamination: ~75 outliers removed (R: max 12 = 10%)
+  15% contamination: ~110 outliers removed (R: max 12 = 10%)
+
+⚠️  R class will have LOWER removal rate due to protection!
+
+-------------------------------------------------------------------------------
+STEP 2: TRAIN ON CLEANED DATASETS (3 tests × 30 min = 90 min)
+-------------------------------------------------------------------------------
+
+IMPORTANT SETUP BEFORE EACH TEST:
+
+1. Reset random seed in src/main.py line ~1849:
+   Change: random_state=789
+   To:     random_state=42
+   (We're using 100% data now, not 50% random sampling)
+
+2. Update src/utils/production_config.py:
+   DATA_PERCENTAGE = 100
+   SAMPLING_STRATEGY = 'combined'
+
+--- TEST 1: 5% OUTLIER REMOVAL ---
+
+# Apply cleaned dataset
+python agent_communication/fusion_fix/apply_cleaned_dataset.py --apply --contamination 5
+
+# Run training
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi \
+  2>&1 | tee agent_communication/fusion_fix/run_fusion_32x32_100pct_cleaned_05pct.txt
+
+# Restore original
+python agent_communication/fusion_fix/apply_cleaned_dataset.py --restore
+
+Expected: Kappa 0.19-0.21 (moderate improvement over 0.166)
+
+--- TEST 2: 10% OUTLIER REMOVAL ---
+
+# Apply cleaned dataset
+python agent_communication/fusion_fix/apply_cleaned_dataset.py --apply --contamination 10
+
+# Run training
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi \
+  2>&1 | tee agent_communication/fusion_fix/run_fusion_32x32_100pct_cleaned_10pct.txt
+
+# Restore original
+python agent_communication/fusion_fix/apply_cleaned_dataset.py --restore
+
+Expected: Kappa 0.22-0.24 (good improvement)
+
+--- TEST 3: 15% OUTLIER REMOVAL ---
+
+# Apply cleaned dataset
+python agent_communication/fusion_fix/apply_cleaned_dataset.py --apply --contamination 15
+
+# Run training
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi \
+  2>&1 | tee agent_communication/fusion_fix/run_fusion_32x32_100pct_cleaned_15pct.txt
+
+# Restore original
+python agent_communication/fusion_fix/apply_cleaned_dataset.py --restore
+
+Expected: Kappa 0.25-0.27 (best, should match 50% seed 789!)
+
+-------------------------------------------------------------------------------
+STEP 3: VERIFY RESTORATION
+-------------------------------------------------------------------------------
+
+python agent_communication/fusion_fix/apply_cleaned_dataset.py --status
+
+Should show "Using original dataset" or same size with backup.
+
+================================================================================
+EXPECTED RESULTS & HYPOTHESIS VALIDATION
+================================================================================
+
+IF HYPOTHESIS IS CORRECT:
+
+  100% original          → Kappa 0.166 (contains outliers)
+  100% cleaned 5%        → Kappa 0.19-0.21
+  100% cleaned 10%       → Kappa 0.22-0.24
+  100% cleaned 15%       → Kappa 0.25-0.27 ✅ MATCHES 50% seed 789!
+  50% seed 789 reference → Kappa 0.279
+
+  Conclusion: ✅ Implicit outlier removal hypothesis CONFIRMED!
+  Production: Use 100% with 15% explicit outlier removal
+
+IF HYPOTHESIS IS WRONG:
+
+  100% cleaned 5-15%     → Kappa 0.17-0.19 (minimal improvement)
+  50% seed 789           → Kappa 0.279 (still much better)
+
+  Conclusion: ❌ Hypothesis incorrect - something else explains 50%
+  Production: Use 50% data with seed 789
+
+================================================================================
+IMPORTANT REMINDERS
+================================================================================
+
+✅ Always restore cache after each test (--restore)
+✅ Reset random seed to 42 for 100% data tests (not 789)
+✅ Use --status to verify which dataset is active
+✅ R class protection: Max 10-12 samples removed (not 15-18)
+✅ Keep config consistent: IMAGE_SIZE=32, combined sampling, 3-fold CV
+
+================================================================================
+FILES TO SHARE AFTER COMPLETION
+================================================================================
+
+1. run_fusion_32x32_50pct_seed789_confirm.txt (Phase 7a)
+2. run_outlier_detection.txt (Outlier detection)
+3. run_fusion_32x32_100pct_cleaned_05pct.txt (5% test)
+4. run_fusion_32x32_100pct_cleaned_10pct.txt (10% test)
+5. run_fusion_32x32_100pct_cleaned_15pct.txt (15% test)
+
+Plus results summary following template in PHASE7_INSTRUCTIONS.md
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: detect_outliers.py fails
+Solution: cd /workspace/DFUMultiClassification first
+
+Problem: Training uses wrong sample count
+Solution: Run --status, verify correct dataset active
+
+Problem: Results inconsistent
+Solution: Verify random seed (42 for 100%, 789 for 50%)
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+Phase 7 is SUCCESSFUL if:
+  ✅ Seed 789 confirmed (Kappa ~0.279)
+  ✅ Outlier detection completes without errors
+  ✅ All 3 cleaned datasets improve over baseline (0.166)
+  ✅ Clear trend: More removal → Better performance
+  ✅ Final recommendation is clear
+
+MYSTERY IS SOLVED if:
+  ✅ 15% cleaned matches 50% seed 789 (Kappa ~0.27)
+  ✅ Proves implicit outlier removal hypothesis
+  ✅ Provides production-ready solution
+
+Good luck solving the mystery! 🎯
+
+See PHASE7_INSTRUCTIONS.md for full details and reporting template.
+================================================================================

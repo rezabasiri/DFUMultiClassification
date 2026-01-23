@@ -7,10 +7,16 @@ Multimodal deep learning for Diabetic Foot Ulcer healing phase classification.
 #%% Import Libraries and Configure Environment
 import os
 import sys
+import warnings
+
+# Suppress sklearn FutureWarnings about deprecated internal methods (sklearn 1.6.x issue)
+# These are sklearn's internal deprecation warnings, not issues with our code
+warnings.filterwarnings('ignore', message='.*BaseEstimator._check_n_features.*')
+warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.*')
 
 # Suppress TensorFlow C++ logging (must be set before importing TensorFlow)
 # This will be overridden later based on verbosity level, but default to minimal logging
-os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '1')  # Default: suppress INFO messages
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING messages (keep errors only)
 
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
@@ -70,6 +76,10 @@ from src.utils.production_config import *  # Import all production configuration
 from src.utils.debug import clear_gpu_memory, reset_keras, clear_cuda_memory
 from src.utils.verbosity import set_verbosity, vprint, get_verbosity, init_progress_bar, update_progress, close_progress
 from src.utils.gpu_config import setup_device_strategy, get_effective_batch_size, print_gpu_memory_usage
+from src.utils.outlier_detection import (
+    detect_outliers, apply_cleaned_dataset, restore_original_dataset, check_metadata_in_modalities,
+    detect_outliers_combination, apply_cleaned_dataset_combination
+)
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
     create_best_matching_dataset, prepare_dataset, preprocess_image_data,
@@ -1756,7 +1766,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_fo
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3):
     """
     Test all modality combinations and save results to CSV.
 
@@ -1841,17 +1851,18 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thres
         vprint(f"\nTesting modalities: {', '.join(selected_modalities)}")
         # Load and prepare the dataset
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities)
-        # Only apply filtering if thresholds are explicitly provided (via --threshold_* or --core-data)
-        if thresholds is not None:
+        # Apply misclassification filtering if configured (from production_config)
+        if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
+            thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
             from src.evaluation.metrics import filter_frequent_misclassifications
             data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
         if data_percentage < 100:
-            data = data.sample(frac=data_percentage / 100, random_state=42).reset_index(drop=True)
+            data = data.sample(frac=data_percentage / 100, random_state=789).reset_index(drop=True)  # Phase 7a: seed 789
         vprint(f"Using {data_percentage}% of the data: {len(data)} samples")
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
         cv_results, confusion_matrices, histories = cross_validation_manual_split(
-            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=track_misclass
+            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=TRACK_MISCLASS
         )
 
         # Save predictions per combination for later gating network ensemble
@@ -2062,7 +2073,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, thres
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, thresholds=None, track_misclass='both'):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2071,9 +2082,86 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         data_percentage (float): Percentage of data to use
         train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
         cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
-        thresholds (dict): Misclassification filtering thresholds {'I': x, 'P': y, 'R': z}
-        track_misclass (str): Which dataset to track misclassifications from ('both', 'valid', 'train')
+
+    Configuration (from production_config.py):
+        OUTLIER_REMOVAL: Enable outlier detection and removal
+        OUTLIER_CONTAMINATION: Expected proportion of outliers
+        TRACK_MISCLASS: Misclassification tracking mode
+        USE_CORE_DATA: Use Bayesian-optimized core dataset
+        THRESHOLD_I/P/R: Misclassification filtering thresholds
     """
+    # Outlier detection and removal (combination-specific, if enabled)
+    if OUTLIER_REMOVAL:
+        # Determine which modalities will be tested
+        modalities_to_test = []
+        if mode.lower() == 'search':
+            if MODALITY_SEARCH_MODE == 'all':
+                # Generate all 31 combinations
+                from itertools import chain, combinations
+                all_modalities = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+                modalities_to_test = list(chain.from_iterable(
+                    combinations(all_modalities, r) for r in range(1, len(all_modalities) + 1)
+                ))
+            else:  # custom
+                modalities_to_test = INCLUDED_COMBINATIONS
+        elif mode.lower() == 'specialized':
+            # Specialized mode typically tests specific combinations
+            modalities_to_test = INCLUDED_COMBINATIONS if INCLUDED_COMBINATIONS else []
+
+        if modalities_to_test:
+            vprint("\n" + "="*80, level=1)
+            vprint("OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)", level=1)
+            vprint("="*80, level=1)
+            vprint(f"Contamination rate: {OUTLIER_CONTAMINATION*100:.0f}%", level=1)
+            vprint(f"Processing {len(modalities_to_test)} modality combination(s)", level=1)
+            vprint(f"Image size: {IMAGE_SIZE} (must match cache if using cache)", level=2)
+            vprint("Hybrid mode: Uses cache if available, else extracts on-the-fly with ImageNet weights", level=2)
+            vprint("", level=1)
+
+            # Process each combination
+            for i, combination in enumerate(modalities_to_test, 1):
+                combo_name = '_'.join(sorted(combination))
+                vprint(f"[{i}/{len(modalities_to_test)}] {combo_name}", level=1)
+
+                try:
+                    # Detect outliers for this combination (hybrid mode: cache or on-the-fly)
+                    cleaned_df, outlier_df, output_file = detect_outliers_combination(
+                        combination=combination,
+                        contamination=OUTLIER_CONTAMINATION,
+                        random_state=RANDOM_SEED,
+                        force_recompute=False,
+                        use_cache=True,  # Enable hybrid mode
+                        image_size=IMAGE_SIZE,
+                        batch_size=OUTLIER_BATCH_SIZE
+                    )
+
+                    if cleaned_df is not None:
+                        # Apply cleaned dataset
+                        success = apply_cleaned_dataset_combination(
+                            combination=combination,
+                            contamination=OUTLIER_CONTAMINATION,
+                            backup=True
+                        )
+
+                        if success:
+                            vprint(f"  ✓ Applied for {combo_name}: {len(cleaned_df)} samples", level=1)
+                            if outlier_df is not None:
+                                vprint(f"    Removed {len(outlier_df)} outliers", level=2)
+                        else:
+                            vprint(f"  ⚠ Could not apply for {combo_name}, using original", level=1)
+                    else:
+                        vprint(f"  ⚠ Detection failed for {combo_name}, using original", level=1)
+
+                except Exception as e:
+                    vprint(f"  ⚠ Error for {combo_name}: {str(e)}", level=1)
+                    vprint(f"    Continuing with original dataset", level=2)
+
+            vprint("", level=1)
+            vprint("="*80 + "\n", level=1)
+        else:
+            vprint("Outlier removal skipped (no modality combinations specified)", level=2)
+    else:
+        vprint("Outlier removal disabled", level=2)
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
     cache_patterns = [
@@ -2095,9 +2183,11 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
             vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, thresholds=thresholds, track_misclass=track_misclass)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds)
     elif mode.lower() == 'specialized':
-        main_with_specialized_evaluation(data_percentage, train_patient_percentage, cv_folds, track_misclass=track_misclass)
+        # Note: Specialized mode not yet implemented, falling back to search mode
+        vprint("Warning: Specialized mode not implemented, running search mode instead", level=0)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds)
     else:
         raise ValueError("Mode must be either 'search' or 'specialized'")
 
@@ -2107,14 +2197,14 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Test all 31 modality combinations with default settings (single GPU)
+  # Test all 31 modality combinations with default settings (multi-GPU)
   python src/main.py --mode search
 
   # Use CPU only (no GPUs)
   python src/main.py --mode search --device-mode cpu
 
-  # Use all available GPUs (multi-GPU training)
-  python src/main.py --mode search --device-mode multi
+  # Use single GPU only (auto-selects best GPU)
+  python src/main.py --mode search --device-mode single
 
   # Use specific GPUs (custom)
   python src/main.py --mode search --device-mode custom --custom-gpus 0 1
@@ -2126,11 +2216,11 @@ Examples:
   python src/main.py --mode search --cv_folds 3
 
   # Filter out low-memory GPUs (require 12GB+)
-  python src/main.py --mode search --device-mode multi --min-gpu-memory 12.0
+  python src/main.py --mode search --min-gpu-memory 12.0
 
 Configuration:
   GPU selection:
-  - --device-mode: 'cpu', 'single' (default), 'multi', or 'custom'
+  - --device-mode: 'cpu', 'single', 'multi' (default), or 'custom'
   - Automatic filtering: >=8GB memory, non-display GPUs
   - Single mode: auto-selects best GPU
   - Multi mode: uses TensorFlow MirroredStrategy
@@ -2223,68 +2313,10 @@ Configuration:
     )
 
     parser.add_argument(
-        "--threshold_I",
-        type=int,
-        default=None,
-        help="""Misclassification filtering threshold for Inflammatory (I) class.
-        Lower threshold = exclude more misclassified samples.
-        Use with frequent_misclassifications_saved.csv for iterative data polishing.
-        Example: 5 (exclude samples misclassified 5+ times)
-        (default: None - uses filter function defaults)"""
-    )
-
-    parser.add_argument(
-        "--threshold_P",
-        type=int,
-        default=None,
-        help="""Misclassification filtering threshold for Proliferative (P) class.
-        Lower threshold = exclude more misclassified samples.
-        Typically lower than I/R to reduce dominant class imbalance.
-        Example: 3 (exclude samples misclassified 3+ times)
-        (default: None - uses filter function defaults)"""
-    )
-
-    parser.add_argument(
-        "--threshold_R",
-        type=int,
-        default=None,
-        help="""Misclassification filtering threshold for Remodeling (R) class.
-        Lower threshold = exclude more misclassified samples.
-        Typically higher than I/P to protect rare minority class.
-        Example: 8 (exclude samples misclassified 8+ times)
-        (default: None - uses filter function defaults)"""
-    )
-
-    parser.add_argument(
-        "--core-data",
-        action='store_true',
-        default=False,
-        help="""Use optimized core dataset filtered by auto_polish_dataset_v2.py results.
-        Automatically loads best thresholds from results/bayesian_optimization_results.json
-        to exclude outlier samples that could result from human error or measurement issues.
-        This improves model performance by training on high-quality core data only.
-        Manual threshold arguments (--threshold_I/P/R) override these if specified.
-        (default: False - uses all available data)"""
-    )
-
-    parser.add_argument(
-        "--track-misclass",
-        type=str,
-        choices=['both', 'valid', 'train'],
-        default='both',
-        help="""Which dataset to track misclassifications from:
-        'both': Track from both train and validation sets (default)
-        'valid': Track only from validation set (recommended - faster, more meaningful)
-        'train': Track only from training set (not recommended)
-        Validation-only tracking skips inference on training data, saving computation.
-        (default: both)"""
-    )
-
-    parser.add_argument(
         "--device-mode",
         type=str,
         choices=['cpu', 'single', 'multi', 'custom'],
-        default='single',
+        default='multi',
         help="""Device mode for training:
         'cpu': Use CPU only (disables all GPUs)
         'single': Use single best GPU (auto-selected, >=8GB, non-display)
@@ -2296,7 +2328,7 @@ Configuration:
         - Excludes display GPUs by default (unless --include-display-gpus)
         - Single mode: selects GPU with most memory
         - Multi mode: uses TensorFlow MirroredStrategy for data parallelism
-        (default: single)"""
+        (default: multi)"""
     )
 
     parser.add_argument(
@@ -2439,42 +2471,20 @@ Configuration:
     thresholds = None
 
     # Load optimized thresholds from auto_polish_dataset_v2.py if --core-data is set
-    if args.core_data:
-        import json
-        bayesian_results_file = os.path.join(result_dir, 'bayesian_optimization_results.json')
-        if os.path.exists(bayesian_results_file):
-            try:
-                with open(bayesian_results_file, 'r') as f:
-                    bayesian_results = json.load(f)
-                thresholds = bayesian_results.get('best_thresholds', None)
-                if thresholds:
-                    vprint(f"Core data mode enabled: Using optimized thresholds from Bayesian optimization", level=0)
-                    vprint(f"  Best thresholds: {thresholds}", level=0)
-                    vprint(f"  Optimization score: {bayesian_results.get('best_score', 'N/A'):.4f}", level=0)
-                    vprint(f"  Original dataset size: {bayesian_results.get('original_dataset_size', 'N/A')} samples", level=0)
-                else:
-                    vprint(f"Warning: --core-data specified but no best_thresholds found in {bayesian_results_file}", level=0)
-            except Exception as e:
-                vprint(f"Warning: --core-data specified but failed to load {bayesian_results_file}: {e}", level=0)
-        else:
-            vprint(f"Warning: --core-data specified but {bayesian_results_file} not found", level=0)
-            vprint(f"  Run scripts/auto_polish_dataset_v2.py first to generate optimized thresholds", level=0)
-
-    # Manual thresholds override core-data thresholds
-    if args.threshold_I is not None or args.threshold_P is not None or args.threshold_R is not None:
-        if thresholds is not None:
-            vprint(f"Manual thresholds override core-data thresholds", level=0)
-        thresholds = {}
-        if args.threshold_I is not None:
-            thresholds['I'] = args.threshold_I
-        if args.threshold_P is not None:
-            thresholds['P'] = args.threshold_P
-        if args.threshold_R is not None:
-            thresholds['R'] = args.threshold_R
-        vprint(f"Misclassification filtering thresholds: {thresholds}", level=0)
+    # Data cleaning configuration summary
+    vprint("\nData Cleaning Configuration (from production_config.py):", level=0)
+    vprint(f"  Outlier removal: {OUTLIER_REMOVAL}", level=0)
+    if OUTLIER_REMOVAL:
+        vprint(f"  Outlier contamination: {OUTLIER_CONTAMINATION*100:.0f}%", level=0)
+        vprint(f"  Outlier batch size: {OUTLIER_BATCH_SIZE}", level=0)
+    vprint(f"  Misclassification tracking: {TRACK_MISCLASS}", level=0)
+    if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
+        vprint(f"  Core data mode: {USE_CORE_DATA}", level=0)
+        if any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
+            vprint(f"  Thresholds: I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}", level=0)
 
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, thresholds, args.track_misclass)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds)
 
     # Clear memory after completion
     clear_gpu_memory()

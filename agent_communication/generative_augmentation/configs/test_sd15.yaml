@@ -1,0 +1,124 @@
+# Quick Test: SD 1.5 - 128x128
+model:
+  base_model: "runwayml/stable-diffusion-v1-5"
+  resolution: 128
+  training_method: "lora"
+
+lora:
+  rank: 16
+  alpha: 32
+  dropout: 0.1
+  target_modules: ["to_q", "to_k", "to_v", "to_out.0"]
+  bias: "none"
+
+data:
+  data_root: "/workspace/DFUMultiClassification/data/DFU_Updated"
+  modality: "rgb"
+  phase: "I"
+  train_val_split: 0.85
+  split_seed: 42
+  augmentation:
+    enabled: true
+    horizontal_flip: true
+    vertical_flip: false
+    rotation_degrees: 10
+    color_jitter:
+      brightness: 0.1
+      contrast: 0.1
+      saturation: 0.1
+      hue: 0.05
+
+training:
+  batch_size_per_gpu: 2
+  gradient_accumulation_steps: 1
+  learning_rate: 1.0e-5
+  lr_scheduler: "constant"
+  lr_warmup_steps: 10
+  lr_num_cycles: 1
+  optimizer: "adamw"
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 0.01
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+  max_epochs: 3  # Quick test: 3 epochs
+  early_stopping:
+    enabled: false
+
+prompts:
+  enabled: true
+  positive: >
+    Medical photograph of diabetic foot ulcer in inflammatory phase,
+    showing redness and swelling, early wound healing, acute inflammation,
+    wound debridement phase, clinical documentation, high detail
+  negative: >
+    blurry, out of focus, low quality, jpeg artifacts,
+    unrealistic colors, smooth skin, healthy tissue,
+    artificial, cartoon, text, watermark
+
+quality:
+  perceptual_loss:
+    enabled: true
+    weight: 0.1
+    vgg_layer: 16
+  ema:
+    enabled: true
+    decay: 0.9999
+    use_ema_weights_for_inference: true
+  guidance_scale: 12.0
+  inference_steps_training: 20
+  inference_steps_production: 50
+
+checkpointing:
+  output_dir: "agent_communication/generative_augmentation/checkpoints/test_sd15"
+  save_every_n_epochs: 1
+  keep_last_n_checkpoints: 2
+  save_best_only: false
+  resume_from_checkpoint: null
+  save_optimizer_state: true
+
+metrics:
+  compute_every_n_epochs: 1
+  num_samples_for_metrics: 50
+  fid:
+    enabled: true
+    target_threshold: 50.0
+  ssim:
+    enabled: true
+    target_threshold: 0.70
+  lpips:
+    enabled: true
+    target_threshold: 0.30
+    network: "alex"
+  inception_score:
+    enabled: true
+    target_threshold: 2.0
+
+logging:
+  logging_dir: "agent_communication/generative_augmentation/reports/test_sd15_logs"
+  log_every_n_steps: 50
+  save_samples_every_n_epochs: 1
+  num_samples_to_save: 16
+  use_tensorboard: true
+  use_wandb: false
+
+hardware:
+  multi_gpu: false  # Single GPU for testing
+  num_gpus: 1
+  mixed_precision: "fp16"
+  gradient_checkpointing: true
+  use_xformers: false  # Disabled - VAE attention has 512-dim heads > xformers limit (256)
+  enable_cpu_offload: false
+  num_workers: 4
+  pin_memory: true
+
+reproducibility:
+  seed: 42
+  deterministic: false
+
+validation:
+  validate_every_n_epochs: 1
+  generate_samples: true
+  num_validation_samples: 8
+  compare_to_real: true
+  num_real_samples_for_comparison: 50

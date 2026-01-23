@@ -28,7 +28,9 @@ from src.utils.production_config import (
     GLOBAL_BATCH_SIZE, N_EPOCHS, IMAGE_SIZE,
     EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE, EPOCH_PRINT_INTERVAL,
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
-    GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT
+    GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT,
+    STAGE1_EPOCHS, DATA_PERCENTAGE, USE_GENERATIVE_AUGMENTATION,
+    GENERATIVE_AUG_MODEL_PATH
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
@@ -157,8 +159,38 @@ def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     # Use TF checkpoint format (not .weights.h5) for multi-GPU compatibility
     # TF checkpoint format avoids the "unsupported operand type(s) for /: 'Dataset' and 'int'" bug
     # that occurs with HDF5 format on TF 2.15.1 with RTX 5090 multi-GPU
+    # When filepath doesn't end with .h5, ModelCheckpoint uses TF checkpoint format automatically
     checkpoint_name = f'{modality_str}_{run}_{config_name}.ckpt'
     return os.path.join(models_path, checkpoint_name)
+
+
+def find_checkpoint_for_loading(checkpoint_path):
+    """
+    Find the best available checkpoint file for loading.
+
+    Supports backward compatibility: prefers .ckpt (TF format) but falls back to
+    .weights.h5 (HDF5 format) for older checkpoints.
+
+    Args:
+        checkpoint_path: Path to checkpoint (should end with .ckpt)
+
+    Returns:
+        Path to existing checkpoint file, or original path if none found.
+        Also returns format type ('ckpt', 'h5', or None).
+    """
+    # Try .ckpt format first (TF checkpoint creates .ckpt.index and .ckpt.data-*)
+    ckpt_index = checkpoint_path + '.index'
+    if os.path.exists(ckpt_index) or os.path.exists(checkpoint_path):
+        return checkpoint_path, 'ckpt'
+
+    # Fall back to .weights.h5 format (legacy)
+    h5_path = checkpoint_path.replace('.ckpt', '.weights.h5')
+    if os.path.exists(h5_path):
+        vprint(f"  Note: Loading legacy .weights.h5 checkpoint (will save as .ckpt)", level=2)
+        return h5_path, 'h5'
+
+    # No checkpoint found
+    return checkpoint_path, None
 class EscapingReduceLROnPlateau(tf.keras.callbacks.Callback):
     def __init__(self, monitor='val_loss', factor=0.5, patience=5, 
                  escape_factor=5.0, min_lr=1e-6, escape_patience=2):
@@ -945,10 +977,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         aug_config.generative_settings['output_size']['width'] = image_size
         aug_config.generative_settings['output_size']['height'] = image_size
 
-        gen_manager = GenerativeAugmentationManager(
-            base_dir=os.path.join(directory, 'Codes/MultimodalClassification/ImageGeneration/models_5_7'),
-            config=aug_config
-        )
+        # Initialize generative augmentation manager based on config setting
+        gen_manager = None
+        if USE_GENERATIVE_AUGMENTATION and GENERATIVE_AUG_MODEL_PATH:
+            vprint(f"Initializing GenerativeAugmentationManager with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
+            gen_manager = GenerativeAugmentationManager(
+                base_dir=GENERATIVE_AUG_MODEL_PATH,
+                config=aug_config
+            )
+        else:
+            vprint("Generative augmentation disabled", level=1)
 
         # Get all unique modalities from all configs
         all_modalities = set()
@@ -998,11 +1036,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 if run_true_labels_v is None:
                     run_true_labels_v = labels_v
                 continue
-            elif os.path.exists(create_checkpoint_filename(config['modalities'], run+1, config_name)):
-                # If not in completed_configs but weights exist, we need to regenerate predictions
-                vprint(f"\nFound weights but no predictions for {config_name}, regenerating predictions", level=1)
             else:
-                vprint(f"\nNo existing data found for {config_name}, starting fresh", level=1)
+                # Check if checkpoint exists (supports both .ckpt and legacy .weights.h5)
+                _, ckpt_exists = find_checkpoint_for_loading(create_checkpoint_filename(config['modalities'], run+1, config_name))
+                if ckpt_exists is not None:
+                    # If not in completed_configs but weights exist, we need to regenerate predictions
+                    vprint(f"\nFound weights but no predictions for {config_name}, regenerating predictions", level=1)
+                else:
+                    vprint(f"\nNo existing data found for {config_name}, starting fresh", level=1)
 
             selected_modalities = config['modalities']
             # Display proper iteration context
@@ -1087,6 +1128,215 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         input_shapes = data_manager.get_shapes_for_modalities(selected_modalities)
                         model = create_multimodal_model(input_shapes, selected_modalities, None)
 
+                        # CRITICAL FIX: For fusion with metadata, load pre-trained image weights and FREEZE image branch
+                        # Training image in fusion mode causes catastrophic overfitting (Train 0.96, Val 0.02)
+                        has_metadata = 'metadata' in selected_modalities
+                        has_image = any(m in selected_modalities for m in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'])
+                        is_fusion = has_metadata and has_image
+                        fusion_use_pretrained = False  # Track if pre-trained weights loaded successfully
+
+                        if is_fusion:
+                            # Get the image modality name
+                            image_modality = [m for m in selected_modalities if m != 'metadata'][0]
+
+                            # CRITICAL: Use image modality as config_name to match thermal_map-only checkpoint
+                            # When thermal_map-only trains, it saves as: thermal_map_run1_thermal_map.ckpt
+                            # We need to load that same file, not thermal_map_run1_metadata+thermal_map.ckpt
+                            image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, image_modality)
+                            image_only_checkpoint, ckpt_format = find_checkpoint_for_loading(image_only_checkpoint)
+
+                            # Try to load pre-trained image weights
+                            if ckpt_format is not None:
+                                vprint(f"  Loading pre-trained {image_modality} weights from standalone training...", level=2)
+                                try:
+                                    # Create a temporary model with just the image modality to load weights
+                                    temp_model = create_multimodal_model(input_shapes, [image_modality], None)
+                                    temp_model.load_weights(image_only_checkpoint)
+
+                                    # Transfer image branch weights to fusion model
+                                    # Match layers by name (image layers have modality prefix)
+                                    for layer in temp_model.layers:
+                                        if image_modality in layer.name or layer.name == 'output':
+                                            try:
+                                                fusion_layer = model.get_layer(layer.name)
+                                                fusion_layer.set_weights(layer.get_weights())
+                                                vprint(f"    Loaded weights for layer: {layer.name}", level=3)
+                                            except:
+                                                continue  # Layer might not exist in fusion model (e.g., output layer)
+
+                                    # FREEZE all image branch layers for STAGE 1
+                                    vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
+                                    frozen_layers = []
+                                    for layer in model.layers:
+                                        if image_modality in layer.name or 'image_classifier' in layer.name:
+                                            layer.trainable = False
+                                            frozen_layers.append(layer.name)
+                                            vprint(f"    Frozen layer: {layer.name}", level=3)
+
+                                    del temp_model  # Free memory
+                                    fusion_use_pretrained = True
+                                    vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
+                                    vprint(f"  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+
+                                except Exception as e:
+                                    vprint(f"  Warning: Could not load pre-trained weights: {e}", level=1)
+                                    vprint(f"  Training image branch from scratch (may overfit!)", level=1)
+                                    fusion_use_pretrained = False
+                            else:
+                                # AUTOMATIC PRE-TRAINING: Train image-only model inline
+                                vprint("=" * 80, level=1)
+                                vprint(f"AUTOMATIC PRE-TRAINING: {image_modality} weights not found", level=1)
+                                vprint(f"  Training {image_modality}-only model first (same data split)...", level=1)
+                                vprint("=" * 80, level=1)
+
+                                try:
+                                    # Create standalone image-only model
+                                    pretrain_model = create_multimodal_model(input_shapes, [image_modality], None)
+
+                                    # Use same loss configuration as fusion
+                                    pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
+                                    pretrain_gamma = config.get('gamma', 2.0)
+                                    pretrain_alpha = config.get('alpha', alpha_value)
+                                    pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
+                                                                           gamma=pretrain_gamma, alpha=pretrain_alpha)
+                                    pretrain_macro_f1 = MacroF1Score(num_classes=3)
+
+                                    # Compile pre-training model
+                                    pretrain_model.compile(
+                                        optimizer=Adam(learning_rate=1e-4, clipnorm=1.0),
+                                        loss=pretrain_loss,
+                                        metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
+                                    )
+
+                                    # Create filtered dataset for pre-training (only image modality, not metadata)
+                                    # Must filter from master datasets to get only the image modality input
+                                    pretrain_train_dataset = filter_dataset_modalities(master_train_dataset, [image_modality])
+                                    pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
+
+                                    # Remove sample_id for training (Keras 3 compatibility)
+                                    pretrain_train_dataset = pretrain_train_dataset.map(
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                                    pretrain_valid_dataset = pretrain_valid_dataset.map(
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+
+                                    pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
+                                    pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
+
+                                    # Pre-training callbacks
+                                    pretrain_callbacks = [
+                                        EarlyStopping(
+                                            patience=EARLY_STOP_PATIENCE,
+                                            restore_best_weights=True,
+                                            monitor='val_weighted_f1_score',
+                                            min_delta=0.001,
+                                            mode='max',
+                                            verbose=1
+                                        ),
+                                        ReduceLROnPlateau(
+                                            factor=0.50,
+                                            patience=REDUCE_LR_PATIENCE,
+                                            monitor='val_weighted_f1_score',
+                                            min_delta=0.0005,
+                                            min_lr=1e-10,
+                                            mode='max',
+                                        ),
+                                        tf.keras.callbacks.ModelCheckpoint(
+                                            image_only_checkpoint,  # Save to same path fusion will load from
+                                            monitor='val_weighted_f1_score',
+                                            save_best_only=True,
+                                            mode='max',
+                                            save_weights_only=True
+                                        )
+                                    ]
+
+                                    # Add periodic print callback for pre-training if using interval
+                                    if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                        pretrain_callbacks.append(PeriodicEpochPrintCallback(
+                                            print_interval=EPOCH_PRINT_INTERVAL,
+                                            total_epochs=max_epochs
+                                        ))
+
+                                    # Determine verbosity for pre-training
+                                    # If using periodic callback, use verbose=0 and let callback handle printing
+                                    if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                        pretrain_verbose = 0  # Callback will handle printing
+                                    elif get_verbosity() >= 2:
+                                        pretrain_verbose = 2  # Print every epoch
+                                    else:
+                                        pretrain_verbose = 0  # Silent
+
+                                    vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
+
+                                    # Train image-only model
+                                    pretrain_history = pretrain_model.fit(
+                                        pretrain_train_dis,
+                                        epochs=max_epochs,
+                                        steps_per_epoch=steps_per_epoch,
+                                        validation_data=pretrain_valid_dis,
+                                        validation_steps=validation_steps,
+                                        callbacks=pretrain_callbacks,
+                                        verbose=pretrain_verbose
+                                    )
+
+                                    # Get best kappa from pre-training
+                                    pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
+                                    vprint(f"  Pre-training completed! Best val kappa: {pretrain_best_kappa:.4f}", level=1)
+                                    vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
+
+                                    # Now load the pre-trained weights into fusion model
+                                    vprint(f"  Transferring pre-trained weights to fusion model...", level=2)
+                                    for layer in pretrain_model.layers:
+                                        if image_modality in layer.name or layer.name == 'output':
+                                            try:
+                                                fusion_layer = model.get_layer(layer.name)
+                                                fusion_layer.set_weights(layer.get_weights())
+                                                vprint(f"    Loaded weights for layer: {layer.name}", level=3)
+                                            except:
+                                                continue  # Layer might not exist in fusion model
+
+                                    # FREEZE all image branch layers for STAGE 1
+                                    vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
+                                    frozen_layers = []
+                                    for layer in model.layers:
+                                        if image_modality in layer.name or 'image_classifier' in layer.name:
+                                            layer.trainable = False
+                                            frozen_layers.append(layer.name)
+                                            vprint(f"    Frozen layer: {layer.name}", level=3)
+
+                                    del pretrain_model  # Free memory
+                                    fusion_use_pretrained = True
+                                    vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
+                                    vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+
+                                    # DEBUG: Show trainable weights breakdown
+                                    vprint("  DEBUG: Trainable weights breakdown after freezing:", level=2)
+                                    trainable_layers = []
+                                    for layer in model.layers:
+                                        if layer.trainable_weights:
+                                            trainable_layers.append(f"{layer.name}: {len(layer.trainable_weights)} weights")
+                                            vprint(f"    {layer.name}: {len(layer.trainable_weights)} trainable weights", level=2)
+                                    total_trainable = sum([len(l.trainable_weights) for l in model.layers])
+                                    vprint(f"  Total trainable parameters across all layers: {total_trainable}", level=2)
+                                    if total_trainable == 0:
+                                        vprint("  WARNING: 0 trainable parameters! This will prevent learning!", level=0)
+
+                                    # DEBUG: Check RF predictions from metadata input
+                                    vprint("  DEBUG: Checking RF metadata predictions...", level=2)
+                                    for batch in train_dataset.take(1):
+                                        inputs, labels = batch
+                                        if 'metadata_input' in inputs:
+                                            rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
+                                            vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
+                                            vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
+                                        labels_sample = labels.numpy()[:5]
+                                        vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
+                                    vprint("=" * 80, level=1)
+
+                                except Exception as e:
+                                    vprint(f"  ERROR: Automatic pre-training failed: {e}", level=0)
+                                    vprint(f"  Continuing with random init (will likely overfit)...", level=1)
+                                    fusion_use_pretrained = False
+
                         # Use loss parameters from config if available, otherwise use defaults
                         ordinal_weight = config.get('ordinal_weight', 0.05)
                         gamma = config.get('gamma', 2.0)
@@ -1123,8 +1373,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 mode='max',
                                 save_weights_only=True
                             ),
-                            EpochMemoryCallback(strategy), #ACTIVATE THIS WHEN GENERATIVE NOT USED
-                            GenerativeAugmentationCallback(gen_manager),
+                            EpochMemoryCallback(strategy),
+                            # GenerativeAugmentationCallback(gen_manager),  # DISABLED for uniform testing
                             NaNMonitorCallback()
                         ]
 
@@ -1184,10 +1434,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                         # Train model (check for existing weights)
                         checkpoint_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
-                        if os.path.exists(checkpoint_path):
+                        load_path, ckpt_format = find_checkpoint_for_loading(checkpoint_path)
+                        if ckpt_format is not None:
                             # Load weights must be in strategy scope for distributed training
                             with strategy.scope():
-                                model.load_weights(checkpoint_path)
+                                model.load_weights(load_path)
                             vprint("Loaded existing weights", level=1)
                         else:
                             vprint("No existing pretrained weights found", level=1)
@@ -1204,19 +1455,128 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 fit_verbose = 2  # Print every epoch
                             else:
                                 fit_verbose = 0  # Silent
-                            history = model.fit(
-                                train_dataset_dis,
-                                epochs=max_epochs,
-                                steps_per_epoch=steps_per_epoch,
-                                validation_data=valid_dataset_dis,
-                                validation_steps=validation_steps,
-                                callbacks=callbacks,
-                                verbose=fit_verbose
-                            )
+
+                            # TWO-STAGE TRAINING for fusion with pre-trained weights
+                            if is_fusion and fusion_use_pretrained:
+                                vprint("=" * 80, level=2)
+                                vprint(f"STAGE 1: Training with FROZEN image branch ({STAGE1_EPOCHS} epochs)", level=2)
+                                vprint("  Goal: Stabilize fusion layer before fine-tuning image", level=2)
+                                vprint("=" * 80, level=2)
+
+                                # Stage 1: Train with frozen image branch
+                                stage1_epochs = STAGE1_EPOCHS
+                                stage1_callbacks = [
+                                    EarlyStopping(
+                                        patience=10,  # More patient for stage 1
+                                        restore_best_weights=True,
+                                        monitor='val_weighted_f1_score',
+                                        min_delta=0.001,
+                                        mode='max',
+                                        verbose=1
+                                    ),
+                                    tf.keras.callbacks.ModelCheckpoint(
+                                        checkpoint_path.replace('.ckpt', '_stage1.ckpt'),
+                                        monitor='val_weighted_f1_score',
+                                        save_best_only=True,
+                                        mode='max',
+                                        save_weights_only=True
+                                    ),
+                                ]
+                                history_stage1 = model.fit(
+                                    train_dataset_dis,
+                                    epochs=stage1_epochs,
+                                    steps_per_epoch=steps_per_epoch,
+                                    validation_data=valid_dataset_dis,
+                                    validation_steps=validation_steps,
+                                    callbacks=stage1_callbacks,
+                                    verbose=fit_verbose
+                                )
+
+                                # Load best Stage 1 weights
+                                stage1_path = checkpoint_path.replace('.ckpt', '_stage1.ckpt')
+                                stage1_load_path, _ = find_checkpoint_for_loading(stage1_path)
+                                model.load_weights(stage1_load_path)
+                                stage1_best_kappa = max(history_stage1.history.get('val_cohen_kappa', [0]))
+                                vprint(f"  Stage 1 completed. Best val kappa: {stage1_best_kappa:.4f}", level=2)
+
+                                # STAGE 2: Unfreeze image branch and fine-tune with VERY low LR
+                                vprint("=" * 80, level=2)
+                                vprint("STAGE 2: Fine-tuning with UNFROZEN image branch", level=2)
+                                vprint("  Learning rate: 1e-6 (very low to prevent overfitting)", level=2)
+                                vprint("  Unfreezing image layers...", level=2)
+                                vprint("=" * 80, level=2)
+
+                                # Unfreeze image branch
+                                for layer in model.layers:
+                                    if image_modality in layer.name or 'image_classifier' in layer.name:
+                                        layer.trainable = True
+                                        vprint(f"    Unfrozen: {layer.name}", level=3)
+
+                                # Recompile with VERY low learning rate
+                                model.compile(
+                                    optimizer=Adam(learning_rate=1e-6, clipnorm=1.0),  # 100x lower than Stage 1
+                                    loss=loss,
+                                    metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
+                                )
+                                vprint(f"  Model recompiled with LR=1e-6", level=2)
+
+                                # Stage 2: Fine-tune with aggressive early stopping
+                                stage2_epochs = 100  # Allow more epochs but will likely stop early
+                                stage2_callbacks = [
+                                    EarlyStopping(
+                                        patience=10,  # Aggressive - stop if no improvement
+                                        restore_best_weights=True,
+                                        monitor='val_weighted_f1_score',
+                                        min_delta=0.0005,  # Tiny improvements ok
+                                        mode='max',
+                                        verbose=1
+                                    ),
+                                    tf.keras.callbacks.ModelCheckpoint(
+                                        checkpoint_path,  # Final checkpoint
+                                        monitor='val_weighted_f1_score',
+                                        save_best_only=True,
+                                        mode='max',
+                                        save_weights_only=True
+                                    ),
+                                ]
+                                history_stage2 = model.fit(
+                                    train_dataset_dis,
+                                    epochs=stage2_epochs,
+                                    steps_per_epoch=steps_per_epoch,
+                                    validation_data=valid_dataset_dis,
+                                    validation_steps=validation_steps,
+                                    callbacks=stage2_callbacks,
+                                    verbose=fit_verbose
+                                )
+
+                                stage2_best_kappa = max(history_stage2.history.get('val_cohen_kappa', [stage1_best_kappa]))
+                                vprint("=" * 80, level=2)
+                                vprint(f"Two-stage training completed!", level=2)
+                                vprint(f"  Stage 1 (frozen):    Kappa {stage1_best_kappa:.4f}", level=2)
+                                vprint(f"  Stage 2 (fine-tune): Kappa {stage2_best_kappa:.4f}", level=2)
+                                if stage2_best_kappa > stage1_best_kappa:
+                                    vprint(f"  Improvement: +{stage2_best_kappa - stage1_best_kappa:.4f} ✓", level=2)
+                                else:
+                                    vprint(f"  No improvement from fine-tuning (kept Stage 1 weights)", level=2)
+                                vprint("=" * 80, level=2)
+
+                            else:
+                                # Standard single-stage training
+                                history = model.fit(
+                                    train_dataset_dis,
+                                    epochs=max_epochs,
+                                    steps_per_epoch=steps_per_epoch,
+                                    validation_data=valid_dataset_dis,
+                                    validation_steps=validation_steps,
+                                    callbacks=callbacks,
+                                    verbose=fit_verbose
+                                )
 
                         # Load best weights (must be in strategy scope for distributed training)
+                        best_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
+                        best_load_path, _ = find_checkpoint_for_loading(best_ckpt_path)
                         with strategy.scope():
-                            model.load_weights(create_checkpoint_filename(selected_modalities, run+1, config_name))
+                            model.load_weights(best_load_path)
 
                         # Evaluate training data
                         y_true_t = []
@@ -1344,7 +1704,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 
                 finally:
                     # Clean up
-                    gen_manager.cleanup()
+                    if gen_manager is not None:
+                        gen_manager.cleanup()
                     gc.collect()
 
             # Check if training succeeded

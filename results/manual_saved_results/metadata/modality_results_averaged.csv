@@ -1,0 +1,2 @@
+Modalities,Accuracy (Mean),Accuracy (Std),Macro Avg F1-score (Mean),Macro Avg F1-score (Std),Weighted Avg F1-score (Mean),Weighted Avg F1-score (Std),I F1-score (Mean),P F1-score (Mean),R F1-score (Mean),Cohen's Kappa (Mean),Cohen's Kappa (Std)
+metadata,0.4794712048706418,0.04370164214064472,0.3710814364754654,0.05111464578196471,0.4721478542922382,0.037704795854527046,0.2943166270334589,0.6055790935294741,0.213348588863463,0.08967734417393736,0.07316922285580597

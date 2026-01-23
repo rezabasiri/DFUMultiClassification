@@ -2,6 +2,141 @@
 
 Tracks major repository changes and refactors.
 
+## 2026-01-04 — CRITICAL: Data leakage discovery in Phase 2 testing
+
+### Phase Confidence (%) data leakage invalidates initial Phase 2 results
+**Files**: All Phase 2 solutions in `agent_communication/rf_improvement/`
+- **CRITICAL BUG**: "Phase Confidence (%)" was included as a feature in initial Phase 2 testing
+- **IMPACT**: This column is the model's own confidence score - **MASSIVE DATA LEAKAGE**
+- **DISCOVERY**: Solution 7 (Feature Selection) showed "Phase Confidence (%)" as #1 most informative feature (MI=0.0521)
+- **VALIDATION**: Checked `src/main_original.py:1110` - Phase Confidence explicitly excluded in original code
+
+**Root Cause**: Phase 2 solutions only excluded 4 columns (Patient#, Appt#, DFU#, Healing Phase Abs). Should exclude 30+ columns per original implementation.
+
+**Additional leakage sources discovered**:
+- Temperature measurements: Peri-Ulcer Temperature (°C), Wound Centre Temperature (°C)
+- Individual Offloading categorical columns (No Offloading, Offloading: Therapeutic Footwear, etc.)
+- Dressing variants (Dressing, Dressing Grouped)
+- Type of Pain variants (Type of Pain, Type of Pain2, Type of Pain_Grouped2)
+- Offloading Score
+- Appt Days
+
+**INVALIDATED RESULTS** (from initial Phase 2 run):
+- Solution 7 (Feature Selection k=50): Kappa 0.2201 ← **INVALID** (used Phase Confidence)
+- Solution 8 (Median Imputation): Kappa 0.2159 ← **INVALID**
+- Solution 9 (Strategy B): Kappa 0.2124 ← **INVALID**
+- Solution 6 (Bayesian): Kappa 0.2062 ← **INVALID** (also had wrong optimization objective)
+
+**VALIDATED TRUE PERFORMANCE** (without Phase Confidence leakage):
+- **Baseline: Kappa 0.176 ± 0.078** (was 0.220 ± 0.088 with leakage)
+- **Performance drop: -20%** (-0.044 Kappa points)
+- Feature count: 73 → 42 valid features (-31 leakage columns)
+- Top feature changed: Phase Confidence → Height (cm)
+
+**RE-RUN RESULTS** (after fixes):
+- **Solution 6 (Bayesian - RE-FIXED)**: Kappa **0.205 ± 0.057** ← **NEW WINNER** (+16.5% vs baseline)
+  - **Tightened search space validated**: max_depth [8,15] prevents shallow overfitting
+  - **Found optimal params**: n_estimators=646, max_depth=14, min_samples_split=19, max_features='log2'
+  - **Beats manual tuning**: 0.205 vs 0.176 baseline (+16.5%)
+- Solution 7 (Feature Selection k=40): Kappa 0.202 ± 0.049 ← Runner-up (+14.8% vs baseline)
+- Solution 8 (KNN k=3 Imputation): Kappa 0.201 ± 0.043 ← Third (+14.2% vs baseline)
+- Solution 9 (Strategy A Decomp): Kappa 0.181 ± 0.061 (+2.8% vs baseline)
+- Solution 11 (Feature Engineering): Kappa 0.125 ± 0.039 ← FAILED (added noise)
+
+**Performance Ceiling Identified**: Kappa ~0.20-0.21 appears to be maximum achievable with metadata-only features
+
+**FIXES APPLIED**:
+1. Updated all Phase 2 solutions (6, 7, 8, 9) with correct 30+ column exclusion list
+2. Created `solution_6_bayesian_optimization_fixed.py` - optimizes end-to-end 3-class Kappa (not binary separately)
+3. Created `solution_11_feature_engineering.py` - 20+ domain-specific engineered features to overcome reduced feature count
+4. Created `README_PHASE2_FIXES.md` with detailed explanation and re-run instructions
+
+**Impact**: Phase 2 completely re-run with validated results. Previous Kappa 0.220 was artificially inflated by 20% due to Phase Confidence leakage. True baseline is 0.176.
+
+**Production-Ready Configuration** (validated - **NEW WINNER: Bayesian-optimized**):
+- **Feature Selection**: Top 40 features (Height, Onset, Weight, Smoking, Cancer History as top 5)
+- **Imputation**: KNN k=3 (improves over current k=5)
+- **RF Parameters**: **Bayesian-optimized** (validated Kappa 0.205):
+  - n_estimators=646 (up from manual 500)
+  - max_depth=14 (up from manual 10)
+  - min_samples_split=19 (up from manual 10)
+  - min_samples_leaf=2 (explicit)
+  - max_features='log2' (changed from 'sqrt')
+- **Expected Performance**: Kappa 0.20-0.21 ± 0.05 (robust, validated, no leakage)
+- **Improvement**: +16.5% over baseline 0.176
+
+**Lesson Learned**: Always validate feature exclusions against original implementation before running experiments. Phase Confidence being the top feature was a red flag that should have been caught immediately. The 20% performance drop from fixing leakage is expected and represents true model capability.
+
+---
+
+## 2026-01-04 — Implement validated RF hyperparameter tuning
+
+### Tuned RF parameters for metadata classifier
+**Files**: `src/data/dataset_utils.py` (lines 845-861, 907-925)
+- **IMPROVEMENT**: Implemented tuned RF hyperparameters validated through patient-level 5-fold CV
+- **VALIDATION**: Patient-level 5-fold CV with strict leakage prevention:
+  - Kappa: 0.220 ± 0.088 (4/5 folds >0.2, target met)
+  - Accuracy: 55.9% ± 4.2%
+  - All classes functional (no zero F1 scores)
+- **HYPERPARAMETERS TUNED**:
+  - `n_estimators`: 300 → 500 (increased stability)
+  - `max_depth`: None → 10 (prevent overfitting)
+  - `min_samples_split`: 2 → 10 (require sufficient samples)
+  - `max_features`: None → 'sqrt' (reduce variance)
+- **TESTING METHODOLOGY**: `agent_communication/rf_improvement/`
+  - Tested 5 approaches: baseline, SMOTE, tuned RF, feature selection, ensemble
+  - Tuned RF achieved best cross-validated performance
+  - Strict patient-level CV: patients split (not samples), imputer/scaler fit on train only
+- **APPLIED TO**: Both TensorFlow Decision Forests (TFDF) and sklearn fallback paths
+
+**Root Cause Analysis**: Original RF parameters (300 trees, unlimited depth, no min_samples constraints) were prone to overfitting on small patient cohorts. Limited regularization caused high variance across different patient distributions.
+
+**Impact**: Metadata RF classifier improved from Kappa ~0.10 to 0.220 (validated, robust). Expected production performance: ~56% accuracy with all three classes functional. Eliminates zero F1 scores for minority class (R).
+
+**Validation Details**: See `agent_communication/rf_improvement/cv_validation.csv` and `validate_cv.py` for full implementation.
+
+---
+
+## 2026-01-04 — Fix catastrophic metadata classifier failure
+
+### Fixed RF probability normalization bug
+**File**: `src/data/dataset_utils.py`
+- **BUG**: StandardScaler was normalizing RF probability columns (`rf_prob_I`, `rf_prob_P`, `rf_prob_R`), converting valid probabilities to z-scores
+- **IMPACT**: Probabilities that should sum to 1.0 became arbitrary z-scores with negative values, causing 10% accuracy
+- **FIX**: Added RF probability columns to `exclude_cols` list to prevent normalization (line 988)
+- **DIAGNOSIS**: Comprehensive test suite in `agent_communication/metadata_diagnosis/` isolated the bug through 6 sequential tests
+
+**Root Cause**: Probabilities expected range [0-1] summing to 1.0, but received z-scores with mean≈0, std≈1, and negative values. Neural network couldn't learn from corrupted probability distributions.
+
+**Impact**: Metadata modality should now achieve 40-50% accuracy instead of 10%. RF classifier still has issues with minority class (R), but probabilities are now valid.
+
+---
+
+## 2025-12-30 — Critical metadata preprocessing fixes
+
+### Fixed data leakage in imputation
+**File**: `src/data/caching.py`
+- Fixed imputation to properly separate train/validation: `fit_transform` on training data, `transform` on validation data
+- Previously used `fit_transform` on both train and validation, causing data leakage
+- Added imputer and scaler parameters to `preprocess_split()` function signature
+- Updated function calls to pass fitted imputer/scaler from training to validation preprocessing
+
+### Added missing normalization step
+**File**: `src/data/caching.py`
+- Added StandardScaler normalization after imputation (was missing in refactored code)
+- Properly separates train/validation: `fit_transform` on training data, `transform` on validation data
+- Added missing imports: `KNNImputer` and `StandardScaler` from sklearn
+
+### Fixed Random Forest parameters
+**File**: `src/data/caching.py`
+- Changed `num_trees` from 800 to 300 to match original implementation
+- Fixed `random_seed` from fixed value `42` to varying `42 + run * (run + 3)` for model diversity across runs
+- Added `run` parameter to `prepare_cached_datasets()` function signature to support varying seed
+
+**Impact**: Metadata preprocessing now matches original implementation; eliminates data leakage and adds critical normalization step for proper feature scaling. RF models now vary across runs for better robustness.
+
+---
+
 ## 2025-12-28 — Phase 2 optimization bug fixes and logging improvements
 
 ### Fixed CSV file reading and directory creation
@@ -835,3 +970,134 @@ from sklearn.preprocessing import StandardScaler
 - Unblocks comprehensive CV test for all modalities
 - No functional change - same StandardScaler is used, just from module-level import
 - Local agent can now re-run `test_comprehensive_cv.py` to verify Phase 9 fix works across all modalities
+
+---
+
+## 2026-01-04 — Multi-modal fusion catastrophic failure fix (V5: Two-stage fine-tuning)
+
+### Fusion architecture overfitting issue
+
+**Files**: `src/models/builders.py` (lines 318-347), `src/training/training_utils.py` (lines 1090-1375)
+
+**Problem**: Multi-modal fusion (metadata + thermal_map) failed catastrophically:
+- Metadata-only: Kappa 0.254 ✅
+- thermal_map-only: Kappa 0.145 ✅
+- Fusion V1 (learned weights): Kappa 0.014 ❌ (Train 0.96, Val -0.02)
+- Fusion V2 (fixed 70/30 weights): Kappa 0.023 ❌ (Train 0.96, Val 0.02)
+
+**Root causes identified**:
+1. BatchNormalization destroyed RF probability structure (negative values, wrong scale)
+2. Image branch trained in fusion mode optimizes different objective than standalone
+3. Image learns to overfit training data (complementary-but-weak features)
+
+**Solution V5 - Two-stage fine-tuning**:
+- **Stage 1** (30 epochs): Load pre-trained thermal_map weights → freeze image branch → train with fixed 70/30 fusion → establish stable baseline (Kappa ~0.22)
+- **Stage 2** (up to 100 epochs): Unfreeze image → recompile with LR 1e-6 (100x lower) → fine-tune gently → allow potential synergy (Kappa 0.22-0.28)
+- Early stopping reverts to Stage 1 if overfitting detected
+
+**Expected results**:
+- Stage 1: Kappa 0.22 (frozen baseline, no overfitting)
+- Stage 2: Kappa 0.22-0.28 (potential improvement from synergy)
+- Better than individual modalities if fusion benefits achieved
+
+**Implementation**:
+- Removed BatchNorm from metadata branch (was converting probabilities to z-scores)
+- Fixed 70/30 fusion weights (RF dominates since Kappa 0.254 > Image 0.145)
+- Two-stage training with pre-trained frozen → fine-tune pipeline
+- Aggressive early stopping (patience=10) prevents catastrophic overfitting
+
+**Note**: Fusion weight "alpha" (70/30 split) is DIFFERENT from class weight alphas (computed from class frequencies for focal loss). Class weight alphas remain dynamic.
+
+**Automatic pre-training** (NEW): System now automatically trains image-only model if checkpoint missing
+- Detects missing thermal_map checkpoint
+- Trains thermal_map-only on SAME data split (prevents data leakage)
+- Saves checkpoint with correct CV fold alignment
+- Loads weights into fusion model and freezes
+- Proceeds with two-stage fusion training
+- **Single command execution** - no manual two-step workflow required!
+
+**CRITICAL BUG FIX** (2026-01-04): RF probability normalization
+- **Bug**: Ordinal RF probabilities didn't sum to 1.0 (summed to ~1.04-1.10)
+- **Formula**: `prob_I + prob_P + prob_R = 1 + prob2(1-prob1)` ≠ 1.0
+- **Impact**: Fusion catastrophically failed (Kappa -0.007, worse than random!)
+- **Fix**: Added normalization step: divide each probability by total sum
+- **Files**: `src/data/dataset_utils.py:1031-1037`, `src/data/caching.py:539-545`
+- **Results** (32x32, 1-fold):
+  - Before fix: Kappa -0.007 ❌
+  - After fix: Kappa 0.3158 ✅ (441% better than thermal_map baseline 0.0584)
+- **Details**: See `agent_communication/fusion_fix/ROOT_CAUSE_ANALYSIS.md`
+
+**Testing protocol**: Just run fusion training - automatic pre-training handles everything!
+```bash
+# In production_config.py:
+INCLUDED_COMBINATIONS = [('metadata', 'thermal_map'),]
+
+# Single command - auto pre-trains if needed
+python src/main.py --mode search --cv_folds 3 --verbosity 3 --resume_mode fresh
+```
+
+---
+
+## 2026-01-06 — Fusion optimization + integrated outlier removal pipeline
+
+### Phase 1-7 investigation resolves "50% beats 100%" mystery + production integration
+
+**Investigation scope**: 7 phases, 25+ test configurations spanning image size, sampling strategies, outlier removal
+**Root cause**: Oversampling strategy (not image size) + noisy training samples
+**Solution**: 15% explicit outlier removal + 'combined' sampling → **Kappa 0.27** (+63% vs baseline, 97% of lucky seed performance)
+
+**Key findings**:
+- Phase 3: 'combined' sampling (undersample P, oversample R to middle) beats 'random' by 67% (Kappa 0.1664 vs 0.0996)
+- Phase 5: Reduced oversampling hypothesis FAILED - data quantity > quality (-18.6% performance)
+- Phase 6: 50% data performance seed-dependent (seed 789: 0.2786, seed 123: 0.207, -25%)
+- Phase 7: Explicit 15% outlier removal matches seed 789 (0.2714 vs 0.2786, gap 2.6%)
+
+**Files created/modified**:
+- `src/utils/outlier_detection.py`: **NEW** - Core outlier detection utilities (Isolation Forest, per-class, metadata-only)
+- `src/main.py`: **Integrated outlier removal** with CLI flags (`--outlier-removal`, `--outlier-contamination`)
+  - Auto-detects if metadata in modality combinations
+  - Transparent application (uses cache if exists)
+  - Backup/restore mechanism
+- `src/utils/production_config.py`: Updated IMAGE_SIZE, SAMPLING_STRATEGY comments with production guidance
+- `agent_communication/fusion_fix/FUSION_FIX_GUIDE.md`: **Enhanced documentation**
+  - Added two-stage training section (freeze/unfreeze strategy to prevent overfitting)
+  - Updated Quick Start with integrated CLI commands
+  - Documented auto-detection behavior
+- `agent_communication/fusion_fix/`: Organized into `scripts_production/`, `results_final/`, `archived_intermediate_files/`
+
+**Production configuration** (validated Kappa 0.27 ± 0.08):
+```python
+IMAGE_SIZE = 32  # Optimal for fusion
+SAMPLING_STRATEGY = 'combined'  # Undersample P + oversample R to middle
+# Outlier removal: Enabled by default in main.py (--outlier-removal, 15% contamination)
+```
+
+**Cleanup**:
+- Archived 60+ intermediate files (instructions, old tests, invalid results)
+- Retained 13 final result files + 2 production scripts
+- Removed `run_production_fusion.py` (functionality integrated into main.py)
+- Created single unified guide replacing multiple scattered docs
+
+**To run production** (single command, outlier removal enabled by default):
+```bash
+python src/main.py --mode search --cv_folds 3 --verbosity 2 --resume_mode fresh
+# Automatic: outlier detection (15%) → apply cleaned → two-stage training → results
+# Expected: Kappa 0.27 ± 0.08, ~30 min on 8x RTX 4090
+
+# Disable outlier removal (test baseline):
+python src/main.py --mode search --no-outlier-removal
+```
+
+**Performance summary**:
+- Original (128x128, random): Kappa 0.029 ❌
+- Fixed (32x32, combined): Kappa 0.1664 ✅ (+467%)
+- Production (32x32, 15% cleaned): Kappa 0.2714 ✅ (+834% vs original, +63% vs fixed)
+
+**Key integration features**:
+- Modality-aware: Only runs outlier detection if metadata in tested combinations
+- Cache-aware: Reuses existing cleaned datasets (fast)
+- Safe: Backs up original data before modification
+- Transparent: Clear logging of outlier removal process
+- Configurable: `--outlier-contamination` flag (default 0.15, range 0.05-0.20)
+
+---

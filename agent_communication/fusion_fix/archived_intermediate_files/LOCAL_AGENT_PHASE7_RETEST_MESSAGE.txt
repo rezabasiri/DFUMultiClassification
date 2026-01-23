@@ -1,0 +1,244 @@
+================================================================================
+PHASE 7 RETEST - CRITICAL ERROR FIXED
+================================================================================
+
+PREVIOUS PHASE 7 WAS INVALID - Wrong baseline used!
+
+Problem: Tests used NO proper sampling
+  - Baseline showed 3107 samples → Kappa 0.0996 (terrible)
+  - Should use 'combined' sampling → ~2181 samples → Kappa 0.1664
+
+Impact: Baseline was 40% worse than it should be, invalidating all comparisons.
+
+================================================================================
+CRITICAL REQUIREMENT: SAMPLING_STRATEGY = 'combined'
+================================================================================
+
+⚠️  BEFORE EVERY TEST, VERIFY THIS:
+
+  grep "SAMPLING_STRATEGY" /workspace/DFUMultiClassification/src/utils/production_config.py
+
+MUST show:
+  SAMPLING_STRATEGY = 'combined'  # NOT 'random'!
+
+If wrong, edit src/utils/production_config.py line ~38:
+  Change to: SAMPLING_STRATEGY = 'combined'
+
+WHY THIS MATTERS:
+  - Without 'combined': Kappa 0.09-0.10 (massive class imbalance)
+  - WITH 'combined': Kappa 0.16 (balanced classes)
+  - This is an 85% difference!
+
+================================================================================
+VERIFICATION DURING TRAINING
+================================================================================
+
+After training starts, CHECK SAMPLE COUNT:
+
+  grep -i "after.*sampling" [log_file].txt
+
+EXPECTED with 'combined': ~1600-2200 samples
+WRONG (no sampling): 2500-3100 samples
+
+🚨 IF YOU SEE >2500 SAMPLES, STOP IMMEDIATELY - SAMPLING IS NOT APPLIED!
+
+================================================================================
+PHASE 7 RETEST PLAN (4 TESTS, ~2.5 HOURS)
+================================================================================
+
+--- TEST 0: BASELINE VERIFICATION (30 min) ---
+
+Purpose: Confirm baseline matches Phase 6 (Kappa 0.1664)
+
+# 1. VERIFY config
+grep "SAMPLING_STRATEGY" src/utils/production_config.py
+# Must show: 'combined'
+
+# 2. Ensure using full dataset
+# src/utils/production_config.py:
+#   DATA_PERCENTAGE = 100
+#   SAMPLING_STRATEGY = 'combined'
+
+# 3. Run
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi \
+  2>&1 | tee agent_communication/fusion_fix/run_100pct_combined_verify.txt
+
+# 4. IMMEDIATELY check sample count
+grep -i "after.*sampling" agent_communication/fusion_fix/run_100pct_combined_verify.txt
+# Expected: ~2181 samples (NOT 3107!)
+
+EXPECTED RESULT:
+  - Sample count: ~2181
+  - Kappa: 0.16-0.17 (matching Phase 6)
+
+IF WRONG, STOP AND FIX CONFIG BEFORE PROCEEDING!
+
+--- TEST 1: 5% CLEANED + COMBINED SAMPLING (30 min) ---
+
+# 1. Load cleaned dataset
+python agent_communication/fusion_fix/test_cleaned_data.py 05pct
+
+# 2. VERIFY sampling config
+grep "SAMPLING_STRATEGY" src/utils/production_config.py
+
+# 3. Run
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi \
+  2>&1 | tee agent_communication/fusion_fix/run_cleaned_05pct_combined.txt
+
+# 4. Check sample count
+grep -i "after.*sampling" agent_communication/fusion_fix/run_cleaned_05pct_combined.txt
+
+# 5. Restore
+python agent_communication/fusion_fix/test_cleaned_data.py restore
+
+EXPECTED:
+  - Input: 845 patients → ~2929 images
+  - After 'combined' sampling: ~1800 samples (NOT 2929!)
+  - Kappa: 0.23-0.25
+
+--- TEST 2: 10% CLEANED + COMBINED SAMPLING (30 min) ---
+
+# 1. Load cleaned dataset
+python agent_communication/fusion_fix/test_cleaned_data.py 10pct
+
+# 2. VERIFY sampling config
+grep "SAMPLING_STRATEGY" src/utils/production_config.py
+
+# 3. Run
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi \
+  2>&1 | tee agent_communication/fusion_fix/run_cleaned_10pct_combined.txt
+
+# 4. Restore
+python agent_communication/fusion_fix/test_cleaned_data.py restore
+
+EXPECTED:
+  - After sampling: ~1700 samples
+  - Kappa: 0.24-0.26
+
+--- TEST 3: 15% CLEANED + COMBINED SAMPLING ⭐ KEY TEST (30 min) ---
+
+# 1. Load cleaned dataset
+python agent_communication/fusion_fix/test_cleaned_data.py 15pct
+
+# 2. VERIFY sampling config
+grep "SAMPLING_STRATEGY" src/utils/production_config.py
+
+# 3. Run
+python src/main.py --mode search --cv_folds 3 --verbosity 2 \
+  --resume_mode fresh --device-mode multi \
+  2>&1 | tee agent_communication/fusion_fix/run_cleaned_15pct_combined.txt
+
+# 4. Restore
+python agent_communication/fusion_fix/test_cleaned_data.py restore
+
+EXPECTED:
+  - After sampling: ~1600 samples
+  - Kappa: 0.26-0.28 ← Should match 50% seed 789 (0.2786)!
+
+IF KAPPA ≥ 0.26: HYPOTHESIS CONFIRMED!
+IF KAPPA < 0.24: HYPOTHESIS INCORRECT
+
+================================================================================
+HYPOTHESIS TEST
+================================================================================
+
+IF Test 3 achieves Kappa 0.26-0.28 (within 0.02 of 50% seed 789):
+  ✅ Hypothesis CONFIRMED
+  → Outlier removal + proper sampling = 50% performance
+  → Production: 100% with 15% outlier removal + 'combined' sampling
+
+IF Test 3 achieves Kappa < 0.24 (gap > 0.04 from 50% seed 789):
+  ❌ Hypothesis INCORRECT
+  → Outlier removal helps but doesn't fully explain 50% advantage
+  → Production: Use 50% seed 789 (Kappa 0.2786, proven)
+
+================================================================================
+CHECKLIST FOR EACH TEST
+================================================================================
+
+BEFORE TEST:
+  [ ] SAMPLING_STRATEGY = 'combined' verified
+  [ ] Correct dataset loaded (or restore for baseline)
+  [ ] Config values correct (DATA_PERCENTAGE, IMAGE_SIZE, etc.)
+
+DURING TEST (check immediately after training starts):
+  [ ] Sample count is ~1600-2200 (NOT >2500)
+  [ ] See "After undersampling" and "After oversampling" in logs
+
+AFTER TEST:
+  [ ] Record kappa for each fold
+  [ ] Restore original dataset (for cleaned tests)
+  [ ] Compare with baseline and 50% seed 789
+
+================================================================================
+RED FLAGS - STOP IMMEDIATELY IF YOU SEE:
+================================================================================
+
+🚨 Sample count > 2500 → NO SAMPLING APPLIED!
+   Fix: Check SAMPLING_STRATEGY in production_config.py
+
+🚨 Baseline Kappa < 0.14 → WRONG SAMPLING!
+   Fix: Verify 'combined' is being used
+
+🚨 No "After undersampling/oversampling" in logs → SAMPLING FAILED!
+   Fix: Check dataset_utils.py sampling code
+
+================================================================================
+EXPECTED RESULTS SUMMARY
+================================================================================
+
+| Test | Config | Samples After Sampling | Expected Kappa |
+|------|--------|----------------------|----------------|
+| 0 | 100% baseline + combined | ~2181 | 0.16-0.17 |
+| 1 | 5% cleaned + combined | ~1800 | 0.23-0.25 |
+| 2 | 10% cleaned + combined | ~1700 | 0.24-0.26 |
+| 3 | 15% cleaned + combined | ~1600 | **0.26-0.28** ⭐ |
+| Ref | 50% seed 789 | ~1550 | 0.2786 |
+
+If Test 3 matches Reference (within 0.02): HYPOTHESIS CONFIRMED!
+
+================================================================================
+REPORTING
+================================================================================
+
+After all tests complete, report:
+
+1. Baseline verification:
+   - Sample count: _____
+   - Kappa: _____
+   - Matches Phase 6 (0.1664)? Yes/No
+
+2. Cleaned results:
+   | Test | Samples | Kappa | vs Baseline | vs 50% (0.2786) |
+   |------|---------|-------|-------------|-----------------|
+   | 5%   |         |       |             |                 |
+   | 10%  |         |       |             |                 |
+   | 15%  |         |       |             |                 |
+
+3. Hypothesis conclusion:
+   [ ] CONFIRMED (Test 3 ≥ 0.26)
+   [ ] INCORRECT (Test 3 < 0.24)
+   [ ] PARTIAL (Test 3 = 0.24-0.26)
+
+4. Production recommendation:
+   [ ] Use 100% with 15% outlier removal + combined
+   [ ] Use 50% seed 789
+   [ ] Other: _____
+
+================================================================================
+CRITICAL REMINDERS
+================================================================================
+
+✅ ALWAYS verify SAMPLING_STRATEGY = 'combined' before EVERY test
+✅ ALWAYS check sample count immediately after training starts
+✅ ALWAYS restore dataset between cleaned tests
+✅ NEVER proceed if sample count > 2500 (no sampling!)
+✅ Baseline MUST match Phase 6 (0.1664) before testing cleaned data
+
+The entire investigation depends on using the correct sampling strategy!
+
+See PHASE7_RETEST_INSTRUCTIONS.md for complete details.
+================================================================================

@@ -1,0 +1,709 @@
+2026-01-05 08:46:18.684466: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-05 08:46:18.684515: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-05 08:46:18.686098: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-05 08:46:19.550199: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 8 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 2: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 3: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 4: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 5: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 6: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 7: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 8 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 2: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 3: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 4: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 5: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 6: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 7: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 8 GPU(s)
+
+Using MirroredStrategy (8 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 8× global batch size
+================================================================================
+
+
+Batch size per replica: 40 (global batch size: 320, replicas: 8)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 50.0%
+Verbosity: 2 (DETAILED)
+Device: GPUs [0, 1, 2, 3, 4, 5, 6, 7] (multi-GPU mode, MirroredStrategy)
+  Replicas: 8× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 32x32
+Batch size: 320
+  Per-GPU batch: 40 (320 / 8 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 18 files deleted
+  Predictions: 18 files deleted
+  Csv Results: 9 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata, thermal_map
+Number of samples for each selected modality:
+  thermal_map: 3107
+  thermal_bb: 3107
+  metadata: 3107
+Using 50.0% of the data: 1554 samples
+Using strategy from main: MirroredStrategy
+
+================================================================================
+MULTI-GPU TRAINING: 8 GPUs
+Global batch size: 320 (per-GPU: 40)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 150 train patients, 76 valid patients
+  Train dist: {0: 0.291, 1: 0.605, 2: 0.104}
+  Valid dist: {0: 0.286, 1: 0.600, 2: 0.114}
+Fold 2/3: 151 train patients, 75 valid patients
+  Train dist: {0: 0.286, 1: 0.599, 2: 0.115}
+  Valid dist: {0: 0.297, 1: 0.614, 2: 0.089}
+Fold 3/3: 151 train patients, 75 valid patients
+  Train dist: {0: 0.292, 1: 0.607, 2: 0.101}
+  Valid dist: {0: 0.285, 1: 0.598, 2: 0.117}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Processing metadata shape...
+
+Unique cases: 489 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    339
+0    150
+Name: count, dtype: int64
+Binary2: label_bin2
+0    427
+1     62
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 364
+Class 1: 736
+Class 2: 148
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.759, 0.375, 1.866]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 364
+Class 1: 736
+Class 2: 148
+
+After oversampling (ordered):
+Class 0: 736
+Class 1: 736
+Class 2: 736
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2208,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (306,)
+2026-01-05 08:46:36.946394: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Setting image shapes to 32x32...
+
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 1
+
+Class distributions:
+Training: {0: 0.291, 1: 0.605, 2: 0.104}
+Validation: {0: 0.286, 1: 0.6, 2: 0.114}
+
+Unique cases: 410 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    286
+0    124
+Name: count, dtype: int64
+Binary2: label_bin2
+0    365
+1     45
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 314
+Class 1: 653
+Class 2: 112
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.7, 0.337, 1.963]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 314
+Class 1: 653
+Class 2: 112
+
+After oversampling (ordered):
+Class 0: 653
+Class 1: 653
+Class 2: 653
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+thermal_map type: <class 'numpy.ndarray'> shape: (1959,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1959,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (475,)
+thermal_map type: <class 'numpy.ndarray'> shape: (475,)
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/3
+2026-01-05 08:48:21.056804: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Alpha values (ordered) [I, P, R]: [1.0, 1.0, 1.0]
+Class weights: {0: 1, 1: 1, 2: 1} or [1, 1, 1]
+
+Debug create_image_branch
+Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image
+  Fusion weights: RF=0.70, Image=0.30
+================================================================================
+AUTOMATIC PRE-TRAINING: thermal_map weights not found
+  Training thermal_map-only model first (same data split)...
+================================================================================
+
+Debug create_image_branch
+  Pre-training thermal_map-only on same data split (prevents data leakage)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py:642: UserWarning: Input dict contained keys ['metadata_input'] which did not match any model input. They will be ignored by the model.
+  inputs = self._flatten_to_reference_inputs(inputs)
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1767602940.546549  491811 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+2026-01-05 08:49:35.827933: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Epoch 1/300 - loss: 2.0800 - val_loss: 2.0301 - acc: 0.3634 - val_acc: 0.5916 - macro_f1: 0.3603 - val_macro_f1: 0.2485 - kappa: 0.0435 - val_kappa: -0.0110
+Epoch 20/300 - loss: 1.8804 - val_loss: 1.8740 - acc: 0.4214 - val_acc: 0.3495 - macro_f1: 0.4150 - val_macro_f1: 0.2463 - kappa: 0.1288 - val_kappa: 0.0355
+Restoring model weights from the end of the best epoch: 10.
+Epoch 30: early stopping
+  Pre-training completed! Best val kappa: 0.0573
+  Checkpoint saved to: /workspace/DFUMultiClassification/results/models/thermal_map_1_thermal_map.ckpt
+  Transferring pre-trained weights to fusion model...
+  STAGE 1: Freezing thermal_map branch (will unfreeze for Stage 2)...
+  Successfully loaded and frozen 17 layers!
+  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)
+  DEBUG: Trainable weights breakdown after freezing:
+  Total trainable parameters across all layers: 0
+  WARNING: 0 trainable parameters! This will prevent learning!
+  DEBUG: Checking RF metadata predictions...
+    Sample RF predictions (first 5): [[0.34877056 0.5959598  0.05526967]
+ [0.71278167 0.2165917  0.07062662]
+ [0.9354751  0.05423275 0.01029214]
+ [0.15307689 0.59930694 0.24761616]
+ [0.9386056  0.050591   0.01080341]]
+    RF predictions sum to 1.0: [1.0, 1.0, 1.0]
+    Sample labels (first 5): [[0. 1. 0.]
+ [1. 0. 0.]
+ [1. 0. 0.]
+ [0. 1. 0.]
+ [1. 0. 0.]]
+================================================================================
+No existing pretrained weights found
+Total model trainable weights: 0
+================================================================================
+STAGE 1: Training with FROZEN image branch (30 epochs)
+  Goal: Stabilize fusion layer before fine-tuning image
+================================================================================
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+  Stage 1 completed. Best val kappa: 0.1927
+================================================================================
+STAGE 2: Fine-tuning with UNFROZEN image branch
+  Learning rate: 1e-6 (very low to prevent overfitting)
+  Unfreezing image layers...
+================================================================================
+  Model recompiled with LR=1e-6
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+================================================================================
+Two-stage training completed!
+  Stage 1 (frozen):    Kappa 0.1927
+  Stage 2 (fine-tune): Kappa 0.1927
+  No improvement from fine-tuning (kept Stage 1 weights)
+================================================================================
+
+Run 1 Results for metadata+thermal_map:
+Cohen's Kappa: 0.2867
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:   80   51    5
+Actual Prolif:   82  171   32
+Actual Remodl:   10   35    9
+
+Training gating network for run 1...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (1959, 3)
+Shape of true labels: (1959,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.5474
+F1 Macro: 0.4435
+Kappa: 0.2867
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_thermal_map_fold0_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_thermal_map_fold0_seed42.index
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_thermal_map_fold0_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_thermal_map_fold0_seed42.index
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Processing metadata shape...
+
+Unique cases: 489 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    339
+0    150
+Name: count, dtype: int64
+Binary2: label_bin2
+0    427
+1     62
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 364
+Class 1: 736
+Class 2: 148
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.759, 0.375, 1.866]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 364
+Class 1: 736
+Class 2: 148
+
+After oversampling (ordered):
+Class 0: 736
+Class 1: 736
+Class 2: 736
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2208,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (306,)
+2026-01-05 08:52:17.339369: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Setting image shapes to 32x32...
+
+Preparing datasets for Fold 2/3 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+
+Class distributions:
+Training: {0: 0.286, 1: 0.599, 2: 0.115}
+Validation: {0: 0.297, 1: 0.614, 2: 0.089}
+
+Unique cases: 389 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    266
+0    123
+Name: count, dtype: int64
+Binary2: label_bin2
+0    337
+1     52
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 297
+Class 1: 622
+Class 2: 120
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.759, 0.362, 1.879]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 297
+Class 1: 622
+Class 2: 120
+
+After oversampling (ordered):
+Class 0: 622
+Class 1: 622
+Class 2: 622
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Intact Skin Temperature (°C)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+thermal_map type: <class 'numpy.ndarray'> shape: (1866,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1866,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (515,)
+thermal_map type: <class 'numpy.ndarray'> shape: (515,)
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 2/3
+2026-01-05 08:53:50.875869: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Alpha values (ordered) [I, P, R]: [1.0, 1.0, 1.0]
+Class weights: {0: 1, 1: 1, 2: 1} or [1, 1, 1]
+
+Debug create_image_branch
+Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image
+  Fusion weights: RF=0.70, Image=0.30
+================================================================================
+AUTOMATIC PRE-TRAINING: thermal_map weights not found
+  Training thermal_map-only model first (same data split)...
+================================================================================
+
+Debug create_image_branch
+  Pre-training thermal_map-only on same data split (prevents data leakage)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py:642: UserWarning: Input dict contained keys ['metadata_input'] which did not match any model input. They will be ignored by the model.
+  inputs = self._flatten_to_reference_inputs(inputs)
+2026-01-05 08:54:58.823750: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Epoch 1/300 - loss: 2.0814 - val_loss: 2.1167 - acc: 0.3823 - val_acc: 0.0893 - macro_f1: 0.3785 - val_macro_f1: 0.0547 - kappa: 0.0718 - val_kappa: 0.0000
+Epoch 20/300 - loss: 1.9058 - val_loss: 1.9148 - acc: 0.4714 - val_acc: 0.3282 - macro_f1: 0.4700 - val_macro_f1: 0.2873 - kappa: 0.2073 - val_kappa: -0.0499
+Restoring model weights from the end of the best epoch: 8.
+Epoch 28: early stopping
+  Pre-training completed! Best val kappa: 0.0052
+  Checkpoint saved to: /workspace/DFUMultiClassification/results/models/thermal_map_2_thermal_map.ckpt
+  Transferring pre-trained weights to fusion model...
+  STAGE 1: Freezing thermal_map branch (will unfreeze for Stage 2)...
+  Successfully loaded and frozen 17 layers!
+  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)
+  DEBUG: Trainable weights breakdown after freezing:
+  Total trainable parameters across all layers: 0
+  WARNING: 0 trainable parameters! This will prevent learning!
+  DEBUG: Checking RF metadata predictions...
+    Sample RF predictions (first 5): [[0.11514667 0.84788656 0.03696675]
+ [0.35516825 0.5787572  0.06607454]
+ [0.11880896 0.74504954 0.13614152]
+ [0.23540016 0.73964596 0.0249539 ]
+ [0.95888305 0.03965185 0.00146511]]
+    RF predictions sum to 1.0: [0.99999994, 1.0, 1.0]
+    Sample labels (first 5): [[0. 1. 0.]
+ [0. 1. 0.]
+ [0. 1. 0.]
+ [0. 1. 0.]
+ [1. 0. 0.]]
+================================================================================
+No existing pretrained weights found
+Total model trainable weights: 0
+================================================================================
+STAGE 1: Training with FROZEN image branch (30 epochs)
+  Goal: Stabilize fusion layer before fine-tuning image
+================================================================================
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+  Stage 1 completed. Best val kappa: 0.1151
+================================================================================
+STAGE 2: Fine-tuning with UNFROZEN image branch
+  Learning rate: 1e-6 (very low to prevent overfitting)
+  Unfreezing image layers...
+================================================================================
+  Model recompiled with LR=1e-6
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+================================================================================
+Two-stage training completed!
+  Stage 1 (frozen):    Kappa 0.1151
+  Stage 2 (fine-tune): Kappa 0.1178
+  Improvement: +0.0027 ✓
+================================================================================
+
+Run 2 Results for metadata+thermal_map:
+Cohen's Kappa: 0.1783
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:   76   62   15
+Actual Prolif:  110  159   47
+Actual Remodl:   12   20   14
+
+Training gating network for run 2...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (1866, 3)
+Shape of true labels: (1866,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.4835
+F1 Macro: 0.4112
+Kappa: 0.1783
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_thermal_map_fold1_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_thermal_map_fold1_seed42.index
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_thermal_map_fold1_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_thermal_map_fold1_seed42.index
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Processing metadata shape...
+
+Unique cases: 489 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    339
+0    150
+Name: count, dtype: int64
+Binary2: label_bin2
+0    427
+1     62
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 364
+Class 1: 736
+Class 2: 148
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.759, 0.375, 1.866]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 364
+Class 1: 736
+Class 2: 148
+
+After oversampling (ordered):
+Class 0: 736
+Class 1: 736
+Class 2: 736
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2208,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (306,)
+2026-01-05 08:57:30.558613: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Setting image shapes to 32x32...
+
+Preparing datasets for Fold 3/3 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+
+Class distributions:
+Training: {0: 0.292, 1: 0.607, 2: 0.101}
+Validation: {0: 0.285, 1: 0.598, 2: 0.117}
+
+Unique cases: 397 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    270
+0    127
+Name: count, dtype: int64
+Binary2: label_bin2
+0    352
+1     45
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 289
+Class 1: 601
+Class 2: 100
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.686, 0.33, 1.984]
+Using simple random oversampling...
+Original class distribution (ordered):
+Class 0: 289
+Class 1: 601
+Class 2: 100
+
+After oversampling (ordered):
+Class 0: 601
+Class 1: 601
+Class 2: 601
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+thermal_map type: <class 'numpy.ndarray'> shape: (1803,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1803,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (564,)
+thermal_map type: <class 'numpy.ndarray'> shape: (564,)
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 3/3
+2026-01-05 08:59:03.922962: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Alpha values (ordered) [I, P, R]: [1.0, 1.0, 1.0]
+Class weights: {0: 1, 1: 1, 2: 1} or [1, 1, 1]
+
+Debug create_image_branch
+Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image
+  Fusion weights: RF=0.70, Image=0.30
+================================================================================
+AUTOMATIC PRE-TRAINING: thermal_map weights not found
+  Training thermal_map-only model first (same data split)...
+================================================================================
+
+Debug create_image_branch
+  Pre-training thermal_map-only on same data split (prevents data leakage)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/engine/functional.py:642: UserWarning: Input dict contained keys ['metadata_input'] which did not match any model input. They will be ignored by the model.
+  inputs = self._flatten_to_reference_inputs(inputs)
+2026-01-05 09:00:11.322311: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Epoch 1/300 - loss: 2.0747 - val_loss: 2.0169 - acc: 0.3224 - val_acc: 0.5957 - macro_f1: 0.3213 - val_macro_f1: 0.2489 - kappa: -0.0140 - val_kappa: -0.0030
+Epoch 20/300 - loss: 1.9398 - val_loss: 1.9422 - acc: 0.4307 - val_acc: 0.2855 - macro_f1: 0.3927 - val_macro_f1: 0.2268 - kappa: 0.1469 - val_kappa: 0.0320
+Restoring model weights from the end of the best epoch: 3.
+Epoch 23: early stopping
+  Pre-training completed! Best val kappa: 0.0336
+  Checkpoint saved to: /workspace/DFUMultiClassification/results/models/thermal_map_3_thermal_map.ckpt
+  Transferring pre-trained weights to fusion model...
+  STAGE 1: Freezing thermal_map branch (will unfreeze for Stage 2)...
+  Successfully loaded and frozen 17 layers!
+  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)
+  DEBUG: Trainable weights breakdown after freezing:
+  Total trainable parameters across all layers: 0
+  WARNING: 0 trainable parameters! This will prevent learning!
+  DEBUG: Checking RF metadata predictions...
+    Sample RF predictions (first 5): [[2.2144435e-01 6.0653287e-01 1.7202280e-01]
+ [2.0674522e-01 7.5686842e-01 3.6386371e-02]
+ [7.7169470e-04 4.8797955e-03 9.9434853e-01]
+ [7.5650826e-02 4.8030198e-02 8.7631899e-01]
+ [2.7476293e-01 7.1160781e-01 1.3629276e-02]]
+    RF predictions sum to 1.0: [1.0, 1.0, 1.0]
+    Sample labels (first 5): [[0. 1. 0.]
+ [0. 1. 0.]
+ [0. 0. 1.]
+ [0. 0. 1.]
+ [0. 1. 0.]]
+================================================================================
+No existing pretrained weights found
+Total model trainable weights: 0
+================================================================================
+STAGE 1: Training with FROZEN image branch (30 epochs)
+  Goal: Stabilize fusion layer before fine-tuning image
+================================================================================
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+  Stage 1 completed. Best val kappa: 0.1359
+================================================================================
+STAGE 2: Fine-tuning with UNFROZEN image branch
+  Learning rate: 1e-6 (very low to prevent overfitting)
+  Unfreezing image layers...
+================================================================================
+  Model recompiled with LR=1e-6
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+================================================================================
+Two-stage training completed!
+  Stage 1 (frozen):    Kappa 0.1359
+  Stage 2 (fine-tune): Kappa 0.1308
+  No improvement from fine-tuning (kept Stage 1 weights)
+================================================================================
+
+Run 3 Results for metadata+thermal_map:
+Cohen's Kappa: 0.2038
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:   53  105    3
+Actual Prolif:   69  257   11
+Actual Remodl:    8   47   11
+
+Training gating network for run 3...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (1803, 3)
+Shape of true labels: (1803,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.5691
+F1 Macro: 0.4317
+Kappa: 0.2038
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_valid.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_valid.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run3_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run3_valid.npy
+Results for metadata, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+thermal_map
+  Accuracy: 0.5333 ± 0.0363
+  F1 Macro: 0.4288
+  Kappa: 0.2229
+
+Total combinations tested: 1
+================================================================================
+

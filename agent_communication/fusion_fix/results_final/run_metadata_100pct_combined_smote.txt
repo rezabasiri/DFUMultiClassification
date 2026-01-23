@@ -1,0 +1,573 @@
+2026-01-05 12:20:07.891785: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-05 12:20:07.891841: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-05 12:20:07.893687: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-05 12:20:08.789549: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:441: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/transformers/utils/generic.py:309: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  _torch_pytree._register_pytree_node(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/outputs.py:63: FutureWarning: `torch.utils._pytree._register_pytree_node` is deprecated. Please use `torch.utils._pytree.register_pytree_node` instead.
+  torch.utils._pytree._register_pytree_node(
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 8 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 2: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 3: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 4: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 5: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 6: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 7: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 8 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 2: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 3: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 4: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 5: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 6: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 7: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 8 GPU(s)
+
+Using MirroredStrategy (8 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 8× global batch size
+================================================================================
+
+
+Batch size per replica: 40 (global batch size: 320, replicas: 8)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 2 (DETAILED)
+Device: GPUs [0, 1, 2, 3, 4, 5, 6, 7] (multi-GPU mode, MirroredStrategy)
+  Replicas: 8× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 32x32
+Batch size: 320
+  Per-GPU batch: 40 (320 / 8 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata
+Number of samples for each selected modality:
+  metadata: 3107
+Using 100.0% of the data: 3107 samples
+Using strategy from main: MirroredStrategy
+
+================================================================================
+MULTI-GPU TRAINING: 8 GPUs
+Global batch size: 320 (per-GPU: 40)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+Fold 1/3: 154 train patients, 79 valid patients
+  Train dist: {0: 0.312, 1: 0.606, 2: 0.082}
+  Valid dist: {0: 0.247, 1: 0.604, 2: 0.149}
+Fold 2/3: 156 train patients, 77 valid patients
+  Train dist: {0: 0.258, 1: 0.613, 2: 0.129}
+  Valid dist: {0: 0.350, 1: 0.587, 2: 0.063}
+Fold 3/3: 156 train patients, 77 valid patients
+  Train dist: {0: 0.294, 1: 0.596, 2: 0.110}
+  Valid dist: {0: 0.272, 1: 0.626, 2: 0.103}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Processing metadata shape...
+
+Unique cases: 517 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    352
+0    165
+Name: count, dtype: int64
+Binary2: label_bin2
+0    456
+1     61
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.712, 0.349, 1.939]
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+Using combined + SMOTE (under + synthetic over)...
+
+After undersampling (ordered):
+Class 0: 727
+Class 1: 727
+Class 2: 267
+Applying SMOTE to minority class...
+
+After oversampling (ordered):
+Class 0: 727
+Class 1: 727
+Class 2: 727
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2181,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (628,)
+2026-01-05 12:20:25.925923: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Setting image shapes to 32x32...
+
+Preparing datasets for Fold 1/3 with all modalities: ['metadata']
+Using consistent patient split across all modality combinations for run 1
+
+Class distributions:
+Training: {0: 0.312, 1: 0.606, 2: 0.082}
+Validation: {0: 0.247, 1: 0.604, 2: 0.149}
+
+Unique cases: 407 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    270
+0    137
+Name: count, dtype: int64
+Binary2: label_bin2
+0    371
+1     36
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 599
+Class 1: 1164
+Class 2: 158
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.565, 0.291, 2.144]
+Original class distribution (ordered):
+Class 0: 599
+Class 1: 1164
+Class 2: 158
+Using combined + SMOTE (under + synthetic over)...
+
+After undersampling (ordered):
+Class 0: 599
+Class 1: 599
+Class 2: 158
+Applying SMOTE to minority class...
+
+After oversampling (ordered):
+Class 0: 599
+Class 1: 599
+Class 2: 599
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Wound Centre Temperature Normalized (°C)', 'Peri-Ulcer Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Type of Pain Grouped']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1797,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1186,)
+
+No existing data found for metadata, starting fresh
+
+Training metadata with modalities: ['metadata'], fold 1/3
+2026-01-05 12:20:32.192084: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Alpha values (ordered) [I, P, R]: [1.0, 1.0, 1.0]
+Class weights: {0: 1, 1: 1, 2: 1} or [1, 1, 1]
+Model: Metadata-only - using RF predictions directly (no Dense layer)
+No existing pretrained weights found
+Total model trainable weights: 0
+Metadata-only: Minimal training on final layer
+2026-01-05 12:20:43.295366: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Epoch 1/300 - loss: 0.1833 - val_loss: 0.4958 - acc: 0.9708 - val_acc: 0.4047 - macro_f1: 0.9708 - val_macro_f1: 0.3647 - kappa: 0.9562 - val_kappa: 0.0446
+Epoch 20/300 - loss: 0.1805 - val_loss: 0.4958 - acc: 0.9734 - val_acc: 0.4047 - macro_f1: 0.9732 - val_macro_f1: 0.3647 - kappa: 0.9602 - val_kappa: 0.0446
+Restoring model weights from the end of the best epoch: 1.
+Epoch 21: early stopping
+
+Run 1 Results for metadata:
+Cohen's Kappa: 0.1701
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:  172  103   18
+Actual Prolif:  383  271   62
+Actual Remodl:   50   90   37
+
+Training gating network for run 1...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (1797, 3)
+Shape of true labels: (1797,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.4047
+F1 Macro: 0.3647
+Kappa: 0.1701
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_fold0_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_fold0_seed42.index
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_fold0_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_fold0_seed42.index
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Processing metadata shape...
+
+Unique cases: 517 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    352
+0    165
+Name: count, dtype: int64
+Binary2: label_bin2
+0    456
+1     61
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.712, 0.349, 1.939]
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+Using combined + SMOTE (under + synthetic over)...
+
+After undersampling (ordered):
+Class 0: 727
+Class 1: 727
+Class 2: 267
+Applying SMOTE to minority class...
+
+After oversampling (ordered):
+Class 0: 727
+Class 1: 727
+Class 2: 727
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2181,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (628,)
+2026-01-05 12:21:27.552701: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Setting image shapes to 32x32...
+
+Preparing datasets for Fold 2/3 with all modalities: ['metadata']
+Using consistent patient split across all modality combinations for run 2
+
+Class distributions:
+Training: {0: 0.258, 1: 0.613, 2: 0.129}
+Validation: {0: 0.35, 1: 0.587, 2: 0.063}
+
+Unique cases: 434 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    311
+0    123
+Name: count, dtype: int64
+Binary2: label_bin2
+0    373
+1     61
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 547
+Class 1: 1301
+Class 2: 273
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.876, 0.368, 1.755]
+Original class distribution (ordered):
+Class 0: 547
+Class 1: 1301
+Class 2: 273
+Using combined + SMOTE (under + synthetic over)...
+
+After undersampling (ordered):
+Class 0: 547
+Class 1: 547
+Class 2: 273
+Applying SMOTE to minority class...
+
+After oversampling (ordered):
+Class 0: 547
+Class 1: 547
+Class 2: 547
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Wound Centre Temperature Normalized (°C)', 'Peri-Ulcer Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1641,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (986,)
+
+No existing data found for metadata, starting fresh
+
+Training metadata with modalities: ['metadata'], fold 2/3
+2026-01-05 12:21:33.843403: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Alpha values (ordered) [I, P, R]: [1.0, 1.0, 1.0]
+Class weights: {0: 1, 1: 1, 2: 1} or [1, 1, 1]
+Model: Metadata-only - using RF predictions directly (no Dense layer)
+No existing pretrained weights found
+Total model trainable weights: 0
+Metadata-only: Minimal training on final layer
+2026-01-05 12:21:42.505610: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Epoch 1/300 - loss: 0.2029 - val_loss: 0.4677 - acc: 0.9536 - val_acc: 0.5000 - macro_f1: 0.9542 - val_macro_f1: 0.4468 - kappa: 0.9303 - val_kappa: 0.1280
+Epoch 20/300 - loss: 0.1979 - val_loss: 0.4677 - acc: 0.9516 - val_acc: 0.5000 - macro_f1: 0.9499 - val_macro_f1: 0.4468 - kappa: 0.9273 - val_kappa: 0.1280
+Restoring model weights from the end of the best epoch: 1.
+Epoch 21: early stopping
+
+Run 2 Results for metadata:
+Cohen's Kappa: 0.1308
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:  225  108   12
+Actual Prolif:  313  251   15
+Actual Remodl:   32   13   17
+
+Training gating network for run 2...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (1641, 3)
+Shape of true labels: (1641,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.5000
+F1 Macro: 0.4468
+Kappa: 0.1308
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_fold1_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_fold1_seed42.index
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_fold1_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_fold1_seed42.index
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Processing metadata shape...
+
+Unique cases: 517 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    352
+0    165
+Name: count, dtype: int64
+Binary2: label_bin2
+0    456
+1     61
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.712, 0.349, 1.939]
+Original class distribution (ordered):
+Class 0: 727
+Class 1: 1485
+Class 2: 267
+Using combined + SMOTE (under + synthetic over)...
+
+After undersampling (ordered):
+Class 0: 727
+Class 1: 727
+Class 2: 267
+Applying SMOTE to minority class...
+
+After oversampling (ordered):
+Class 0: 727
+Class 1: 727
+Class 2: 727
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2181,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (628,)
+2026-01-05 12:22:28.305860: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Setting image shapes to 32x32...
+
+Preparing datasets for Fold 3/3 with all modalities: ['metadata']
+Using consistent patient split across all modality combinations for run 3
+
+Class distributions:
+Training: {0: 0.294, 1: 0.596, 2: 0.11}
+Validation: {0: 0.272, 1: 0.626, 2: 0.103}
+
+Unique cases: 453 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    307
+0    146
+Name: count, dtype: int64
+Binary2: label_bin2
+0    398
+1     55
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 638
+Class 1: 1295
+Class 2: 239
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.721, 0.355, 1.924]
+Original class distribution (ordered):
+Class 0: 638
+Class 1: 1295
+Class 2: 239
+Using combined + SMOTE (under + synthetic over)...
+
+After undersampling (ordered):
+Class 0: 638
+Class 1: 638
+Class 2: 239
+Applying SMOTE to minority class...
+
+After oversampling (ordered):
+Class 0: 638
+Class 1: 638
+Class 2: 638
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Onset (Days)', 'Wound Centre Temperature Normalized (°C)', 'BMI', 'Weight (Kg)']
+Using Scikit-learn RandomForestClassifier
+Using 40 features from training selection
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1914,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (935,)
+
+No existing data found for metadata, starting fresh
+
+Training metadata with modalities: ['metadata'], fold 3/3
+2026-01-05 12:22:35.088756: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Alpha values (ordered) [I, P, R]: [1.0, 1.0, 1.0]
+Class weights: {0: 1, 1: 1, 2: 1} or [1, 1, 1]
+Model: Metadata-only - using RF predictions directly (no Dense layer)
+No existing pretrained weights found
+Total model trainable weights: 0
+Metadata-only: Minimal training on final layer
+2026-01-05 12:22:44.027622: W tensorflow/core/kernels/data/cache_dataset_ops.cc:302] The calling iterator did not fully read the dataset being cached. In order to avoid unexpected truncation of the dataset, the partially cached contents of the dataset  will be discarded. This can happen if you have an input pipeline similar to `dataset.cache().take(k).repeat()`. You should use `dataset.take(k).cache().repeat()` instead.
+Epoch 1/300 - loss: 0.1916 - val_loss: 0.4933 - acc: 0.9589 - val_acc: 0.4053 - macro_f1: 0.9582 - val_macro_f1: 0.3667 - kappa: 0.9383 - val_kappa: 0.0341
+Epoch 20/300 - loss: 0.1914 - val_loss: 0.4933 - acc: 0.9609 - val_acc: 0.4053 - macro_f1: 0.9605 - val_macro_f1: 0.3667 - kappa: 0.9414 - val_kappa: 0.0341
+Restoring model weights from the end of the best epoch: 1.
+Epoch 21: early stopping
+
+Run 3 Results for metadata:
+Cohen's Kappa: 0.1944
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:  145  103    6
+Actual Prolif:  297  207   81
+Actual Remodl:   27   42   27
+
+Training gating network for run 3...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (1914, 3)
+Shape of true labels: (1914,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.4053
+F1 Macro: 0.3667
+Kappa: 0.1944
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_valid.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run2_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run2_valid.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run3_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run3_valid.npy
+Results for metadata appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata
+  Accuracy: 0.4367 ± 0.0448
+  F1 Macro: 0.3927
+  Kappa: 0.1651
+
+Total combinations tested: 1
+================================================================================
+
