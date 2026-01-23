@@ -744,14 +744,18 @@ def generate_validation_samples(
 
             for j in range(0, n_samples_this_phase, gen_batch_size):
                 batch_size = min(gen_batch_size, n_samples_this_phase - j)
-                batch_images = pipeline(
-                    prompt=[prompt] * batch_size,
-                    negative_prompt=[negative_prompt] * batch_size,
-                    num_inference_steps=config['quality']['inference_steps_training'],
-                    guidance_scale=config['quality']['guidance_scale'],
-                    height=config['model']['resolution'],
-                    width=config['model']['resolution']
-                ).images
+
+                # Use BF16 autocast for inference to reduce memory usage
+                # Training can be FP32, but inference benefits from lower precision
+                with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+                    batch_images = pipeline(
+                        prompt=[prompt] * batch_size,
+                        negative_prompt=[negative_prompt] * batch_size,
+                        num_inference_steps=config['quality']['inference_steps_training'],
+                        guidance_scale=config['quality']['guidance_scale'],
+                        height=config['model']['resolution'],
+                        width=config['model']['resolution']
+                    ).images
                 phase_image_list.extend(batch_images)
 
                 # Clear cache between batches
@@ -769,14 +773,18 @@ def generate_validation_samples(
 
         for i in range(0, num_samples, gen_batch_size):
             batch_size = min(gen_batch_size, num_samples - i)
-            batch_images = pipeline(
-                prompt=[prompt] * batch_size,
-                negative_prompt=[negative_prompt] * batch_size,
-                num_inference_steps=config['quality']['inference_steps_training'],
-                guidance_scale=config['quality']['guidance_scale'],
-                height=config['model']['resolution'],
-                width=config['model']['resolution']
-            ).images
+
+            # Use BF16 autocast for inference to reduce memory usage
+            # Training can be FP32, but inference benefits from lower precision
+            with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+                batch_images = pipeline(
+                    prompt=[prompt] * batch_size,
+                    negative_prompt=[negative_prompt] * batch_size,
+                    num_inference_steps=config['quality']['inference_steps_training'],
+                    guidance_scale=config['quality']['guidance_scale'],
+                    height=config['model']['resolution'],
+                    width=config['model']['resolution']
+                ).images
             all_images.extend(batch_images)
 
             # Clear cache between batches
