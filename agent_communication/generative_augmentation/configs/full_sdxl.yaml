@@ -19,7 +19,7 @@ data:
   bbox_file: "/workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv"  # Bbox annotations
   modality: "rgb"
   phase: "all"  # Use all phases (I=860, P=1678, R=322) = 2860 images total
-  data_percentage: 100  # Use 100% of images from each phase
+  data_percentage: 30  # Use 100% of images from each phase
   # Balanced sampling - weights computed dynamically from actual class counts
   # "auto" = compute weights inversely proportional to class frequency
   class_weights: "auto"
@@ -29,7 +29,8 @@ data:
     enabled: true
     horizontal_flip: true
     vertical_flip: true
-    rotation_degrees: 15
+    rotation_degrees: 0  # No rotation - avoid black corners, wounds have orientation
+    scale_range: [0.9, 1.1]  # Slight scaling to preserve wound size realism
     color_jitter:
       brightness: 0.05  # Reduced - wounds have class-specific colors
       contrast: 0.05    # Reduced - preserve tissue appearance
@@ -40,10 +41,10 @@ data:
 
 training:
   batch_size_per_gpu: 2  # Moderate batch size
-  gradient_accumulation_steps: 8  # Smooths updates for full fine-tune, reduces catastrophic drift
+  gradient_accumulation_steps: 12  # Smooths updates for full fine-tune, reduces catastrophic drift
   learning_rate: 3.0e-6  # Lower LR for full fine-tune SDXL to prevent overfit
   lr_scheduler: "cosine"  # Cosine annealing
-  lr_warmup_ratio: 0.002  # 0.2% of total steps (~154 steps) - reach full LR within epoch 1
+  lr_warmup_ratio: 0.0008  # 0.2% of total steps (~154 steps) - reach full LR within epoch 1
   lr_num_cycles: 1
   optimizer: "adamw"
   adam_beta1: 0.9
@@ -51,7 +52,7 @@ training:
   adam_weight_decay: 0.01
   adam_epsilon: 1.0e-8
   max_grad_norm: 0.5  # Tighter gradient clipping helps bf16 stability
-  max_epochs: 250  # Reduced from 300 - full fine-tune on 2.8k images needs fewer epochs
+  max_epochs: 200  # Reduced from 300 - full fine-tune on 2.8k images needs fewer epochs
   prompt_dropout: 0.20  # CFG training - expose model to unconditional conditioning
   early_stopping:
     enabled: true
@@ -76,29 +77,29 @@ prompts:
 
 quality:
   perceptual_loss:
-    enabled: false  # DISABLED - VGG trained on ImageNet pushes toward "natural" style, not medical realism
-    weight: 0.01
+    enabled: true  # test # DISABLED wroked before - VGG trained on ImageNet pushes toward "natural" style, not medical realism
+    weight: 0.001
     vgg_layer: 16
   ema:
     enabled: true
     decay: 0.999  # Standard EMA decay for stability
-    use_ema_weights_for_inference: false  # DISABLED - use main model to see actual learning, not EMA
+    use_ema_weights_for_inference: true #test  # DISABLED wroked before - use main model to see actual learning, not EMA
   guidance_scale: 4.0  # REDUCED from 12.0 - lower guidance = less prompt reliance, more training data learning
   inference_steps_training: 50
   inference_steps_production: 50
 
 checkpointing:
   output_dir: "agent_communication/generative_augmentation/checkpoints/full_sdxl"
-  save_every_n_epochs: 5  # Save checkpoint every 10 epochs
+  save_every_n_epochs: 5  # Save checkpoint every 5 epochs
   keep_last_n_checkpoints: 2  # Keep only 2 checkpoints: best + last
   save_best_only: false
   resume_from_checkpoint: null
   save_optimizer_state: true
 
 metrics:
-  compute_every_n_epochs: 5  # FID every 10 epochs
+  compute_every_n_epochs: 5  # FID every 5 epochs
   num_samples_for_metrics: 50
-  generation_batch_size: 8  # Generate images in batches to avoid OOM at 512x512
+  generation_batch_size: 10  # Generate images in batches to avoid OOM at 512x512
   fid:
     enabled: true
     target_threshold: 50.0
@@ -124,7 +125,7 @@ logging:
 hardware:
   multi_gpu: true
   num_gpus: 5
-  mixed_precision: "bf16"  # BF16 with lower LR (2e-6) to prevent NaN
+  mixed_precision: "bf16"  # BF16 worked before with lower LR (2e-6) to prevent NaN
   gradient_checkpointing: true
   use_xformers: false  # SDXL attention dim incompatible
   enable_cpu_offload: true  # Offload optimizer states to CPU for additional memory savings
