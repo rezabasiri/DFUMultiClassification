@@ -19,7 +19,7 @@ data:
   bbox_file: "/workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv"  # Bbox annotations
   modality: "rgb"
   phase: "all"  # Use all phases (I=860, P=1678, R=322) = 2860 images total
-  data_percentage: 30  # Use 100% of images from each phase
+  data_percentage: 100  # Use 100% of images from each phase
   # Balanced sampling - weights computed dynamically from actual class counts
   # "auto" = compute weights inversely proportional to class frequency
   class_weights: "auto"
@@ -42,7 +42,7 @@ data:
 training:
   batch_size_per_gpu: 2  # Moderate batch size
   gradient_accumulation_steps: 12  # Smooths updates for full fine-tune, reduces catastrophic drift
-  learning_rate: 3.0e-6  # Lower LR for full fine-tune SDXL to prevent overfit
+  learning_rate: 3.0e-5  # Lower LR for full fine-tune SDXL to prevent overfit
   lr_scheduler: "cosine"  # Cosine annealing
   lr_warmup_ratio: 0.0008  # 0.2% of total steps (~154 steps) - reach full LR within epoch 1
   lr_num_cycles: 1
@@ -83,7 +83,7 @@ quality:
   ema:
     enabled: true
     decay: 0.999  # Standard EMA decay for stability
-    use_ema_weights_for_inference: true #test  # DISABLED wroked before - use main model to see actual learning, not EMA
+    use_ema_weights_for_inference: false #test  # DISABLED wroked before - use main model to see actual learning, not EMA
   guidance_scale: 4.0  # REDUCED from 12.0 - lower guidance = less prompt reliance, more training data learning
   inference_steps_training: 50
   inference_steps_production: 50
@@ -97,7 +97,7 @@ checkpointing:
   save_optimizer_state: true
 
 metrics:
-  compute_every_n_epochs: 5  # FID every 5 epochs
+  compute_every_n_epochs: 2  # FID every 2 epochs
   num_samples_for_metrics: 50
   generation_batch_size: 10  # Generate images in batches to avoid OOM at 512x512
   fid:
@@ -117,7 +117,7 @@ metrics:
 logging:
   logging_dir: "agent_communication/generative_augmentation/reports/full_sdxl_logs"
   log_every_n_steps: 50 
-  save_samples_every_n_epochs: 5  # Save samples every 5 epochs
+  save_samples_every_n_epochs: 2  # Save samples every 2 epochs
   num_samples_to_save: 16
   use_tensorboard: true
   use_wandb: false
@@ -140,7 +140,7 @@ validation:
   # NOTE: val_loss is computed every epoch for early stopping to work properly
   # validate_every_n_epochs is kept for backward compatibility but no longer used
   generate_samples: true  # Enable sample generation
-  num_validation_samples: 4
+  num_validation_samples: 50
   compare_to_real: true
   num_real_samples_for_comparison: 50
   save_reference_images: true  # Save reference images once at start
