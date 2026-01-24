@@ -1026,3 +1026,52 @@ Epoch 37/200
   Step 50/257 - Loss: 0.0947, LR: 3.00e-05
   Step 100/257 - Loss: 0.1074, LR: 3.00e-05
   Step 150/257 - Loss: 0.1018, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1026, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1052, LR: 3.00e-05
+  Epoch 37 complete - Loss: 0.1046, LR: 3.00e-05
+Train loss: 0.1046
+  Validation: 29 batches - Loss: 0.1030
+Val loss: 0.1030
+
+Epoch 38/200
+  Step 1/257 - Loss: 0.1399, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0993, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1066, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1060, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1109, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1122, LR: 3.00e-05
+  Epoch 38 complete - Loss: 0.1108, LR: 3.00e-05
+Train loss: 0.1108
+  Validation: 29 batches - Loss: 0.1018
+Val loss: 0.1018
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8378, LPIPS=0.4700
+Phase P: SSIM=0.8455, LPIPS=0.4490
+Phase R: SSIM=0.8822, LPIPS=0.3713
+==================================================
+Quality Metrics:
+==================================================
+FID: 220.13 (lower is better, < 50 is good)
+SSIM: 0.8744 ± 0.0474 (higher is better, > 0.7 is good)
+LPIPS: 0.4092 ± 0.1019 (lower is better, < 0.3 is good)
+IS: 2.99 ± 0.39 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 220.13
+
+Epoch 39/200
+  Step 1/257 - Loss: 0.0316, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1040, LR: 3.00e-05
