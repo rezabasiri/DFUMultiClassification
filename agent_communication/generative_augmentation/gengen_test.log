@@ -193,3 +193,195 @@ OSError: stabilityai/stable-diffusion-3.5-medium does not appear to have a file 
 ✗ SD3.5 training failed, skipping evaluation
 
 ✗ Comparison incomplete due to training failures
+2026-01-24 22:04:07,302 - INFO - ================================================================================
+2026-01-24 22:04:07,302 - INFO - QUICK TEST MODE: 50.0% data, 50 epochs, 64x64 images
+2026-01-24 22:04:07,302 - INFO - This is for error checking only - results not production-ready
+2026-01-24 22:04:07,302 - INFO - ================================================================================
+
+2026-01-24 22:04:07,303 - INFO - Saved original production_config values
+2026-01-24 22:04:07,303 - INFO - Resuming test run - 1/2 tests completed
+2026-01-24 22:04:07,303 - INFO - 
+Skipping Baseline (no generative augmentation) (already completed)
+2026-01-24 22:04:07,303 - INFO - 
+================================================================================
+2026-01-24 22:04:07,303 - INFO - Starting test 2/2
+2026-01-24 22:04:07,303 - INFO - ================================================================================
+2026-01-24 22:04:07,303 - INFO - 
+================================================================================
+2026-01-24 22:04:07,303 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-24 22:04:07,303 - INFO - ================================================================================
+2026-01-24 22:04:07,303 - INFO - Deleted cached dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+2026-01-24 22:04:07,304 - INFO - Deleted cached outliers: outliers_depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+2026-01-24 22:04:07,304 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-24 22:04:07,304 - INFO - Modalities: metadata, depth_rgb, depth_map, thermal_map
+2026-01-24 22:04:07,305 - INFO - Running: /venv/multimodal/bin/python src/main.py --data_percentage 50.0 --resume_mode fresh --device-mode multi
+
+COMMAND: /venv/multimodal/bin/python src/main.py --data_percentage 50.0 --resume_mode fresh --device-mode multi
+
+2026-01-24 22:04:07.744498: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-24 22:04:07.744543: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-24 22:04:07.745239: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 5 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 2: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 3: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+  GPU 4: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
+
+Selected 5 GPU(s):
+  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 2: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 3: NVIDIA GeForce RTX 4090 (24.0GB)
+  GPU 4: NVIDIA GeForce RTX 4090 (24.0GB)
+Enabled memory growth for 5 GPU(s)
+
+Using MirroredStrategy (5 GPUs) with NCCL
+  Compute capability 8.9 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 5× global batch size
+================================================================================
+
+
+Batch size per replica: 12 (global batch size: 64, replicas: 5)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 50.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1, 2, 3, 4] (multi-GPU mode, MirroredStrategy)
+  Replicas: 5× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+  Per-GPU batch: 12 (64 / 5 GPUs)
+Max epochs: 50 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 2 files deleted
+  Csv Results: 1 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 15%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 15%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
+  Total outliers: 417/2774 (15.0%)
+  Cleaned dataset: 2357 samples
+  Saved cleaned dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+Applying cleaned dataset for depth_map_depth_rgb_metadata_thermal_map (15% outlier removal)...
+  Filtered: 2774 samples
+  Applied cleaned dataset to: best_matching.csv
+  ✓ Applied for depth_map_depth_rgb_metadata_thermal_map: 2357 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata, depth_rgb, depth_map, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2774
+  depth_bb: 2774
+  depth_map: 2774
+  thermal_map: 2774
+  thermal_bb: 2774
+  metadata: 2774
+Using 50.0% of the data: 1387 samples
+
+================================================================================
+MULTI-GPU TRAINING: 5 GPUs
+Global batch size: 64 (per-GPU: 12)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 67 patients
+Class 1: 108 patients
+Class 2: 24 patients
+================================================================================
+
+Fold 1/3: 132 train patients, 67 valid patients
+  Train dist: {0: 0.297, 1: 0.601, 2: 0.102}
+  Valid dist: {0: 0.256, 1: 0.638, 2: 0.106}
+Fold 2/3: 133 train patients, 66 valid patients
+  Train dist: {0: 0.281, 1: 0.613, 2: 0.106}
+  Valid dist: {0: 0.283, 1: 0.616, 2: 0.100}
+Fold 3/3: 133 train patients, 66 valid patients
+  Train dist: {0: 0.270, 1: 0.627, 2: 0.103}
+  Valid dist: {0: 0.315, 1: 0.580, 2: 0.105}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+Initializing GenerativeAugmentationManager with models from src/models/sdxl_checkpoints
+
+Preparing datasets for Fold 1/3 with all modalities: ['depth_map', 'metadata', 'thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 1
+Using Scikit-learn RandomForestClassifier
+
+No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
+
+Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 1/3
+================================================================================
+AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+  Training depth_rgb-only model first (same data split)...
+================================================================================
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1769292497.407721   69656 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Restoring model weights from the end of the best epoch: 15.
+Epoch 25: early stopping
+  Pre-training completed! Best val kappa: 0.0675
+2026-01-24 22:10:18,495 - INFO -     Pre-training completed! Best val kappa: 0.0675
+================================================================================
+No existing pretrained weights found
