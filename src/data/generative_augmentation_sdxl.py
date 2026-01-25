@@ -423,6 +423,9 @@ class SDXLWoundGenerator:
                 return self.pipeline
 
             try:
+                print(f"\n{'='*60}")
+                print(f"[GPU DEBUG] SDXL LOADING - Expect HIGH GPU memory usage soon!")
+                print(f"{'='*60}")
                 print(f"Loading SDXL checkpoint from {self.checkpoint_path}")
 
                 # Load checkpoint
@@ -489,6 +492,8 @@ class SDXLWoundGenerator:
         try:
             # Get phase-specific prompt
             prompt = self.phase_prompts[phase]
+            print(f"[GPU DEBUG] SDXL GENERATING: {batch_size} images for phase {phase} at {height}x{width}")
+            print(f"[GPU DEBUG] Using {num_inference_steps} inference steps - Expect HIGH GPU utilization!")
 
             with torch.no_grad():
                 output = pipeline(
@@ -617,6 +622,10 @@ class GenerativeAugmentationManager:
                 return True
 
             try:
+                print("\n" + "="*60)
+                print("[GPU DEBUG] SDXL GENERATOR FIRST USE - LOADING NOW!")
+                print("[GPU DEBUG] This will take ~30-60 seconds and use ~10GB GPU memory")
+                print("="*60 + "\n", flush=True)
                 print("Loading SDXL generator (first use)...")
                 self.generator = SDXLWoundGenerator(
                     checkpoint_path=self.checkpoint_path,

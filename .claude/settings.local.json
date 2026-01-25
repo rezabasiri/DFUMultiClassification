@@ -72,7 +72,8 @@
       "Bash(pip freeze:*)",
       "Bash(kill:*)",
       "Bash(accelerate config --help:*)",
-      "Bash(top:*)"
+      "Bash(top:*)",
+      "Bash(nvitop:*)"
     ]
   }
 }

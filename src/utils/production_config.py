@@ -26,8 +26,8 @@ Categories:
 
 # Core training hyperparameters
 IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
-N_EPOCHS = 50  # Full training epochs
+GLOBAL_BATCH_SIZE = 256  # Total batch size across all GPU replicas
+N_EPOCHS = 3  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
 # ----------------------------------------------------------------
@@ -63,7 +63,7 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 25  # Stage 1 fusion training epochs (frozen image branch)
+STAGE1_EPOCHS = 1  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 50.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
@@ -76,8 +76,8 @@ DATA_PERCENTAGE = 50.0  # Percentage of data to use (100.0 = all data, 50.0 = ha
 SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
 
 # Early stopping and learning rate
-EARLY_STOP_PATIENCE = 10  # Epochs to wait before stopping (increased for longer training)
-REDUCE_LR_PATIENCE = 3  # Epochs to wait before reducing LR (increased for longer training)
+EARLY_STOP_PATIENCE = 3  # Epochs to wait before stopping (increased for longer training)
+REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR (increased for longer training)
 
 # =============================================================================
 # Data Cleaning and Outlier Detection
@@ -159,12 +159,12 @@ GATING_VERBOSE = 0  # Training verbosity (0=silent, 1=progress bar, 2=epoch)
 
 # Callbacks - ReduceLROnPlateau
 GATING_REDUCE_LR_FACTOR = 0.5  # Factor to reduce learning rate
-GATING_REDUCE_LR_PATIENCE = 3  # Epochs to wait before reducing LR
+GATING_REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR
 GATING_REDUCE_LR_MIN_LR = 1e-9  # Minimum learning rate
 GATING_REDUCE_LR_MIN_DELTA = 2e-3  # Minimum change to qualify as improvement
 
 # Callbacks - EarlyStopping
-GATING_EARLY_STOP_PATIENCE = 10  # Epochs to wait before stopping
+GATING_EARLY_STOP_PATIENCE = 3  # Epochs to wait before stopping
 GATING_EARLY_STOP_MIN_DELTA = 2e-2  # Minimum change to qualify as improvement
 GATING_EARLY_STOP_VERBOSE = 2  # Verbosity level
 
@@ -186,7 +186,7 @@ HIERARCHICAL_VERBOSE = 2  # Training verbosity
 
 # Callbacks - ReduceLROnPlateau
 HIERARCHICAL_REDUCE_LR_FACTOR = 0.5  # Factor to reduce learning rate
-HIERARCHICAL_REDUCE_LR_PATIENCE = 3  # Epochs to wait before reducing LR
+HIERARCHICAL_REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR
 HIERARCHICAL_REDUCE_LR_MIN_LR = 1e-12  # Minimum learning rate
 
 # Focal loss for hierarchical gating
@@ -199,7 +199,7 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
 LR_SCHEDULE_MIN_LR = 1e-14  # Minimum learning rate
-LR_SCHEDULE_EXPLORATION_EPOCHS = 50  # Number of exploration epochs
+LR_SCHEDULE_EXPLORATION_EPOCHS = 3  # Number of exploration epochs
 LR_SCHEDULE_CYCLE_LENGTH = 30  # Initial cycle length
 LR_SCHEDULE_CYCLE_MULTIPLIER = 2.0  # Factor to multiply cycle length
 
