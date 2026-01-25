@@ -25,7 +25,7 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+IMAGE_SIZE = 32  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
 GLOBAL_BATCH_SIZE = 256  # Total batch size across all GPU replicas
 N_EPOCHS = 3  # Full training epochs
 
@@ -64,7 +64,7 @@ MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_m
 
 # Fusion-specific training parameters
 STAGE1_EPOCHS = 1  # Stage 1 fusion training epochs (frozen image branch)
-DATA_PERCENTAGE = 50.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
+DATA_PERCENTAGE = 30.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
 # Options: 'random', 'smote', 'combined', 'combined_smote'
