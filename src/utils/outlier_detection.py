@@ -672,14 +672,14 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     vprint(f"  Total outliers: {total_outliers}/{n_samples} ({total_outliers/n_samples*100:.1f}%)", level=1)
     vprint(f"  Cleaned dataset: {len(cleaned_df)} samples", level=1)
 
-    # New class distribution
+    # New class distribution - show at level 1 for visibility
     cleaned_dist = Counter(cleaned_df['Healing Phase Abs'])
-    vprint("  Cleaned class distribution:", level=2)
+    vprint("  Per-class breakdown after outlier removal:", level=1)
     for cls in ['I', 'P', 'R']:
         orig_count = class_dist[cls]
         new_count = cleaned_dist[cls]
         removed = orig_count - new_count
-        vprint(f"    {cls}: {new_count:3d} (removed {removed}, {removed/orig_count*100:.1f}%)", level=2)
+        vprint(f"    {cls}: {new_count:3d} samples (removed {removed}, {removed/orig_count*100:.1f}%)", level=1)
 
     # Save cleaned dataset
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -751,12 +751,13 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
 
     vprint(f"  Filtered: {len(filtered_df)} samples", level=1)
 
-    # Verify class distribution
+    # Verify class distribution - show at level 1 for visibility
     dist = Counter(filtered_df['Healing Phase Abs'])
-    vprint(f"  Class distribution: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=2)
+    vprint(f"  Class distribution after filtering: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=1)
 
     # Save filtered dataset
     filtered_df.to_csv(best_matching_file, index=False)
     vprint(f"  Applied cleaned dataset to: {best_matching_file.name}", level=1)
+    vprint(f"  Training will use {len(filtered_df)} samples (outliers excluded)", level=1)
 
     return True

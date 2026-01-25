@@ -82,16 +82,24 @@ tf.get_logger().setLevel('ERROR')  # Only show TF errors
 
 
 class GeneratedImageCounter:
-    """Thread-safe counter for tracking generated images"""
+    """Thread-safe counter for tracking generated images with per-class breakdown"""
     def __init__(self):
         self.count = 0
+        self.class_counts = {'I': 0, 'P': 0, 'R': 0}  # Per-class counts
         self.lock = threading.Lock()
         self.print_interval = 10  # Print every N images
 
-    def increment(self, batch_size=1):
-        """Increment counter and optionally print update"""
+    def increment(self, batch_size=1, phase=None):
+        """Increment counter and optionally print update
+
+        Args:
+            batch_size: Number of images generated
+            phase: Phase ('I', 'P', 'R') for per-class tracking
+        """
         with self.lock:
             self.count += batch_size
+            if phase and phase in self.class_counts:
+                self.class_counts[phase] += batch_size
             if self.count % self.print_interval == 0 or batch_size > 1:
                 print(f"  Generated images: {self.count}", flush=True)
 
@@ -99,11 +107,30 @@ class GeneratedImageCounter:
         """Reset counter to 0"""
         with self.lock:
             self.count = 0
+            self.class_counts = {'I': 0, 'P': 0, 'R': 0}
 
     def get_count(self):
         """Get current count"""
         with self.lock:
             return self.count
+
+    def get_summary(self):
+        """Get summary string with per-class breakdown"""
+        with self.lock:
+            return f"Total: {self.count} (I={self.class_counts['I']}, P={self.class_counts['P']}, R={self.class_counts['R']})"
+
+    def print_summary(self):
+        """Print generation summary"""
+        with self.lock:
+            if self.count > 0:
+                print(f"\n================================================================================")
+                print(f"SDXL GENERATION SUMMARY")
+                print(f"================================================================================")
+                print(f"Total images generated: {self.count}")
+                print(f"  Phase I (Inflammatory): {self.class_counts['I']}")
+                print(f"  Phase P (Proliferative): {self.class_counts['P']}")
+                print(f"  Phase R (Remodeling): {self.class_counts['R']}")
+                print(f"================================================================================\n")
 
 
 # Global counter instance
@@ -735,8 +762,8 @@ class GenerativeAugmentationManager:
             if generated is None:
                 return None
 
-            # Update counter
-            _gen_image_counter.increment(batch_size)
+            # Update counter with per-class tracking
+            _gen_image_counter.increment(batch_size, phase=phase)
 
             return generated
 
@@ -781,6 +808,9 @@ class GenerativeAugmentationManager:
         """Release all resources and GPU memory from all GPUs"""
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return
+
+        # Print generation summary before cleanup
+        _gen_image_counter.print_summary()
 
         with self.lock:
             # Clean up all generators (multi-GPU support)
@@ -830,6 +860,12 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                         return phase_tensor.numpy().decode('utf-8')
 
                     gen_manager.current_phase = tf.py_function(decode_phase, [current_phase], tf.string)
+
+                    # Apply regular augmentations FIRST (before SDXL mixing)
+                    # This ensures SDXL-generated images bypass regular augmentations
+                    if config.modality_settings[modality]['regular_augmentations']['enabled']:
+                        seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
+                        value = augment_image(value, modality, seed, config)
 
                     if gen_manager.should_generate(modality):
                         try:
@@ -888,10 +924,6 @@ def create_enhanced_augmentation_fn(gen_manager, config):
 
                         except Exception as e:
                             print(f"Error in generative augmentation: {str(e)}")
-
-                    if config.modality_settings[modality]['regular_augmentations']['enabled']:
-                        seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
-                        value = augment_image(value, modality, seed, config)
 
                 output_features[key] = value
 
