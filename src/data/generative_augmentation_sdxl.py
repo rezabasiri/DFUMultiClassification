@@ -423,10 +423,13 @@ class SDXLWoundGenerator:
                 return self.pipeline
 
             try:
+                print(f"\n{'='*60}")
+                print(f"[GPU DEBUG] SDXL LOADING - Expect HIGH GPU memory usage soon!")
+                print(f"{'='*60}")
                 print(f"Loading SDXL checkpoint from {self.checkpoint_path}")
 
-                # Load checkpoint
-                checkpoint = torch.load(self.checkpoint_path, map_location='cpu')
+                # Load checkpoint (weights_only=False for PyTorch 2.6+ compatibility with numpy scalars)
+                checkpoint = torch.load(self.checkpoint_path, map_location='cpu', weights_only=False)
 
                 # Load base SDXL components
                 print(f"Loading base model: {self.base_model}")
@@ -489,6 +492,8 @@ class SDXLWoundGenerator:
         try:
             # Get phase-specific prompt
             prompt = self.phase_prompts[phase]
+            print(f"[GPU DEBUG] SDXL GENERATING: {batch_size} images for phase {phase} at {height}x{width}")
+            print(f"[GPU DEBUG] Using {num_inference_steps} inference steps - Expect HIGH GPU utilization!")
 
             with torch.no_grad():
                 output = pipeline(
@@ -617,6 +622,10 @@ class GenerativeAugmentationManager:
                 return True
 
             try:
+                print("\n" + "="*60)
+                print("[GPU DEBUG] SDXL GENERATOR FIRST USE - LOADING NOW!")
+                print("[GPU DEBUG] This will take ~30-60 seconds and use ~10GB GPU memory")
+                print("="*60 + "\n", flush=True)
                 print("Loading SDXL generator (first use)...")
                 self.generator = SDXLWoundGenerator(
                     checkpoint_path=self.checkpoint_path,
@@ -743,99 +752,126 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     Create TensorFlow augmentation function with generative augmentation
 
     This maintains compatibility with the existing training pipeline.
+
+    IMPORTANT: This function is designed to work with MirroredStrategy.
+    All generative augmentation logic is handled inside a single tf.py_function
+    to avoid issues with tf.cond and lambda closures during graph tracing.
     """
+    # Pre-check if generative augmentation is enabled (Python-level check)
+    gen_aug_enabled = config.modality_settings['depth_rgb']['generative_augmentations']['enabled']
+    gen_aug_prob = config.generative_settings['prob']
+    mix_ratio_min = config.generative_settings['mix_ratio_range'][0]
+    mix_ratio_max = config.generative_settings['mix_ratio_range'][1]
+
+    # Phase lookup table
+    phases_lookup = tf.constant(['I', 'P', 'R'], dtype=tf.string)
+
+    # Define the py_function implementation at module level (outside of any loop)
+    # This function handles BOTH probability check AND generation
+    def _maybe_generate_impl(value_np, phase_bytes):
+        """
+        Implementation that runs in eager mode via tf.py_function.
+        Handles probability check internally to avoid tf.cond issues.
+        """
+        try:
+            # Convert EagerTensor to numpy array at the start
+            if hasattr(value_np, 'numpy'):
+                value_array = value_np.numpy()
+            else:
+                value_array = np.array(value_np)
+
+            # Probability check inside py_function (eager mode)
+            if np.random.random() >= gen_aug_prob:
+                return value_array  # Skip augmentation based on probability
+
+            # Handle both bytes and numpy array for phase
+            if isinstance(phase_bytes, bytes):
+                phase = phase_bytes.decode('utf-8')
+            elif hasattr(phase_bytes, 'numpy'):
+                phase_raw = phase_bytes.numpy()
+                phase = phase_raw.decode('utf-8') if isinstance(phase_raw, bytes) else str(phase_raw)
+            else:
+                phase = str(phase_bytes)
+
+            batch_size = value_array.shape[0]
+            height = value_array.shape[1]
+            width = value_array.shape[2]
+
+            # Check phase is valid
+            if phase not in GENERATIVE_AUG_PHASES:
+                return value_array
+
+            # Generate images
+            generated = gen_manager.generate_images(
+                'depth_rgb', phase,  # Hardcoded modality since only depth_rgb uses this
+                batch_size=batch_size,
+                target_height=height,
+                target_width=width
+            )
+
+            if generated is None:
+                return value_array
+
+            generated_np = generated.numpy() if hasattr(generated, 'numpy') else generated
+
+            # Mix ratio
+            mix_ratio = np.random.uniform(mix_ratio_min, mix_ratio_max)
+            num_to_replace = int(batch_size * mix_ratio)
+
+            if num_to_replace > 0 and len(generated_np) > 0:
+                indices = np.random.permutation(batch_size)[:num_to_replace]
+                num_available = min(num_to_replace, len(generated_np))
+                result = value_array.copy()
+                result[indices[:num_available]] = generated_np[:num_available]
+                return result
+
+            return value_array
+
+        except Exception as e:
+            print(f"Error in generative augmentation: {str(e)}")
+            # Return numpy array even on error
+            if hasattr(value_np, 'numpy'):
+                return value_np.numpy()
+            return np.array(value_np)
+
     def apply_augmentation(features, label):
-        def augment_batch(features_dict, label_tensor):
-            output_features = {}
+        output_features = {}
 
-            @tf.function
-            def get_label_phase(label):
-                index = tf.argmax(label)
-                phases = tf.constant(['I', 'P', 'R'], dtype=tf.string)
-                return tf.gather(phases, index)
+        # Get phase from first label in batch using simple TF ops
+        label_first = label[0]
+        phase_index = tf.argmax(label_first)
+        current_phase = tf.gather(phases_lookup, phase_index)
 
-            try:
-                current_phase = get_label_phase(label_tensor[0])
-            except Exception as e:
-                print(f"Error getting phase: {str(e)}")
-                current_phase = tf.constant('I', dtype=tf.string)
+        for key, value in features.items():
+            if '_input' in key and 'metadata' not in key:
+                modality = key.replace('_input', '')
 
-            for key, value in features_dict.items():
-                if '_input' in key and 'metadata' not in key:
-                    modality = key.replace('_input', '')
+                # Python-level check for generative augmentation
+                should_apply_gen_aug = (
+                    gen_aug_enabled and
+                    modality == 'depth_rgb' and
+                    hasattr(gen_manager, 'checkpoint_path') and
+                    hasattr(gen_manager, 'config_path')
+                )
 
-                    def decode_phase(phase_tensor):
-                        return phase_tensor.numpy().decode('utf-8')
+                if should_apply_gen_aug:
+                    # Single py_function call - no tf.cond, no lambda closures
+                    # The probability check is done inside the py_function
+                    value = tf.py_function(
+                        func=_maybe_generate_impl,
+                        inp=[value, current_phase],
+                        Tout=tf.float32
+                    )
+                    # Restore shape info that may be lost after py_function
+                    value.set_shape([None, None, None, 3])
 
-                    gen_manager.current_phase = tf.py_function(decode_phase, [current_phase], tf.string)
+                if config.modality_settings[modality]['regular_augmentations']['enabled']:
+                    seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
+                    value = augment_image(value, modality, seed, config)
 
-                    if gen_manager.should_generate(modality):
-                        try:
-                            def generate_images_wrapper(phase_tensor, modality_str, batch_size_val, target_height, target_width):
-                                try:
-                                    phase = phase_tensor.numpy().decode('utf-8')
-                                    modality_raw = modality_str.numpy().decode('utf-8')
-                                    batch_size = int(batch_size_val.numpy())
-                                    height = int(target_height.numpy())
-                                    width = int(target_width.numpy())
+            output_features[key] = value
 
-                                    # Generate directly at target size (no resizing needed)
-                                    generated = gen_manager.generate_images(
-                                        modality_raw, phase,
-                                        batch_size=batch_size,
-                                        target_height=height,
-                                        target_width=width
-                                    )
-
-                                    if generated is None:
-                                        return np.zeros([batch_size, height, width, 3], dtype=np.float32)
-
-                                    return generated.numpy()
-
-                                except Exception as e:
-                                    print(f"Error in generate_images_wrapper: {str(e)}")
-                                    return np.zeros([batch_size, height, width, 3], dtype=np.float32)
-
-                            modality_tensor = tf.constant(modality, dtype=tf.string)
-                            batch_size = tf.shape(value)[0]
-                            height = tf.shape(value)[1]
-                            width = tf.shape(value)[2]
-
-                            generated = tf.py_function(
-                                func=generate_images_wrapper,
-                                inp=[current_phase, modality_tensor, batch_size, height, width],
-                                Tout=tf.float32
-                            )
-                            generated.set_shape([None, value.shape[1], value.shape[2], 3])
-
-                            mix_ratio = tf.random.uniform([],
-                                minval=config.generative_settings['mix_ratio_range'][0],
-                                maxval=config.generative_settings['mix_ratio_range'][1]
-                            )
-
-                            num_to_replace = tf.cast(
-                                tf.cast(tf.shape(value)[0], tf.float32) * mix_ratio,
-                                tf.int32
-                            )
-
-                            indices = tf.random.shuffle(tf.range(tf.shape(value)[0]))[:num_to_replace]
-                            updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
-                            indices = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
-
-                            value = tf.tensor_scatter_nd_update(value, indices, updates)
-
-                        except Exception as e:
-                            print(f"Error in generative augmentation: {str(e)}")
-
-                    if config.modality_settings[modality]['regular_augmentations']['enabled']:
-                        seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
-                        value = augment_image(value, modality, seed, config)
-
-                output_features[key] = value
-
-            return output_features, label_tensor
-
-        return augment_batch(features, label)
+        return output_features, label
 
     return apply_augmentation
 

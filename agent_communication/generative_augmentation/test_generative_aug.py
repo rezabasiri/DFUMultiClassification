@@ -101,12 +101,13 @@ N_EPOCHS = 300
 IMAGE_SIZE = 64
 
 # Quick mode settings
-QUICK_DATA_PERCENTAGE = 50.0  # Need at least 50% data for model to learn with class imbalance
-QUICK_N_EPOCHS = 50  # Needs at least 50 epochs to learn something meaningful
-QUICK_IMAGE_SIZE = 64
-QUICK_STAGE1_EPOCHS = 25  # Stage 1 pre-training for quick mode (50% of total)
-QUICK_EARLY_STOP_PATIENCE = 10  # Allow full training in quick mode
-QUICK_REDUCE_LR_PATIENCE = 3  # Reduce LR after 3 epochs without improvement
+QUICK_DATA_PERCENTAGE = 30.0  # Reduced for faster quick testing
+QUICK_N_EPOCHS = 3  # Minimal epochs for quick error checking
+QUICK_IMAGE_SIZE = 32
+QUICK_STAGE1_EPOCHS = 1  # Stage 1 pre-training for quick mode (just 1 epoch to verify pipeline)
+QUICK_EARLY_STOP_PATIENCE = 3  # Quick early stopping
+QUICK_REDUCE_LR_PATIENCE = 1  # Reduce LR after 1 epoch without improvement
+QUICK_BATCH_SIZE = 256  # Large batch size for quick mode with 64x64 images to maximize GPU utilization
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
@@ -133,6 +134,7 @@ def save_original_config():
         'EARLY_STOP_PATIENCE': r'EARLY_STOP_PATIENCE = (\d+)',
         'REDUCE_LR_PATIENCE': r'REDUCE_LR_PATIENCE = (\d+)',
         'LR_SCHEDULE_EXPLORATION_EPOCHS': r'LR_SCHEDULE_EXPLORATION_EPOCHS = (\d+)',
+        'GLOBAL_BATCH_SIZE': r'GLOBAL_BATCH_SIZE = (\d+)',
     }
 
     for key, pattern in patterns.items():
@@ -169,6 +171,8 @@ def restore_original_config():
             content = re.sub(r'REDUCE_LR_PATIENCE = \d+', original_value, content)
         elif key == 'LR_SCHEDULE_EXPLORATION_EPOCHS':
             content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', original_value, content)
+        elif key == 'GLOBAL_BATCH_SIZE':
+            content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', original_value, content)
 
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
@@ -206,6 +210,7 @@ def update_config_for_test(use_gen_aug):
         content = re.sub(r'EARLY_STOP_PATIENCE = \d+', f'EARLY_STOP_PATIENCE = {QUICK_EARLY_STOP_PATIENCE}', content)
         content = re.sub(r'REDUCE_LR_PATIENCE = \d+', f'REDUCE_LR_PATIENCE = {QUICK_REDUCE_LR_PATIENCE}', content)
         content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', f'LR_SCHEDULE_EXPLORATION_EPOCHS = {QUICK_N_EPOCHS}', content)
+        content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', f'GLOBAL_BATCH_SIZE = {QUICK_BATCH_SIZE}', content)
     else:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {DATA_PERCENTAGE}', content)
         content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
