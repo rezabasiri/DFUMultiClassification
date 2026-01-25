@@ -19,7 +19,7 @@ from imblearn.under_sampling import RandomUnderSampler
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
 from src.data.image_processing import load_and_preprocess_image
-from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn
+from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn
 
 # Get paths
 directory, result_dir, root = get_project_paths()
