@@ -105,28 +105,17 @@ Skipping Baseline (no generative augmentation) (already completed)
 2026-01-25 23:28:15,931 - INFO -   Initializing gating network training...
 2026-01-25 23:28:15,934 - INFO -   Accuracy: 0.4036
 2026-01-25 23:28:15,934 - INFO -   Kappa: 0.2781
-TS (PATIENT-LEVEL)
-================================================================================
-
-================================================================================
-STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
-================================================================================
-Class 0: 58 patients
-Class 1: 95 patients
-Class 2: 20 patients
-================================================================================
-
-Fold 1/3: 114 train patients, 59 valid patients
-  Train dist: {0: 0.266, 1: 0.628, 2: 0.106}
-  Valid dist: {0: 0.302, 1: 0.610, 2: 0.088}
-Fold 2/3: 115 train patients, 58 valid patients
-  Train dist: {0: 0.301, 1: 0.622, 2: 0.078}
-  Valid dist: {0: 0.239, 1: 0.621, 2: 0.139}
-Fold 3/3: 117 train patients, 56 valid patients
-  Train dist: {0: 0.272, 1: 0.616, 2: 0.112}
-  Valid dist: {0: 0.299, 1: 0.636, 2: 0.065}
-Generated 3 folds
-All data will be validated exactly once across all folds
+2026-01-25 23:29:15,989 - INFO -   [STATUS] Still running... 52.4 min elapsed, 236 lines processed
+2026-01-25 23:29:15,989 - DEBUG - [DEBUG] Last output line: ...
+2026-01-25 23:29:15,989 - INFO -   Fold 3/3
+2026-01-25 23:29:15,989 - INFO -   Using pre-computed fold 3 patient split
+2026-01-25 23:29:57,704 - INFO -   Preparing datasets for Fold 3/3 with all modalities: ['depth_rgb', 'metadata', 'thermal_map', 'depth_map']
+2026-01-25 23:30:19,662 - INFO -   [STATUS] Still running... 53.4 min elapsed, 245 lines processed
+2026-01-25 23:30:19,662 - DEBUG - [DEBUG] Last output line: ...
+2026-01-25 23:30:19,662 - INFO -   Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 3/3
+2026-01-25 23:31:12,883 - INFO -   AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+2026-01-25 23:31:12,883 - INFO -     Training depth_rgb-only model first (same data split)...
+oss all folds
 ================================================================================
 
 
@@ -221,3 +210,20 @@ Gating Network Results for Run 2:
 Accuracy: 0.4036
 F1 Macro: 0.3739
 Kappa: 0.2781
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+Using Scikit-learn RandomForestClassifier
+Initializing GenerativeAugmentationManager with models from src/models/sdxl_checkpoints
+
+Preparing datasets for Fold 3/3 with all modalities: ['depth_rgb', 'metadata', 'thermal_map', 'depth_map']
+Using consistent patient split across all modality combinations for run 3
+Using Scikit-learn RandomForestClassifier
+
+No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
+
+Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 3/3
+================================================================================
+AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+  Training depth_rgb-only model first (same data split)...
+================================================================================
