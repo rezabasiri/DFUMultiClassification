@@ -371,3 +371,8 @@ Traceback (most recent call last):
                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 TypeError: GenerativeAugmentationManager.__init__() got an unexpected keyword argument 'base_dir'
 2026-01-25 18:21:52,515 - INFO -   TypeError: GenerativeAugmentationManager.__init__() got an unexpected keyword argument 'base_dir'
+2026-01-25 18:21:53,963 - ERROR - Test FAILED with return code 1
+2026-01-25 18:21:53,963 - ERROR - Test failed - stopping
+2026-01-25 18:21:53,965 - INFO - Restored original production_config values
+2026-01-25 18:21:53,965 - INFO - 
+Original configuration restored

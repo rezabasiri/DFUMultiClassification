@@ -982,7 +982,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         if USE_GENERATIVE_AUGMENTATION and GENERATIVE_AUG_MODEL_PATH:
             vprint(f"Initializing GenerativeAugmentationManager with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
             gen_manager = GenerativeAugmentationManager(
-                base_dir=GENERATIVE_AUG_MODEL_PATH,
+                checkpoint_dir=GENERATIVE_AUG_MODEL_PATH,
                 config=aug_config
             )
         else:
