@@ -114,6 +114,7 @@ QUICK_BATCH_SIZE = 256  # Large batch size for quick mode with 64x64 images to m
 QUICK_GENERATIVE_AUG_INFERENCE_STEPS = 10  # Reduced from 50 - much faster, quality doesn't matter for quick test
 QUICK_GENERATIVE_AUG_BATCH_LIMIT = 4  # Reduced from 8 - fewer images per generation call
 QUICK_GENERATIVE_AUG_PROB = 0.2  # Reduced from 0.3 - generate less frequently in quick mode
+QUICK_GENERATIVE_AUG_NUM_GPUS = 2  # Use 2 GPUs for faster generation (each GPU ~10GB, round-robin distribution)
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
@@ -145,6 +146,7 @@ def save_original_config():
         'GENERATIVE_AUG_INFERENCE_STEPS': r'GENERATIVE_AUG_INFERENCE_STEPS = (\d+)',
         'GENERATIVE_AUG_BATCH_LIMIT': r'GENERATIVE_AUG_BATCH_LIMIT = (\d+)',
         'GENERATIVE_AUG_PROB': r'GENERATIVE_AUG_PROB = ([\d.]+)',
+        'GENERATIVE_AUG_NUM_GPUS': r'GENERATIVE_AUG_NUM_GPUS = (\d+)',
     }
 
     for key, pattern in patterns.items():
@@ -190,6 +192,8 @@ def restore_original_config():
             content = re.sub(r'GENERATIVE_AUG_BATCH_LIMIT = \d+', original_value, content)
         elif key == 'GENERATIVE_AUG_PROB':
             content = re.sub(r'GENERATIVE_AUG_PROB = [\d.]+', original_value, content)
+        elif key == 'GENERATIVE_AUG_NUM_GPUS':
+            content = re.sub(r'GENERATIVE_AUG_NUM_GPUS = \d+', original_value, content)
 
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
@@ -234,6 +238,7 @@ def update_config_for_test(use_gen_aug):
         content = re.sub(r'GENERATIVE_AUG_INFERENCE_STEPS = \d+', f'GENERATIVE_AUG_INFERENCE_STEPS = {QUICK_GENERATIVE_AUG_INFERENCE_STEPS}', content)
         content = re.sub(r'GENERATIVE_AUG_BATCH_LIMIT = \d+', f'GENERATIVE_AUG_BATCH_LIMIT = {QUICK_GENERATIVE_AUG_BATCH_LIMIT}', content)
         content = re.sub(r'GENERATIVE_AUG_PROB = [\d.]+', f'GENERATIVE_AUG_PROB = {QUICK_GENERATIVE_AUG_PROB}', content)
+        content = re.sub(r'GENERATIVE_AUG_NUM_GPUS = \d+', f'GENERATIVE_AUG_NUM_GPUS = {QUICK_GENERATIVE_AUG_NUM_GPUS}', content)
     else:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {DATA_PERCENTAGE}', content)
         content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
@@ -244,7 +249,7 @@ def update_config_for_test(use_gen_aug):
     logger.debug(f"[DEBUG] Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}, QUICK_MODE={QUICK_MODE}")
     if QUICK_MODE:
         logger.debug(f"[DEBUG] Quick mode config: DATA_PERCENTAGE={QUICK_DATA_PERCENTAGE}, N_EPOCHS={QUICK_N_EPOCHS}, IMAGE_SIZE={QUICK_IMAGE_SIZE}, BATCH_SIZE={QUICK_BATCH_SIZE}")
-        logger.debug(f"[DEBUG] Quick mode SDXL: INFERENCE_STEPS={QUICK_GENERATIVE_AUG_INFERENCE_STEPS}, BATCH_LIMIT={QUICK_GENERATIVE_AUG_BATCH_LIMIT}, PROB={QUICK_GENERATIVE_AUG_PROB}")
+        logger.debug(f"[DEBUG] Quick mode SDXL: INFERENCE_STEPS={QUICK_GENERATIVE_AUG_INFERENCE_STEPS}, BATCH_LIMIT={QUICK_GENERATIVE_AUG_BATCH_LIMIT}, PROB={QUICK_GENERATIVE_AUG_PROB}, NUM_GPUS={QUICK_GENERATIVE_AUG_NUM_GPUS}")
 
 def load_progress():
     """Load progress from file"""

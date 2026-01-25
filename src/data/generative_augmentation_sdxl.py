@@ -526,21 +526,27 @@ class GenerativeAugmentationManager:
 
     This replaces the old SD 1.5 LoRA-based manager with SDXL full fine-tuning.
     Maintains the same interface for compatibility with existing code.
+
+    Supports multi-GPU generation for faster augmentation. Each GPU loads its own
+    SDXL pipeline (~10GB) and requests are distributed across GPUs.
     """
 
-    def __init__(self, checkpoint_dir: str, config: AugmentationConfig, device=None):
+    def __init__(self, checkpoint_dir: str, config: AugmentationConfig, device=None, num_gpus: int = None):
         """
         Initialize augmentation manager
 
         Args:
             checkpoint_dir: Directory containing SDXL checkpoint and config
             config: AugmentationConfig instance
-            device: torch device to use
+            device: torch device to use (ignored if num_gpus > 1)
+            num_gpus: Number of GPUs to use for SDXL (default: from production_config)
         """
         self.config = config
         self.checkpoint_dir = Path(checkpoint_dir)
-        self.generator = None  # Will be set if checkpoints are found
+        self.generators = []  # List of generators, one per GPU
+        self.generator = None  # For backward compatibility (points to first generator)
         self.lock = threading.Lock()
+        self.gpu_counter = 0  # For round-robin GPU selection
 
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             print("Generative augmentation disabled in config")
@@ -593,6 +599,26 @@ class GenerativeAugmentationManager:
         self.config_path = str(config_path)
         self.generator_initialized = False
 
+        # Determine number of GPUs to use for SDXL
+        # Import here to avoid circular import
+        try:
+            from src.utils.production_config import GENERATIVE_AUG_NUM_GPUS
+            default_num_gpus = GENERATIVE_AUG_NUM_GPUS
+        except (ImportError, AttributeError):
+            default_num_gpus = 1
+
+        self.num_gpus = num_gpus if num_gpus is not None else default_num_gpus
+
+        # Limit to available GPUs
+        if torch.cuda.is_available():
+            available_gpus = torch.cuda.device_count()
+            self.num_gpus = min(self.num_gpus, available_gpus)
+        else:
+            self.num_gpus = 1
+
+        # Store device for backward compatibility (single GPU case)
+        self.device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         # Modality mapping (both thermal_rgb and depth_rgb use same RGB model)
         self.modality_mapping = {
             'thermal_rgb': 'rgb',
@@ -601,38 +627,63 @@ class GenerativeAugmentationManager:
             'depth_map': 'depth_map'
         }
 
-        print("✓ SDXL paths configured (will load on first use to conserve resources)")
+        print(f"✓ SDXL paths configured (will load on first use to conserve resources)")
+        print(f"✓ Multi-GPU: Will use {self.num_gpus} GPU(s) for SDXL generation")
 
     def _ensure_generator_loaded(self):
-        """Lazy-load SDXL generator on first use to conserve system resources"""
-        if self.generator is not None or self.generator_initialized:
-            return True
+        """Lazy-load SDXL generator(s) on first use to conserve system resources
+
+        For multi-GPU mode, loads one SDXL pipeline per GPU. Each pipeline uses ~10GB VRAM.
+        """
+        if len(self.generators) > 0 or self.generator_initialized:
+            return len(self.generators) > 0
 
         if not hasattr(self, 'checkpoint_path') or not hasattr(self, 'config_path'):
             return False
 
         with self.lock:
             # Double-check after acquiring lock
-            if self.generator is not None or self.generator_initialized:
-                return True
+            if len(self.generators) > 0 or self.generator_initialized:
+                return len(self.generators) > 0
 
             try:
-                print("Loading SDXL generator (first use)...")
-                self.generator = SDXLWoundGenerator(
-                    checkpoint_path=self.checkpoint_path,
-                    config_path=self.config_path,
-                    device=self.device
-                )
+                print(f"[MULTI-GPU] Loading SDXL on {self.num_gpus} GPU(s)...")
+
+                for gpu_idx in range(self.num_gpus):
+                    device = torch.device(f"cuda:{gpu_idx}")
+                    print(f"  Loading SDXL generator on GPU {gpu_idx}...")
+
+                    generator = SDXLWoundGenerator(
+                        checkpoint_path=self.checkpoint_path,
+                        config_path=self.config_path,
+                        device=device
+                    )
+                    self.generators.append(generator)
+                    print(f"  ✓ GPU {gpu_idx}: SDXL loaded ({torch.cuda.get_device_name(gpu_idx)})")
+
+                # Backward compatibility: point to first generator
+                self.generator = self.generators[0] if self.generators else None
                 self.generator_initialized = True
-                print("✓ SDXL generator loaded successfully")
+
+                print(f"✓ SDXL generators loaded on {len(self.generators)} GPU(s)")
                 return True
 
             except Exception as e:
-                print(f"ERROR: Failed to load SDXL generator: {str(e)}")
+                print(f"ERROR: Failed to load SDXL generator(s): {str(e)}")
                 traceback.print_exc()
                 self.generator_initialized = True  # Mark as attempted
+                self.generators = []
                 self.generator = None
                 return False
+
+    def _get_next_generator(self):
+        """Get the next generator using round-robin selection"""
+        if not self.generators:
+            return None
+        with self.lock:
+            generator = self.generators[self.gpu_counter % len(self.generators)]
+            self.gpu_counter += 1
+        return generator
 
     def generate_images(self, modality: str, phase: str, batch_size: int = 1,
                        target_height: int = None, target_width: int = None):
@@ -666,8 +717,14 @@ class GenerativeAugmentationManager:
             target_width = self.config.generative_settings['output_size']['width']
 
         try:
+            # Get next generator (round-robin across GPUs)
+            generator = self._get_next_generator()
+            if generator is None:
+                print("WARNING: No SDXL generators available")
+                return None
+
             # Generate images directly at target size to save computation time
-            generated = self.generator.generate(
+            generated = generator.generate(
                 phase=phase,
                 batch_size=batch_size,
                 num_inference_steps=self.config.generative_settings['inference_steps'],
@@ -721,13 +778,18 @@ class GenerativeAugmentationManager:
                 tf.random.uniform([], 0, 1) < self.config.generative_settings['prob'])
 
     def cleanup(self):
-        """Release all resources and GPU memory"""
+        """Release all resources and GPU memory from all GPUs"""
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return
 
         with self.lock:
-            if self.generator is not None:
-                self.generator.cleanup()
+            # Clean up all generators (multi-GPU support)
+            for i, generator in enumerate(self.generators):
+                if generator is not None:
+                    print(f"  Cleaning up SDXL generator on GPU {i}...")
+                    generator.cleanup()
+            self.generators = []
+            self.generator = None
             torch.cuda.empty_cache()
             gc.collect()
 

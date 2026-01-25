@@ -106,6 +106,7 @@ GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (30=fast, 50=qu
 GENERATIVE_AUG_BATCH_LIMIT = 8  # Max batch size for generative aug (SDXL needs ~10-12GB for batch of 4)
 GENERATIVE_AUG_MAX_MODELS = 1  # Only one SDXL model needed
 GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for: 'I'=Inflammatory, 'P'=Proliferative, 'R'=Remodeling
+GENERATIVE_AUG_NUM_GPUS = 2  # Number of GPUs to use for SDXL generation (each needs ~10GB, set to 1 for single-GPU)
 
 # Misclassification tracking (for iterative data polishing)
 # Options: 'none', 'both', 'valid', 'train'
