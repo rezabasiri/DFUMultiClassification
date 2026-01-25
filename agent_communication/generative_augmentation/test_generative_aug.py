@@ -114,7 +114,7 @@ QUICK_BATCH_SIZE = 256  # Large batch size for quick mode with 64x64 images to m
 QUICK_GENERATIVE_AUG_INFERENCE_STEPS = 10  # Reduced from 50 - much faster, quality doesn't matter for quick test
 QUICK_GENERATIVE_AUG_BATCH_LIMIT = 4  # Reduced from 8 - fewer images per generation call
 QUICK_GENERATIVE_AUG_PROB = 0.2  # Reduced from 0.3 - generate less frequently in quick mode
-QUICK_GENERATIVE_AUG_NUM_GPUS = 2  # Use 2 GPUs for faster generation (each GPU ~10GB, round-robin distribution)
+QUICK_GENERATIVE_AUG_NUM_GPUS = 3  # Use 3 GPUs for SDXL (each ~10GB). With 5x 24GB: 3 for SDXL, 2 for TF
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
