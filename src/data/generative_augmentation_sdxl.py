@@ -29,6 +29,11 @@ import threading
 from collections import OrderedDict
 import yaml
 
+# Limit PyTorch thread usage to prevent resource exhaustion when SDXL is loaded
+# SDXL is large (2.6B params) and can exhaust system threads alongside TensorFlow
+torch.set_num_threads(2)
+torch.set_num_interop_threads(2)
+
 from src.utils.production_config import (
     IMAGE_SIZE,
     USE_GENERATIVE_AUGMENTATION,
@@ -580,31 +585,54 @@ class GenerativeAugmentationManager:
             print("Generative augmentation will be disabled")
             return
 
-        print(f"✓ Using checkpoint: {checkpoint_path}")
-        print(f"✓ Using config: {config_path}")
+        print(f"✓ Found checkpoint: {checkpoint_path}")
+        print(f"✓ Found config: {config_path}")
 
-        try:
-            # Create generator
-            self.generator = SDXLWoundGenerator(
-                checkpoint_path=str(checkpoint_path),
-                config_path=str(config_path),
-                device=self.device
-            )
+        # Store paths for lazy loading (don't load SDXL yet to save resources)
+        self.checkpoint_path = str(checkpoint_path)
+        self.config_path = str(config_path)
+        self.generator_initialized = False
 
-            # Modality mapping (both thermal_rgb and depth_rgb use same RGB model)
-            self.modality_mapping = {
-                'thermal_rgb': 'rgb',
-                'depth_rgb': 'rgb',
-                'thermal_map': 'thermal_map',
-                'depth_map': 'depth_map'
-            }
+        # Modality mapping (both thermal_rgb and depth_rgb use same RGB model)
+        self.modality_mapping = {
+            'thermal_rgb': 'rgb',
+            'depth_rgb': 'rgb',
+            'thermal_map': 'thermal_map',
+            'depth_map': 'depth_map'
+        }
 
-            print("✓ SDXL generator initialized successfully")
+        print("✓ SDXL paths configured (will load on first use to conserve resources)")
 
-        except Exception as e:
-            print(f"ERROR: Failed to initialize SDXL generator: {str(e)}")
-            print("Generative augmentation will be disabled")
-            self.generator = None
+    def _ensure_generator_loaded(self):
+        """Lazy-load SDXL generator on first use to conserve system resources"""
+        if self.generator is not None or self.generator_initialized:
+            return True
+
+        if not hasattr(self, 'checkpoint_path') or not hasattr(self, 'config_path'):
+            return False
+
+        with self.lock:
+            # Double-check after acquiring lock
+            if self.generator is not None or self.generator_initialized:
+                return True
+
+            try:
+                print("Loading SDXL generator (first use)...")
+                self.generator = SDXLWoundGenerator(
+                    checkpoint_path=self.checkpoint_path,
+                    config_path=self.config_path,
+                    device=self.device
+                )
+                self.generator_initialized = True
+                print("✓ SDXL generator loaded successfully")
+                return True
+
+            except Exception as e:
+                print(f"ERROR: Failed to load SDXL generator: {str(e)}")
+                traceback.print_exc()
+                self.generator_initialized = True  # Mark as attempted
+                self.generator = None
+                return False
 
     def generate_images(self, modality: str, phase: str, batch_size: int = 1,
                        target_height: int = None, target_width: int = None):
@@ -624,8 +652,8 @@ class GenerativeAugmentationManager:
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return None
 
-        # Check if generator was initialized successfully
-        if self.generator is None:
+        # Lazy-load generator on first use
+        if not self._ensure_generator_loaded():
             return None
 
         # Limit batch size
@@ -673,8 +701,8 @@ class GenerativeAugmentationManager:
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return False
 
-        # Check if generator was initialized successfully
-        if self.generator is None:
+        # Check if we have valid checkpoint paths configured
+        if not hasattr(self, 'checkpoint_path') or not hasattr(self, 'config_path'):
             return False
 
         # Check if current phase is in the enabled phases list
