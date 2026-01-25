@@ -37,7 +37,7 @@ sys.path.insert(0, str(project_root))
 LOG_FILE = project_root / 'agent_communication/generative_augmentation/gengen_test.log'
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)  # Set to DEBUG to capture all debug messages
 
 # Console handler - clean status messages
 console_handler = logging.StreamHandler(sys.stdout)
@@ -45,7 +45,8 @@ console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(logging.Formatter('%(message)s'))
 
 # File handler - detailed with timestamps
-file_handler = logging.FileHandler(LOG_FILE, mode='a')
+# Use mode='w' to overwrite log file each run (no need to manually delete)
+file_handler = logging.FileHandler(LOG_FILE, mode='w')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
@@ -101,12 +102,13 @@ N_EPOCHS = 300
 IMAGE_SIZE = 64
 
 # Quick mode settings
-QUICK_DATA_PERCENTAGE = 50.0  # Need at least 50% data for model to learn with class imbalance
-QUICK_N_EPOCHS = 50  # Needs at least 50 epochs to learn something meaningful
-QUICK_IMAGE_SIZE = 64
-QUICK_STAGE1_EPOCHS = 25  # Stage 1 pre-training for quick mode (50% of total)
-QUICK_EARLY_STOP_PATIENCE = 10  # Allow full training in quick mode
-QUICK_REDUCE_LR_PATIENCE = 3  # Reduce LR after 3 epochs without improvement
+QUICK_DATA_PERCENTAGE = 30.0  # Reduced for faster quick testing
+QUICK_N_EPOCHS = 3  # Minimal epochs for quick error checking
+QUICK_IMAGE_SIZE = 32
+QUICK_STAGE1_EPOCHS = 1  # Stage 1 pre-training for quick mode (just 1 epoch to verify pipeline)
+QUICK_EARLY_STOP_PATIENCE = 3  # Quick early stopping
+QUICK_REDUCE_LR_PATIENCE = 1  # Reduce LR after 1 epoch without improvement
+QUICK_BATCH_SIZE = 256  # Large batch size for quick mode with 64x64 images to maximize GPU utilization
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
@@ -133,6 +135,7 @@ def save_original_config():
         'EARLY_STOP_PATIENCE': r'EARLY_STOP_PATIENCE = (\d+)',
         'REDUCE_LR_PATIENCE': r'REDUCE_LR_PATIENCE = (\d+)',
         'LR_SCHEDULE_EXPLORATION_EPOCHS': r'LR_SCHEDULE_EXPLORATION_EPOCHS = (\d+)',
+        'GLOBAL_BATCH_SIZE': r'GLOBAL_BATCH_SIZE = (\d+)',
     }
 
     for key, pattern in patterns.items():
@@ -169,6 +172,8 @@ def restore_original_config():
             content = re.sub(r'REDUCE_LR_PATIENCE = \d+', original_value, content)
         elif key == 'LR_SCHEDULE_EXPLORATION_EPOCHS':
             content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', original_value, content)
+        elif key == 'GLOBAL_BATCH_SIZE':
+            content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', original_value, content)
 
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
@@ -177,8 +182,10 @@ def restore_original_config():
 
 def update_config_for_test(use_gen_aug):
     """Update production_config for test run"""
+    logger.debug(f"[DEBUG] update_config_for_test called with use_gen_aug={use_gen_aug}")
     with open(PRODUCTION_CONFIG, 'r') as f:
         content = f.read()
+    logger.debug(f"[DEBUG] Read production_config ({len(content)} bytes)")
 
     # Update USE_GENERATIVE_AUGMENTATION
     content = re.sub(
@@ -206,6 +213,7 @@ def update_config_for_test(use_gen_aug):
         content = re.sub(r'EARLY_STOP_PATIENCE = \d+', f'EARLY_STOP_PATIENCE = {QUICK_EARLY_STOP_PATIENCE}', content)
         content = re.sub(r'REDUCE_LR_PATIENCE = \d+', f'REDUCE_LR_PATIENCE = {QUICK_REDUCE_LR_PATIENCE}', content)
         content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', f'LR_SCHEDULE_EXPLORATION_EPOCHS = {QUICK_N_EPOCHS}', content)
+        content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', f'GLOBAL_BATCH_SIZE = {QUICK_BATCH_SIZE}', content)
     else:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {DATA_PERCENTAGE}', content)
         content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
@@ -213,6 +221,9 @@ def update_config_for_test(use_gen_aug):
 
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
+    logger.debug(f"[DEBUG] Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}, QUICK_MODE={QUICK_MODE}")
+    if QUICK_MODE:
+        logger.debug(f"[DEBUG] Quick mode config: DATA_PERCENTAGE={QUICK_DATA_PERCENTAGE}, N_EPOCHS={QUICK_N_EPOCHS}, IMAGE_SIZE={QUICK_IMAGE_SIZE}, BATCH_SIZE={QUICK_BATCH_SIZE}")
 
 def load_progress():
     """Load progress from file"""
@@ -231,6 +242,8 @@ def run_test(config_name, config_desc, use_gen_aug):
     logger.info(f"\n{'='*80}")
     logger.info(f"TEST: {config_desc}")
     logger.info(f"{'='*80}")
+    logger.debug(f"[DEBUG] run_test called: config_name={config_name}, use_gen_aug={use_gen_aug}")
+    logger.debug(f"[DEBUG] QUICK_MODE={QUICK_MODE}, DATA_PERCENTAGE={DATA_PERCENTAGE}, N_EPOCHS={N_EPOCHS}, IMAGE_SIZE={IMAGE_SIZE}")
 
     # Delete cached cleaned datasets to force regeneration with correct DATA_PERCENTAGE
     # This is critical because:
@@ -268,9 +281,12 @@ def run_test(config_name, config_desc, use_gen_aug):
     ]
 
     logger.info(f"Running: {' '.join(cmd)}")
+    logger.debug(f"[DEBUG] Working directory: {project_root}")
+    logger.debug(f"[DEBUG] Log start position: {log_start_pos}")
     log_to_file_only(f"\nCOMMAND: {' '.join(cmd)}\n")
 
     try:
+        logger.debug("[DEBUG] Starting subprocess...")
         process = subprocess.Popen(
             cmd,
             cwd=project_root,
@@ -279,28 +295,47 @@ def run_test(config_name, config_desc, use_gen_aug):
             text=True,
             bufsize=1
         )
+        logger.debug(f"[DEBUG] Subprocess started with PID: {process.pid}")
 
-        # Stream output
+        # Stream output with periodic status updates
+        line_count = 0
+        last_status_time = time.time()
+        status_interval = 60  # Print status every 60 seconds
+
         for line in process.stdout:
             line = line.rstrip()
+            line_count += 1
             log_to_file_only(line)
 
             # Show important messages on console
-            if any(keyword in line.lower() for keyword in ['error', 'exception', 'failed', 'kappa', 'accuracy']):
+            if any(keyword in line.lower() for keyword in ['error', 'exception', 'failed', 'kappa', 'accuracy', 'epoch', 'fold', 'stage', 'training', 'pre-training']):
                 logger.info(f"  {line}")
 
+            # Periodic status update to show the process is still running
+            current_time = time.time()
+            if current_time - last_status_time >= status_interval:
+                elapsed_so_far = current_time - start_time
+                logger.info(f"  [STATUS] Still running... {elapsed_so_far/60:.1f} min elapsed, {line_count} lines processed")
+                logger.debug(f"[DEBUG] Last output line: {line[:100]}...")
+                last_status_time = current_time
+
+        logger.debug(f"[DEBUG] Subprocess output finished, waiting for exit...")
         process.wait()
         elapsed = time.time() - start_time
+        logger.debug(f"[DEBUG] Subprocess exited with code: {process.returncode}")
+        logger.debug(f"[DEBUG] Total lines processed: {line_count}")
 
         if process.returncode != 0:
             logger.error(f"Test FAILED with return code {process.returncode}")
             return None, None
 
-        logger.info(f"Test completed in {elapsed/60:.1f} minutes")
+        logger.info(f"Test completed in {elapsed/60:.1f} minutes ({line_count} log lines)")
         return elapsed, log_start_pos
 
     except Exception as e:
         logger.error(f"Error running test: {e}")
+        import traceback
+        logger.debug(f"[DEBUG] Traceback: {traceback.format_exc()}")
         return None, None
 
 def extract_metrics_from_logs(log_start_pos=0):
@@ -439,10 +474,16 @@ def generate_report(progress):
 def main():
     global QUICK_MODE
 
+    logger.debug("[DEBUG] main() started")
+    logger.debug(f"[DEBUG] Python version: {sys.version}")
+    logger.debug(f"[DEBUG] Project root: {project_root}")
+    logger.debug(f"[DEBUG] Log file: {LOG_FILE}")
+
     parser = argparse.ArgumentParser(description='Test generative augmentation effectiveness')
     parser.add_argument('--fresh', action='store_true', help='Start from scratch')
     parser.add_argument('--quick', action='store_true', help='Quick test with minimal settings')
     args = parser.parse_args()
+    logger.debug(f"[DEBUG] Parsed arguments: fresh={args.fresh}, quick={args.quick}")
 
     global QUICK_MODE, DATA_PERCENTAGE, N_EPOCHS, IMAGE_SIZE
     QUICK_MODE = args.quick
@@ -456,53 +497,70 @@ def main():
         logger.info(f"QUICK TEST MODE: {DATA_PERCENTAGE}% data, {N_EPOCHS} epochs, {IMAGE_SIZE}x{IMAGE_SIZE} images")
         logger.info("This is for error checking only - results not production-ready")
         logger.info("=" * 80 + "\n")
+        logger.debug(f"[DEBUG] Quick mode settings: QUICK_BATCH_SIZE={QUICK_BATCH_SIZE}, QUICK_STAGE1_EPOCHS={QUICK_STAGE1_EPOCHS}")
+        logger.debug(f"[DEBUG] Quick mode settings: QUICK_EARLY_STOP_PATIENCE={QUICK_EARLY_STOP_PATIENCE}, QUICK_REDUCE_LR_PATIENCE={QUICK_REDUCE_LR_PATIENCE}")
 
     # Save original config
+    logger.debug("[DEBUG] Saving original config...")
     save_original_config()
+    logger.debug(f"[DEBUG] Original config saved: {list(ORIGINAL_CONFIG.keys())}")
 
     # Load or reset progress
     if args.fresh or not PROGRESS_FILE.exists():
         logger.info("Starting fresh test run")
+        logger.debug(f"[DEBUG] Fresh run requested or progress file doesn't exist: {PROGRESS_FILE}")
         progress = {'completed': [], 'results': {}}
         save_progress(progress)
     else:
         progress = load_progress()
         logger.info(f"Resuming test run - {len(progress['completed'])}/2 tests completed")
+        logger.debug(f"[DEBUG] Loaded progress: completed={progress['completed']}, results_keys={list(progress['results'].keys())}")
 
     try:
         # Run each test
-        for config in TEST_CONFIGS:
+        logger.debug(f"[DEBUG] Starting test loop with {len(TEST_CONFIGS)} configs")
+        for i, config in enumerate(TEST_CONFIGS):
             config_name = config['name']
+            logger.debug(f"[DEBUG] Processing config {i+1}/{len(TEST_CONFIGS)}: {config_name}")
 
             if config_name in progress['completed']:
                 logger.info(f"\nSkipping {config['description']} (already completed)")
+                logger.debug(f"[DEBUG] Skipping {config_name} - already in completed list")
                 continue
 
             logger.info(f"\n{'='*80}")
             logger.info(f"Starting test {len(progress['completed'])+1}/2")
             logger.info(f"{'='*80}")
+            logger.debug(f"[DEBUG] About to call run_test for {config_name}")
+            logger.debug(f"[DEBUG] Config: {config}")
 
             runtime, log_start_pos = run_test(config_name, config['description'], config['use_gen_aug'])
+            logger.debug(f"[DEBUG] run_test returned: runtime={runtime}, log_start_pos={log_start_pos}")
 
             if runtime is None:
                 logger.error("Test failed - stopping")
+                logger.debug("[DEBUG] runtime is None, test failed")
                 return 1
 
             # Extract metrics (only from this test run using log_start_pos)
+            logger.debug(f"[DEBUG] Extracting metrics from log_start_pos={log_start_pos}")
             metrics = extract_metrics_from_logs(log_start_pos)
             metrics['runtime_min'] = runtime / 60
             metrics['success'] = True
+            logger.debug(f"[DEBUG] Extracted metrics: {metrics}")
 
             # Save results
             progress['results'][config_name] = metrics
             progress['completed'].append(config_name)
             save_progress(progress)
+            logger.debug(f"[DEBUG] Progress saved: completed={progress['completed']}")
 
             kappa_value = metrics.get('kappa')
             if kappa_value is not None:
                 logger.info(f"✓ Test completed - Kappa: {kappa_value:.4f}")
             else:
                 logger.warning("✓ Test completed - Kappa: N/A (metric extraction failed)")
+                logger.debug(f"[DEBUG] Kappa was None, metrics={metrics}")
 
         # Generate final report
         logger.info("\n" + "="*80)

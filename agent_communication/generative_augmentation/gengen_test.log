@@ -1,226 +1,31 @@
+2026-01-25 19:56:38,686 - INFO - ================================================================================
+2026-01-25 19:56:38,686 - INFO - QUICK TEST MODE: 30.0% data, 3 epochs, 32x32 images
+2026-01-25 19:56:38,686 - INFO - This is for error checking only - results not production-ready
+2026-01-25 19:56:38,686 - INFO - ================================================================================
 
-================================================================================
-Base Model Comparison: SDXL 1.0 vs SD 3.5 Medium
-================================================================================
-
-Start time: 2026-01-19 10:11:14
-Resolution: 128×128
-Training: 3 epochs each
-Evaluation: 50 samples, 4 quality metrics
-
-================================================================================
-Training SDXL 1.0
-================================================================================
-
-Command: python /workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py --config /workspace/DFUMultiClassification/agent_communication/generative_augmentation/configs/test_sdxl.yaml
-Started: 2026-01-19 10:11:14
-2026-01-19 10:11:18.358825: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-19 10:11:18.358883: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-19 10:11:18.360128: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-19 10:11:18.366031: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-19 10:11:19.051683: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-================================================================================
-Training Configuration: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/configs/test_sdxl.yaml
-Phase: I
-Modality: rgb
-Resolution: 128
-================================================================================
-Loading base model: stabilityai/stable-diffusion-xl-base-1.0
-`torch_dtype` is deprecated! Use `dtype` instead!
-Enabled xFormers memory-efficient attention
-Enabled gradient checkpointing
-LoRA Configuration:
-  Rank: 16
-  Alpha: 32
-  Trainable parameters: 23,224,320 (0.90%)
-/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
-  warnings.warn(
-/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
-Downloading: "https://download.pytorch.org/models/vgg16-397923af.pth" to /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth
-  0%|          | 0.00/528M [00:00<?, ?B/s]  1%|          | 3.50M/528M [00:00<00:15, 36.6MB/s]  3%|▎         | 17.8M/528M [00:00<00:05, 102MB/s]   6%|▌         | 32.0M/528M [00:00<00:04, 123MB/s]  9%|▉         | 46.2M/528M [00:00<00:03, 133MB/s] 11%|█▏        | 60.4M/528M [00:00<00:03, 138MB/s] 14%|█▍        | 74.6M/528M [00:00<00:03, 142MB/s] 17%|█▋        | 88.8M/528M [00:00<00:03, 144MB/s] 19%|█▉        | 103M/528M [00:00<00:03, 145MB/s]  22%|██▏       | 117M/528M [00:00<00:02, 145MB/s] 25%|██▍       | 131M/528M [00:01<00:02, 145MB/s] 27%|██▋       | 145M/528M [00:01<00:02, 147MB/s] 30%|███       | 159M/528M [00:01<00:02, 146MB/s] 33%|███▎      | 173M/528M [00:01<00:02, 147MB/s] 36%|███▌      | 188M/528M [00:01<00:02, 147MB/s] 38%|███▊      | 202M/528M [00:01<00:02, 147MB/s] 41%|████      | 216M/528M [00:01<00:02, 146MB/s] 44%|████▎     | 230M/528M [00:01<00:02, 145MB/s] 46%|████▌     | 244M/528M [00:01<00:02, 145MB/s] 49%|████▉     | 258M/528M [00:01<00:01, 146MB/s] 52%|█████▏    | 272M/528M [00:02<00:01, 146MB/s] 54%|█████▍    | 286M/528M [00:02<00:01, 146MB/s] 57%|█████▋    | 300M/528M [00:02<00:01, 147MB/s] 60%|█████▉    | 314M/528M [00:02<00:01, 147MB/s] 62%|██████▏   | 328M/528M [00:02<00:01, 147MB/s] 65%|██████▍   | 342M/528M [00:02<00:01, 147MB/s] 68%|██████▊   | 357M/528M [00:02<00:01, 147MB/s] 70%|███████   | 371M/528M [00:02<00:01, 147MB/s] 73%|███████▎  | 385M/528M [00:02<00:01, 147MB/s] 76%|███████▌  | 399M/528M [00:02<00:00, 148MB/s] 78%|███████▊  | 413M/528M [00:03<00:00, 147MB/s] 81%|████████  | 428M/528M [00:03<00:00, 148MB/s] 84%|████████▎ | 442M/528M [00:03<00:00, 148MB/s] 86%|████████▋ | 456M/528M [00:03<00:00, 147MB/s] 89%|████████▉ | 470M/528M [00:03<00:00, 147MB/s] 92%|█████████▏| 484M/528M [00:03<00:00, 147MB/s] 94%|█████████▍| 498M/528M [00:03<00:00, 147MB/s] 97%|█████████▋| 512M/528M [00:03<00:00, 147MB/s]100%|█████████▉| 526M/528M [00:03<00:00, 147MB/s]100%|██████████| 528M/528M [00:03<00:00, 144MB/s]
-Enabled perceptual loss
-Enabled EMA
-Found 50 images for rgb/I
-Dataset split: 42 train, 8 validation
-Loaded 50 reference images from /workspace/DFUMultiClassification/data/DFU_Updated/rgb/I
-Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
-/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
-  warnings.warn(msg)
-Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
-/venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
-  warnings.warn(*args, **kwargs)
-
-Starting training...
-Training on 1 GPUs
-Total epochs: 3
-Effective batch size: 2
-
-Epoch 1/3
-Epoch 0:   0%|          | 0/21 [00:00<?, ?it/s]Epoch 0:   0%|          | 0/21 [00:01<?, ?it/s]
-Traceback (most recent call last):
-  File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 758, in <module>
-    main()
-  File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 647, in main
-    train_loss = train_one_epoch(
-                 ^^^^^^^^^^^^^^^^
-  File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 258, in train_one_epoch
-    latents = vae.encode(batch['pixel_values'].to(vae.dtype)).latent_dist.sample()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/diffusers/utils/accelerate_utils.py", line 46, in wrapper
-    return method(self, *args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/diffusers/models/autoencoders/autoencoder_kl.py", line 192, in encode
-    h = self._encode(x)
-        ^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/diffusers/models/autoencoders/autoencoder_kl.py", line 166, in _encode
-    enc = self.encoder(x)
-          ^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/diffusers/models/autoencoders/vae.py", line 156, in forward
-    sample = self.conv_in(sample)
-             ^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 548, in forward
-    return self._conv_forward(input, self.weight, self.bias)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 543, in _conv_forward
-    return F.conv2d(
-           ^^^^^^^^^
-RuntimeError: Input type (torch.cuda.HalfTensor) and weight type (torch.HalfTensor) should be the same
-
-✗ SDXL 1.0 training failed with exit code 1
-✗ SDXL training failed, skipping evaluation
-
-================================================================================
-Training SD 3.5 Medium
-================================================================================
-
-Command: python /workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py --config /workspace/DFUMultiClassification/agent_communication/generative_augmentation/configs/test_sd3_medium.yaml
-Started: 2026-01-19 10:11:56
-2026-01-19 10:12:00.554570: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-19 10:12:00.554629: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-19 10:12:00.555936: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2026-01-19 10:12:00.562240: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2026-01-19 10:12:01.274909: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-================================================================================
-Training Configuration: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/configs/test_sd3_medium.yaml
-Phase: I
-Modality: rgb
-Resolution: 128
-================================================================================
-Loading base model: stabilityai/stable-diffusion-3.5-medium
-`torch_dtype` is deprecated! Use `dtype` instead!
-Traceback (most recent call last):
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 402, in hf_raise_for_status
-    response.raise_for_status()
-  File "/venv/multimodal/lib/python3.11/site-packages/requests/models.py", line 1026, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://huggingface.co/stabilityai/stable-diffusion-3.5-medium/resolve/main/unet/config.json
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/venv/multimodal/lib/python3.11/site-packages/diffusers/configuration_utils.py", line 392, in load_config
-    config_file = hf_hub_download(
-                  ^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
-    return fn(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1007, in hf_hub_download
-    return _hf_hub_download_to_cache_dir(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1070, in _hf_hub_download_to_cache_dir
-    (url_to_download, etag, commit_hash, expected_size, xet_file_data, head_call_error) = _get_metadata_or_catch_error(
-                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1543, in _get_metadata_or_catch_error
-    metadata = get_hf_file_metadata(
-               ^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
-    return fn(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1460, in get_hf_file_metadata
-    r = _request_wrapper(
-        ^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 283, in _request_wrapper
-    response = _request_wrapper(
-               ^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 307, in _request_wrapper
-    hf_raise_for_status(response)
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 413, in hf_raise_for_status
-    raise _format(EntryNotFoundError, message, response) from e
-huggingface_hub.errors.EntryNotFoundError: 404 Client Error. (Request ID: Root=1-696e037b-725414a53794a97b32ea3717;dc6e4aaa-8915-4cc5-8568-ecb133b0ff2e)
-
-Entry Not Found for url: https://huggingface.co/stabilityai/stable-diffusion-3.5-medium/resolve/main/unet/config.json.
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 758, in <module>
-    main()
-  File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 524, in main
-    vae, text_encoder, tokenizer, unet, noise_scheduler = load_base_models(config, accelerator)
-                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspace/DFUMultiClassification/agent_communication/generative_augmentation/scripts/train_lora_model.py", line 124, in load_base_models
-    unet = UNet2DConditionModel.from_pretrained(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
-    return fn(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/diffusers/models/modeling_utils.py", line 1062, in from_pretrained
-    config, unused_kwargs, commit_hash = cls.load_config(
-                                         ^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
-    return fn(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^
-  File "/venv/multimodal/lib/python3.11/site-packages/diffusers/configuration_utils.py", line 419, in load_config
-    raise EnvironmentError(
-OSError: stabilityai/stable-diffusion-3.5-medium does not appear to have a file named config.json.
-
-✗ SD 3.5 Medium training failed with exit code 1
-✗ SD3.5 training failed, skipping evaluation
-
-✗ Comparison incomplete due to training failures
-2026-01-24 22:04:07,302 - INFO - ================================================================================
-2026-01-24 22:04:07,302 - INFO - QUICK TEST MODE: 50.0% data, 50 epochs, 64x64 images
-2026-01-24 22:04:07,302 - INFO - This is for error checking only - results not production-ready
-2026-01-24 22:04:07,302 - INFO - ================================================================================
-
-2026-01-24 22:04:07,303 - INFO - Saved original production_config values
-2026-01-24 22:04:07,303 - INFO - Resuming test run - 1/2 tests completed
-2026-01-24 22:04:07,303 - INFO - 
+2026-01-25 19:56:38,687 - INFO - Saved original production_config values
+2026-01-25 19:56:38,687 - INFO - Resuming test run - 1/2 tests completed
+2026-01-25 19:56:38,687 - INFO - 
 Skipping Baseline (no generative augmentation) (already completed)
-2026-01-24 22:04:07,303 - INFO - 
+2026-01-25 19:56:38,687 - INFO - 
 ================================================================================
-2026-01-24 22:04:07,303 - INFO - Starting test 2/2
-2026-01-24 22:04:07,303 - INFO - ================================================================================
-2026-01-24 22:04:07,303 - INFO - 
+2026-01-25 19:56:38,687 - INFO - Starting test 2/2
+2026-01-25 19:56:38,687 - INFO - ================================================================================
+2026-01-25 19:56:38,687 - INFO - 
 ================================================================================
-2026-01-24 22:04:07,303 - INFO - TEST: With generative augmentation (depth_rgb)
-2026-01-24 22:04:07,303 - INFO - ================================================================================
-2026-01-24 22:04:07,303 - INFO - Deleted cached dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-2026-01-24 22:04:07,304 - INFO - Deleted cached outliers: outliers_depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-2026-01-24 22:04:07,304 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
-2026-01-24 22:04:07,304 - INFO - Modalities: metadata, depth_rgb, depth_map, thermal_map
-2026-01-24 22:04:07,305 - INFO - Running: /venv/multimodal/bin/python src/main.py --data_percentage 50.0 --resume_mode fresh --device-mode multi
+2026-01-25 19:56:38,687 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-25 19:56:38,687 - INFO - ================================================================================
+2026-01-25 19:56:38,687 - INFO - Deleted cached dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+2026-01-25 19:56:38,687 - INFO - Deleted cached outliers: outliers_depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+2026-01-25 19:56:38,688 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-25 19:56:38,688 - INFO - Modalities: metadata, depth_rgb, depth_map, thermal_map
+2026-01-25 19:56:38,688 - INFO - Running: /venv/multimodal/bin/python src/main.py --data_percentage 30.0 --resume_mode fresh --device-mode multi
 
-COMMAND: /venv/multimodal/bin/python src/main.py --data_percentage 50.0 --resume_mode fresh --device-mode multi
+COMMAND: /venv/multimodal/bin/python src/main.py --data_percentage 30.0 --resume_mode fresh --device-mode multi
 
-2026-01-24 22:04:07.744498: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-24 22:04:07.744543: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-24 22:04:07.745239: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2026-01-25 19:56:39.127253: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-01-25 19:56:39.127296: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-01-25 19:56:39.128009: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
 
 ================================================================================
 DEVICE CONFIGURATION (mode: multi)
@@ -248,24 +53,24 @@ Using MirroredStrategy (5 GPUs) with NCCL
 ================================================================================
 
 
-Batch size per replica: 12 (global batch size: 64, replicas: 5)
+Batch size per replica: 51 (global batch size: 256, replicas: 5)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
 ================================================================================
 Mode: search
 Resume mode: fresh
-Data percentage: 50.0%
+Data percentage: 30.0%
 Verbosity: 1 (NORMAL)
 Device: GPUs [0, 1, 2, 3, 4] (multi-GPU mode, MirroredStrategy)
   Replicas: 5× batch size distribution
 Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 64x64
-Batch size: 64
-  Per-GPU batch: 12 (64 / 5 GPUs)
-Max epochs: 50 (with early stopping)
+Image size: 32x32
+Batch size: 256
+  Per-GPU batch: 51 (256 / 5 GPUs)
+Max epochs: 3 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
 ================================================================================
@@ -295,13 +100,13 @@ Processing 1 modality combination(s)
 
 [1/1] depth_map_depth_rgb_metadata_thermal_map
 Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
-  Total outliers: 417/2774 (15.0%)
-  Cleaned dataset: 2357 samples
+  Total outliers: 410/2729 (15.0%)
+  Cleaned dataset: 2319 samples
   Saved cleaned dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
 Applying cleaned dataset for depth_map_depth_rgb_metadata_thermal_map (15% outlier removal)...
-  Filtered: 2774 samples
+  Filtered: 2729 samples
   Applied cleaned dataset to: best_matching.csv
-  ✓ Applied for depth_map_depth_rgb_metadata_thermal_map: 2357 samples
+  ✓ Applied for depth_map_depth_rgb_metadata_thermal_map: 2319 samples
 
 ================================================================================
 
@@ -320,17 +125,17 @@ Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality
 
 Testing modalities: metadata, depth_rgb, depth_map, thermal_map
 Number of samples for each selected modality:
-  depth_rgb: 2774
-  depth_bb: 2774
-  depth_map: 2774
-  thermal_map: 2774
-  thermal_bb: 2774
-  metadata: 2774
-Using 50.0% of the data: 1387 samples
+  depth_rgb: 2729
+  depth_bb: 2729
+  depth_map: 2729
+  thermal_map: 2729
+  thermal_bb: 2729
+  metadata: 2729
+Using 30.0% of the data: 819 samples
 
 ================================================================================
 MULTI-GPU TRAINING: 5 GPUs
-Global batch size: 64 (per-GPU: 12)
+Global batch size: 256 (per-GPU: 51)
 Strategy: MirroredStrategy
 ================================================================================
 
@@ -342,20 +147,20 @@ GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
 ================================================================================
 STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
 ================================================================================
-Class 0: 67 patients
-Class 1: 108 patients
-Class 2: 24 patients
+Class 0: 58 patients
+Class 1: 95 patients
+Class 2: 20 patients
 ================================================================================
 
-Fold 1/3: 132 train patients, 67 valid patients
-  Train dist: {0: 0.297, 1: 0.601, 2: 0.102}
-  Valid dist: {0: 0.256, 1: 0.638, 2: 0.106}
-Fold 2/3: 133 train patients, 66 valid patients
-  Train dist: {0: 0.281, 1: 0.613, 2: 0.106}
-  Valid dist: {0: 0.283, 1: 0.616, 2: 0.100}
-Fold 3/3: 133 train patients, 66 valid patients
-  Train dist: {0: 0.270, 1: 0.627, 2: 0.103}
-  Valid dist: {0: 0.315, 1: 0.580, 2: 0.105}
+Fold 1/3: 114 train patients, 59 valid patients
+  Train dist: {0: 0.266, 1: 0.628, 2: 0.106}
+  Valid dist: {0: 0.302, 1: 0.610, 2: 0.088}
+Fold 2/3: 115 train patients, 58 valid patients
+  Train dist: {0: 0.301, 1: 0.622, 2: 0.078}
+  Valid dist: {0: 0.239, 1: 0.621, 2: 0.139}
+Fold 3/3: 117 train patients, 56 valid patients
+  Train dist: {0: 0.272, 1: 0.616, 2: 0.112}
+  Valid dist: {0: 0.299, 1: 0.636, 2: 0.065}
 Generated 3 folds
 All data will be validated exactly once across all folds
 ================================================================================
@@ -365,8 +170,11 @@ Fold 1/3
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
 Initializing GenerativeAugmentationManager with models from src/models/sdxl_checkpoints
+✓ Found checkpoint: src/models/sdxl_checkpoints/checkpoint_best.pt
+✓ Found config: /workspace/DFUMultiClassification/src/utils/full_sdxl_config.yaml
+✓ SDXL paths configured (will load on first use to conserve resources)
 
-Preparing datasets for Fold 1/3 with all modalities: ['depth_map', 'metadata', 'thermal_map', 'depth_rgb']
+Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_map', 'depth_rgb', 'metadata']
 Using consistent patient split across all modality combinations for run 1
 Using Scikit-learn RandomForestClassifier
 
@@ -377,206 +185,51 @@ Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 
 AUTOMATIC PRE-TRAINING: depth_rgb weights not found
   Training depth_rgb-only model first (same data split)...
 ================================================================================
+
+[GPU DEBUG] ========== PRE-TRAINING PHASE (depth_rgb) ==========
+[GPU DEBUG] GPU usage: LOW (small CNN, 64x64 images)
+[GPU DEBUG] SDXL NOT LOADED YET - will load during FUSION training
+[GPU DEBUG] ==================================================
+
 WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-I0000 00:00:1769292497.407721   69656 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
-Restoring model weights from the end of the best epoch: 15.
-Epoch 25: early stopping
-  Pre-training completed! Best val kappa: 0.0675
-2026-01-24 22:10:18,495 - INFO -     Pre-training completed! Best val kappa: 0.0675
+I0000 00:00:1769371227.045479 2311886 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+
+============================================================
+[GPU DEBUG] SDXL GENERATOR FIRST USE - LOADING NOW!
+[GPU DEBUG] This will take ~30-60 seconds and use ~10GB GPU memory
+============================================================
+
+Loading SDXL generator (first use)...
+✓ SDXL generator loaded successfully
+
+============================================================
+[GPU DEBUG] SDXL LOADING - Expect HIGH GPU memory usage soon!
+============================================================
+Loading SDXL checkpoint from src/models/sdxl_checkpoints/checkpoint_best.pt
+Loading base model: stabilityai/stable-diffusion-xl-base-1.0
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading trained UNet weights...
+/venv/multimodal/lib/python3.11/site-packages/diffusers/pipelines/pipeline_utils.py:2186: FutureWarning: `enable_vae_slicing` is deprecated and will be removed in version 0.40.0. Calling `enable_vae_slicing()` on a `StableDiffusionXLPipeline` is deprecated and this method will be removed in a future version. Please use `pipe.vae.enable_slicing()`.
+  deprecate(
+SDXL pipeline loaded successfully on cuda
+[GPU DEBUG] SDXL GENERATING: 8 images for phase P at 32x32
+[GPU DEBUG] Using 50 inference steps - Expect HIGH GPU utilization!
+/venv/multimodal/lib/python3.11/site-packages/diffusers/pipelines/stable_diffusion_xl/pipeline_stable_diffusion_xl.py:748: FutureWarning: `upcast_vae` is deprecated and will be removed in version 1.0.0. `upcast_vae` is deprecated. Please use `pipe.vae.to(torch.float32)`. For more details, please refer to: https://github.com/huggingface/diffusers/pull/12619#issue-3606633695.
+  deprecate(
+  Generated images: 8
+[GPU DEBUG] SDXL GENERATING: 8 images for phase R at 32x32
+[GPU DEBUG] Using 50 inference steps - Expect HIGH GPU utilization!
+  Generated images: 16
+[GPU DEBUG] SDXL GENERATING: 8 images for phase R at 32x32
+[GPU DEBUG] Using 50 inference steps - Expect HIGH GPU utilization!
+  Generated images: 24
+  Pre-training completed! Best val kappa: 0.0000
+2026-01-25 20:02:19,384 - INFO -     Pre-training completed! Best val kappa: 0.0000
 ================================================================================
 No existing pretrained weights found
-2026-01-25 16:56:39,384 - INFO - ================================================================================
-2026-01-25 16:56:39,384 - INFO - QUICK TEST MODE: 50.0% data, 50 epochs, 64x64 images
-2026-01-25 16:56:39,384 - INFO - This is for error checking only - results not production-ready
-2026-01-25 16:56:39,384 - INFO - ================================================================================
 
-2026-01-25 16:56:39,385 - INFO - Saved original production_config values
-2026-01-25 16:56:39,385 - INFO - Resuming test run - 1/2 tests completed
-2026-01-25 16:56:39,385 - INFO - 
-Skipping Baseline (no generative augmentation) (already completed)
-2026-01-25 16:56:39,385 - INFO - 
-================================================================================
-2026-01-25 16:56:39,385 - INFO - Starting test 2/2
-2026-01-25 16:56:39,385 - INFO - ================================================================================
-2026-01-25 16:56:39,385 - INFO - 
-================================================================================
-2026-01-25 16:56:39,385 - INFO - TEST: With generative augmentation (depth_rgb)
-2026-01-25 16:56:39,385 - INFO - ================================================================================
-2026-01-25 16:56:39,385 - INFO - Deleted cached dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-2026-01-25 16:56:39,386 - INFO - Deleted cached outliers: outliers_depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-2026-01-25 16:56:39,386 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
-2026-01-25 16:56:39,386 - INFO - Modalities: metadata, depth_rgb, depth_map, thermal_map
-2026-01-25 16:56:39,386 - INFO - Running: /venv/multimodal/bin/python src/main.py --data_percentage 50.0 --resume_mode fresh --device-mode multi
+[GPU DEBUG] ========== FUSION STAGE 1 ==========
+[GPU DEBUG] SDXL generative augmentation ACTIVE if enabled!
+[GPU DEBUG] Expect HIGH GPU usage when SDXL generates images
+[GPU DEBUG] =========================================
 
-COMMAND: /venv/multimodal/bin/python src/main.py --data_percentage 50.0 --resume_mode fresh --device-mode multi
-
-2026-01-25 16:56:39.816390: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-25 16:56:39.816428: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-25 16:56:39.817080: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-
-================================================================================
-DEVICE CONFIGURATION (mode: multi)
-================================================================================
-
-Detected 5 GPU(s):
-  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 2: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 3: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 4: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-
-Selected 5 GPU(s):
-  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 2: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 3: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 4: NVIDIA GeForce RTX 4090 (24.0GB)
-Enabled memory growth for 5 GPU(s)
-
-Using MirroredStrategy (5 GPUs) with NCCL
-  Compute capability 8.9 detected (native NCCL support)
-  (Using NCCL for fastest multi-GPU communication)
-  Effective batch size: 5× global batch size
-================================================================================
-
-
-Batch size per replica: 12 (global batch size: 64, replicas: 5)
-
-================================================================================
-DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
-================================================================================
-Mode: search
-Resume mode: fresh
-Data percentage: 50.0%
-Verbosity: 1 (NORMAL)
-Device: GPUs [0, 1, 2, 3, 4] (multi-GPU mode, MirroredStrategy)
-  Replicas: 5× batch size distribution
-Cross-validation: 3-fold CV (patient-level)
-
-Configuration loaded from: src/utils/production_config.py
-Image size: 64x64
-Batch size: 64
-  Per-GPU batch: 12 (64 / 5 GPUs)
-Max epochs: 50 (with early stopping)
-Modality search mode: custom
-Will test 1 custom combinations
-================================================================================
-
-
-🧹 FRESH START MODE: Deleting all checkpoints...
-================================================================================
-
-Cleanup Statistics:
-  Models: 16 files deleted
-  Predictions: 16 files deleted
-  Csv Results: 9 files deleted
-  Tf Cache: 4 files deleted
-================================================================================
-
-
-Data Cleaning Configuration (from production_config.py):
-  Outlier removal: True
-  Outlier contamination: 15%
-  Outlier batch size: 32
-  Misclassification tracking: none
-
-================================================================================
-OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
-================================================================================
-Contamination rate: 15%
-Processing 1 modality combination(s)
-
-[1/1] depth_map_depth_rgb_metadata_thermal_map
-Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
-  Total outliers: 417/2774 (15.0%)
-  Cleaned dataset: 2357 samples
-  Saved cleaned dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-Applying cleaned dataset for depth_map_depth_rgb_metadata_thermal_map (15% outlier removal)...
-  Filtered: 2774 samples
-  Applied cleaned dataset to: best_matching.csv
-  ✓ Applied for depth_map_depth_rgb_metadata_thermal_map: 2357 samples
-
-================================================================================
-
-
-================================================================================
-MODALITY SEARCH MODE: CUSTOM (1 combinations)
-================================================================================
-Testing only specified combinations from production_config.py
-Total combinations to test: 1
-Cross-validation mode: 3-fold CV
-Iterations per combination: 3
-Total training sessions: 3
-Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
-================================================================================
-
-
-Testing modalities: metadata, depth_rgb, depth_map, thermal_map
-Number of samples for each selected modality:
-  depth_rgb: 2774
-  depth_bb: 2774
-  depth_map: 2774
-  thermal_map: 2774
-  thermal_bb: 2774
-  metadata: 2774
-Using 50.0% of the data: 1387 samples
-
-================================================================================
-MULTI-GPU TRAINING: 5 GPUs
-Global batch size: 64 (per-GPU: 12)
-Strategy: MirroredStrategy
-================================================================================
-
-
-================================================================================
-GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
-================================================================================
-
-================================================================================
-STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
-================================================================================
-Class 0: 67 patients
-Class 1: 108 patients
-Class 2: 24 patients
-================================================================================
-
-Fold 1/3: 132 train patients, 67 valid patients
-  Train dist: {0: 0.297, 1: 0.601, 2: 0.102}
-  Valid dist: {0: 0.256, 1: 0.638, 2: 0.106}
-Fold 2/3: 133 train patients, 66 valid patients
-  Train dist: {0: 0.281, 1: 0.613, 2: 0.106}
-  Valid dist: {0: 0.283, 1: 0.616, 2: 0.100}
-Fold 3/3: 133 train patients, 66 valid patients
-  Train dist: {0: 0.270, 1: 0.627, 2: 0.103}
-  Valid dist: {0: 0.315, 1: 0.580, 2: 0.105}
-Generated 3 folds
-All data will be validated exactly once across all folds
-================================================================================
-
-
-Fold 1/3
-Using pre-computed fold 1 patient split
-Using Scikit-learn RandomForestClassifier
-Initializing GenerativeAugmentationManager with models from src/models/sdxl_checkpoints
-
-Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'metadata', 'depth_rgb', 'depth_map']
-Using consistent patient split across all modality combinations for run 1
-Using Scikit-learn RandomForestClassifier
-
-No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
-
-Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 1/3
-================================================================================
-AUTOMATIC PRE-TRAINING: depth_rgb weights not found
-  Training depth_rgb-only model first (same data split)...
-================================================================================
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-I0000 00:00:1769360446.166766  974949 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
-Restoring model weights from the end of the best epoch: 15.
-Epoch 25: early stopping
-  Pre-training completed! Best val kappa: 0.0675
-2026-01-25 17:02:47,348 - INFO -     Pre-training completed! Best val kappa: 0.0675
-================================================================================
-No existing pretrained weights found
-Restoring model weights from the end of the best epoch: 12.
-Epoch 22: early stopping
