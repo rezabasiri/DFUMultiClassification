@@ -90,7 +90,7 @@ from src.data.dataset_utils import (
     create_cached_dataset, check_split_validity, prepare_cached_datasets,
     visualize_dataset, plot_net_confusion_matrix
 )
-from src.data.generative_augmentation_v2 import (
+from src.data.generative_augmentation_sdxl import (
     GenerativeAugmentationManager,
     GenerativeAugmentationCallback,
     create_enhanced_augmentation_fn,

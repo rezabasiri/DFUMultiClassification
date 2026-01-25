@@ -1,0 +1,39 @@
+{
+  "checkpoint_history": [
+    {
+      "epoch": 30,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0030.pt",
+      "metrics": {
+        "train_loss": 0.10481393126524434,
+        "val_loss": 0.13115028335295362,
+        "fid": 255.3768768310547,
+        "ssim_mean": 0.8160167419910431,
+        "ssim_std": 0.05511596731148539,
+        "lpips_mean": 0.5357321965694427,
+        "lpips_std": 0.07282369959599849,
+        "is_mean": 2.6557466983795166,
+        "is_std": 0.13983778655529022,
+        "ssim_I": 0.7688729692907894,
+        "lpips_I": 0.5797516405582428,
+        "ssim_P": 0.8020300023696002,
+        "lpips_P": 0.5559154854101294,
+        "ssim_R": 0.8434562273323536,
+        "lpips_R": 0.5259517878293991
+      },
+      "timestamp": "2026-01-23T20:54:33.191641"
+    },
+    {
+      "epoch": 35,
+      "path": "agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0035.pt",
+      "metrics": {
+        "train_loss": 0.09855685252714395,
+        "val_loss": 0.12308728860305815
+      },
+      "timestamp": "2026-01-23T22:11:47.955018"
+    }
+  ],
+  "best_checkpoint": null,
+  "best_score": Infinity,
+  "monitor_metric": "val_fid",
+  "monitor_mode": "min"
+}

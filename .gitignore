@@ -70,3 +70,4 @@ data/raw/Thermal_Map_IMG/
 data/raw/Thermal_RGB/
 data/DFU_Updated/
 data/diffusion/
+cache_outlier/*.npy

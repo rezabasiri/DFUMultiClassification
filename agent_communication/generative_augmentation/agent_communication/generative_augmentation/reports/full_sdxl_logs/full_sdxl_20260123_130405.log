@@ -1,0 +1,1077 @@
+Logging to: agent_communication/generative_augmentation/reports/full_sdxl_logs/full_sdxl_20260123_130405.log
+================================================================================
+Training Configuration: configs/full_sdxl.yaml
+Phase: all
+Modality: rgb
+Resolution: 512
+================================================================================
+Loading base model: stabilityai/stable-diffusion-xl-base-1.0
+Detected SDXL model - loading dual text encoders
+Enabled gradient checkpointing
+Full Fine-tuning:
+  Trainable parameters: 2,567,463,684 (100.00%)
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Enabled perceptual loss
+Enabled EMA (on CPU to save GPU memory)
+Using phase-specific prompts for conditioning
+Loaded 2884 bounding boxes from /workspace/DFUMultiClassification/data/raw/bounding_box_depth.csv
+Found 2860 images for rgb/all phases
+  Phase I: 860 images
+  Phase P: 1678 images
+  Phase R: 322 images
+Using phase-specific prompts for phases: ['I', 'P', 'R']
+Stratified split: 2573 train, 287 validation
+  Phase I: 774 train, 86 val (90.0%/10.0%)
+  Phase P: 1510 train, 168 val (90.0%/10.0%)
+  Phase R: 289 train, 33 val (89.8%/10.2%)
+Auto-computed class weights from data:
+  Phase counts: {'I': 774, 'P': 1510, 'R': 289}
+  Weights: {'I': 1.950904392764858, 'P': 1.0, 'R': 5.224913494809688}
+Using balanced sampling with WeightedRandomSampler
+Warmup: 0.1% of 257200 steps = 205 steps
+Installed CUDA version 12.1 does not match the version torch was compiled with 12.8 but since the APIs are compatible, accepting this combination
+Before initializing optimizer states
+MA 6.52 GB         Max_MA 7.42 GB         CA 7.44 GB         Max_CA 7 GB 
+CPU Virtual Memory:  used = 73.88 GB, percent = 14.7%
+After initializing optimizer states
+MA 6.52 GB         Max_MA 6.52 GB         CA 7.44 GB         Max_CA 7 GB 
+CPU Virtual Memory:  used = 76.33 GB, percent = 15.2%
+After initializing ZeRO optimizer
+MA 6.52 GB         Max_MA 6.52 GB         CA 7.44 GB         Max_CA 7 GB 
+CPU Virtual Memory:  used = 76.37 GB, percent = 15.2%
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/venv/multimodal/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /venv/multimodal/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+/venv/multimodal/lib/python3.11/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: Metric `InceptionScore` will save all extracted features in buffer. For large datasets this may lead to large memory footprint.
+  warnings.warn(*args, **kwargs)
+
+Starting training...
+Training on 5 GPUs
+Total epochs: 200
+Effective batch size: 120
+
+Epoch 1/200
+  Step 1/257 - Loss: 0.3344, LR: 0.00e+00
+  Step 50/257 - Loss: 0.1159, LR: 2.93e-06
+  Step 100/257 - Loss: 0.1188, LR: 5.85e-06
+  Step 150/257 - Loss: 0.1197, LR: 8.78e-06
+  Step 200/257 - Loss: 0.1151, LR: 1.17e-05
+  Step 250/257 - Loss: 0.1151, LR: 1.46e-05
+  Epoch 1 complete - Loss: 0.1155, LR: 1.61e-05
+Train loss: 0.1155
+  Validation: 29 batches - Loss: 0.1127
+Val loss: 0.1127
+Creating fresh reference images from source data with bbox-aware cropping...
+Loaded 2884 bounding boxes for reference images
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Saved 16 reference images for phase I to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_I.pt
+Saved 16 reference images for phase P to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_P.pt
+Saved 16 reference images for phase R to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_R.pt
+Saved reference image grid to agent_communication/generative_augmentation/reports/full_sdxl_logs/reference_images/reference_images_grid.png
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8612, LPIPS=0.5177
+Phase P: SSIM=0.8241, LPIPS=0.4872
+Phase R: SSIM=0.8516, LPIPS=0.4650
+==================================================
+Quality Metrics:
+==================================================
+FID: 189.42 (lower is better, < 50 is good)
+SSIM: 0.8646 ± 0.0480 (higher is better, > 0.7 is good)
+LPIPS: 0.4702 ± 0.0857 (lower is better, < 0.3 is good)
+IS: 2.80 ± 0.34 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 189.42
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+
+Epoch 2/200
+  Step 1/257 - Loss: 0.0494, LR: 1.61e-05
+  Step 50/257 - Loss: 0.0905, LR: 1.90e-05
+  Step 100/257 - Loss: 0.0893, LR: 2.20e-05
+  Step 150/257 - Loss: 0.0860, LR: 2.49e-05
+  Step 200/257 - Loss: 0.0917, LR: 2.78e-05
+  Step 250/257 - Loss: 0.0931, LR: 3.00e-05
+  Epoch 2 complete - Loss: 0.0922, LR: 3.00e-05
+Train loss: 0.0922
+  Validation: 29 batches - Loss: 0.1336
+Val loss: 0.1336
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8898, LPIPS=0.3838
+Phase P: SSIM=0.8870, LPIPS=0.3913
+Phase R: SSIM=0.8852, LPIPS=0.4099
+==================================================
+Quality Metrics:
+==================================================
+FID: 199.23 (lower is better, < 50 is good)
+SSIM: 0.8985 ± 0.0370 (higher is better, > 0.7 is good)
+LPIPS: 0.3821 ± 0.0913 (lower is better, < 0.3 is good)
+IS: 2.54 ± 0.36 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 199.23
+
+Epoch 3/200
+  Step 1/257 - Loss: 0.1348, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0944, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1022, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0968, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0995, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1029, LR: 3.00e-05
+  Epoch 3 complete - Loss: 0.1023, LR: 3.00e-05
+Train loss: 0.1023
+  Validation: 29 batches - Loss: 0.1483
+Val loss: 0.1483
+
+Epoch 4/200
+  Step 1/257 - Loss: 0.1325, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1093, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1210, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1203, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1183, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1185, LR: 3.00e-05
+  Epoch 4 complete - Loss: 0.1179, LR: 3.00e-05
+Train loss: 0.1179
+  Validation: 29 batches - Loss: 0.0985
+Val loss: 0.0985
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8826, LPIPS=0.4063
+Phase P: SSIM=0.8564, LPIPS=0.4208
+Phase R: SSIM=0.8803, LPIPS=0.4231
+==================================================
+Quality Metrics:
+==================================================
+FID: 222.76 (lower is better, < 50 is good)
+SSIM: 0.8848 ± 0.0311 (higher is better, > 0.7 is good)
+LPIPS: 0.4036 ± 0.0600 (lower is better, < 0.3 is good)
+IS: 2.43 ± 0.23 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 222.76
+
+Epoch 5/200
+  Step 1/257 - Loss: 0.0171, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1105, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1097, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1118, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1103, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1116, LR: 3.00e-05
+  Epoch 5 complete - Loss: 0.1122, LR: 3.00e-05
+Train loss: 0.1122
+  Validation: 29 batches - Loss: 0.1183
+Val loss: 0.1183
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0005.pt
+
+Epoch 6/200
+  Step 1/257 - Loss: 0.0135, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0875, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0988, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0999, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1025, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1009, LR: 3.00e-05
+  Epoch 6 complete - Loss: 0.1024, LR: 3.00e-05
+Train loss: 0.1024
+  Validation: 29 batches - Loss: 0.1346
+Val loss: 0.1346
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8161, LPIPS=0.5303
+Phase P: SSIM=0.8188, LPIPS=0.4963
+Phase R: SSIM=0.8168, LPIPS=0.5476
+==================================================
+Quality Metrics:
+==================================================
+FID: 226.06 (lower is better, < 50 is good)
+SSIM: 0.8297 ± 0.0467 (higher is better, > 0.7 is good)
+LPIPS: 0.5069 ± 0.0722 (lower is better, < 0.3 is good)
+IS: 2.65 ± 0.19 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 226.06
+
+Epoch 7/200
+  Step 1/257 - Loss: 0.0320, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1170, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1072, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1024, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1027, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1007, LR: 3.00e-05
+  Epoch 7 complete - Loss: 0.0997, LR: 3.00e-05
+Train loss: 0.0997
+  Validation: 29 batches - Loss: 0.1008
+Val loss: 0.1008
+
+Epoch 8/200
+  Step 1/257 - Loss: 0.0937, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0866, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0972, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0936, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0954, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0971, LR: 3.00e-05
+  Epoch 8 complete - Loss: 0.0966, LR: 3.00e-05
+Train loss: 0.0966
+  Validation: 29 batches - Loss: 0.1027
+Val loss: 0.1027
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.7566, LPIPS=0.5712
+Phase P: SSIM=0.7966, LPIPS=0.5318
+Phase R: SSIM=0.8066, LPIPS=0.5667
+==================================================
+Quality Metrics:
+==================================================
+FID: 233.89 (lower is better, < 50 is good)
+SSIM: 0.8025 ± 0.0451 (higher is better, > 0.7 is good)
+LPIPS: 0.5208 ± 0.0453 (lower is better, < 0.3 is good)
+IS: 2.48 ± 0.10 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 233.89
+
+Epoch 9/200
+  Step 1/257 - Loss: 0.0231, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1102, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1014, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0976, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1009, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1015, LR: 3.00e-05
+  Epoch 9 complete - Loss: 0.1012, LR: 3.00e-05
+Train loss: 0.1012
+  Validation: 29 batches - Loss: 0.1078
+Val loss: 0.1078
+
+Epoch 10/200
+  Step 1/257 - Loss: 0.1692, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0985, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0950, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0997, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1019, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1018, LR: 3.00e-05
+  Epoch 10 complete - Loss: 0.1008, LR: 3.00e-05
+Train loss: 0.1008
+  Validation: 29 batches - Loss: 0.1013
+Val loss: 0.1013
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.7065, LPIPS=0.5444
+Phase P: SSIM=0.7303, LPIPS=0.5864
+Phase R: SSIM=0.7981, LPIPS=0.5055
+==================================================
+Quality Metrics:
+==================================================
+FID: 196.56 (lower is better, < 50 is good)
+SSIM: 0.7533 ± 0.0739 (higher is better, > 0.7 is good)
+LPIPS: 0.5219 ± 0.0554 (lower is better, < 0.3 is good)
+IS: 2.37 ± 0.25 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 196.56
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0001.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0010.pt
+
+Epoch 11/200
+  Step 1/257 - Loss: 0.1074, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0962, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1102, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1099, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1096, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1078, LR: 3.00e-05
+  Epoch 11 complete - Loss: 0.1076, LR: 3.00e-05
+Train loss: 0.1076
+  Validation: 29 batches - Loss: 0.0919
+Val loss: 0.0919
+
+Epoch 12/200
+  Step 1/257 - Loss: 0.1180, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0971, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0922, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0996, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1025, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0993, LR: 3.00e-05
+  Epoch 12 complete - Loss: 0.1007, LR: 3.00e-05
+Train loss: 0.1007
+  Validation: 29 batches - Loss: 0.1178
+Val loss: 0.1178
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8898, LPIPS=0.4084
+Phase P: SSIM=0.8657, LPIPS=0.4350
+Phase R: SSIM=0.8904, LPIPS=0.3998
+==================================================
+Quality Metrics:
+==================================================
+FID: 194.61 (lower is better, < 50 is good)
+SSIM: 0.9009 ± 0.0302 (higher is better, > 0.7 is good)
+LPIPS: 0.4031 ± 0.0631 (lower is better, < 0.3 is good)
+IS: 2.60 ± 0.19 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 194.61
+
+Epoch 13/200
+  Step 1/257 - Loss: 0.1802, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1079, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1038, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0980, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0945, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0988, LR: 3.00e-05
+  Epoch 13 complete - Loss: 0.0993, LR: 3.00e-05
+Train loss: 0.0993
+  Validation: 29 batches - Loss: 0.1020
+Val loss: 0.1020
+
+Epoch 14/200
+  Step 1/257 - Loss: 0.0322, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0921, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0919, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0904, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0934, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0940, LR: 3.00e-05
+  Epoch 14 complete - Loss: 0.0933, LR: 3.00e-05
+Train loss: 0.0933
+  Validation: 29 batches - Loss: 0.1038
+Val loss: 0.1038
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8221, LPIPS=0.5424
+Phase P: SSIM=0.7877, LPIPS=0.5481
+Phase R: SSIM=0.8451, LPIPS=0.5141
+==================================================
+Quality Metrics:
+==================================================
+FID: 246.41 (lower is better, < 50 is good)
+SSIM: 0.8332 ± 0.0483 (higher is better, > 0.7 is good)
+LPIPS: 0.5111 ± 0.0536 (lower is better, < 0.3 is good)
+IS: 3.25 ± 0.33 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 246.41
+
+Epoch 15/200
+  Step 1/257 - Loss: 0.0129, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1147, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1051, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1085, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1047, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1042, LR: 3.00e-05
+  Epoch 15 complete - Loss: 0.1034, LR: 3.00e-05
+Train loss: 0.1034
+  Validation: 29 batches - Loss: 0.1055
+Val loss: 0.1055
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0005.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0015.pt
+
+Epoch 16/200
+  Step 1/257 - Loss: 0.0368, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0991, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1029, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1050, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1094, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1064, LR: 3.00e-05
+  Epoch 16 complete - Loss: 0.1059, LR: 3.00e-05
+Train loss: 0.1059
+  Validation: 29 batches - Loss: 0.0935
+Val loss: 0.0935
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8674, LPIPS=0.3626
+Phase P: SSIM=0.8600, LPIPS=0.3651
+Phase R: SSIM=0.8884, LPIPS=0.3184
+==================================================
+Quality Metrics:
+==================================================
+FID: 202.75 (lower is better, < 50 is good)
+SSIM: 0.8825 ± 0.0416 (higher is better, > 0.7 is good)
+LPIPS: 0.3371 ± 0.0821 (lower is better, < 0.3 is good)
+IS: 2.77 ± 0.31 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 202.75
+
+Epoch 17/200
+  Step 1/257 - Loss: 0.0501, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1019, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1059, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0984, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1003, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1008, LR: 3.00e-05
+  Epoch 17 complete - Loss: 0.1028, LR: 3.00e-05
+Train loss: 0.1028
+  Validation: 29 batches - Loss: 0.0862
+Val loss: 0.0862
+
+Epoch 18/200
+  Step 1/257 - Loss: 0.0476, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1035, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1013, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1047, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1012, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1023, LR: 3.00e-05
+  Epoch 18 complete - Loss: 0.1025, LR: 3.00e-05
+Train loss: 0.1025
+  Validation: 29 batches - Loss: 0.0978
+Val loss: 0.0978
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8570, LPIPS=0.4963
+Phase P: SSIM=0.8448, LPIPS=0.4593
+Phase R: SSIM=0.8533, LPIPS=0.4821
+==================================================
+Quality Metrics:
+==================================================
+FID: 221.07 (lower is better, < 50 is good)
+SSIM: 0.8724 ± 0.0399 (higher is better, > 0.7 is good)
+LPIPS: 0.4597 ± 0.0545 (lower is better, < 0.3 is good)
+IS: 2.63 ± 0.16 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 221.07
+
+Epoch 19/200
+  Step 1/257 - Loss: 0.1324, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1071, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0973, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1023, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0982, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1027, LR: 3.00e-05
+  Epoch 19 complete - Loss: 0.1029, LR: 3.00e-05
+Train loss: 0.1029
+  Validation: 29 batches - Loss: 0.0821
+Val loss: 0.0821
+
+Epoch 20/200
+  Step 1/257 - Loss: 0.1100, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1208, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1021, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1066, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1027, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1039, LR: 3.00e-05
+  Epoch 20 complete - Loss: 0.1039, LR: 3.00e-05
+Train loss: 0.1039
+  Validation: 29 batches - Loss: 0.1227
+Val loss: 0.1227
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8393, LPIPS=0.5364
+Phase P: SSIM=0.8164, LPIPS=0.5680
+Phase R: SSIM=0.8592, LPIPS=0.4847
+==================================================
+Quality Metrics:
+==================================================
+FID: 238.34 (lower is better, < 50 is good)
+SSIM: 0.8484 ± 0.0368 (higher is better, > 0.7 is good)
+LPIPS: 0.5095 ± 0.0628 (lower is better, < 0.3 is good)
+IS: 2.81 ± 0.23 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 238.34
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0010.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0020.pt
+
+Epoch 21/200
+  Step 1/257 - Loss: 0.1913, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1253, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1193, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1164, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1114, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1067, LR: 3.00e-05
+  Epoch 21 complete - Loss: 0.1053, LR: 3.00e-05
+Train loss: 0.1053
+  Validation: 29 batches - Loss: 0.0891
+Val loss: 0.0891
+
+Epoch 22/200
+  Step 1/257 - Loss: 0.0164, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0955, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0984, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0974, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1014, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1011, LR: 3.00e-05
+  Epoch 22 complete - Loss: 0.1023, LR: 3.00e-05
+Train loss: 0.1023
+  Validation: 29 batches - Loss: 0.0970
+Val loss: 0.0970
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8012, LPIPS=0.5220
+Phase P: SSIM=0.8269, LPIPS=0.5227
+Phase R: SSIM=0.8316, LPIPS=0.5121
+==================================================
+Quality Metrics:
+==================================================
+FID: 235.29 (lower is better, < 50 is good)
+SSIM: 0.8287 ± 0.0457 (higher is better, > 0.7 is good)
+LPIPS: 0.4980 ± 0.0381 (lower is better, < 0.3 is good)
+IS: 2.72 ± 0.31 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 235.29
+
+Epoch 23/200
+  Step 1/257 - Loss: 0.0500, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1216, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1074, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1083, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1116, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1089, LR: 3.00e-05
+  Epoch 23 complete - Loss: 0.1087, LR: 3.00e-05
+Train loss: 0.1087
+  Validation: 29 batches - Loss: 0.1229
+Val loss: 0.1229
+
+Epoch 24/200
+  Step 1/257 - Loss: 0.0767, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0959, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1030, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1090, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1062, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1054, LR: 3.00e-05
+  Epoch 24 complete - Loss: 0.1050, LR: 3.00e-05
+Train loss: 0.1050
+  Validation: 29 batches - Loss: 0.1134
+Val loss: 0.1134
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8363, LPIPS=0.4699
+Phase P: SSIM=0.8598, LPIPS=0.4567
+Phase R: SSIM=0.8703, LPIPS=0.4408
+==================================================
+Quality Metrics:
+==================================================
+FID: 221.08 (lower is better, < 50 is good)
+SSIM: 0.8687 ± 0.0346 (higher is better, > 0.7 is good)
+LPIPS: 0.4439 ± 0.0549 (lower is better, < 0.3 is good)
+IS: 2.60 ± 0.24 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 221.08
+
+Epoch 25/200
+  Step 1/257 - Loss: 0.0100, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0943, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0949, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1002, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0937, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0923, LR: 3.00e-05
+  Epoch 25 complete - Loss: 0.0925, LR: 3.00e-05
+Train loss: 0.0925
+  Validation: 29 batches - Loss: 0.1038
+Val loss: 0.1038
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0015.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0025.pt
+
+Epoch 26/200
+  Step 1/257 - Loss: 0.0800, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1090, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1084, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1086, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1016, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1015, LR: 3.00e-05
+  Epoch 26 complete - Loss: 0.1012, LR: 3.00e-05
+Train loss: 0.1012
+  Validation: 29 batches - Loss: 0.1100
+Val loss: 0.1100
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8526, LPIPS=0.4589
+Phase P: SSIM=0.8377, LPIPS=0.4765
+Phase R: SSIM=0.8816, LPIPS=0.4122
+==================================================
+Quality Metrics:
+==================================================
+FID: 244.47 (lower is better, < 50 is good)
+SSIM: 0.8710 ± 0.0440 (higher is better, > 0.7 is good)
+LPIPS: 0.4277 ± 0.0583 (lower is better, < 0.3 is good)
+IS: 3.09 ± 0.48 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 244.47
+
+Epoch 27/200
+  Step 1/257 - Loss: 0.2565, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1177, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1072, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1128, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1116, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1118, LR: 3.00e-05
+  Epoch 27 complete - Loss: 0.1113, LR: 3.00e-05
+Train loss: 0.1113
+  Validation: 29 batches - Loss: 0.1118
+Val loss: 0.1118
+
+Epoch 28/200
+  Step 1/257 - Loss: 0.1999, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1019, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1055, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1004, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1057, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1083, LR: 3.00e-05
+  Epoch 28 complete - Loss: 0.1083, LR: 3.00e-05
+Train loss: 0.1083
+  Validation: 29 batches - Loss: 0.0962
+Val loss: 0.0962
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8616, LPIPS=0.4508
+Phase P: SSIM=0.8476, LPIPS=0.4502
+Phase R: SSIM=0.8784, LPIPS=0.4593
+==================================================
+Quality Metrics:
+==================================================
+FID: 254.82 (lower is better, < 50 is good)
+SSIM: 0.8794 ± 0.0369 (higher is better, > 0.7 is good)
+LPIPS: 0.4356 ± 0.0684 (lower is better, < 0.3 is good)
+IS: 2.78 ± 0.19 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 254.82
+
+Epoch 29/200
+  Step 1/257 - Loss: 0.0075, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0887, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1014, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1011, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1035, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1058, LR: 3.00e-05
+  Epoch 29 complete - Loss: 0.1071, LR: 3.00e-05
+Train loss: 0.1071
+  Validation: 29 batches - Loss: 0.1121
+Val loss: 0.1121
+
+Epoch 30/200
+  Step 1/257 - Loss: 0.0085, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1152, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1181, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1050, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1060, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1048, LR: 3.00e-05
+  Epoch 30 complete - Loss: 0.1048, LR: 3.00e-05
+Train loss: 0.1048
+  Validation: 29 batches - Loss: 0.1312
+Val loss: 0.1312
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.7689, LPIPS=0.5798
+Phase P: SSIM=0.8020, LPIPS=0.5559
+Phase R: SSIM=0.8435, LPIPS=0.5260
+==================================================
+Quality Metrics:
+==================================================
+FID: 255.38 (lower is better, < 50 is good)
+SSIM: 0.8160 ± 0.0551 (higher is better, > 0.7 is good)
+LPIPS: 0.5357 ± 0.0728 (lower is better, < 0.3 is good)
+IS: 2.66 ± 0.14 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 255.38
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0020.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0030.pt
+
+Epoch 31/200
+  Step 1/257 - Loss: 0.1055, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1130, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0986, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0925, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0913, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1003, LR: 3.00e-05
+  Epoch 31 complete - Loss: 0.1019, LR: 3.00e-05
+Train loss: 0.1019
+  Validation: 29 batches - Loss: 0.0871
+Val loss: 0.0871
+
+Epoch 32/200
+  Step 1/257 - Loss: 0.0160, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0989, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1011, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0959, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1009, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0978, LR: 3.00e-05
+  Epoch 32 complete - Loss: 0.0972, LR: 3.00e-05
+Train loss: 0.0972
+  Validation: 29 batches - Loss: 0.1232
+Val loss: 0.1232
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.7614, LPIPS=0.5856
+Phase P: SSIM=0.7662, LPIPS=0.6090
+Phase R: SSIM=0.8160, LPIPS=0.5673
+==================================================
+Quality Metrics:
+==================================================
+FID: 248.59 (lower is better, < 50 is good)
+SSIM: 0.7943 ± 0.0612 (higher is better, > 0.7 is good)
+LPIPS: 0.5699 ± 0.0685 (lower is better, < 0.3 is good)
+IS: 2.68 ± 0.21 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 248.59
+
+Epoch 33/200
+  Step 1/257 - Loss: 0.0852, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0891, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0930, LR: 3.00e-05
+  Step 150/257 - Loss: 0.0884, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0951, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0973, LR: 3.00e-05
+  Epoch 33 complete - Loss: 0.0976, LR: 3.00e-05
+Train loss: 0.0976
+  Validation: 29 batches - Loss: 0.0938
+Val loss: 0.0938
+
+Epoch 34/200
+  Step 1/257 - Loss: 0.0999, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1148, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1061, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1130, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1061, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1074, LR: 3.00e-05
+  Epoch 34 complete - Loss: 0.1070, LR: 3.00e-05
+Train loss: 0.1070
+  Validation: 29 batches - Loss: 0.0946
+Val loss: 0.0946
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8221, LPIPS=0.4382
+Phase P: SSIM=0.8266, LPIPS=0.4688
+Phase R: SSIM=0.8769, LPIPS=0.4267
+==================================================
+Quality Metrics:
+==================================================
+FID: 211.09 (lower is better, < 50 is good)
+SSIM: 0.8533 ± 0.0503 (higher is better, > 0.7 is good)
+LPIPS: 0.4281 ± 0.0935 (lower is better, < 0.3 is good)
+IS: 2.47 ± 0.25 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 211.09
+
+Epoch 35/200
+  Step 1/257 - Loss: 0.1941, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1010, LR: 3.00e-05
+  Step 100/257 - Loss: 0.0986, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1002, LR: 3.00e-05
+  Step 200/257 - Loss: 0.0987, LR: 3.00e-05
+  Step 250/257 - Loss: 0.0987, LR: 3.00e-05
+  Epoch 35 complete - Loss: 0.0986, LR: 3.00e-05
+Train loss: 0.0986
+  Validation: 29 batches - Loss: 0.1231
+Val loss: 0.1231
+  Removed old checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0025.pt
+  Saved checkpoint: agent_communication/generative_augmentation/checkpoints/full_sdxl/checkpoint_epoch_0035.pt
+
+Epoch 36/200
+  Step 1/257 - Loss: 0.0069, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1075, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1047, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1016, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1029, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1037, LR: 3.00e-05
+  Epoch 36 complete - Loss: 0.1037, LR: 3.00e-05
+Train loss: 0.1037
+  Validation: 29 batches - Loss: 0.0860
+Val loss: 0.0860
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.7656, LPIPS=0.5163
+Phase P: SSIM=0.8025, LPIPS=0.5692
+Phase R: SSIM=0.8458, LPIPS=0.5100
+==================================================
+Quality Metrics:
+==================================================
+FID: 238.50 (lower is better, < 50 is good)
+SSIM: 0.8150 ± 0.0534 (higher is better, > 0.7 is good)
+LPIPS: 0.4889 ± 0.0549 (lower is better, < 0.3 is good)
+IS: 2.48 ± 0.24 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 238.50
+
+Epoch 37/200
+  Step 1/257 - Loss: 0.2003, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0947, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1074, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1018, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1026, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1052, LR: 3.00e-05
+  Epoch 37 complete - Loss: 0.1046, LR: 3.00e-05
+Train loss: 0.1046
+  Validation: 29 batches - Loss: 0.1030
+Val loss: 0.1030
+
+Epoch 38/200
+  Step 1/257 - Loss: 0.1399, LR: 3.00e-05
+  Step 50/257 - Loss: 0.0993, LR: 3.00e-05
+  Step 100/257 - Loss: 0.1066, LR: 3.00e-05
+  Step 150/257 - Loss: 0.1060, LR: 3.00e-05
+  Step 200/257 - Loss: 0.1109, LR: 3.00e-05
+  Step 250/257 - Loss: 0.1122, LR: 3.00e-05
+  Epoch 38 complete - Loss: 0.1108, LR: 3.00e-05
+Train loss: 0.1108
+  Validation: 29 batches - Loss: 0.1018
+Val loss: 0.1018
+Loaded 16 reference images for phase I
+Loaded 16 reference images for phase P
+Loaded 16 reference images for phase R
+Computing quality metrics...
+Generating 50 images across 3 phases...
+  Phase I: generating 17 images...
+  Phase P: generating 17 images...
+  Phase R: generating 16 images...
+Computing FID...
+Computing SSIM...
+Computing LPIPS...
+Computing Inception Score...
+
+Per-phase metrics:
+==================================================
+Phase I: SSIM=0.8378, LPIPS=0.4700
+Phase P: SSIM=0.8455, LPIPS=0.4490
+Phase R: SSIM=0.8822, LPIPS=0.3713
+==================================================
+Quality Metrics:
+==================================================
+FID: 220.13 (lower is better, < 50 is good)
+SSIM: 0.8744 ± 0.0474 (higher is better, > 0.7 is good)
+LPIPS: 0.4092 ± 0.1019 (lower is better, < 0.3 is good)
+IS: 2.99 ± 0.39 (higher is better, > 2.0 is good)
+==================================================
+Val FID: 220.13
+
+Epoch 39/200
+  Step 1/257 - Loss: 0.0316, LR: 3.00e-05
+  Step 50/257 - Loss: 0.1040, LR: 3.00e-05
