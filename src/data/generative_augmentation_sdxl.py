@@ -534,8 +534,18 @@ class GenerativeAugmentationManager:
         """
         self.config = config
         self.checkpoint_dir = Path(checkpoint_dir)
+        self.generator = None  # Will be set if checkpoints are found
+        self.lock = threading.Lock()
 
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
+            print("Generative augmentation disabled in config")
+            return
+
+        # Check if checkpoint directory exists
+        if not self.checkpoint_dir.exists():
+            print(f"WARNING: Checkpoint directory not found: {checkpoint_dir}")
+            print("Generative augmentation will be disabled until checkpoints are available")
+            print("Please copy checkpoint files as described in LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md")
             return
 
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -551,7 +561,12 @@ class GenerativeAugmentationManager:
             if checkpoints:
                 checkpoint_path = checkpoints[-1]  # Use latest epoch
             else:
-                raise FileNotFoundError(f"No checkpoint found in {checkpoint_dir}")
+                print(f"WARNING: No checkpoint .pt files found in {checkpoint_dir}")
+                print("Found files:", list(self.checkpoint_dir.iterdir()))
+                print("Generative augmentation will be disabled until checkpoints are available")
+                print("Please copy checkpoint_epoch_*.pt files (~10GB each) as described in:")
+                print("  LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md")
+                return
 
         config_path = self.checkpoint_dir / "full_sdxl_config.yaml"
         if not config_path.exists():
@@ -561,27 +576,35 @@ class GenerativeAugmentationManager:
             # Try src/utils
             config_path = Path(__file__).parent.parent / "utils" / "full_sdxl_config.yaml"
         if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found near {checkpoint_dir}")
+            print(f"WARNING: Config file not found near {checkpoint_dir}")
+            print("Generative augmentation will be disabled")
+            return
 
-        print(f"Using checkpoint: {checkpoint_path}")
-        print(f"Using config: {config_path}")
+        print(f"✓ Using checkpoint: {checkpoint_path}")
+        print(f"✓ Using config: {config_path}")
 
-        # Create generator
-        self.generator = SDXLWoundGenerator(
-            checkpoint_path=str(checkpoint_path),
-            config_path=str(config_path),
-            device=self.device
-        )
+        try:
+            # Create generator
+            self.generator = SDXLWoundGenerator(
+                checkpoint_path=str(checkpoint_path),
+                config_path=str(config_path),
+                device=self.device
+            )
 
-        # Modality mapping (both thermal_rgb and depth_rgb use same RGB model)
-        self.modality_mapping = {
-            'thermal_rgb': 'rgb',
-            'depth_rgb': 'rgb',
-            'thermal_map': 'thermal_map',
-            'depth_map': 'depth_map'
-        }
+            # Modality mapping (both thermal_rgb and depth_rgb use same RGB model)
+            self.modality_mapping = {
+                'thermal_rgb': 'rgb',
+                'depth_rgb': 'rgb',
+                'thermal_map': 'thermal_map',
+                'depth_map': 'depth_map'
+            }
 
-        self.lock = threading.Lock()
+            print("✓ SDXL generator initialized successfully")
+
+        except Exception as e:
+            print(f"ERROR: Failed to initialize SDXL generator: {str(e)}")
+            print("Generative augmentation will be disabled")
+            self.generator = None
 
     def generate_images(self, modality: str, phase: str, batch_size: int = 1,
                        target_height: int = None, target_width: int = None):
@@ -599,6 +622,10 @@ class GenerativeAugmentationManager:
             tf.Tensor: Generated images in [0, 1] range at target size
         """
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
+            return None
+
+        # Check if generator was initialized successfully
+        if self.generator is None:
             return None
 
         # Limit batch size
@@ -646,6 +673,10 @@ class GenerativeAugmentationManager:
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return False
 
+        # Check if generator was initialized successfully
+        if self.generator is None:
+            return False
+
         # Check if current phase is in the enabled phases list
         if not hasattr(self, 'current_phase'):
             return False
@@ -667,7 +698,8 @@ class GenerativeAugmentationManager:
             return
 
         with self.lock:
-            self.generator.cleanup()
+            if self.generator is not None:
+                self.generator.cleanup()
             torch.cuda.empty_cache()
             gc.collect()
 
