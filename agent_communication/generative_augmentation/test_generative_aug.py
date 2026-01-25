@@ -101,9 +101,9 @@ N_EPOCHS = 300
 IMAGE_SIZE = 64
 
 # Quick mode settings
-QUICK_DATA_PERCENTAGE = 50.0  # Need at least 50% data for model to learn with class imbalance
+QUICK_DATA_PERCENTAGE = 30.0  # Reduced for faster quick testing
 QUICK_N_EPOCHS = 3  # Minimal epochs for quick error checking
-QUICK_IMAGE_SIZE = 64
+QUICK_IMAGE_SIZE = 32
 QUICK_STAGE1_EPOCHS = 1  # Stage 1 pre-training for quick mode (just 1 epoch to verify pipeline)
 QUICK_EARLY_STOP_PATIENCE = 3  # Quick early stopping
 QUICK_REDUCE_LR_PATIENCE = 1  # Reduce LR after 1 epoch without improvement
