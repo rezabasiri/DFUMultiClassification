@@ -452,13 +452,10 @@ class SDXLWoundGenerator:
                 return self.pipeline
 
             try:
-                print(f"\n{'='*60}")
-                print(f"[GPU DEBUG] SDXL LOADING - Expect HIGH GPU memory usage soon!")
-                print(f"{'='*60}")
                 print(f"Loading SDXL checkpoint from {self.checkpoint_path}")
 
-                # Load checkpoint (weights_only=False for PyTorch 2.6+ compatibility with numpy scalars)
-                checkpoint = torch.load(self.checkpoint_path, map_location='cpu', weights_only=False)
+                # Load checkpoint
+                checkpoint = torch.load(self.checkpoint_path, map_location='cpu')
 
                 # Load base SDXL components
                 print(f"Loading base model: {self.base_model}")
@@ -521,8 +518,6 @@ class SDXLWoundGenerator:
         try:
             # Get phase-specific prompt
             prompt = self.phase_prompts[phase]
-            print(f"[GPU DEBUG] SDXL GENERATING: {batch_size} images for phase {phase} at {height}x{width}")
-            print(f"[GPU DEBUG] Using {num_inference_steps} inference steps - Expect HIGH GPU utilization!")
 
             with torch.no_grad():
                 output = pipeline(
@@ -583,14 +578,14 @@ class GenerativeAugmentationManager:
         self.gpu_counter = 0  # For round-robin GPU selection
 
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
-            print("Generative augmentation disabled in config")
+            print("Generative augmentation disabled in config", flush=True)
             return
 
         # Check if checkpoint directory exists
         if not self.checkpoint_dir.exists():
-            print(f"WARNING: Checkpoint directory not found: {checkpoint_dir}")
-            print("Generative augmentation will be disabled until checkpoints are available")
-            print("Please copy checkpoint files as described in LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md")
+            print(f"WARNING: Checkpoint directory not found: {checkpoint_dir}", flush=True)
+            print("Generative augmentation will be disabled until checkpoints are available", flush=True)
+            print("Please copy checkpoint files as described in LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md", flush=True)
             return
 
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -606,11 +601,11 @@ class GenerativeAugmentationManager:
             if checkpoints:
                 checkpoint_path = checkpoints[-1]  # Use latest epoch
             else:
-                import sys
                 print(f"WARNING: No checkpoint .pt files found in {checkpoint_dir}", flush=True)
-                print("Found files:", list(self.checkpoint_dir.iterdir()) if self.checkpoint_dir.exists() else "DIR NOT FOUND", flush=True)
+                print("Found files:", list(self.checkpoint_dir.iterdir()), flush=True)
                 print("Generative augmentation will be disabled until checkpoints are available", flush=True)
-                sys.stdout.flush()
+                print("Please copy checkpoint_epoch_*.pt files (~10GB each) as described in:", flush=True)
+                print("  LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md", flush=True)
                 return
 
         config_path = self.checkpoint_dir / "full_sdxl_config.yaml"
@@ -621,16 +616,12 @@ class GenerativeAugmentationManager:
             # Try src/utils
             config_path = Path(__file__).parent.parent / "utils" / "full_sdxl_config.yaml"
         if not config_path.exists():
-            import sys
             print(f"WARNING: Config file not found near {checkpoint_dir}", flush=True)
             print("Generative augmentation will be disabled", flush=True)
-            sys.stdout.flush()
             return
 
-        import sys
         print(f"✓ Found checkpoint: {checkpoint_path}", flush=True)
         print(f"✓ Found config: {config_path}", flush=True)
-        sys.stdout.flush()
 
         # Store paths for lazy loading (don't load SDXL yet to save resources)
         self.checkpoint_path = str(checkpoint_path)
@@ -848,6 +839,22 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     Create TensorFlow augmentation function with generative augmentation
 
     This maintains compatibility with the existing training pipeline.
+    """
+    def apply_augmentation(features, label):
+        def augment_batch(features_dict, label_tensor):
+            output_features = {}
+
+            @tf.function
+            def get_label_phase(label):
+                index = tf.argmax(label)
+                phases = tf.constant(['I', 'P', 'R'], dtype=tf.string)
+                return tf.gather(phases, index)
+
+            try:
+                current_phase = get_label_phase(label_tensor[0])
+            except Exception as e:
+                print(f"Error getting phase: {str(e)}")
+                current_phase = tf.constant('I', dtype=tf.string)
 
             for key, value in features_dict.items():
                 if '_input' in key and 'metadata' not in key:
@@ -882,72 +889,51 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                         target_width=width
                                     )
 
-            batch_size = value_array.shape[0]
-            height = value_array.shape[1]
-            width = value_array.shape[2]
+                                    if generated is None:
+                                        return np.zeros([batch_size, height, width, 3], dtype=np.float32)
 
-            # Check phase is valid
-            if phase not in GENERATIVE_AUG_PHASES:
-                return value_array
+                                    return generated.numpy()
 
-            # Generate images
-            generated = gen_manager.generate_images(
-                'depth_rgb', phase,  # Hardcoded modality since only depth_rgb uses this
-                batch_size=batch_size,
-                target_height=height,
-                target_width=width
-            )
+                                except Exception as e:
+                                    print(f"Error in generate_images_wrapper: {str(e)}")
+                                    return np.zeros([batch_size, height, width, 3], dtype=np.float32)
 
-            if generated is None:
-                return value_array
+                            modality_tensor = tf.constant(modality, dtype=tf.string)
+                            batch_size = tf.shape(value)[0]
+                            height = tf.shape(value)[1]
+                            width = tf.shape(value)[2]
 
-            generated_np = generated.numpy() if hasattr(generated, 'numpy') else generated
+                            generated = tf.py_function(
+                                func=generate_images_wrapper,
+                                inp=[current_phase, modality_tensor, batch_size, height, width],
+                                Tout=tf.float32
+                            )
+                            generated.set_shape([None, value.shape[1], value.shape[2], 3])
 
-            # Mix ratio
-            mix_ratio = np.random.uniform(mix_ratio_min, mix_ratio_max)
-            num_to_replace = int(batch_size * mix_ratio)
+                            mix_ratio = tf.random.uniform([],
+                                minval=config.generative_settings['mix_ratio_range'][0],
+                                maxval=config.generative_settings['mix_ratio_range'][1]
+                            )
 
-            if num_to_replace > 0 and len(generated_np) > 0:
-                indices = np.random.permutation(batch_size)[:num_to_replace]
-                num_available = min(num_to_replace, len(generated_np))
-                result = value_array.copy()
-                result[indices[:num_available]] = generated_np[:num_available]
-                return result
+                            num_to_replace = tf.cast(
+                                tf.cast(tf.shape(value)[0], tf.float32) * mix_ratio,
+                                tf.int32
+                            )
 
-            return value_array
+                            indices = tf.random.shuffle(tf.range(tf.shape(value)[0]))[:num_to_replace]
+                            updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
+                            indices = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
 
-        except Exception as e:
-            print(f"Error in generative augmentation: {str(e)}")
-            # Return numpy array even on error
-            if hasattr(value_np, 'numpy'):
-                return value_np.numpy()
-            return np.array(value_np)
+                            value = tf.tensor_scatter_nd_update(value, indices, updates)
 
-    def apply_augmentation(features, label):
-        output_features = {}
-
-        # Get phase from first label in batch using simple TF ops
-        label_first = label[0]
-        phase_index = tf.argmax(label_first)
-        current_phase = tf.gather(phases_lookup, phase_index)
-
-        for key, value in features.items():
-            if '_input' in key and 'metadata' not in key:
-                modality = key.replace('_input', '')
-
-                # Python-level check for generative augmentation
-                should_apply_gen_aug = (
-                    gen_aug_enabled and
-                    modality == 'depth_rgb' and
-                    hasattr(gen_manager, 'checkpoint_path') and
-                    hasattr(gen_manager, 'config_path')
-                )
+                        except Exception as e:
+                            print(f"Error in generative augmentation: {str(e)}")
 
                 output_features[key] = value
 
-            output_features[key] = value
+            return output_features, label_tensor
 
-        return output_features, label
+        return augment_batch(features, label)
 
     return apply_augmentation
 
