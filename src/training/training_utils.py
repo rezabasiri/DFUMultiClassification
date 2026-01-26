@@ -1070,8 +1070,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         model_features = {k: v for k, v in features.items() if k != 'sample_id'}
                         return model_features, labels
 
-                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
-                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=1)
+                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=1)
                     # Get a single epoch's worth of data by taking the specified number of steps
                     all_labels = []
                     for batch in pre_aug_train_dataset.take(master_steps_per_epoch):
@@ -1214,10 +1214,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
 
                                     # Remove sample_id for training (Keras 3 compatibility)
+                                    # Use num_parallel_calls=1 to avoid deadlock with tf.py_function
                                     pretrain_train_dataset = pretrain_train_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                                        remove_sample_id_for_training, num_parallel_calls=1)
                                     pretrain_valid_dataset = pretrain_valid_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                                        remove_sample_id_for_training, num_parallel_calls=1)
 
                                     pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                     pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
