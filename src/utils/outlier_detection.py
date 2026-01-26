@@ -738,9 +738,9 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
 
     vprint(f"Applying cleaned dataset for {combo_name} ({contamination*100:.0f}% outlier removal)...", level=1)
     vprint(f"  Original (best_matching.csv): {len(original_df)} samples (preserved)", level=1)
-    vprint(f"  Cleaned: {len(cleaned_df)} samples", level=2)
+    vprint(f"  Cleaned file ({cleaned_file.name}): {len(cleaned_df)} samples", level=1)
 
-    # Create key for matching
+    # Create key for matching (Patient#_Appt#_DFU# uniquely identifies each sample)
     cleaned_df['_key'] = (cleaned_df['Patient#'].astype(str) + '_' +
                           cleaned_df['Appt#'].astype(str) + '_' +
                           cleaned_df['DFU#'].astype(str))
@@ -748,8 +748,14 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
                            original_df['Appt#'].astype(str) + '_' +
                            original_df['DFU#'].astype(str))
 
-    # Filter to only include cleaned samples
-    filtered_df = original_df[original_df['_key'].isin(cleaned_df['_key'])].copy()
+    # Debug: Show unique keys to diagnose filtering issue
+    cleaned_keys = set(cleaned_df['_key'])
+    original_keys = set(original_df['_key'])
+    keys_to_keep = cleaned_keys & original_keys
+    vprint(f"  Unique keys - cleaned: {len(cleaned_keys)}, original: {len(original_keys)}, intersection: {len(keys_to_keep)}", level=1)
+
+    # Filter to only include samples that are in the cleaned dataset
+    filtered_df = original_df[original_df['_key'].isin(cleaned_keys)].copy()
     filtered_df = filtered_df.drop('_key', axis=1)
 
     vprint(f"  Filtered: {len(filtered_df)} samples", level=1)

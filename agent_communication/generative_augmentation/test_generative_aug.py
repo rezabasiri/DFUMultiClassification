@@ -309,7 +309,8 @@ def run_test(config_name, config_desc, use_gen_aug):
         '/venv/multimodal/bin/python', 'src/main.py',
         '--data_percentage', str(data_pct),
         '--resume_mode', 'fresh',
-        '--device-mode', 'multi'
+        '--device-mode', 'multi',
+        '--verbosity', '1'
     ]
 
     logger.info(f"Running: {' '.join(cmd)}")
