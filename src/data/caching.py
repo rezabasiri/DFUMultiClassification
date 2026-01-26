@@ -197,9 +197,11 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     if is_training:
         if augmentation_fn:
             # Use provided augmentation function (includes generative augmentations)
+            # IMPORTANT: Use num_parallel_calls=1 to avoid deadlock with tf.py_function
+            # tf.py_function holds the GIL and AUTOTUNE can cause thread contention
             dataset = dataset.map(
                 augmentation_fn,
-                num_parallel_calls=tf.data.AUTOTUNE
+                num_parallel_calls=1,  # Avoid deadlock with tf.py_function in SDXL generation
             )
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
@@ -208,7 +210,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         #         num_parallel_calls=tf.data.AUTOTUNE
         #     )
 
-    # Prefetch for better performance
+    # Prefetch for better performance (keep AUTOTUNE here, it's safe)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset, steps
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
