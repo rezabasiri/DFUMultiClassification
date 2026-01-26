@@ -33,7 +33,7 @@ from src.utils.production_config import (
     GENERATIVE_AUG_MODEL_PATH
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
-from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+from src.data.generative_augmentation_sdxl import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
 from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
 from src.models.losses import get_focal_ordinal_loss, weighted_f1_score, WeightedF1Score
 from src.evaluation.metrics import track_misclassifications
@@ -982,7 +982,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         if USE_GENERATIVE_AUGMENTATION and GENERATIVE_AUG_MODEL_PATH:
             vprint(f"Initializing GenerativeAugmentationManager with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
             gen_manager = GenerativeAugmentationManager(
-                base_dir=GENERATIVE_AUG_MODEL_PATH,
+                checkpoint_dir=GENERATIVE_AUG_MODEL_PATH,
                 config=aug_config
             )
         else:
@@ -1266,6 +1266,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_verbose = 0  # Silent
 
                                     vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
+                                    print(f"\n[GPU DEBUG] ========== PRE-TRAINING PHASE ({image_modality}) ==========")
+                                    print(f"[GPU DEBUG] GPU usage: LOW (small CNN, 64x64 images)")
+                                    print(f"[GPU DEBUG] SDXL NOT LOADED YET - will load during FUSION training")
+                                    print(f"[GPU DEBUG] ==================================================\n", flush=True)
 
                                     # Train image-only model
                                     pretrain_history = pretrain_model.fit(
@@ -1462,6 +1466,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint(f"STAGE 1: Training with FROZEN image branch ({STAGE1_EPOCHS} epochs)", level=2)
                                 vprint("  Goal: Stabilize fusion layer before fine-tuning image", level=2)
                                 vprint("=" * 80, level=2)
+                                print(f"\n[GPU DEBUG] ========== FUSION STAGE 1 ==========")
+                                print(f"[GPU DEBUG] SDXL generative augmentation ACTIVE if enabled!")
+                                print(f"[GPU DEBUG] Expect HIGH GPU usage when SDXL generates images")
+                                print(f"[GPU DEBUG] =========================================\n", flush=True)
 
                                 # Stage 1: Train with frozen image branch
                                 stage1_epochs = STAGE1_EPOCHS

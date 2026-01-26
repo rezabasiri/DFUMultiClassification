@@ -72,7 +72,15 @@
       "Bash(pip freeze:*)",
       "Bash(kill:*)",
       "Bash(accelerate config --help:*)",
-      "Bash(top:*)"
+      "Bash(top:*)",
+      "Bash(nvitop:*)",
+      "Bash(strace:*)",
+      "Bash(do echo \"=== Check $i ===\")",
+      "Bash(conda activate:*)",
+      "Bash(/opt/miniforge3/micromamba:*)",
+      "Bash(for i in 1 2 3 4)",
+      "Bash(do wc -l /workspace/DFUMultiClassification/agent_communication/generative_augmentation/gengen_test.log)",
+      "Bash(for i in 1 2 3 4 5 6)"
     ]
   }
 }
