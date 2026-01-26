@@ -696,10 +696,13 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
     """
     Apply combination-specific cleaned dataset by filtering best_matching.csv.
 
+    Creates best_matching_filtered.csv with outliers removed while keeping the
+    original best_matching.csv untouched as the reference.
+
     Args:
         combination: Tuple/list of modality names
         contamination: Contamination rate used for outlier detection
-        backup: If True, backup original best_matching.csv before modifying
+        backup: If True, backup original best_matching.csv before modifying (legacy, now always preserves original)
 
     Returns:
         bool: True if successful, False otherwise
@@ -711,9 +714,9 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
     # Generate combination name
     combo_name = get_combination_name(combination)
 
-    # Paths
+    # Paths - use separate filtered file to preserve original best_matching.csv
     best_matching_file = project_root / "results/best_matching.csv"
-    best_matching_backup = project_root / "results/best_matching_original.csv"
+    best_matching_filtered = project_root / "results/best_matching_filtered.csv"
     cleaned_file = root / f"cleaned/{combo_name}_{int(contamination*100):02d}pct.csv"
 
     if not cleaned_file.exists():
@@ -724,17 +727,11 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
     # Load cleaned dataset (contains Patient#, Appt#, DFU# of kept samples)
     cleaned_df = pd.read_csv(cleaned_file)
 
-    # Backup original if needed
-    if backup and not best_matching_backup.exists():
-        vprint(f"Backing up original: {best_matching_file.name}", level=2)
-        shutil.copy(best_matching_file, best_matching_backup)
-
-    # Load original best_matching
-    source_file = best_matching_backup if best_matching_backup.exists() else best_matching_file
-    original_df = pd.read_csv(source_file)
+    # Always load from the original best_matching.csv (never modify it)
+    original_df = pd.read_csv(best_matching_file)
 
     vprint(f"Applying cleaned dataset for {combo_name} ({contamination*100:.0f}% outlier removal)...", level=1)
-    vprint(f"  Original: {len(original_df)} samples", level=2)
+    vprint(f"  Original (best_matching.csv): {len(original_df)} samples (preserved)", level=1)
     vprint(f"  Cleaned: {len(cleaned_df)} samples", level=2)
 
     # Create key for matching
@@ -755,9 +752,9 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
     dist = Counter(filtered_df['Healing Phase Abs'])
     vprint(f"  Class distribution after filtering: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=1)
 
-    # Save filtered dataset
-    filtered_df.to_csv(best_matching_file, index=False)
-    vprint(f"  Applied cleaned dataset to: {best_matching_file.name}", level=1)
+    # Save filtered dataset to separate file (preserves original best_matching.csv)
+    filtered_df.to_csv(best_matching_filtered, index=False)
+    vprint(f"  Saved filtered dataset to: {best_matching_filtered.name}", level=1)
     vprint(f"  Training will use {len(filtered_df)} samples (outliers excluded)", level=1)
 
     return True

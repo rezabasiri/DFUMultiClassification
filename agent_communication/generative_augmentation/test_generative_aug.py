@@ -285,6 +285,12 @@ def run_test(config_name, config_desc, use_gen_aug):
             outlier_file.unlink()
             logger.info(f"Deleted cached outliers: {outlier_file.name}")
 
+    # Delete filtered best_matching file to ensure fresh outlier filtering
+    filtered_file = project_root / 'results/best_matching_filtered.csv'
+    if filtered_file.exists():
+        filtered_file.unlink()
+        logger.info(f"Deleted filtered dataset: {filtered_file.name}")
+
     # Update config
     update_config_for_test(use_gen_aug)
     logger.info(f"Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}")
