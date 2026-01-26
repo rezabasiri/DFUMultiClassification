@@ -353,10 +353,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     dataset = df_to_dataset(best_matching_df)
     
     # Apply preprocessing to each sample
+    # Use num_parallel_calls=1 to avoid deadlock with tf.py_function
     dataset = dataset.map(
         load_and_preprocess_single_sample,
-        num_parallel_calls=tf.data.AUTOTUNE
-        # num_parallel_calls=4
+        num_parallel_calls=1
     )
     
     # Calculate how many samples we need
