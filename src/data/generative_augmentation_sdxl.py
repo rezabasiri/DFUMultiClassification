@@ -840,8 +840,16 @@ def create_enhanced_augmentation_fn(gen_manager, config):
 
     This maintains compatibility with the existing training pipeline.
     """
+    # Track if we've printed the first batch message
+    first_batch_logged = [False]
+
     def apply_augmentation(features, label):
         def augment_batch(features_dict, label_tensor):
+            # Log first batch to confirm data is flowing
+            if not first_batch_logged[0]:
+                print("[DATA PIPELINE] First batch received - augmentation function called", flush=True)
+                first_batch_logged[0] = True
+
             output_features = {}
 
             @tf.function

@@ -1470,6 +1470,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 print(f"[GPU DEBUG] SDXL generative augmentation ACTIVE if enabled!")
                                 print(f"[GPU DEBUG] Expect HIGH GPU usage when SDXL generates images")
                                 print(f"[GPU DEBUG] =========================================\n", flush=True)
+                                print(f"[GPU DEBUG] About to call model.fit() for Stage 1...", flush=True)
+                                print(f"[GPU DEBUG] steps_per_epoch={steps_per_epoch}, stage1_epochs={STAGE1_EPOCHS}", flush=True)
 
                                 # Stage 1: Train with frozen image branch
                                 stage1_epochs = STAGE1_EPOCHS
