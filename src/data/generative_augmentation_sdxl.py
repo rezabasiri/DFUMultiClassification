@@ -452,10 +452,13 @@ class SDXLWoundGenerator:
                 return self.pipeline
 
             try:
+                print(f"\n{'='*60}")
+                print(f"[GPU DEBUG] SDXL LOADING - Expect HIGH GPU memory usage soon!")
+                print(f"{'='*60}")
                 print(f"Loading SDXL checkpoint from {self.checkpoint_path}")
 
-                # Load checkpoint
-                checkpoint = torch.load(self.checkpoint_path, map_location='cpu')
+                # Load checkpoint (weights_only=False for PyTorch 2.6+ compatibility with numpy scalars)
+                checkpoint = torch.load(self.checkpoint_path, map_location='cpu', weights_only=False)
 
                 # Load base SDXL components
                 print(f"Loading base model: {self.base_model}")
@@ -518,6 +521,8 @@ class SDXLWoundGenerator:
         try:
             # Get phase-specific prompt
             prompt = self.phase_prompts[phase]
+            print(f"[GPU DEBUG] SDXL GENERATING: {batch_size} images for phase {phase} at {height}x{width}")
+            print(f"[GPU DEBUG] Using {num_inference_steps} inference steps - Expect HIGH GPU utilization!")
 
             with torch.no_grad():
                 output = pipeline(
@@ -839,22 +844,6 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     Create TensorFlow augmentation function with generative augmentation
 
     This maintains compatibility with the existing training pipeline.
-    """
-    def apply_augmentation(features, label):
-        def augment_batch(features_dict, label_tensor):
-            output_features = {}
-
-            @tf.function
-            def get_label_phase(label):
-                index = tf.argmax(label)
-                phases = tf.constant(['I', 'P', 'R'], dtype=tf.string)
-                return tf.gather(phases, index)
-
-            try:
-                current_phase = get_label_phase(label_tensor[0])
-            except Exception as e:
-                print(f"Error getting phase: {str(e)}")
-                current_phase = tf.constant('I', dtype=tf.string)
 
             for key, value in features_dict.items():
                 if '_input' in key and 'metadata' not in key:
@@ -889,51 +878,72 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                         target_width=width
                                     )
 
-                                    if generated is None:
-                                        return np.zeros([batch_size, height, width, 3], dtype=np.float32)
+            batch_size = value_array.shape[0]
+            height = value_array.shape[1]
+            width = value_array.shape[2]
 
-                                    return generated.numpy()
+            # Check phase is valid
+            if phase not in GENERATIVE_AUG_PHASES:
+                return value_array
 
-                                except Exception as e:
-                                    print(f"Error in generate_images_wrapper: {str(e)}")
-                                    return np.zeros([batch_size, height, width, 3], dtype=np.float32)
+            # Generate images
+            generated = gen_manager.generate_images(
+                'depth_rgb', phase,  # Hardcoded modality since only depth_rgb uses this
+                batch_size=batch_size,
+                target_height=height,
+                target_width=width
+            )
 
-                            modality_tensor = tf.constant(modality, dtype=tf.string)
-                            batch_size = tf.shape(value)[0]
-                            height = tf.shape(value)[1]
-                            width = tf.shape(value)[2]
+            if generated is None:
+                return value_array
 
-                            generated = tf.py_function(
-                                func=generate_images_wrapper,
-                                inp=[current_phase, modality_tensor, batch_size, height, width],
-                                Tout=tf.float32
-                            )
-                            generated.set_shape([None, value.shape[1], value.shape[2], 3])
+            generated_np = generated.numpy() if hasattr(generated, 'numpy') else generated
 
-                            mix_ratio = tf.random.uniform([],
-                                minval=config.generative_settings['mix_ratio_range'][0],
-                                maxval=config.generative_settings['mix_ratio_range'][1]
-                            )
+            # Mix ratio
+            mix_ratio = np.random.uniform(mix_ratio_min, mix_ratio_max)
+            num_to_replace = int(batch_size * mix_ratio)
 
-                            num_to_replace = tf.cast(
-                                tf.cast(tf.shape(value)[0], tf.float32) * mix_ratio,
-                                tf.int32
-                            )
+            if num_to_replace > 0 and len(generated_np) > 0:
+                indices = np.random.permutation(batch_size)[:num_to_replace]
+                num_available = min(num_to_replace, len(generated_np))
+                result = value_array.copy()
+                result[indices[:num_available]] = generated_np[:num_available]
+                return result
 
-                            indices = tf.random.shuffle(tf.range(tf.shape(value)[0]))[:num_to_replace]
-                            updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
-                            indices = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
+            return value_array
 
-                            value = tf.tensor_scatter_nd_update(value, indices, updates)
+        except Exception as e:
+            print(f"Error in generative augmentation: {str(e)}")
+            # Return numpy array even on error
+            if hasattr(value_np, 'numpy'):
+                return value_np.numpy()
+            return np.array(value_np)
 
-                        except Exception as e:
-                            print(f"Error in generative augmentation: {str(e)}")
+    def apply_augmentation(features, label):
+        output_features = {}
+
+        # Get phase from first label in batch using simple TF ops
+        label_first = label[0]
+        phase_index = tf.argmax(label_first)
+        current_phase = tf.gather(phases_lookup, phase_index)
+
+        for key, value in features.items():
+            if '_input' in key and 'metadata' not in key:
+                modality = key.replace('_input', '')
+
+                # Python-level check for generative augmentation
+                should_apply_gen_aug = (
+                    gen_aug_enabled and
+                    modality == 'depth_rgb' and
+                    hasattr(gen_manager, 'checkpoint_path') and
+                    hasattr(gen_manager, 'config_path')
+                )
 
                 output_features[key] = value
 
-            return output_features, label_tensor
+            output_features[key] = value
 
-        return augment_batch(features, label)
+        return output_features, label
 
     return apply_augmentation
 

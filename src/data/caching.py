@@ -7,7 +7,7 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
-from src.data.generative_augmentation_v1_3 import create_enhanced_augmentation_fn
+from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn
 from src.data.preprocessing import load_and_preprocess_image
 from src.utils.config import get_project_paths, get_data_paths
 from src.utils.verbosity import vprint, get_verbosity
