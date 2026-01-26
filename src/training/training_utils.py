@@ -985,6 +985,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 checkpoint_dir=GENERATIVE_AUG_MODEL_PATH,
                 config=aug_config
             )
+            # CRITICAL: Pre-load SDXL generators BEFORE TensorFlow creates datasets
+            # This prevents deadlock when tf.py_function tries to load SDXL inside the
+            # data pipeline while TensorFlow's MirroredStrategy has the GPUs locked
+            print("[GPU DEBUG] Pre-loading SDXL to prevent TF pipeline deadlock...", flush=True)
+            gen_manager.preload()
         else:
             vprint("Generative augmentation disabled", level=1)
 
@@ -1502,6 +1507,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage1_callbacks,
                                     verbose=fit_verbose
                                 )
+                                print(f"[GPU DEBUG] Stage 1 model.fit() COMPLETED!", flush=True)
 
                                 # Load best Stage 1 weights
                                 stage1_path = checkpoint_path.replace('.ckpt', '_stage1.ckpt')

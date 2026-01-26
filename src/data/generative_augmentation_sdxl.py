@@ -716,6 +716,26 @@ class GenerativeAugmentationManager:
             self.gpu_counter += 1
         return generator
 
+    def preload(self):
+        """
+        Pre-load SDXL generators before training starts.
+
+        CRITICAL: This MUST be called BEFORE TensorFlow creates distributed datasets,
+        otherwise lazy loading inside tf.py_function will cause a deadlock with
+        TensorFlow's MirroredStrategy.
+
+        Returns:
+            bool: True if generators loaded successfully, False otherwise
+        """
+        print("[SDXL PRELOAD] Pre-loading SDXL generators BEFORE training...", flush=True)
+        print("[SDXL PRELOAD] This prevents deadlock with TensorFlow distributed strategy", flush=True)
+        result = self._ensure_generator_loaded()
+        if result:
+            print(f"[SDXL PRELOAD] ✓ Successfully pre-loaded {len(self.generators)} SDXL generator(s)", flush=True)
+        else:
+            print("[SDXL PRELOAD] ✗ Failed to pre-load SDXL generators", flush=True)
+        return result
+
     def generate_images(self, modality: str, phase: str, batch_size: int = 1,
                        target_height: int = None, target_width: int = None):
         """
@@ -888,6 +908,9 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                     batch_size = int(batch_size_val.numpy())
                                     height = int(target_height.numpy())
                                     width = int(target_width.numpy())
+
+                                    # Debug: confirm SDXL generation is being called
+                                    print(f"[SDXL GEN] Generating {batch_size} images for {modality_raw}/{phase} at {height}x{width}", flush=True)
 
                                     # Generate directly at target size (no resizing needed)
                                     generated = gen_manager.generate_images(
