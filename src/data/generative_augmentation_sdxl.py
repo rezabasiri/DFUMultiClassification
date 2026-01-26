@@ -606,11 +606,11 @@ class GenerativeAugmentationManager:
             if checkpoints:
                 checkpoint_path = checkpoints[-1]  # Use latest epoch
             else:
-                print(f"WARNING: No checkpoint .pt files found in {checkpoint_dir}")
-                print("Found files:", list(self.checkpoint_dir.iterdir()))
-                print("Generative augmentation will be disabled until checkpoints are available")
-                print("Please copy checkpoint_epoch_*.pt files (~10GB each) as described in:")
-                print("  LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md")
+                import sys
+                print(f"WARNING: No checkpoint .pt files found in {checkpoint_dir}", flush=True)
+                print("Found files:", list(self.checkpoint_dir.iterdir()) if self.checkpoint_dir.exists() else "DIR NOT FOUND", flush=True)
+                print("Generative augmentation will be disabled until checkpoints are available", flush=True)
+                sys.stdout.flush()
                 return
 
         config_path = self.checkpoint_dir / "full_sdxl_config.yaml"
@@ -621,12 +621,16 @@ class GenerativeAugmentationManager:
             # Try src/utils
             config_path = Path(__file__).parent.parent / "utils" / "full_sdxl_config.yaml"
         if not config_path.exists():
-            print(f"WARNING: Config file not found near {checkpoint_dir}")
-            print("Generative augmentation will be disabled")
+            import sys
+            print(f"WARNING: Config file not found near {checkpoint_dir}", flush=True)
+            print("Generative augmentation will be disabled", flush=True)
+            sys.stdout.flush()
             return
 
-        print(f"✓ Found checkpoint: {checkpoint_path}")
-        print(f"✓ Found config: {config_path}")
+        import sys
+        print(f"✓ Found checkpoint: {checkpoint_path}", flush=True)
+        print(f"✓ Found config: {config_path}", flush=True)
+        sys.stdout.flush()
 
         # Store paths for lazy loading (don't load SDXL yet to save resources)
         self.checkpoint_path = str(checkpoint_path)
