@@ -122,15 +122,17 @@ class GeneratedImageCounter:
     def print_summary(self):
         """Print generation summary"""
         with self.lock:
+            print(f"\n================================================================================", flush=True)
+            print(f"SDXL GENERATION SUMMARY", flush=True)
+            print(f"================================================================================", flush=True)
             if self.count > 0:
-                print(f"\n================================================================================")
-                print(f"SDXL GENERATION SUMMARY")
-                print(f"================================================================================")
-                print(f"Total images generated: {self.count}")
-                print(f"  Phase I (Inflammatory): {self.class_counts['I']}")
-                print(f"  Phase P (Proliferative): {self.class_counts['P']}")
-                print(f"  Phase R (Remodeling): {self.class_counts['R']}")
-                print(f"================================================================================\n")
+                print(f"Total images generated: {self.count}", flush=True)
+                print(f"  Phase I (Inflammatory): {self.class_counts['I']}", flush=True)
+                print(f"  Phase P (Proliferative): {self.class_counts['P']}", flush=True)
+                print(f"  Phase R (Remodeling): {self.class_counts['R']}", flush=True)
+            else:
+                print(f"No images were generated (check GENERATIVE_AUG_PROB setting)", flush=True)
+            print(f"================================================================================\n", flush=True)
 
 
 # Global counter instance
@@ -654,8 +656,10 @@ class GenerativeAugmentationManager:
             'depth_map': 'depth_map'
         }
 
-        print(f"✓ SDXL paths configured (will load on first use to conserve resources)")
-        print(f"✓ Multi-GPU: Will use {self.num_gpus} GPU(s) for SDXL generation")
+        print(f"✓ SDXL paths configured (will load on first use to conserve resources)", flush=True)
+        print(f"✓ Multi-GPU: Will use {self.num_gpus} GPU(s) for SDXL generation", flush=True)
+        print(f"✓ Generation probability: {self.config.generative_settings['prob']*100:.0f}%", flush=True)
+        print(f"✓ Inference steps: {self.config.generative_settings['inference_steps']}", flush=True)
 
     def _ensure_generator_loaded(self):
         """Lazy-load SDXL generator(s) on first use to conserve system resources
