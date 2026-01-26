@@ -730,43 +730,26 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
         vprint(f"Run: detect_outliers_combination({combination}, contamination={contamination})", level=0)
         return False
 
-    # Load cleaned dataset (contains Patient#, Appt#, DFU# of kept samples)
+    # Load cleaned dataset - this IS the filtered data (outliers already removed)
     cleaned_df = pd.read_csv(cleaned_file)
 
-    # Always load from the original best_matching.csv (never modify it)
+    # Load original for reference only (to show how many were removed)
     original_df = pd.read_csv(best_matching_file)
+    outliers_removed = len(original_df) - len(cleaned_df)
 
     vprint(f"Applying cleaned dataset for {combo_name} ({contamination*100:.0f}% outlier removal)...", level=1)
     vprint(f"  Original (best_matching.csv): {len(original_df)} samples (preserved)", level=1)
-    vprint(f"  Cleaned file ({cleaned_file.name}): {len(cleaned_df)} samples", level=1)
+    vprint(f"  Outliers removed: {outliers_removed} ({outliers_removed/len(original_df)*100:.1f}%)", level=1)
+    vprint(f"  Cleaned samples: {len(cleaned_df)}", level=1)
 
-    # Create key for matching (Patient#_Appt#_DFU# uniquely identifies each sample)
-    cleaned_df['_key'] = (cleaned_df['Patient#'].astype(str) + '_' +
-                          cleaned_df['Appt#'].astype(str) + '_' +
-                          cleaned_df['DFU#'].astype(str))
-    original_df['_key'] = (original_df['Patient#'].astype(str) + '_' +
-                           original_df['Appt#'].astype(str) + '_' +
-                           original_df['DFU#'].astype(str))
+    # Verify class distribution
+    dist = Counter(cleaned_df['Healing Phase Abs'])
+    vprint(f"  Class distribution: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=1)
 
-    # Debug: Show unique keys to diagnose filtering issue
-    cleaned_keys = set(cleaned_df['_key'])
-    original_keys = set(original_df['_key'])
-    keys_to_keep = cleaned_keys & original_keys
-    vprint(f"  Unique keys - cleaned: {len(cleaned_keys)}, original: {len(original_keys)}, intersection: {len(keys_to_keep)}", level=1)
-
-    # Filter to only include samples that are in the cleaned dataset
-    filtered_df = original_df[original_df['_key'].isin(cleaned_keys)].copy()
-    filtered_df = filtered_df.drop('_key', axis=1)
-
-    vprint(f"  Filtered: {len(filtered_df)} samples", level=1)
-
-    # Verify class distribution - show at level 1 for visibility
-    dist = Counter(filtered_df['Healing Phase Abs'])
-    vprint(f"  Class distribution after filtering: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=1)
-
-    # Save filtered dataset to separate file (preserves original best_matching.csv)
-    filtered_df.to_csv(best_matching_filtered, index=False)
-    vprint(f"  Saved filtered dataset to: {best_matching_filtered.name}", level=1)
-    vprint(f"  Training will use {len(filtered_df)} samples (outliers excluded)", level=1)
+    # Save cleaned dataset directly as filtered file (no key matching needed)
+    # The cleaned_df already contains exactly the non-outlier samples
+    cleaned_df.to_csv(best_matching_filtered, index=False)
+    vprint(f"  Saved to: {best_matching_filtered.name}", level=1)
+    vprint(f"  Training will use {len(cleaned_df)} samples", level=1)
 
     return True
