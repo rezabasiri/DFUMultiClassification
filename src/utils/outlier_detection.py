@@ -546,6 +546,16 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
         vprint(f"Using existing cleaned dataset for {combo_name}: {output_file.name}", level=1)
         cleaned_df = pd.read_csv(output_file)
         outlier_df = pd.read_csv(outlier_file) if outlier_file.exists() else None
+
+        # Show summary even when using cached results
+        original_count = len(cleaned_df) + (len(outlier_df) if outlier_df is not None else 0)
+        outlier_count = len(outlier_df) if outlier_df is not None else 0
+        cleaned_dist = Counter(cleaned_df['Healing Phase Abs'])
+        vprint(f"  Original samples: {original_count}", level=1)
+        vprint(f"  Outliers removed: {outlier_count} ({outlier_count/original_count*100:.1f}%)", level=1)
+        vprint(f"  Cleaned samples: {len(cleaned_df)}", level=1)
+        vprint(f"  Class distribution: I={cleaned_dist['I']}, P={cleaned_dist['P']}, R={cleaned_dist['R']}", level=1)
+
         return cleaned_df, outlier_df, output_file
 
     vprint(f"Detecting outliers for combination: {combo_name} (contamination={contamination*100:.0f}%)...", level=1)
@@ -553,7 +563,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     # Load best_matching dataset (contains all samples with metadata)
     best_matching_df = pd.read_csv(data_paths['best_matching_csv'])
     n_samples = len(best_matching_df)
-    vprint(f"  Loaded {n_samples} samples", level=2)
+    vprint(f"  Original samples: {n_samples}", level=1)
 
     # Load and concatenate features for all modalities in combination
     all_features = []
@@ -603,11 +613,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
 
     # Get class distribution
     class_dist = Counter(y)
-    vprint("  Original class distribution:", level=2)
-    for cls in ['I', 'P', 'R']:
-        count = class_dist[cls]
-        pct = count / n_samples * 100
-        vprint(f"    {cls}: {count:3d} ({pct:5.1f}%)", level=2)
+    vprint(f"  Original class distribution: I={class_dist['I']}, P={class_dist['P']}, R={class_dist['R']}", level=1)
 
     # Per-class outlier detection (same as metadata-only, but on joint features)
     outlier_mask = np.zeros(n_samples, dtype=bool)
