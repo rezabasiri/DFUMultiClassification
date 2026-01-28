@@ -1075,8 +1075,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         model_features = {k: v for k, v in features.items() if k != 'sample_id'}
                         return model_features, labels
 
-                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=1)
-                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=1)
+                    # Use AUTOTUNE for baseline (no SDXL), num_parallel_calls=1 only when generative augmentation is active
+                    map_parallelism = 1 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
+                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=map_parallelism)
+                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=map_parallelism)
                     # Get a single epoch's worth of data by taking the specified number of steps
                     all_labels = []
                     for batch in pre_aug_train_dataset.take(master_steps_per_epoch):
@@ -1219,11 +1221,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
 
                                     # Remove sample_id for training (Keras 3 compatibility)
-                                    # Use num_parallel_calls=1 to avoid deadlock with tf.py_function
+                                    # Use AUTOTUNE for baseline, num_parallel_calls=1 only when SDXL is active
                                     pretrain_train_dataset = pretrain_train_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=1)
+                                        remove_sample_id_for_training, num_parallel_calls=map_parallelism)
                                     pretrain_valid_dataset = pretrain_valid_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=1)
+                                        remove_sample_id_for_training, num_parallel_calls=map_parallelism)
 
                                     pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                     pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
@@ -1331,15 +1333,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint("  WARNING: 0 trainable parameters! This will prevent learning!", level=0)
 
                                     # DEBUG: Check RF predictions from metadata input
-                                    vprint("  DEBUG: Checking RF metadata predictions...", level=2)
-                                    for batch in train_dataset.take(1):
-                                        inputs, labels = batch
-                                        if 'metadata_input' in inputs:
-                                            rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
-                                            vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
-                                            vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
-                                        labels_sample = labels.numpy()[:5]
-                                        vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
+                                    # DISABLED: This .take(1) call may interfere with distributed dataset iteration
+                                    # vprint("  DEBUG: Checking RF metadata predictions...", level=2)
+                                    # for batch in train_dataset.take(1):
+                                    #     inputs, labels = batch
+                                    #     if 'metadata_input' in inputs:
+                                    #         rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
+                                    #         vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
+                                    #         vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
+                                    #     labels_sample = labels.numpy()[:5]
+                                    #     vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
                                     vprint("=" * 80, level=1)
 
                                 except Exception as e:
@@ -2268,9 +2271,10 @@ def filter_dataset_modalities(dataset, selected_modalities):
                 raise KeyError(f"Modality {modality} not found in dataset")
 
         return filtered_features, labels
-    
-    # return dataset.map(filter_features, num_parallel_calls=tf.data.AUTOTUNE)
-    return dataset.map(filter_features, num_parallel_calls=2)
+
+    # Use AUTOTUNE for baseline (best performance), limited parallelism only when SDXL is active
+    filter_parallelism = 2 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
+    return dataset.map(filter_features, num_parallel_calls=filter_parallelism)
 
 def clear_cache_files():
     """Clear any existing cache files."""

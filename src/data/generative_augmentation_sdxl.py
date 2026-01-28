@@ -29,11 +29,6 @@ import threading
 from collections import OrderedDict
 import yaml
 
-# Limit PyTorch thread usage to prevent resource exhaustion when SDXL is loaded
-# SDXL is large (2.6B params) and can exhaust system threads alongside TensorFlow
-torch.set_num_threads(2)
-torch.set_num_interop_threads(2)
-
 from src.utils.production_config import (
     IMAGE_SIZE,
     USE_GENERATIVE_AUGMENTATION,
@@ -44,6 +39,12 @@ from src.utils.production_config import (
     GENERATIVE_AUG_MAX_MODELS,
     GENERATIVE_AUG_PHASES
 )
+
+# Only limit PyTorch threads when SDXL is actually being used
+# This prevents resource constraints from affecting TensorFlow baseline training
+if USE_GENERATIVE_AUGMENTATION:
+    torch.set_num_threads(2)
+    torch.set_num_interop_threads(2)
 
 # Disable all progress bars comprehensively - MUST come before any diffusers imports
 os.environ['TQDM_DISABLE'] = '1'  # Disable tqdm globally
@@ -645,8 +646,11 @@ class GenerativeAugmentationManager:
         else:
             self.num_gpus = 1
 
-        # Store device for backward compatibility (single GPU case)
-        self.device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # Calculate GPU offset: use LAST num_gpus GPUs to avoid TensorFlow conflict
+        # Store for backward compatibility (points to first SDXL GPU)
+        total_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 1
+        gpu_offset = max(0, total_gpus - self.num_gpus)
+        self.device = device or torch.device(f"cuda:{gpu_offset}" if torch.cuda.is_available() else "cpu")
 
         # Modality mapping (both thermal_rgb and depth_rgb use same RGB model)
         self.modality_mapping = {
@@ -665,6 +669,12 @@ class GenerativeAugmentationManager:
         """Lazy-load SDXL generator(s) on first use to conserve system resources
 
         For multi-GPU mode, loads one SDXL pipeline per GPU. Each pipeline uses ~10GB VRAM.
+
+        CRITICAL: Uses the LAST N GPUs to avoid conflict with TensorFlow's MirroredStrategy.
+        For example, with 5 total GPUs and 3 for SDXL:
+        - TensorFlow uses all 5 GPUs (but primarily 0-1)
+        - SDXL uses GPUs 2-4 (last 3)
+        This minimizes overlap and prevents deadlock.
         """
         if len(self.generators) > 0 or self.generator_initialized:
             return len(self.generators) > 0
@@ -678,9 +688,16 @@ class GenerativeAugmentationManager:
                 return len(self.generators) > 0
 
             try:
-                print(f"[MULTI-GPU] Loading SDXL on {self.num_gpus} GPU(s)...")
+                # Calculate GPU offset: use LAST num_gpus GPUs to avoid TensorFlow conflict
+                # Example: 5 total GPUs, 3 for SDXL → use GPUs 2,3,4 (offset=2)
+                total_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 1
+                gpu_offset = max(0, total_gpus - self.num_gpus)
 
-                for gpu_idx in range(self.num_gpus):
+                print(f"[MULTI-GPU] Loading SDXL on {self.num_gpus} GPU(s) (offset={gpu_offset}, devices={list(range(gpu_offset, gpu_offset + self.num_gpus))})...")
+                print(f"[GPU ALLOCATION] TensorFlow: GPUs 0-{total_gpus-1} (all, primary: 0-{gpu_offset-1 if gpu_offset > 0 else 0}), SDXL: GPUs {gpu_offset}-{gpu_offset+self.num_gpus-1}")
+
+                for i in range(self.num_gpus):
+                    gpu_idx = gpu_offset + i  # Use offset to select last N GPUs
                     device = torch.device(f"cuda:{gpu_idx}")
                     print(f"  Loading SDXL generator on GPU {gpu_idx}...")
 
