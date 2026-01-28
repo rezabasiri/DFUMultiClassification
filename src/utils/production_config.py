@@ -92,7 +92,7 @@ OUTLIER_BATCH_SIZE = 256  # Batch size for on-the-fly feature extraction
 # RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15
 # Map images: brightness ±40%, contrast 0.6-1.4x, gaussian noise σ=0.1 (no saturation)
 # Applied with 60% probability, different settings for RGB vs maps
-USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augmentation
+USE_GENERAL_AUGMENTATION = False  # Enable/disable general (non-generative) augmentation - TEMPORARILY DISABLED FOR SPEED TEST
 
 # Generative augmentation (Stable Diffusion-based synthetic data generation)
 # Uses fine-tuned SD models per modality/phase from results/GenerativeAug_Models/models_5_7/
