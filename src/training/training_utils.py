@@ -1343,6 +1343,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     pretrain_macro_f1 = MacroF1Score(num_classes=3)
 
                                     # Compile pre-training model
+                                    print(f"[DEBUG] Compiling pretrain_model with jit_compile={not DISABLE_XLA_JIT}")
                                     pretrain_model.compile(
                                         optimizer=Adam(learning_rate=1e-4, clipnorm=1.0),
                                         loss=pretrain_loss,
