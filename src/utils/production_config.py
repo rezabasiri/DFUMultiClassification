@@ -25,8 +25,8 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 32  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 256  # Total batch size across all GPU replicas
+IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
 N_EPOCHS = 3  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
@@ -86,7 +86,7 @@ REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR (increased for longe
 # Multimodal outlier detection (Isolation Forest on joint feature space)
 OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
 OUTLIER_CONTAMINATION = 0.15  # Expected proportion of outliers (0.0-1.0)
-OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
+OUTLIER_BATCH_SIZE = 256  # Batch size for on-the-fly feature extraction
 
 # General augmentation (applied during training only, not validation)
 # RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15
@@ -102,7 +102,7 @@ USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation glo
 GENERATIVE_AUG_MODEL_PATH = 'src/models/sdxl_checkpoints'  # Path to SDXL checkpoints
 GENERATIVE_AUG_PROB = 0.3  # Probability of applying generative augmentation (0.0-1.0)
 GENERATIVE_AUG_MIX_RATIO = (0.2, 0.4)  # Range for mixing real/synthetic samples (min, max)
-GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (30=fast, 50=quality)
+GENERATIVE_AUG_INFERENCE_STEPS = 10  # Diffusion inference steps (30=fast, 50=quality)
 GENERATIVE_AUG_BATCH_LIMIT = 8  # Max batch size for generative aug (SDXL needs ~10-12GB for batch of 4)
 GENERATIVE_AUG_MAX_MODELS = 1  # Only one SDXL model needed
 GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for: 'I'=Inflammatory, 'P'=Proliferative, 'R'=Remodeling
@@ -135,7 +135,7 @@ USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassificat
 # 1 = NORMAL: Standard output (default - current behavior)
 # 2 = DETAILED: Include debug info, intermediate metrics
 # 3 = FULL: Everything + progress bars with time estimates
-VERBOSITY = 3  # Default verbosity level
+VERBOSITY = 2  # Default verbosity level
 
 # Epoch printing settings
 EPOCH_PRINT_INTERVAL = 20  # Print training progress every N epochs (0 = print all epochs)
