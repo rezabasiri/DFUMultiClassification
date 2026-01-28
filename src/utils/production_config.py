@@ -329,7 +329,7 @@ TF_CUDNN_DETERMINISTIC = "1"  # Enable deterministic cuDNN operations
 # XLA JIT Compilation: First step takes 6-7 min to compile, then runs are fast.
 # Persistent cache saves compilation across runs - only recompiles when config changes.
 # Cache auto-invalidates when IMAGE_SIZE, BATCH_SIZE, BACKBONES, or MODALITIES change.
-XLA_CACHE_DIR = '.xla_cache'  # Directory for persistent XLA cache (relative to project root)
+XLA_CACHE_DIR = 'results/.xla_cache'  # Directory for persistent XLA cache (relative to project root)
 
 # =============================================================================
 # Helper Functions
