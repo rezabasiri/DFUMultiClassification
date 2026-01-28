@@ -326,10 +326,11 @@ TF_NUM_INTRAOP_THREADS = "4"  # TensorFlow intra-op parallelism threads
 TF_DETERMINISTIC_OPS = "1"  # Enable deterministic operations
 TF_CUDNN_DETERMINISTIC = "1"  # Enable deterministic cuDNN operations
 
-# XLA JIT Compilation: First step takes 6-7 min to compile, then runs are fast.
-# Persistent cache saves compilation across runs - only recompiles when config changes.
-# Cache auto-invalidates when IMAGE_SIZE, BATCH_SIZE, BACKBONES, or MODALITIES change.
-XLA_CACHE_DIR = 'results/.xla_cache'  # Directory for persistent XLA cache (relative to project root)
+# XLA JIT Compilation: First train step takes 6-7 min to compile, then steps are fast.
+# True = disable XLA (fast startup, slightly slower steps) - use for quick tests
+# False = enable XLA (slow first step, faster training) - use for production runs
+DISABLE_XLA_JIT = True
+XLA_CACHE_DIR = 'results/.xla_cache'  # For persistent cache when XLA is enabled
 
 # =============================================================================
 # Helper Functions

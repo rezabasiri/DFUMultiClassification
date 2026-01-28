@@ -155,7 +155,7 @@ from src.utils.production_config import (
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
     GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT,
     STAGE1_EPOCHS, DATA_PERCENTAGE, USE_GENERATIVE_AUGMENTATION,
-    GENERATIVE_AUG_MODEL_PATH
+    GENERATIVE_AUG_MODEL_PATH, DISABLE_XLA_JIT
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 from src.data.generative_augmentation_sdxl import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
@@ -1493,7 +1493,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
                         macro_f1 = MacroF1Score(num_classes=3)
                         model.compile(optimizer=Adam(learning_rate=1e-4, clipnorm=1.0), loss=loss,  # Reduced LR from 1e-3 to 1e-4
-                            metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
+                            metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)],
+                            jit_compile=not DISABLE_XLA_JIT  # XLA disabled for fast startup during testing
                         )
                         # Create distributed datasets
                         print(f"[TIMING DEBUG] Creating distributed datasets...", flush=True)
@@ -1687,7 +1688,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 model.compile(
                                     optimizer=Adam(learning_rate=1e-6, clipnorm=1.0),  # 100x lower than Stage 1
                                     loss=loss,
-                                    metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
+                                    metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)],
+                                    jit_compile=not DISABLE_XLA_JIT
                                 )
                                 vprint(f"  Model recompiled with LR=1e-6", level=2)
 
