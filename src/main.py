@@ -37,7 +37,8 @@ def _get_xla_config_hash():
 
 xla_cache_path = os.path.join(project_root, XLA_CACHE_DIR, f"config_{_get_xla_config_hash()}")
 os.makedirs(xla_cache_path, exist_ok=True)
-os.environ['TF_XLA_FLAGS'] = f'--tf_xla_auto_jit=2 --tf_xla_persistent_cache_dir={xla_cache_path}'
+os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2'
+os.environ['TF_XLA_PERSISTENT_CACHE_DIRECTORY'] = xla_cache_path
 print(f"[CONFIG] XLA persistent cache: {xla_cache_path}")
 
 # GPU configuration will be set up later via argparse and gpu_config module
