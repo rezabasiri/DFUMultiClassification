@@ -18,6 +18,16 @@ warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.
 # This will be overridden later based on verbosity level, but default to minimal logging
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING messages (keep errors only)
 
+# XLA JIT compilation control (must be set BEFORE importing TensorFlow)
+# Import the setting from production_config without importing TensorFlow
+from src.utils.production_config import DISABLE_XLA_JIT
+if DISABLE_XLA_JIT:
+    os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0'
+    print("[CONFIG] XLA JIT disabled (fast startup for testing)")
+else:
+    os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2'
+    print("[CONFIG] XLA JIT enabled (slow first step, faster training)")
+
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
 import glob
