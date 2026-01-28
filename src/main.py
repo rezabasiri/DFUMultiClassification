@@ -51,6 +51,10 @@ import gc
 
 # TensorFlow and Keras
 import tensorflow as tf
+# Programmatically disable XLA JIT if configured
+if DISABLE_XLA_JIT:
+    tf.config.optimizer.set_jit(False)
+    print(f"[CONFIG] tf.config.optimizer.set_jit(False) applied")
 from tensorflow import keras
 from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add
 from tensorflow.keras.models import Model
