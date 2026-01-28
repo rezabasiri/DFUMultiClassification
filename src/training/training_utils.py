@@ -1346,7 +1346,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     pretrain_model.compile(
                                         optimizer=Adam(learning_rate=1e-4, clipnorm=1.0),
                                         loss=pretrain_loss,
-                                        metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
+                                        metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)],
+                                        jit_compile=not DISABLE_XLA_JIT
                                     )
 
                                     # Create filtered dataset for pre-training (only image modality, not metadata)
