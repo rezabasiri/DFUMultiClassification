@@ -4,6 +4,7 @@ Functions for managing training runs, saving/loading predictions, and result agg
 """
 
 import os
+import time
 import pandas as pd
 import numpy as np
 import pickle
@@ -12,6 +13,77 @@ import random
 import gc
 import glob
 import tensorflow as tf
+
+
+class TimingTracker:
+    """Simple timing tracker for identifying bottlenecks in the training pipeline."""
+
+    def __init__(self):
+        self.timings = {}
+        self.start_times = {}
+        self.total_start = None
+
+    def start_total(self):
+        """Start tracking total time."""
+        self.total_start = time.time()
+        print(f"\n{'='*60}")
+        print(f"[TIMING] Starting training pipeline...")
+        print(f"{'='*60}\n", flush=True)
+
+    def start(self, name):
+        """Start timing a named section."""
+        self.start_times[name] = time.time()
+
+    def stop(self, name):
+        """Stop timing a named section and print the duration."""
+        if name in self.start_times:
+            elapsed = time.time() - self.start_times[name]
+            self.timings[name] = elapsed
+            self._print_timing(name, elapsed)
+            return elapsed
+        return 0
+
+    def _print_timing(self, name, elapsed):
+        """Print timing in a readable format."""
+        if elapsed < 60:
+            time_str = f"{elapsed:.1f}s"
+        elif elapsed < 3600:
+            minutes = int(elapsed // 60)
+            seconds = elapsed % 60
+            time_str = f"{minutes}m {seconds:.1f}s"
+        else:
+            hours = int(elapsed // 3600)
+            minutes = int((elapsed % 3600) // 60)
+            seconds = elapsed % 60
+            time_str = f"{hours}h {minutes}m {seconds:.0f}s"
+
+        print(f"[TIMING] {name}: {time_str}", flush=True)
+
+    def print_summary(self):
+        """Print a summary of all timings."""
+        if self.total_start:
+            total_elapsed = time.time() - self.total_start
+        else:
+            total_elapsed = sum(self.timings.values())
+
+        print(f"\n{'='*60}")
+        print(f"[TIMING] SUMMARY")
+        print(f"{'='*60}")
+
+        # Sort by time taken (descending)
+        sorted_timings = sorted(self.timings.items(), key=lambda x: x[1], reverse=True)
+
+        for name, elapsed in sorted_timings:
+            pct = (elapsed / total_elapsed * 100) if total_elapsed > 0 else 0
+            self._print_timing(f"{name} ({pct:.1f}%)", elapsed)
+
+        print(f"{'-'*60}")
+        self._print_timing("TOTAL", total_elapsed)
+        print(f"{'='*60}\n", flush=True)
+
+
+# Global timing tracker instance
+_timer = TimingTracker()
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from sklearn.metrics import accuracy_score, f1_score, classification_report, cohen_kappa_score, confusion_matrix
@@ -966,11 +1038,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         if completed_configs:
             vprint(f"\nFound completed configs for run {run + 1}: {completed_configs}", level=1)
         
+        # Start timing for this run
+        _timer.start_total()
+
         # Initialize data manager for this run with the correct image_size
+        _timer.start("Data manager initialization")
         data_manager = ProcessedDataManager(data.copy(), directory, image_size=image_size)
 
         # Process all modalities (doesn't need strategy scope - just shape inference)
         data_manager.process_all_modalities()
+        _timer.stop("Data manager initialization")
 
         # Setup augmentation once per run (use the passed image_size, not global IMAGE_SIZE)
         aug_config = AugmentationConfig()
@@ -1001,6 +1078,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
         vprint(f"\nPreparing datasets for {iteration_name} with all modalities: {all_modalities}", level=1)
         # Create cached datasets once for all modalities (doesn't need strategy scope)
+        _timer.start("Dataset preparation (prepare_cached_datasets)")
         master_train_dataset, pre_aug_dataset, master_valid_dataset, master_steps_per_epoch, master_validation_steps, master_alpha_value = prepare_cached_datasets(
             data_manager.data,
             all_modalities,  # Use all modalities
@@ -1013,7 +1091,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
             valid_patients=fold_valid_patients
         )
-        
+        _timer.stop("Dataset preparation (prepare_cached_datasets)")
+
         run_metrics = []
         
         # For each modality combination
@@ -1064,9 +1143,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             while not training_successful and retry_count < max_retries:
                 try:
                     # Filter the master datasets for the selected modalities (doesn't need strategy scope)
+                    _timer.start(f"Dataset filtering ({config_name})")
                     train_dataset = filter_dataset_modalities(master_train_dataset, selected_modalities)
                     pre_aug_train_dataset = filter_dataset_modalities(pre_aug_dataset, selected_modalities)
                     valid_dataset = filter_dataset_modalities(master_valid_dataset, selected_modalities)
+                    _timer.stop(f"Dataset filtering ({config_name})")
 
                     # Remove sample_id from training/validation datasets before model.fit()
                     # (Keras 3 strict about input dict keys matching model.inputs)
@@ -1280,6 +1361,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     print(f"[GPU DEBUG] ==================================================\n", flush=True)
 
                                     # Train image-only model
+                                    _timer.start(f"Pre-training ({image_modality})")
                                     pretrain_history = pretrain_model.fit(
                                         pretrain_train_dis,
                                         epochs=max_epochs,
@@ -1289,6 +1371,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         callbacks=pretrain_callbacks,
                                         verbose=pretrain_verbose
                                     )
+                                    _timer.stop(f"Pre-training ({image_modality})")
 
                                     # Get best kappa from pre-training
                                     pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
@@ -1501,6 +1584,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         save_weights_only=True
                                     ),
                                 ]
+                                _timer.start("Fusion Stage 1 (frozen image branch)")
                                 history_stage1 = model.fit(
                                     train_dataset_dis,
                                     epochs=stage1_epochs,
@@ -1510,6 +1594,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage1_callbacks,
                                     verbose=fit_verbose
                                 )
+                                _timer.stop("Fusion Stage 1 (frozen image branch)")
                                 print(f"[GPU DEBUG] Stage 1 model.fit() COMPLETED!", flush=True)
 
                                 # Load best Stage 1 weights
@@ -1559,6 +1644,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         save_weights_only=True
                                     ),
                                 ]
+                                _timer.start("Fusion Stage 2 (fine-tuning)")
                                 history_stage2 = model.fit(
                                     train_dataset_dis,
                                     epochs=stage2_epochs,
@@ -1568,6 +1654,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage2_callbacks,
                                     verbose=fit_verbose
                                 )
+                                _timer.stop("Fusion Stage 2 (fine-tuning)")
 
                                 stage2_best_kappa = max(history_stage2.history.get('val_cohen_kappa', [stage1_best_kappa]))
                                 vprint("=" * 80, level=2)
@@ -1582,6 +1669,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                             else:
                                 # Standard single-stage training
+                                _timer.start("Standard training (single stage)")
                                 history = model.fit(
                                     train_dataset_dis,
                                     epochs=max_epochs,
@@ -1591,6 +1679,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=callbacks,
                                     verbose=fit_verbose
                                 )
+                                _timer.stop("Standard training (single stage)")
 
                         # Load best weights (must be in strategy scope for distributed training)
                         best_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
@@ -1599,6 +1688,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             model.load_weights(best_load_path)
 
                         # Evaluate training data
+                        _timer.start(f"Evaluation/Prediction ({config_name})")
                         y_true_t = []
                         y_pred_t = []
                         probabilities_t = []
@@ -1667,6 +1757,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         if track_misclass in ['both', 'valid']:
                             sample_ids_v = np.array(all_sample_ids_v)
                             track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
+
+                        _timer.stop(f"Evaluation/Prediction ({config_name})")
 
                         # Calculate metrics
                         accuracy = accuracy_score(y_true_v, y_pred_v)
@@ -1796,6 +1888,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 gating_metrics = None
             
             all_runs_metrics.extend(run_metrics)
+
+            # Print timing summary for this run
+            _timer.print_summary()
+
             # Clean up after the run
             try:
                 tf.keras.backend.clear_session()
