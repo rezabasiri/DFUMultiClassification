@@ -30,6 +30,7 @@ if DISABLE_XLA_JIT:
     os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0 --tf_xla_cpu_global_jit=false'
     os.environ['XLA_FLAGS'] = '--xla_gpu_autotune_level=0'
     os.environ['TF_DISABLE_JIT'] = '1'
+    print(f"[CONFIG] XLA disabled via: TF_XLA_FLAGS={os.environ['TF_XLA_FLAGS']}")
 print(f"[CONFIG] XLA JIT: {'DISABLED (fast startup)' if DISABLE_XLA_JIT else 'ENABLED (slow first step, faster training)'}")
 
 # GPU configuration will be set up later via argparse and gpu_config module
