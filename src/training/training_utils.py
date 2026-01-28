@@ -84,6 +84,59 @@ class TimingTracker:
 
 # Global timing tracker instance
 _timer = TimingTracker()
+
+
+class StepTimingCallback(tf.keras.callbacks.Callback):
+    """Callback to time each training and validation step for debugging bottlenecks."""
+
+    def __init__(self, num_steps_to_log=5):
+        super().__init__()
+        self.num_steps_to_log = num_steps_to_log
+        self.step_times = []
+        self.val_step_times = []
+        self.epoch_start = None
+        self.step_start = None
+        self.current_step = 0
+        self.current_val_step = 0
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self.epoch_start = time.time()
+        self.current_step = 0
+        self.current_val_step = 0
+        self.step_times = []
+        self.val_step_times = []
+        print(f"[STEP TIMING] Epoch {epoch + 1} starting...", flush=True)
+
+    def on_train_batch_begin(self, batch, logs=None):
+        self.step_start = time.time()
+
+    def on_train_batch_end(self, batch, logs=None):
+        step_time = time.time() - self.step_start
+        self.step_times.append(step_time)
+        self.current_step += 1
+        if self.current_step <= self.num_steps_to_log:
+            print(f"[STEP TIMING] Train step {self.current_step}: {step_time:.2f}s", flush=True)
+
+    def on_test_batch_begin(self, batch, logs=None):
+        self.step_start = time.time()
+
+    def on_test_batch_end(self, batch, logs=None):
+        step_time = time.time() - self.step_start
+        self.val_step_times.append(step_time)
+        self.current_val_step += 1
+        if self.current_val_step <= self.num_steps_to_log:
+            print(f"[STEP TIMING] Val step {self.current_val_step}: {step_time:.2f}s", flush=True)
+
+    def on_epoch_end(self, epoch, logs=None):
+        epoch_time = time.time() - self.epoch_start
+        avg_train = sum(self.step_times) / len(self.step_times) if self.step_times else 0
+        avg_val = sum(self.val_step_times) / len(self.val_step_times) if self.val_step_times else 0
+        print(f"[STEP TIMING] Epoch {epoch + 1} summary:", flush=True)
+        print(f"  Total epoch time: {epoch_time:.1f}s", flush=True)
+        print(f"  Avg train step: {avg_train:.2f}s ({len(self.step_times)} steps)", flush=True)
+        print(f"  Avg val step: {avg_val:.2f}s ({len(self.val_step_times)} steps)", flush=True)
+
+
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from sklearn.metrics import accuracy_score, f1_score, classification_report, cohen_kappa_score, confusion_matrix
@@ -1443,8 +1496,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
+                        print(f"[TIMING DEBUG] Creating distributed datasets...", flush=True)
+                        _timer.start("Create distributed datasets")
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
                         valid_dataset_dis = strategy.experimental_distribute_dataset(valid_dataset)
+                        _timer.stop("Create distributed datasets")
                         callbacks = [
                             EarlyStopping(
                                 patience=EARLY_STOP_PATIENCE,
@@ -1565,9 +1621,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 print(f"[GPU DEBUG] About to call model.fit() for Stage 1...", flush=True)
                                 print(f"[GPU DEBUG] steps_per_epoch={steps_per_epoch}, stage1_epochs={STAGE1_EPOCHS}", flush=True)
 
+                                # DEBUG: Test data pipeline speed by iterating a few batches
+                                print(f"[TIMING DEBUG] Testing data pipeline speed (3 batches)...", flush=True)
+                                _timer.start("Data pipeline test (3 batches)")
+                                batch_count = 0
+                                for batch in train_dataset_dis.take(3):
+                                    batch_count += 1
+                                    print(f"[TIMING DEBUG] Batch {batch_count} loaded", flush=True)
+                                _timer.stop("Data pipeline test (3 batches)")
+
                                 # Stage 1: Train with frozen image branch
                                 stage1_epochs = STAGE1_EPOCHS
                                 stage1_callbacks = [
+                                    StepTimingCallback(num_steps_to_log=10),  # Time each step for debugging
                                     EarlyStopping(
                                         patience=10,  # More patient for stage 1
                                         restore_best_weights=True,
