@@ -326,33 +326,9 @@ TF_NUM_INTRAOP_THREADS = "4"  # TensorFlow intra-op parallelism threads
 TF_DETERMINISTIC_OPS = "1"  # Enable deterministic operations
 TF_CUDNN_DETERMINISTIC = "1"  # Enable deterministic cuDNN operations
 
-# =============================================================================
-# XLA (Accelerated Linear Algebra) JIT Compilation
-# =============================================================================
-#
-# ⚠️  WARNING: READ CAREFULLY BEFORE CHANGING ⚠️
-#
-# XLA JIT compilation compiles the TensorFlow graph into optimized machine code.
-# This causes a ONE-TIME compilation delay on the first training step:
-#   - Simple models (1 modality): ~1-2 minutes
-#   - Fusion models (4 modalities + 5 GPUs): ~6-7 minutes
-#
-# AFTER compilation, training is FASTER with XLA enabled.
-#
-# DISABLE_XLA_JIT = True:
-#   ✓ No compilation delay (first step is fast)
-#   ✗ Each training step is ~20-50% slower
-#   ✓ Good for: Quick testing, debugging, short runs (<10 epochs)
-#
-# DISABLE_XLA_JIT = False (DEFAULT - RECOMMENDED FOR PRODUCTION):
-#   ✗ Long compilation delay on first step (~6-7 min for fusion)
-#   ✓ Each training step is optimized and faster
-#   ✓ Good for: Production training, long runs (50+ epochs)
-#
-# Rule of thumb: If total training time > 30 minutes, keep XLA enabled.
-#                If just testing for a few epochs, disable it.
-#
-DISABLE_XLA_JIT = True  # Set to False for production training with many epochs
+# XLA JIT Compilation: First step takes 6-7 min to compile, then training is fast.
+# True = skip compilation (for quick tests <10 epochs), False = compile (for production 50+ epochs)
+DISABLE_XLA_JIT = True
 
 # =============================================================================
 # Helper Functions
