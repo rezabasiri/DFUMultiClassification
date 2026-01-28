@@ -327,6 +327,34 @@ TF_DETERMINISTIC_OPS = "1"  # Enable deterministic operations
 TF_CUDNN_DETERMINISTIC = "1"  # Enable deterministic cuDNN operations
 
 # =============================================================================
+# XLA (Accelerated Linear Algebra) JIT Compilation
+# =============================================================================
+#
+# ⚠️  WARNING: READ CAREFULLY BEFORE CHANGING ⚠️
+#
+# XLA JIT compilation compiles the TensorFlow graph into optimized machine code.
+# This causes a ONE-TIME compilation delay on the first training step:
+#   - Simple models (1 modality): ~1-2 minutes
+#   - Fusion models (4 modalities + 5 GPUs): ~6-7 minutes
+#
+# AFTER compilation, training is FASTER with XLA enabled.
+#
+# DISABLE_XLA_JIT = True:
+#   ✓ No compilation delay (first step is fast)
+#   ✗ Each training step is ~20-50% slower
+#   ✓ Good for: Quick testing, debugging, short runs (<10 epochs)
+#
+# DISABLE_XLA_JIT = False (DEFAULT - RECOMMENDED FOR PRODUCTION):
+#   ✗ Long compilation delay on first step (~6-7 min for fusion)
+#   ✓ Each training step is optimized and faster
+#   ✓ Good for: Production training, long runs (50+ epochs)
+#
+# Rule of thumb: If total training time > 30 minutes, keep XLA enabled.
+#                If just testing for a few epochs, disable it.
+#
+DISABLE_XLA_JIT = True  # Set to False for production training with many epochs
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 
@@ -418,3 +446,12 @@ def apply_environment_config():
     os.environ['TF_NUM_INTRAOP_THREADS'] = TF_NUM_INTRAOP_THREADS
     os.environ['TF_DETERMINISTIC_OPS'] = TF_DETERMINISTIC_OPS
     os.environ['TF_CUDNN_DETERMINISTIC'] = TF_CUDNN_DETERMINISTIC
+
+    # XLA JIT compilation control
+    if DISABLE_XLA_JIT:
+        os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0'
+        print("[CONFIG] XLA JIT compilation DISABLED (fast startup, slower training)")
+    else:
+        # Enable XLA auto-clustering for optimized training
+        os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2'
+        print("[CONFIG] XLA JIT compilation ENABLED (slow first step, faster training)")
