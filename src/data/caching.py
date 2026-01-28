@@ -7,11 +7,11 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
-from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn
+from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn, create_general_augmentation_fn, AugmentationConfig
 from src.data.preprocessing import load_and_preprocess_image
 from src.utils.config import get_project_paths, get_data_paths
 from src.utils.verbosity import vprint, get_verbosity
-from src.utils.production_config import USE_GENERATIVE_AUGMENTATION
+from src.utils.production_config import USE_GENERATIVE_AUGMENTATION, USE_GENERAL_AUGMENTATION
 
 # Get paths from centralized config
 directory, result_dir, root = get_project_paths()
@@ -572,6 +572,15 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     train_data, rf_model1, rf_model2, imputer, scaler = preprocess_split(train_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
     valid_data, _, _, _, _ = preprocess_split(valid_data, is_training=False, rf_model1=rf_model1, rf_model2=rf_model2, imputer=imputer, scaler=scaler)
         
+    # Determine which augmentation function to use
+    if gen_manager:
+        train_augmentation_fn = create_enhanced_augmentation_fn(gen_manager, aug_config)
+    elif USE_GENERAL_AUGMENTATION:
+        general_aug_config = aug_config if aug_config else AugmentationConfig()
+        train_augmentation_fn = create_general_augmentation_fn(general_aug_config)
+    else:
+        train_augmentation_fn = None
+
     # Create cached datasets
     train_dataset, steps_per_epoch = create_cached_dataset(
         train_data,
@@ -579,7 +588,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         batch_size,
         is_training=True,
         cache_dir=result_dir,
-        augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None
+        augmentation_fn=train_augmentation_fn
     )
 
     valid_dataset, validation_steps = create_cached_dataset(

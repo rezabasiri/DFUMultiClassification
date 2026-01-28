@@ -986,6 +986,44 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     return apply_augmentation
 
 
+def create_general_augmentation_fn(config):
+    """
+    Create TensorFlow augmentation function with ONLY regular augmentations (no SDXL).
+
+    This is used when USE_GENERATIVE_AUGMENTATION=False but USE_GENERAL_AUGMENTATION=True.
+    It applies brightness, contrast, saturation, and noise augmentations without requiring
+    the GenerativeAugmentationManager.
+    """
+    # Track if we've printed the first batch message
+    first_batch_logged = [False]
+
+    def apply_augmentation(features, label):
+        def augment_batch(features_dict, label_tensor):
+            # Log first batch to confirm data is flowing
+            if not first_batch_logged[0]:
+                print("[DATA PIPELINE] First batch received - general augmentation (no SDXL)", flush=True)
+                first_batch_logged[0] = True
+
+            output_features = {}
+
+            for key, value in features_dict.items():
+                if '_input' in key and 'metadata' not in key:
+                    modality = key.replace('_input', '')
+
+                    # Apply regular augmentations (brightness, contrast, saturation, noise)
+                    if modality in config.modality_settings and config.modality_settings[modality]['regular_augmentations']['enabled']:
+                        seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
+                        value = augment_image(value, modality, seed, config)
+
+                output_features[key] = value
+
+            return output_features, label_tensor
+
+        return augment_batch(features, label)
+
+    return apply_augmentation
+
+
 class GenerativeAugmentationCallback(tf.keras.callbacks.Callback):
     """Callback to manage generative augmentation resources"""
     def __init__(self, gen_manager):

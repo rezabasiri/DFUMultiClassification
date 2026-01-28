@@ -18,9 +18,9 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
-from src.utils.production_config import USE_GENERATIVE_AUGMENTATION
+from src.utils.production_config import USE_GENERATIVE_AUGMENTATION, USE_GENERAL_AUGMENTATION
 from src.data.image_processing import load_and_preprocess_image
-from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn
+from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn, create_general_augmentation_fn, AugmentationConfig
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -1317,6 +1317,22 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 print(f"  Normalized feature range: [{train_data[cols_to_normalize].min().min():.2f}, {train_data[cols_to_normalize].max().max():.2f}]")
                 print(f"  Mean: {train_data[cols_to_normalize].mean().mean():.4f}, Std: {train_data[cols_to_normalize].std().mean():.4f}")
 
+    # Determine which augmentation function to use:
+    # 1. gen_manager exists -> full augmentation with SDXL
+    # 2. gen_manager is None but USE_GENERAL_AUGMENTATION=True -> regular augmentations only
+    # 3. Both disabled -> no augmentation
+    if gen_manager:
+        train_augmentation_fn = create_enhanced_augmentation_fn(gen_manager, aug_config)
+        vprint("  Using SDXL generative + regular augmentation", level=2)
+    elif USE_GENERAL_AUGMENTATION:
+        # Create config for general augmentation if not provided
+        general_aug_config = aug_config if aug_config else AugmentationConfig()
+        train_augmentation_fn = create_general_augmentation_fn(general_aug_config)
+        vprint("  Using regular augmentation only (no SDXL)", level=2)
+    else:
+        train_augmentation_fn = None
+        vprint("  No augmentation enabled", level=2)
+
     # Create cached datasets
     train_dataset, pre_aug_dataset, steps_per_epoch = create_cached_dataset(
         train_data,
@@ -1324,7 +1340,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         batch_size,
         is_training=True,
         cache_dir=cache_dir,  # Pass through the cache_dir parameter
-        augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None,
+        augmentation_fn=train_augmentation_fn,
         image_size=image_size,
         fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
 

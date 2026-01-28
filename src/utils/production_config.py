@@ -98,7 +98,7 @@ USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augme
 # Uses fine-tuned SD models per modality/phase from results/GenerativeAug_Models/models_5_7/
 # Only applies to RGB images (depth_rgb, thermal_rgb use rgb_I/P/R models)
 # Model mapping: thermal_rgb→rgb, depth_rgb→rgb, thermal_map→thermal_map, depth_map→depth_map
-USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation globally
+USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation globally
 GENERATIVE_AUG_MODEL_PATH = 'src/models/sdxl_checkpoints'  # Path to SDXL checkpoints
 GENERATIVE_AUG_PROB = 0.3  # Probability of applying generative augmentation (0.0-1.0)
 GENERATIVE_AUG_MIX_RATIO = (0.2, 0.4)  # Range for mixing real/synthetic samples (min, max)
