@@ -18,8 +18,11 @@ warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.
 # This will be overridden later based on verbosity level, but default to minimal logging
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING messages (keep errors only)
 
+# Add project root to path EARLY so we can import from src before TensorFlow
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
 # XLA JIT compilation control (must be set BEFORE importing TensorFlow)
-# Import the setting from production_config without importing TensorFlow
 from src.utils.production_config import DISABLE_XLA_JIT
 if DISABLE_XLA_JIT:
     os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0'
@@ -43,10 +46,6 @@ import csv
 import itertools
 from collections import Counter
 import gc
-
-# Add project root to path so we can import from src
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
 
 # TensorFlow and Keras
 import tensorflow as tf
