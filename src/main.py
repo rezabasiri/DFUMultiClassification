@@ -22,14 +22,23 @@ os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# XLA JIT compilation control (must be set BEFORE importing TensorFlow)
-from src.utils.production_config import DISABLE_XLA_JIT
-if DISABLE_XLA_JIT:
-    os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0'
-    print("[CONFIG] XLA JIT disabled (fast startup for testing)")
-else:
-    os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2'
-    print("[CONFIG] XLA JIT enabled (slow first step, faster training)")
+# XLA persistent cache (must be set BEFORE importing TensorFlow)
+# Cache auto-invalidates when relevant config settings change
+from src.utils.production_config import (
+    XLA_CACHE_DIR, IMAGE_SIZE, GLOBAL_BATCH_SIZE, RGB_BACKBONE, MAP_BACKBONE, INCLUDED_COMBINATIONS
+)
+import hashlib
+
+def _get_xla_config_hash():
+    """Generate hash of config settings that affect XLA compilation."""
+    # These settings affect the compiled graph structure
+    config_str = f"{IMAGE_SIZE}_{GLOBAL_BATCH_SIZE}_{RGB_BACKBONE}_{MAP_BACKBONE}_{sorted(INCLUDED_COMBINATIONS)}"
+    return hashlib.md5(config_str.encode()).hexdigest()[:8]
+
+xla_cache_path = os.path.join(project_root, XLA_CACHE_DIR, f"config_{_get_xla_config_hash()}")
+os.makedirs(xla_cache_path, exist_ok=True)
+os.environ['TF_XLA_FLAGS'] = f'--tf_xla_auto_jit=2 --tf_xla_persistent_cache_dir={xla_cache_path}'
+print(f"[CONFIG] XLA persistent cache: {xla_cache_path}")
 
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode

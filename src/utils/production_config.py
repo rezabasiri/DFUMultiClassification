@@ -326,9 +326,10 @@ TF_NUM_INTRAOP_THREADS = "4"  # TensorFlow intra-op parallelism threads
 TF_DETERMINISTIC_OPS = "1"  # Enable deterministic operations
 TF_CUDNN_DETERMINISTIC = "1"  # Enable deterministic cuDNN operations
 
-# XLA JIT Compilation: First step takes 6-7 min to compile, then training is fast.
-# True = skip compilation (for quick tests <10 epochs), False = compile (for production 50+ epochs)
-DISABLE_XLA_JIT = True
+# XLA JIT Compilation: First step takes 6-7 min to compile, then runs are fast.
+# Persistent cache saves compilation across runs - only recompiles when config changes.
+# Cache auto-invalidates when IMAGE_SIZE, BATCH_SIZE, BACKBONES, or MODALITIES change.
+XLA_CACHE_DIR = '.xla_cache'  # Directory for persistent XLA cache (relative to project root)
 
 # =============================================================================
 # Helper Functions
@@ -422,12 +423,4 @@ def apply_environment_config():
     os.environ['TF_NUM_INTRAOP_THREADS'] = TF_NUM_INTRAOP_THREADS
     os.environ['TF_DETERMINISTIC_OPS'] = TF_DETERMINISTIC_OPS
     os.environ['TF_CUDNN_DETERMINISTIC'] = TF_CUDNN_DETERMINISTIC
-
-    # XLA JIT compilation control
-    if DISABLE_XLA_JIT:
-        os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0'
-        print("[CONFIG] XLA JIT compilation DISABLED (fast startup, slower training)")
-    else:
-        # Enable XLA auto-clustering for optimized training
-        os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=2'
-        print("[CONFIG] XLA JIT compilation ENABLED (slow first step, faster training)")
+    # XLA cache is configured separately in main.py before TensorFlow import
