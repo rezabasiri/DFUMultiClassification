@@ -1621,11 +1621,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 print(f"[GPU DEBUG] About to call model.fit() for Stage 1...", flush=True)
                                 print(f"[GPU DEBUG] steps_per_epoch={steps_per_epoch}, stage1_epochs={STAGE1_EPOCHS}", flush=True)
 
-                                # DEBUG: Test data pipeline speed by iterating a few batches
-                                print(f"[TIMING DEBUG] Testing data pipeline speed (3 batches)...", flush=True)
+                                # DEBUG: Test data pipeline speed by iterating a few batches (use non-distributed dataset)
+                                print(f"[TIMING DEBUG] Testing data pipeline speed (3 batches from non-distributed)...", flush=True)
                                 _timer.start("Data pipeline test (3 batches)")
                                 batch_count = 0
-                                for batch in train_dataset_dis.take(3):
+                                for batch in train_dataset.take(3):
                                     batch_count += 1
                                     print(f"[TIMING DEBUG] Batch {batch_count} loaded", flush=True)
                                 _timer.stop("Data pipeline test (3 batches)")
