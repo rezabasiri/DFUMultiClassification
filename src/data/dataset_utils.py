@@ -225,15 +225,22 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     thermal_rgb_folder = data_paths['thermal_rgb_folder']
 
     # Pre-compute full file paths for each modality to avoid tf.py_function for path construction
+    # Store folder paths in a dict that can be accessed in the nested function
+    modality_folders = {
+        'depth_rgb': image_folder,
+        'depth_map': depth_folder,
+        'thermal_rgb': thermal_rgb_folder,
+        'thermal_map': thermal_folder
+    }
+
     def get_full_path(filename, modality):
         """Get full file path for a given modality."""
-        base_folders = {
-            'depth_rgb': image_folder,
-            'depth_map': depth_folder,
-            'thermal_rgb': thermal_rgb_folder,
-            'thermal_map': thermal_folder
-        }
-        return os.path.join(base_folders[modality], filename)
+        # Use string concatenation to avoid os module scoping issues in nested function
+        base_folder = modality_folders[modality]
+        # Ensure proper path separator
+        if base_folder.endswith('/'):
+            return base_folder + filename
+        return base_folder + '/' + filename
 
     def process_single_sample_tf_native(filepath, bb_coords, modality_name):
         """Process a single image sample using pure TensorFlow operations (no py_function)."""
