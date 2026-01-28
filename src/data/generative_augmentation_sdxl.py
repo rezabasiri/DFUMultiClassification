@@ -29,11 +29,6 @@ import threading
 from collections import OrderedDict
 import yaml
 
-# Limit PyTorch thread usage to prevent resource exhaustion when SDXL is loaded
-# SDXL is large (2.6B params) and can exhaust system threads alongside TensorFlow
-torch.set_num_threads(2)
-torch.set_num_interop_threads(2)
-
 from src.utils.production_config import (
     IMAGE_SIZE,
     USE_GENERATIVE_AUGMENTATION,
@@ -44,6 +39,12 @@ from src.utils.production_config import (
     GENERATIVE_AUG_MAX_MODELS,
     GENERATIVE_AUG_PHASES
 )
+
+# Only limit PyTorch threads when SDXL is actually being used
+# This prevents resource constraints from affecting TensorFlow baseline training
+if USE_GENERATIVE_AUGMENTATION:
+    torch.set_num_threads(2)
+    torch.set_num_interop_threads(2)
 
 # Disable all progress bars comprehensively - MUST come before any diffusers imports
 os.environ['TQDM_DISABLE'] = '1'  # Disable tqdm globally
@@ -82,16 +83,24 @@ tf.get_logger().setLevel('ERROR')  # Only show TF errors
 
 
 class GeneratedImageCounter:
-    """Thread-safe counter for tracking generated images"""
+    """Thread-safe counter for tracking generated images with per-class breakdown"""
     def __init__(self):
         self.count = 0
+        self.class_counts = {'I': 0, 'P': 0, 'R': 0}  # Per-class counts
         self.lock = threading.Lock()
         self.print_interval = 10  # Print every N images
 
-    def increment(self, batch_size=1):
-        """Increment counter and optionally print update"""
+    def increment(self, batch_size=1, phase=None):
+        """Increment counter and optionally print update
+
+        Args:
+            batch_size: Number of images generated
+            phase: Phase ('I', 'P', 'R') for per-class tracking
+        """
         with self.lock:
             self.count += batch_size
+            if phase and phase in self.class_counts:
+                self.class_counts[phase] += batch_size
             if self.count % self.print_interval == 0 or batch_size > 1:
                 print(f"  Generated images: {self.count}", flush=True)
 
@@ -99,11 +108,32 @@ class GeneratedImageCounter:
         """Reset counter to 0"""
         with self.lock:
             self.count = 0
+            self.class_counts = {'I': 0, 'P': 0, 'R': 0}
 
     def get_count(self):
         """Get current count"""
         with self.lock:
             return self.count
+
+    def get_summary(self):
+        """Get summary string with per-class breakdown"""
+        with self.lock:
+            return f"Total: {self.count} (I={self.class_counts['I']}, P={self.class_counts['P']}, R={self.class_counts['R']})"
+
+    def print_summary(self):
+        """Print generation summary"""
+        with self.lock:
+            print(f"\n================================================================================", flush=True)
+            print(f"SDXL GENERATION SUMMARY", flush=True)
+            print(f"================================================================================", flush=True)
+            if self.count > 0:
+                print(f"Total images generated: {self.count}", flush=True)
+                print(f"  Phase I (Inflammatory): {self.class_counts['I']}", flush=True)
+                print(f"  Phase P (Proliferative): {self.class_counts['P']}", flush=True)
+                print(f"  Phase R (Remodeling): {self.class_counts['R']}", flush=True)
+            else:
+                print(f"No images were generated (check GENERATIVE_AUG_PROB setting)", flush=True)
+            print(f"================================================================================\n", flush=True)
 
 
 # Global counter instance
@@ -423,13 +453,10 @@ class SDXLWoundGenerator:
                 return self.pipeline
 
             try:
-                print(f"\n{'='*60}")
-                print(f"[GPU DEBUG] SDXL LOADING - Expect HIGH GPU memory usage soon!")
-                print(f"{'='*60}")
                 print(f"Loading SDXL checkpoint from {self.checkpoint_path}")
 
-                # Load checkpoint (weights_only=False for PyTorch 2.6+ compatibility with numpy scalars)
-                checkpoint = torch.load(self.checkpoint_path, map_location='cpu', weights_only=False)
+                # Load checkpoint
+                checkpoint = torch.load(self.checkpoint_path, map_location='cpu')
 
                 # Load base SDXL components
                 print(f"Loading base model: {self.base_model}")
@@ -492,8 +519,6 @@ class SDXLWoundGenerator:
         try:
             # Get phase-specific prompt
             prompt = self.phase_prompts[phase]
-            print(f"[GPU DEBUG] SDXL GENERATING: {batch_size} images for phase {phase} at {height}x{width}")
-            print(f"[GPU DEBUG] Using {num_inference_steps} inference steps - Expect HIGH GPU utilization!")
 
             with torch.no_grad():
                 output = pipeline(
@@ -531,31 +556,37 @@ class GenerativeAugmentationManager:
 
     This replaces the old SD 1.5 LoRA-based manager with SDXL full fine-tuning.
     Maintains the same interface for compatibility with existing code.
+
+    Supports multi-GPU generation for faster augmentation. Each GPU loads its own
+    SDXL pipeline (~10GB) and requests are distributed across GPUs.
     """
 
-    def __init__(self, checkpoint_dir: str, config: AugmentationConfig, device=None):
+    def __init__(self, checkpoint_dir: str, config: AugmentationConfig, device=None, num_gpus: int = None):
         """
         Initialize augmentation manager
 
         Args:
             checkpoint_dir: Directory containing SDXL checkpoint and config
             config: AugmentationConfig instance
-            device: torch device to use
+            device: torch device to use (ignored if num_gpus > 1)
+            num_gpus: Number of GPUs to use for SDXL (default: from production_config)
         """
         self.config = config
         self.checkpoint_dir = Path(checkpoint_dir)
-        self.generator = None  # Will be set if checkpoints are found
+        self.generators = []  # List of generators, one per GPU
+        self.generator = None  # For backward compatibility (points to first generator)
         self.lock = threading.Lock()
+        self.gpu_counter = 0  # For round-robin GPU selection
 
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
-            print("Generative augmentation disabled in config")
+            print("Generative augmentation disabled in config", flush=True)
             return
 
         # Check if checkpoint directory exists
         if not self.checkpoint_dir.exists():
-            print(f"WARNING: Checkpoint directory not found: {checkpoint_dir}")
-            print("Generative augmentation will be disabled until checkpoints are available")
-            print("Please copy checkpoint files as described in LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md")
+            print(f"WARNING: Checkpoint directory not found: {checkpoint_dir}", flush=True)
+            print("Generative augmentation will be disabled until checkpoints are available", flush=True)
+            print("Please copy checkpoint files as described in LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md", flush=True)
             return
 
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -571,11 +602,11 @@ class GenerativeAugmentationManager:
             if checkpoints:
                 checkpoint_path = checkpoints[-1]  # Use latest epoch
             else:
-                print(f"WARNING: No checkpoint .pt files found in {checkpoint_dir}")
-                print("Found files:", list(self.checkpoint_dir.iterdir()))
-                print("Generative augmentation will be disabled until checkpoints are available")
-                print("Please copy checkpoint_epoch_*.pt files (~10GB each) as described in:")
-                print("  LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md")
+                print(f"WARNING: No checkpoint .pt files found in {checkpoint_dir}", flush=True)
+                print("Found files:", list(self.checkpoint_dir.iterdir()), flush=True)
+                print("Generative augmentation will be disabled until checkpoints are available", flush=True)
+                print("Please copy checkpoint_epoch_*.pt files (~10GB each) as described in:", flush=True)
+                print("  LOCAL_AGENT_MIGRATION_INSTRUCTIONS.md", flush=True)
                 return
 
         config_path = self.checkpoint_dir / "full_sdxl_config.yaml"
@@ -586,17 +617,40 @@ class GenerativeAugmentationManager:
             # Try src/utils
             config_path = Path(__file__).parent.parent / "utils" / "full_sdxl_config.yaml"
         if not config_path.exists():
-            print(f"WARNING: Config file not found near {checkpoint_dir}")
-            print("Generative augmentation will be disabled")
+            print(f"WARNING: Config file not found near {checkpoint_dir}", flush=True)
+            print("Generative augmentation will be disabled", flush=True)
             return
 
-        print(f"✓ Found checkpoint: {checkpoint_path}")
-        print(f"✓ Found config: {config_path}")
+        print(f"✓ Found checkpoint: {checkpoint_path}", flush=True)
+        print(f"✓ Found config: {config_path}", flush=True)
 
         # Store paths for lazy loading (don't load SDXL yet to save resources)
         self.checkpoint_path = str(checkpoint_path)
         self.config_path = str(config_path)
         self.generator_initialized = False
+
+        # Determine number of GPUs to use for SDXL
+        # Import here to avoid circular import
+        try:
+            from src.utils.production_config import GENERATIVE_AUG_NUM_GPUS
+            default_num_gpus = GENERATIVE_AUG_NUM_GPUS
+        except (ImportError, AttributeError):
+            default_num_gpus = 1
+
+        self.num_gpus = num_gpus if num_gpus is not None else default_num_gpus
+
+        # Limit to available GPUs
+        if torch.cuda.is_available():
+            available_gpus = torch.cuda.device_count()
+            self.num_gpus = min(self.num_gpus, available_gpus)
+        else:
+            self.num_gpus = 1
+
+        # Calculate GPU offset: use LAST num_gpus GPUs to avoid TensorFlow conflict
+        # Store for backward compatibility (points to first SDXL GPU)
+        total_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 1
+        gpu_offset = max(0, total_gpus - self.num_gpus)
+        self.device = device or torch.device(f"cuda:{gpu_offset}" if torch.cuda.is_available() else "cpu")
 
         # Modality mapping (both thermal_rgb and depth_rgb use same RGB model)
         self.modality_mapping = {
@@ -606,42 +660,98 @@ class GenerativeAugmentationManager:
             'depth_map': 'depth_map'
         }
 
-        print("✓ SDXL paths configured (will load on first use to conserve resources)")
+        print(f"✓ SDXL paths configured (will load on first use to conserve resources)", flush=True)
+        print(f"✓ Multi-GPU: Will use {self.num_gpus} GPU(s) for SDXL generation", flush=True)
+        print(f"✓ Generation probability: {self.config.generative_settings['prob']*100:.0f}%", flush=True)
+        print(f"✓ Inference steps: {self.config.generative_settings['inference_steps']}", flush=True)
 
     def _ensure_generator_loaded(self):
-        """Lazy-load SDXL generator on first use to conserve system resources"""
-        if self.generator is not None or self.generator_initialized:
-            return True
+        """Lazy-load SDXL generator(s) on first use to conserve system resources
+
+        For multi-GPU mode, loads one SDXL pipeline per GPU. Each pipeline uses ~10GB VRAM.
+
+        CRITICAL: Uses the LAST N GPUs to avoid conflict with TensorFlow's MirroredStrategy.
+        For example, with 5 total GPUs and 3 for SDXL:
+        - TensorFlow uses all 5 GPUs (but primarily 0-1)
+        - SDXL uses GPUs 2-4 (last 3)
+        This minimizes overlap and prevents deadlock.
+        """
+        if len(self.generators) > 0 or self.generator_initialized:
+            return len(self.generators) > 0
 
         if not hasattr(self, 'checkpoint_path') or not hasattr(self, 'config_path'):
             return False
 
         with self.lock:
             # Double-check after acquiring lock
-            if self.generator is not None or self.generator_initialized:
-                return True
+            if len(self.generators) > 0 or self.generator_initialized:
+                return len(self.generators) > 0
 
             try:
-                print("\n" + "="*60)
-                print("[GPU DEBUG] SDXL GENERATOR FIRST USE - LOADING NOW!")
-                print("[GPU DEBUG] This will take ~30-60 seconds and use ~10GB GPU memory")
-                print("="*60 + "\n", flush=True)
-                print("Loading SDXL generator (first use)...")
-                self.generator = SDXLWoundGenerator(
-                    checkpoint_path=self.checkpoint_path,
-                    config_path=self.config_path,
-                    device=self.device
-                )
+                # Calculate GPU offset: use LAST num_gpus GPUs to avoid TensorFlow conflict
+                # Example: 5 total GPUs, 3 for SDXL → use GPUs 2,3,4 (offset=2)
+                total_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 1
+                gpu_offset = max(0, total_gpus - self.num_gpus)
+
+                print(f"[MULTI-GPU] Loading SDXL on {self.num_gpus} GPU(s) (offset={gpu_offset}, devices={list(range(gpu_offset, gpu_offset + self.num_gpus))})...")
+                print(f"[GPU ALLOCATION] TensorFlow: GPUs 0-{total_gpus-1} (all, primary: 0-{gpu_offset-1 if gpu_offset > 0 else 0}), SDXL: GPUs {gpu_offset}-{gpu_offset+self.num_gpus-1}")
+
+                for i in range(self.num_gpus):
+                    gpu_idx = gpu_offset + i  # Use offset to select last N GPUs
+                    device = torch.device(f"cuda:{gpu_idx}")
+                    print(f"  Loading SDXL generator on GPU {gpu_idx}...")
+
+                    generator = SDXLWoundGenerator(
+                        checkpoint_path=self.checkpoint_path,
+                        config_path=self.config_path,
+                        device=device
+                    )
+                    self.generators.append(generator)
+                    print(f"  ✓ GPU {gpu_idx}: SDXL loaded ({torch.cuda.get_device_name(gpu_idx)})")
+
+                # Backward compatibility: point to first generator
+                self.generator = self.generators[0] if self.generators else None
                 self.generator_initialized = True
-                print("✓ SDXL generator loaded successfully")
+
+                print(f"✓ SDXL generators loaded on {len(self.generators)} GPU(s)")
                 return True
 
             except Exception as e:
-                print(f"ERROR: Failed to load SDXL generator: {str(e)}")
+                print(f"ERROR: Failed to load SDXL generator(s): {str(e)}")
                 traceback.print_exc()
                 self.generator_initialized = True  # Mark as attempted
+                self.generators = []
                 self.generator = None
                 return False
+
+    def _get_next_generator(self):
+        """Get the next generator using round-robin selection"""
+        if not self.generators:
+            return None
+        with self.lock:
+            generator = self.generators[self.gpu_counter % len(self.generators)]
+            self.gpu_counter += 1
+        return generator
+
+    def preload(self):
+        """
+        Pre-load SDXL generators before training starts.
+
+        CRITICAL: This MUST be called BEFORE TensorFlow creates distributed datasets,
+        otherwise lazy loading inside tf.py_function will cause a deadlock with
+        TensorFlow's MirroredStrategy.
+
+        Returns:
+            bool: True if generators loaded successfully, False otherwise
+        """
+        print("[SDXL PRELOAD] Pre-loading SDXL generators BEFORE training...", flush=True)
+        print("[SDXL PRELOAD] This prevents deadlock with TensorFlow distributed strategy", flush=True)
+        result = self._ensure_generator_loaded()
+        if result:
+            print(f"[SDXL PRELOAD] ✓ Successfully pre-loaded {len(self.generators)} SDXL generator(s)", flush=True)
+        else:
+            print("[SDXL PRELOAD] ✗ Failed to pre-load SDXL generators", flush=True)
+        return result
 
     def generate_images(self, modality: str, phase: str, batch_size: int = 1,
                        target_height: int = None, target_width: int = None):
@@ -675,8 +785,14 @@ class GenerativeAugmentationManager:
             target_width = self.config.generative_settings['output_size']['width']
 
         try:
+            # Get next generator (round-robin across GPUs)
+            generator = self._get_next_generator()
+            if generator is None:
+                print("WARNING: No SDXL generators available")
+                return None
+
             # Generate images directly at target size to save computation time
-            generated = self.generator.generate(
+            generated = generator.generate(
                 phase=phase,
                 batch_size=batch_size,
                 num_inference_steps=self.config.generative_settings['inference_steps'],
@@ -687,8 +803,8 @@ class GenerativeAugmentationManager:
             if generated is None:
                 return None
 
-            # Update counter
-            _gen_image_counter.increment(batch_size)
+            # Update counter with per-class tracking
+            _gen_image_counter.increment(batch_size, phase=phase)
 
             return generated
 
@@ -730,13 +846,21 @@ class GenerativeAugmentationManager:
                 tf.random.uniform([], 0, 1) < self.config.generative_settings['prob'])
 
     def cleanup(self):
-        """Release all resources and GPU memory"""
+        """Release all resources and GPU memory from all GPUs"""
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return
 
+        # Print generation summary before cleanup
+        _gen_image_counter.print_summary()
+
         with self.lock:
-            if self.generator is not None:
-                self.generator.cleanup()
+            # Clean up all generators (multi-GPU support)
+            for i, generator in enumerate(self.generators):
+                if generator is not None:
+                    print(f"  Cleaning up SDXL generator on GPU {i}...")
+                    generator.cleanup()
+            self.generators = []
+            self.generator = None
             torch.cuda.empty_cache()
             gc.collect()
 
@@ -752,126 +876,112 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     Create TensorFlow augmentation function with generative augmentation
 
     This maintains compatibility with the existing training pipeline.
-
-    IMPORTANT: This function is designed to work with MirroredStrategy.
-    All generative augmentation logic is handled inside a single tf.py_function
-    to avoid issues with tf.cond and lambda closures during graph tracing.
     """
-    # Pre-check if generative augmentation is enabled (Python-level check)
-    gen_aug_enabled = config.modality_settings['depth_rgb']['generative_augmentations']['enabled']
-    gen_aug_prob = config.generative_settings['prob']
-    mix_ratio_min = config.generative_settings['mix_ratio_range'][0]
-    mix_ratio_max = config.generative_settings['mix_ratio_range'][1]
-
-    # Phase lookup table
-    phases_lookup = tf.constant(['I', 'P', 'R'], dtype=tf.string)
-
-    # Define the py_function implementation at module level (outside of any loop)
-    # This function handles BOTH probability check AND generation
-    def _maybe_generate_impl(value_np, phase_bytes):
-        """
-        Implementation that runs in eager mode via tf.py_function.
-        Handles probability check internally to avoid tf.cond issues.
-        """
-        try:
-            # Convert EagerTensor to numpy array at the start
-            if hasattr(value_np, 'numpy'):
-                value_array = value_np.numpy()
-            else:
-                value_array = np.array(value_np)
-
-            # Probability check inside py_function (eager mode)
-            if np.random.random() >= gen_aug_prob:
-                return value_array  # Skip augmentation based on probability
-
-            # Handle both bytes and numpy array for phase
-            if isinstance(phase_bytes, bytes):
-                phase = phase_bytes.decode('utf-8')
-            elif hasattr(phase_bytes, 'numpy'):
-                phase_raw = phase_bytes.numpy()
-                phase = phase_raw.decode('utf-8') if isinstance(phase_raw, bytes) else str(phase_raw)
-            else:
-                phase = str(phase_bytes)
-
-            batch_size = value_array.shape[0]
-            height = value_array.shape[1]
-            width = value_array.shape[2]
-
-            # Check phase is valid
-            if phase not in GENERATIVE_AUG_PHASES:
-                return value_array
-
-            # Generate images
-            generated = gen_manager.generate_images(
-                'depth_rgb', phase,  # Hardcoded modality since only depth_rgb uses this
-                batch_size=batch_size,
-                target_height=height,
-                target_width=width
-            )
-
-            if generated is None:
-                return value_array
-
-            generated_np = generated.numpy() if hasattr(generated, 'numpy') else generated
-
-            # Mix ratio
-            mix_ratio = np.random.uniform(mix_ratio_min, mix_ratio_max)
-            num_to_replace = int(batch_size * mix_ratio)
-
-            if num_to_replace > 0 and len(generated_np) > 0:
-                indices = np.random.permutation(batch_size)[:num_to_replace]
-                num_available = min(num_to_replace, len(generated_np))
-                result = value_array.copy()
-                result[indices[:num_available]] = generated_np[:num_available]
-                return result
-
-            return value_array
-
-        except Exception as e:
-            print(f"Error in generative augmentation: {str(e)}")
-            # Return numpy array even on error
-            if hasattr(value_np, 'numpy'):
-                return value_np.numpy()
-            return np.array(value_np)
+    # Track if we've printed the first batch message
+    first_batch_logged = [False]
 
     def apply_augmentation(features, label):
-        output_features = {}
+        def augment_batch(features_dict, label_tensor):
+            # Log first batch to confirm data is flowing
+            if not first_batch_logged[0]:
+                print("[DATA PIPELINE] First batch received - augmentation function called", flush=True)
+                first_batch_logged[0] = True
 
-        # Get phase from first label in batch using simple TF ops
-        label_first = label[0]
-        phase_index = tf.argmax(label_first)
-        current_phase = tf.gather(phases_lookup, phase_index)
+            output_features = {}
 
-        for key, value in features.items():
-            if '_input' in key and 'metadata' not in key:
-                modality = key.replace('_input', '')
+            @tf.function
+            def get_label_phase(label):
+                index = tf.argmax(label)
+                phases = tf.constant(['I', 'P', 'R'], dtype=tf.string)
+                return tf.gather(phases, index)
 
-                # Python-level check for generative augmentation
-                should_apply_gen_aug = (
-                    gen_aug_enabled and
-                    modality == 'depth_rgb' and
-                    hasattr(gen_manager, 'checkpoint_path') and
-                    hasattr(gen_manager, 'config_path')
-                )
+            try:
+                current_phase = get_label_phase(label_tensor[0])
+            except Exception as e:
+                print(f"Error getting phase: {str(e)}")
+                current_phase = tf.constant('I', dtype=tf.string)
 
-                if should_apply_gen_aug:
-                    # Single py_function call - no tf.cond, no lambda closures
-                    # The probability check is done inside the py_function
-                    value = tf.py_function(
-                        func=_maybe_generate_impl,
-                        inp=[value, current_phase],
-                        Tout=tf.float32
-                    )
-                    # Restore shape info that may be lost after py_function
-                    value.set_shape([None, None, None, 3])
+            for key, value in features_dict.items():
+                if '_input' in key and 'metadata' not in key:
+                    modality = key.replace('_input', '')
 
-                if config.modality_settings[modality]['regular_augmentations']['enabled']:
-                    seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
-                    value = augment_image(value, modality, seed, config)
+                    def decode_phase(phase_tensor):
+                        return phase_tensor.numpy().decode('utf-8')
 
-            output_features[key] = value
+                    gen_manager.current_phase = tf.py_function(decode_phase, [current_phase], tf.string)
 
-        return output_features, label
+                    # Apply regular augmentations FIRST (before SDXL mixing)
+                    # This ensures SDXL-generated images bypass regular augmentations
+                    if config.modality_settings[modality]['regular_augmentations']['enabled']:
+                        seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
+                        value = augment_image(value, modality, seed, config)
+
+                    if gen_manager.should_generate(modality):
+                        try:
+                            def generate_images_wrapper(phase_tensor, modality_str, batch_size_val, target_height, target_width):
+                                try:
+                                    phase = phase_tensor.numpy().decode('utf-8')
+                                    modality_raw = modality_str.numpy().decode('utf-8')
+                                    batch_size = int(batch_size_val.numpy())
+                                    height = int(target_height.numpy())
+                                    width = int(target_width.numpy())
+
+                                    # Debug: confirm SDXL generation is being called
+                                    print(f"[SDXL GEN] Generating {batch_size} images for {modality_raw}/{phase} at {height}x{width}", flush=True)
+
+                                    # Generate directly at target size (no resizing needed)
+                                    generated = gen_manager.generate_images(
+                                        modality_raw, phase,
+                                        batch_size=batch_size,
+                                        target_height=height,
+                                        target_width=width
+                                    )
+
+                                    if generated is None:
+                                        return np.zeros([batch_size, height, width, 3], dtype=np.float32)
+
+                                    return generated.numpy()
+
+                                except Exception as e:
+                                    print(f"Error in generate_images_wrapper: {str(e)}")
+                                    return np.zeros([batch_size, height, width, 3], dtype=np.float32)
+
+                            modality_tensor = tf.constant(modality, dtype=tf.string)
+                            batch_size = tf.shape(value)[0]
+                            height = tf.shape(value)[1]
+                            width = tf.shape(value)[2]
+
+                            generated = tf.py_function(
+                                func=generate_images_wrapper,
+                                inp=[current_phase, modality_tensor, batch_size, height, width],
+                                Tout=tf.float32
+                            )
+                            generated.set_shape([None, value.shape[1], value.shape[2], 3])
+
+                            mix_ratio = tf.random.uniform([],
+                                minval=config.generative_settings['mix_ratio_range'][0],
+                                maxval=config.generative_settings['mix_ratio_range'][1]
+                            )
+
+                            num_to_replace = tf.cast(
+                                tf.cast(tf.shape(value)[0], tf.float32) * mix_ratio,
+                                tf.int32
+                            )
+
+                            indices = tf.random.shuffle(tf.range(tf.shape(value)[0]))[:num_to_replace]
+                            updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
+                            indices = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
+
+                            value = tf.tensor_scatter_nd_update(value, indices, updates)
+
+                        except Exception as e:
+                            print(f"Error in generative augmentation: {str(e)}")
+
+                output_features[key] = value
+
+            return output_features, label_tensor
+
+        return augment_batch(features, label)
 
     return apply_augmentation
 

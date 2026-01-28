@@ -110,6 +110,12 @@ QUICK_EARLY_STOP_PATIENCE = 3  # Quick early stopping
 QUICK_REDUCE_LR_PATIENCE = 1  # Reduce LR after 1 epoch without improvement
 QUICK_BATCH_SIZE = 256  # Large batch size for quick mode with 64x64 images to maximize GPU utilization
 
+# Quick mode SDXL settings (significantly faster generation)
+QUICK_GENERATIVE_AUG_INFERENCE_STEPS = 10  # Reduced from 50 - much faster, quality doesn't matter for quick test
+QUICK_GENERATIVE_AUG_BATCH_LIMIT = 4  # Reduced from 8 - fewer images per generation call
+QUICK_GENERATIVE_AUG_PROB = 0.2  # Reduced from 0.3 - generate less frequently in quick mode
+QUICK_GENERATIVE_AUG_NUM_GPUS = 3  # Use 3 GPUs for SDXL (each ~10GB). With 5x 24GB: 3 for SDXL, 2 for TF
+
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
 PROGRESS_FILE = project_root / 'agent_communication/generative_augmentation/GENGEN_PROGRESS.json'
@@ -136,6 +142,11 @@ def save_original_config():
         'REDUCE_LR_PATIENCE': r'REDUCE_LR_PATIENCE = (\d+)',
         'LR_SCHEDULE_EXPLORATION_EPOCHS': r'LR_SCHEDULE_EXPLORATION_EPOCHS = (\d+)',
         'GLOBAL_BATCH_SIZE': r'GLOBAL_BATCH_SIZE = (\d+)',
+        # SDXL generative augmentation settings
+        'GENERATIVE_AUG_INFERENCE_STEPS': r'GENERATIVE_AUG_INFERENCE_STEPS = (\d+)',
+        'GENERATIVE_AUG_BATCH_LIMIT': r'GENERATIVE_AUG_BATCH_LIMIT = (\d+)',
+        'GENERATIVE_AUG_PROB': r'GENERATIVE_AUG_PROB = ([\d.]+)',
+        'GENERATIVE_AUG_NUM_GPUS': r'GENERATIVE_AUG_NUM_GPUS = (\d+)',
     }
 
     for key, pattern in patterns.items():
@@ -174,6 +185,15 @@ def restore_original_config():
             content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', original_value, content)
         elif key == 'GLOBAL_BATCH_SIZE':
             content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', original_value, content)
+        # SDXL generative augmentation settings
+        elif key == 'GENERATIVE_AUG_INFERENCE_STEPS':
+            content = re.sub(r'GENERATIVE_AUG_INFERENCE_STEPS = \d+', original_value, content)
+        elif key == 'GENERATIVE_AUG_BATCH_LIMIT':
+            content = re.sub(r'GENERATIVE_AUG_BATCH_LIMIT = \d+', original_value, content)
+        elif key == 'GENERATIVE_AUG_PROB':
+            content = re.sub(r'GENERATIVE_AUG_PROB = [\d.]+', original_value, content)
+        elif key == 'GENERATIVE_AUG_NUM_GPUS':
+            content = re.sub(r'GENERATIVE_AUG_NUM_GPUS = \d+', original_value, content)
 
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
@@ -214,6 +234,11 @@ def update_config_for_test(use_gen_aug):
         content = re.sub(r'REDUCE_LR_PATIENCE = \d+', f'REDUCE_LR_PATIENCE = {QUICK_REDUCE_LR_PATIENCE}', content)
         content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', f'LR_SCHEDULE_EXPLORATION_EPOCHS = {QUICK_N_EPOCHS}', content)
         content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', f'GLOBAL_BATCH_SIZE = {QUICK_BATCH_SIZE}', content)
+        # SDXL settings for quick mode - significantly faster generation
+        content = re.sub(r'GENERATIVE_AUG_INFERENCE_STEPS = \d+', f'GENERATIVE_AUG_INFERENCE_STEPS = {QUICK_GENERATIVE_AUG_INFERENCE_STEPS}', content)
+        content = re.sub(r'GENERATIVE_AUG_BATCH_LIMIT = \d+', f'GENERATIVE_AUG_BATCH_LIMIT = {QUICK_GENERATIVE_AUG_BATCH_LIMIT}', content)
+        content = re.sub(r'GENERATIVE_AUG_PROB = [\d.]+', f'GENERATIVE_AUG_PROB = {QUICK_GENERATIVE_AUG_PROB}', content)
+        content = re.sub(r'GENERATIVE_AUG_NUM_GPUS = \d+', f'GENERATIVE_AUG_NUM_GPUS = {QUICK_GENERATIVE_AUG_NUM_GPUS}', content)
     else:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {DATA_PERCENTAGE}', content)
         content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
@@ -224,6 +249,7 @@ def update_config_for_test(use_gen_aug):
     logger.debug(f"[DEBUG] Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}, QUICK_MODE={QUICK_MODE}")
     if QUICK_MODE:
         logger.debug(f"[DEBUG] Quick mode config: DATA_PERCENTAGE={QUICK_DATA_PERCENTAGE}, N_EPOCHS={QUICK_N_EPOCHS}, IMAGE_SIZE={QUICK_IMAGE_SIZE}, BATCH_SIZE={QUICK_BATCH_SIZE}")
+        logger.debug(f"[DEBUG] Quick mode SDXL: INFERENCE_STEPS={QUICK_GENERATIVE_AUG_INFERENCE_STEPS}, BATCH_LIMIT={QUICK_GENERATIVE_AUG_BATCH_LIMIT}, PROB={QUICK_GENERATIVE_AUG_PROB}, NUM_GPUS={QUICK_GENERATIVE_AUG_NUM_GPUS}")
 
 def load_progress():
     """Load progress from file"""
@@ -259,6 +285,12 @@ def run_test(config_name, config_desc, use_gen_aug):
             outlier_file.unlink()
             logger.info(f"Deleted cached outliers: {outlier_file.name}")
 
+    # Delete filtered best_matching file to ensure fresh outlier filtering
+    filtered_file = project_root / 'results/best_matching_filtered.csv'
+    if filtered_file.exists():
+        filtered_file.unlink()
+        logger.info(f"Deleted filtered dataset: {filtered_file.name}")
+
     # Update config
     update_config_for_test(use_gen_aug)
     logger.info(f"Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}")
@@ -277,7 +309,8 @@ def run_test(config_name, config_desc, use_gen_aug):
         '/venv/multimodal/bin/python', 'src/main.py',
         '--data_percentage', str(data_pct),
         '--resume_mode', 'fresh',
-        '--device-mode', 'multi'
+        '--device-mode', 'multi',
+        '--verbosity', '1'
     ]
 
     logger.info(f"Running: {' '.join(cmd)}")

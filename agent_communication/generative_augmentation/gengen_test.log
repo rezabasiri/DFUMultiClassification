@@ -1,111 +1,103 @@
-2026-01-25 19:56:38,686 - INFO - ================================================================================
-2026-01-25 19:56:38,686 - INFO - QUICK TEST MODE: 30.0% data, 3 epochs, 32x32 images
-2026-01-25 19:56:38,686 - INFO - This is for error checking only - results not production-ready
-2026-01-25 19:56:38,686 - INFO - ================================================================================
+2026-01-26 10:41:32,318 - DEBUG - [DEBUG] main() started
+2026-01-26 10:41:32,318 - DEBUG - [DEBUG] Python version: 3.11.14 | packaged by conda-forge | (main, Oct 22 2025, 22:46:25) [GCC 14.3.0]
+2026-01-26 10:41:32,318 - DEBUG - [DEBUG] Project root: /workspace/DFUMultiClassification
+2026-01-26 10:41:32,318 - DEBUG - [DEBUG] Log file: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/gengen_test.log
+2026-01-26 10:41:32,320 - DEBUG - [DEBUG] Parsed arguments: fresh=False, quick=True
+2026-01-26 10:41:32,320 - INFO - ================================================================================
+2026-01-26 10:41:32,320 - INFO - QUICK TEST MODE: 30.0% data, 3 epochs, 32x32 images
+2026-01-26 10:41:32,320 - INFO - This is for error checking only - results not production-ready
+2026-01-26 10:41:32,320 - INFO - ================================================================================
 
-2026-01-25 19:56:38,687 - INFO - Saved original production_config values
-2026-01-25 19:56:38,687 - INFO - Resuming test run - 1/2 tests completed
-2026-01-25 19:56:38,687 - INFO - 
+2026-01-26 10:41:32,320 - DEBUG - [DEBUG] Quick mode settings: QUICK_BATCH_SIZE=256, QUICK_STAGE1_EPOCHS=1
+2026-01-26 10:41:32,320 - DEBUG - [DEBUG] Quick mode settings: QUICK_EARLY_STOP_PATIENCE=3, QUICK_REDUCE_LR_PATIENCE=1
+2026-01-26 10:41:32,320 - DEBUG - [DEBUG] Saving original config...
+2026-01-26 10:41:32,321 - INFO - Saved original production_config values
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] Original config saved: ['USE_GENERATIVE_AUGMENTATION', 'INCLUDED_COMBINATIONS', 'DATA_PERCENTAGE', 'N_EPOCHS', 'IMAGE_SIZE', 'STAGE1_EPOCHS', 'EARLY_STOP_PATIENCE', 'REDUCE_LR_PATIENCE', 'LR_SCHEDULE_EXPLORATION_EPOCHS', 'GLOBAL_BATCH_SIZE', 'GENERATIVE_AUG_INFERENCE_STEPS', 'GENERATIVE_AUG_BATCH_LIMIT', 'GENERATIVE_AUG_PROB', 'GENERATIVE_AUG_NUM_GPUS']
+2026-01-26 10:41:32,321 - INFO - Resuming test run - 1/2 tests completed
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] Loaded progress: completed=['baseline'], results_keys=['baseline']
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] Starting test loop with 2 configs
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] Processing config 1/2: baseline
+2026-01-26 10:41:32,321 - INFO - 
 Skipping Baseline (no generative augmentation) (already completed)
-2026-01-25 19:56:38,687 - INFO - 
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] Skipping baseline - already in completed list
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] Processing config 2/2: gengen_enabled
+2026-01-26 10:41:32,321 - INFO - 
 ================================================================================
-2026-01-25 19:56:38,687 - INFO - Starting test 2/2
-2026-01-25 19:56:38,687 - INFO - ================================================================================
-2026-01-25 19:56:38,687 - INFO - 
+2026-01-26 10:41:32,321 - INFO - Starting test 2/2
+2026-01-26 10:41:32,321 - INFO - ================================================================================
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] About to call run_test for gengen_enabled
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] Config: {'name': 'gengen_enabled', 'description': 'With generative augmentation (depth_rgb)', 'use_gen_aug': True}
+2026-01-26 10:41:32,321 - INFO - 
 ================================================================================
-2026-01-25 19:56:38,687 - INFO - TEST: With generative augmentation (depth_rgb)
-2026-01-25 19:56:38,687 - INFO - ================================================================================
-2026-01-25 19:56:38,687 - INFO - Deleted cached dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-2026-01-25 19:56:38,687 - INFO - Deleted cached outliers: outliers_depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-2026-01-25 19:56:38,688 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
-2026-01-25 19:56:38,688 - INFO - Modalities: metadata, depth_rgb, depth_map, thermal_map
-2026-01-25 19:56:38,688 - INFO - Running: /venv/multimodal/bin/python src/main.py --data_percentage 30.0 --resume_mode fresh --device-mode multi
-
-COMMAND: /venv/multimodal/bin/python src/main.py --data_percentage 30.0 --resume_mode fresh --device-mode multi
-
-2026-01-25 19:56:39.127253: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2026-01-25 19:56:39.127296: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2026-01-25 19:56:39.128009: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-
-================================================================================
-DEVICE CONFIGURATION (mode: multi)
-================================================================================
-
-Detected 5 GPU(s):
-  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 1: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 2: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 3: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-  GPU 4: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-
-Selected 5 GPU(s):
-  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 1: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 2: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 3: NVIDIA GeForce RTX 4090 (24.0GB)
-  GPU 4: NVIDIA GeForce RTX 4090 (24.0GB)
-Enabled memory growth for 5 GPU(s)
-
-Using MirroredStrategy (5 GPUs) with NCCL
-  Compute capability 8.9 detected (native NCCL support)
-  (Using NCCL for fastest multi-GPU communication)
-  Effective batch size: 5× global batch size
-================================================================================
-
-
-Batch size per replica: 51 (global batch size: 256, replicas: 5)
-
-================================================================================
-DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
-================================================================================
-Mode: search
-Resume mode: fresh
-Data percentage: 30.0%
-Verbosity: 1 (NORMAL)
-Device: GPUs [0, 1, 2, 3, 4] (multi-GPU mode, MirroredStrategy)
-  Replicas: 5× batch size distribution
-Cross-validation: 3-fold CV (patient-level)
-
-Configuration loaded from: src/utils/production_config.py
-Image size: 32x32
-Batch size: 256
-  Per-GPU batch: 51 (256 / 5 GPUs)
-Max epochs: 3 (with early stopping)
-Modality search mode: custom
-Will test 1 custom combinations
-================================================================================
-
-
-🧹 FRESH START MODE: Deleting all checkpoints...
-================================================================================
-
-Cleanup Statistics:
-  Models: 2 files deleted
-  Csv Results: 1 files deleted
-  Tf Cache: 4 files deleted
-================================================================================
-
-
-Data Cleaning Configuration (from production_config.py):
-  Outlier removal: True
-  Outlier contamination: 15%
-  Outlier batch size: 32
-  Misclassification tracking: none
-
-================================================================================
-OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
-================================================================================
-Contamination rate: 15%
-Processing 1 modality combination(s)
-
-[1/1] depth_map_depth_rgb_metadata_thermal_map
-Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=15%)...
-  Total outliers: 410/2729 (15.0%)
-  Cleaned dataset: 2319 samples
-  Saved cleaned dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
-Applying cleaned dataset for depth_map_depth_rgb_metadata_thermal_map (15% outlier removal)...
-  Filtered: 2729 samples
-  Applied cleaned dataset to: best_matching.csv
+2026-01-26 10:41:32,321 - INFO - TEST: With generative augmentation (depth_rgb)
+2026-01-26 10:41:32,321 - INFO - ================================================================================
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] run_test called: config_name=gengen_enabled, use_gen_aug=True
+2026-01-26 10:41:32,321 - DEBUG - [DEBUG] QUICK_MODE=True, DATA_PERCENTAGE=30.0, N_EPOCHS=3, IMAGE_SIZE=32
+2026-01-26 10:41:32,321 - INFO - Deleted cached dataset: depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+2026-01-26 10:41:32,322 - INFO - Deleted cached outliers: outliers_depth_map_depth_rgb_metadata_thermal_map_15pct.csv
+2026-01-26 10:41:32,322 - INFO - Deleted filtered dataset: best_matching_filtered.csv
+2026-01-26 10:41:32,322 - DEBUG - [DEBUG] update_config_for_test called with use_gen_aug=True
+2026-01-26 10:41:32,322 - DEBUG - [DEBUG] Read production_config (20183 bytes)
+2026-01-26 10:41:32,323 - DEBUG - [DEBUG] Config updated: USE_GENERATIVE_AUGMENTATION=True, QUICK_MODE=True
+2026-01-26 10:41:32,323 - DEBUG - [DEBUG] Quick mode config: DATA_PERCENTAGE=30.0, N_EPOCHS=3, IMAGE_SIZE=32, BATCH_SIZE=256
+2026-01-26 10:41:32,323 - DEBUG - [DEBUG] Quick mode SDXL: INFERENCE_STEPS=10, BATCH_LIMIT=4, PROB=0.2, NUM_GPUS=3
+2026-01-26 10:41:32,323 - INFO - Config updated: USE_GENERATIVE_AUGMENTATION=True
+2026-01-26 10:41:32,323 - INFO - Modalities: metadata, depth_rgb, depth_map, thermal_map
+2026-01-26 10:41:32,323 - INFO - Running: /venv/multimodal/bin/python src/main.py --data_percentage 30.0 --resume_mode fresh --device-mode multi --verbosity 1
+2026-01-26 10:41:32,323 - DEBUG - [DEBUG] Working directory: /workspace/DFUMultiClassification
+2026-01-26 10:41:32,323 - DEBUG - [DEBUG] Log start position: 4335
+2026-01-26 10:41:32,323 - DEBUG - [DEBUG] Starting subprocess...
+2026-01-26 10:41:32,324 - DEBUG - [DEBUG] Subprocess started with PID: 1053890
+2026-01-26 10:41:38,810 - INFO -   Cross-validation: 3-fold CV (patient-level)
+2026-01-26 10:41:38,810 - INFO -   Max epochs: 3 (with early stopping)
+2026-01-26 10:41:40,009 - INFO -     Training will use 2319 samples
+2026-01-26 10:41:40,010 - INFO -   Cross-validation mode: 3-fold CV
+2026-01-26 10:41:40,010 - INFO -   Total training sessions: 3
+2026-01-26 10:41:40,060 - INFO -   MULTI-GPU TRAINING: 5 GPUs
+2026-01-26 10:41:40,060 - INFO -   GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+2026-01-26 10:41:40,099 - INFO -   STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+2026-01-26 10:41:40,100 - INFO -   Fold 1/3: 112 train patients, 57 valid patients
+2026-01-26 10:41:40,101 - INFO -   Fold 2/3: 113 train patients, 56 valid patients
+2026-01-26 10:41:40,102 - INFO -   Fold 3/3: 113 train patients, 56 valid patients
+2026-01-26 10:41:40,102 - INFO -   Generated 3 folds
+2026-01-26 10:41:40,103 - INFO -   All data will be validated exactly once across all folds
+2026-01-26 10:41:40,303 - INFO -   Fold 1/3
+2026-01-26 10:41:40,303 - INFO -   Using pre-computed fold 1 patient split
+2026-01-26 10:41:44,440 - INFO -   Preparing datasets for Fold 1/3 with all modalities: ['depth_map', 'metadata', 'thermal_map', 'depth_rgb']
+2026-01-26 10:41:48,454 - INFO -   Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 1/3
+2026-01-26 10:42:31,355 - INFO -   AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+2026-01-26 10:42:31,355 - INFO -     Training depth_rgb-only model first (same data split)...
+2026-01-26 10:45:17,502 - INFO -   [STATUS] Still running... 3.8 min elapsed, 171 lines processed
+2026-01-26 10:45:17,502 - DEBUG - [DEBUG] Last output line: WARNING: All log messages before absl::InitializeLog() is called are written to STDERR...
+2026-01-26 10:45:59,806 - INFO -     Pre-training completed! Best val kappa: 0.0000
+2026-01-26 11:03:55,987 - INFO -   Restoring model weights from the end of the best epoch: 1.
+2026-01-26 11:03:55,987 - INFO -   [STATUS] Still running... 22.4 min elapsed, 176 lines processed
+2026-01-26 11:03:55,987 - DEBUG - [DEBUG] Last output line: Restoring model weights from the end of the best epoch: 1....
+2026-01-26 11:03:58,790 - INFO -   Epoch 11: early stopping
+2026-01-26 11:04:55,472 - INFO -       accuracy                           0.50       232
+2026-01-26 11:04:55,472 - INFO -   Cohen's Kappa: 0.2842
+2026-01-26 11:05:14,705 - INFO -   [STATUS] Still running... 23.7 min elapsed, 191 lines processed
+2026-01-26 11:05:14,705 - DEBUG - [DEBUG] Last output line: ...
+2026-01-26 11:05:14,705 - INFO -   Training gating network for run 1...
+2026-01-26 11:05:14,713 - INFO -   Initializing gating network training...
+2026-01-26 11:05:14,716 - INFO -   Accuracy: 0.4957
+2026-01-26 11:05:14,716 - INFO -   Kappa: 0.2842
+2026-01-26 11:05:46,317 - INFO -   Fold 2/3
+2026-01-26 11:05:46,317 - INFO -   Using pre-computed fold 2 patient split
+2026-01-26 11:06:08,477 - INFO -   Preparing datasets for Fold 2/3 with all modalities: ['depth_map', 'metadata', 'thermal_map', 'depth_rgb']
+2026-01-26 11:06:21,009 - INFO -   [STATUS] Still running... 24.8 min elapsed, 210 lines processed
+2026-01-26 11:06:21,009 - DEBUG - [DEBUG] Last output line: ...
+2026-01-26 11:06:21,009 - INFO -   Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 2/3
+2026-01-26 11:07:08,418 - INFO -   AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+2026-01-26 11:07:08,419 - INFO -     Training depth_rgb-only model first (same data split)...
+2026-01-26 11:10:42,363 - INFO -     Pre-training completed! Best val kappa: 0.0000
+2026-01-26 11:10:42,363 - INFO -   [STATUS] Still running... 29.2 min elapsed, 218 lines processed
+2026-01-26 11:10:42,363 - DEBUG - [DEBUG] Last output line:   Pre-training completed! Best val kappa: 0.0000...
+tliers removed: 410 (15.0%)
+  Cleaned samples: 2319
+  Class distribution: I=645, P=1428, R=246
+  Saved to: best_matching_filtered.csv
+  Training will use 2319 samples
   ✓ Applied for depth_map_depth_rgb_metadata_thermal_map: 2319 samples
 
 ================================================================================
@@ -124,14 +116,16 @@ Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality
 
 
 Testing modalities: metadata, depth_rgb, depth_map, thermal_map
+Loaded 2319 samples from best_matching_filtered.csv
+  Class distribution: I=645, P=1428, R=246
 Number of samples for each selected modality:
-  depth_rgb: 2729
-  depth_bb: 2729
-  depth_map: 2729
-  thermal_map: 2729
-  thermal_bb: 2729
-  metadata: 2729
-Using 30.0% of the data: 819 samples
+  depth_rgb: 2319
+  depth_bb: 2319
+  depth_map: 2319
+  thermal_map: 2319
+  thermal_bb: 2319
+  metadata: 2319
+Using 30.0% of the data: 696 samples
 
 ================================================================================
 MULTI-GPU TRAINING: 5 GPUs
@@ -147,20 +141,20 @@ GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
 ================================================================================
 STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
 ================================================================================
-Class 0: 58 patients
-Class 1: 95 patients
-Class 2: 20 patients
+Class 0: 55 patients
+Class 1: 90 patients
+Class 2: 24 patients
 ================================================================================
 
-Fold 1/3: 114 train patients, 59 valid patients
-  Train dist: {0: 0.266, 1: 0.628, 2: 0.106}
-  Valid dist: {0: 0.302, 1: 0.610, 2: 0.088}
-Fold 2/3: 115 train patients, 58 valid patients
-  Train dist: {0: 0.301, 1: 0.622, 2: 0.078}
-  Valid dist: {0: 0.239, 1: 0.621, 2: 0.139}
-Fold 3/3: 117 train patients, 56 valid patients
-  Train dist: {0: 0.272, 1: 0.616, 2: 0.112}
-  Valid dist: {0: 0.299, 1: 0.636, 2: 0.065}
+Fold 1/3: 112 train patients, 57 valid patients
+  Train dist: {0: 0.287, 1: 0.597, 2: 0.116}
+  Valid dist: {0: 0.293, 1: 0.595, 2: 0.112}
+Fold 2/3: 113 train patients, 56 valid patients
+  Train dist: {0: 0.310, 1: 0.570, 2: 0.120}
+  Valid dist: {0: 0.253, 1: 0.640, 2: 0.107}
+Fold 3/3: 113 train patients, 56 valid patients
+  Train dist: {0: 0.272, 1: 0.619, 2: 0.110}
+  Valid dist: {0: 0.330, 1: 0.542, 2: 0.128}
 Generated 3 folds
 All data will be validated exactly once across all folds
 ================================================================================
@@ -170,11 +164,8 @@ Fold 1/3
 Using pre-computed fold 1 patient split
 Using Scikit-learn RandomForestClassifier
 Initializing GenerativeAugmentationManager with models from src/models/sdxl_checkpoints
-✓ Found checkpoint: src/models/sdxl_checkpoints/checkpoint_best.pt
-✓ Found config: /workspace/DFUMultiClassification/src/utils/full_sdxl_config.yaml
-✓ SDXL paths configured (will load on first use to conserve resources)
 
-Preparing datasets for Fold 1/3 with all modalities: ['thermal_map', 'depth_map', 'depth_rgb', 'metadata']
+Preparing datasets for Fold 1/3 with all modalities: ['depth_map', 'metadata', 'thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 1
 Using Scikit-learn RandomForestClassifier
 
@@ -185,51 +176,53 @@ Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 
 AUTOMATIC PRE-TRAINING: depth_rgb weights not found
   Training depth_rgb-only model first (same data split)...
 ================================================================================
-
-[GPU DEBUG] ========== PRE-TRAINING PHASE (depth_rgb) ==========
-[GPU DEBUG] GPU usage: LOW (small CNN, 64x64 images)
-[GPU DEBUG] SDXL NOT LOADED YET - will load during FUSION training
-[GPU DEBUG] ==================================================
-
 WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-I0000 00:00:1769371227.045479 2311886 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
-
-============================================================
-[GPU DEBUG] SDXL GENERATOR FIRST USE - LOADING NOW!
-[GPU DEBUG] This will take ~30-60 seconds and use ~10GB GPU memory
-============================================================
-
-Loading SDXL generator (first use)...
-✓ SDXL generator loaded successfully
-
-============================================================
-[GPU DEBUG] SDXL LOADING - Expect HIGH GPU memory usage soon!
-============================================================
-Loading SDXL checkpoint from src/models/sdxl_checkpoints/checkpoint_best.pt
-Loading base model: stabilityai/stable-diffusion-xl-base-1.0
-`torch_dtype` is deprecated! Use `dtype` instead!
-Loading trained UNet weights...
-/venv/multimodal/lib/python3.11/site-packages/diffusers/pipelines/pipeline_utils.py:2186: FutureWarning: `enable_vae_slicing` is deprecated and will be removed in version 0.40.0. Calling `enable_vae_slicing()` on a `StableDiffusionXLPipeline` is deprecated and this method will be removed in a future version. Please use `pipe.vae.enable_slicing()`.
-  deprecate(
-SDXL pipeline loaded successfully on cuda
-[GPU DEBUG] SDXL GENERATING: 8 images for phase P at 32x32
-[GPU DEBUG] Using 50 inference steps - Expect HIGH GPU utilization!
-/venv/multimodal/lib/python3.11/site-packages/diffusers/pipelines/stable_diffusion_xl/pipeline_stable_diffusion_xl.py:748: FutureWarning: `upcast_vae` is deprecated and will be removed in version 1.0.0. `upcast_vae` is deprecated. Please use `pipe.vae.to(torch.float32)`. For more details, please refer to: https://github.com/huggingface/diffusers/pull/12619#issue-3606633695.
-  deprecate(
-  Generated images: 8
-[GPU DEBUG] SDXL GENERATING: 8 images for phase R at 32x32
-[GPU DEBUG] Using 50 inference steps - Expect HIGH GPU utilization!
-  Generated images: 16
-[GPU DEBUG] SDXL GENERATING: 8 images for phase R at 32x32
-[GPU DEBUG] Using 50 inference steps - Expect HIGH GPU utilization!
-  Generated images: 24
+I0000 00:00:1769424317.502355 1054065 device_compiler.h:186] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
   Pre-training completed! Best val kappa: 0.0000
-2026-01-25 20:02:19,384 - INFO -     Pre-training completed! Best val kappa: 0.0000
 ================================================================================
 No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
 
-[GPU DEBUG] ========== FUSION STAGE 1 ==========
-[GPU DEBUG] SDXL generative augmentation ACTIVE if enabled!
-[GPU DEBUG] Expect HIGH GPU usage when SDXL generates images
-[GPU DEBUG] =========================================
+Run 1 Results for metadata+depth_rgb+depth_map+thermal_map:
+              precision    recall  f1-score   support
 
+           I       0.44      0.85      0.58        68
+           P       0.83      0.35      0.49       138
+           R       0.22      0.35      0.27        26
+
+    accuracy                           0.50       232
+   macro avg       0.49      0.52      0.45       232
+weighted avg       0.64      0.50      0.49       232
+
+Cohen's Kappa: 0.2842
+
+Training gating network for run 1...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.4957
+F1 Macro: 0.4452
+Kappa: 0.2842
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+Initializing GenerativeAugmentationManager with models from src/models/sdxl_checkpoints
+
+Preparing datasets for Fold 2/3 with all modalities: ['depth_map', 'metadata', 'thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+Using Scikit-learn RandomForestClassifier
+
+No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
+
+Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 2/3
+================================================================================
+AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+  Training depth_rgb-only model first (same data split)...
+================================================================================
+  Pre-training completed! Best val kappa: 0.0000
+================================================================================
+No existing pretrained weights found

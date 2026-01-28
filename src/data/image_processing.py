@@ -6,6 +6,7 @@ Functions for matching depth/thermal images, preprocessing, and bounding box han
 import os
 import glob
 import re
+from collections import Counter
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -200,11 +201,28 @@ def create_best_matching_dataset(depth_bb_file, thermal_bb_file, csv_file, depth
         return pd.DataFrame()
 def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities):
     best_matching_csv = os.path.join(result_dir, 'best_matching.csv')
-    
+    best_matching_filtered_csv = os.path.join(result_dir, 'best_matching_filtered.csv')
+
     if not os.path.exists(best_matching_csv):
         create_best_matching_dataset(depth_bb_file, thermal_bb_file, csv_file, depth_folder, thermal_folder, best_matching_csv)
-    
-    best_matching_df = pd.read_csv(best_matching_csv)
+
+    # Use filtered dataset if available (outliers removed), otherwise use original
+    if os.path.exists(best_matching_filtered_csv):
+        best_matching_df = pd.read_csv(best_matching_filtered_csv)
+        source_file = 'best_matching_filtered.csv'
+    else:
+        best_matching_df = pd.read_csv(best_matching_csv)
+        source_file = 'best_matching.csv'
+
+    # Confirm sample count
+    total_samples = len(best_matching_df)
+    if 'Healing Phase Abs' in best_matching_df.columns:
+        class_dist = Counter(best_matching_df['Healing Phase Abs'])
+        vprint(f"Loaded {total_samples} samples from {source_file}", level=1)
+        vprint(f"  Class distribution: I={class_dist.get('I', 0)}, P={class_dist.get('P', 0)}, R={class_dist.get('R', 0)}", level=1)
+    else:
+        vprint(f"Loaded {total_samples} samples from {source_file}", level=1)
+
     matched_files = {}
     
     if 'depth_rgb' in selected_modalities:
