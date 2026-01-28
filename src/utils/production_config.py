@@ -326,12 +326,6 @@ TF_NUM_INTRAOP_THREADS = "4"  # TensorFlow intra-op parallelism threads
 TF_DETERMINISTIC_OPS = "1"  # Enable deterministic operations
 TF_CUDNN_DETERMINISTIC = "1"  # Enable deterministic cuDNN operations
 
-# XLA JIT Compilation: First train step takes 6-7 min to compile, then steps are fast.
-# True = disable XLA (fast startup, slightly slower steps) - use for quick tests
-# False = enable XLA (slow first step, faster training) - use for production runs
-DISABLE_XLA_JIT = True
-XLA_CACHE_DIR = 'results/.xla_cache'  # For persistent cache when XLA is enabled
-
 # =============================================================================
 # Helper Functions
 # =============================================================================
@@ -424,4 +418,3 @@ def apply_environment_config():
     os.environ['TF_NUM_INTRAOP_THREADS'] = TF_NUM_INTRAOP_THREADS
     os.environ['TF_DETERMINISTIC_OPS'] = TF_DETERMINISTIC_OPS
     os.environ['TF_CUDNN_DETERMINISTIC'] = TF_CUDNN_DETERMINISTIC
-    # XLA cache is configured separately in main.py before TensorFlow import

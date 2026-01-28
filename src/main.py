@@ -22,17 +22,6 @@ os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# XLA JIT compilation control (must be set BEFORE importing TensorFlow)
-# See DISABLE_XLA_JIT in production_config.py
-from src.utils.production_config import DISABLE_XLA_JIT
-if DISABLE_XLA_JIT:
-    # Disable all XLA compilation mechanisms
-    os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0 --tf_xla_cpu_global_jit=false'
-    os.environ['XLA_FLAGS'] = '--xla_gpu_autotune_level=0'
-    os.environ['TF_DISABLE_JIT'] = '1'
-    print(f"[CONFIG] XLA disabled via: TF_XLA_FLAGS={os.environ['TF_XLA_FLAGS']}")
-print(f"[CONFIG] XLA JIT: {'DISABLED (fast startup)' if DISABLE_XLA_JIT else 'ENABLED (slow first step, faster training)'}")
-
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
 import glob
@@ -51,15 +40,6 @@ import gc
 
 # TensorFlow and Keras
 import tensorflow as tf
-# Programmatically disable XLA JIT if configured
-if DISABLE_XLA_JIT:
-    tf.config.optimizer.set_jit(False)
-    # Also try to disable MLIR bridge which can trigger XLA
-    try:
-        tf.config.experimental.enable_mlir_bridge(False)
-    except:
-        pass  # May not exist in all TF versions
-    print(f"[CONFIG] tf.config.optimizer.set_jit(False) applied")
 from tensorflow import keras
 from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add
 from tensorflow.keras.models import Model
