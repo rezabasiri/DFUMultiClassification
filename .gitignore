@@ -71,3 +71,6 @@ data/raw/Thermal_RGB/
 data/DFU_Updated/
 data/diffusion/
 cache_outlier/*.npy
+
+# Git backup
+.git.backup/
