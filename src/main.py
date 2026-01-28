@@ -54,6 +54,11 @@ import tensorflow as tf
 # Programmatically disable XLA JIT if configured
 if DISABLE_XLA_JIT:
     tf.config.optimizer.set_jit(False)
+    # Also try to disable MLIR bridge which can trigger XLA
+    try:
+        tf.config.experimental.enable_mlir_bridge(False)
+    except:
+        pass  # May not exist in all TF versions
     print(f"[CONFIG] tf.config.optimizer.set_jit(False) applied")
 from tensorflow import keras
 from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add
