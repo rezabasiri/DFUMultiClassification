@@ -22,9 +22,11 @@ os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# XLA JIT compilation is controlled via jit_compile in model.compile()
+# XLA JIT compilation control (must be set BEFORE importing TensorFlow)
 # See DISABLE_XLA_JIT in production_config.py
 from src.utils.production_config import DISABLE_XLA_JIT
+if DISABLE_XLA_JIT:
+    os.environ['TF_XLA_FLAGS'] = '--tf_xla_auto_jit=0'  # Disable XLA auto-clustering
 print(f"[CONFIG] XLA JIT: {'DISABLED (fast startup)' if DISABLE_XLA_JIT else 'ENABLED (slow first step, faster training)'}")
 
 # GPU configuration will be set up later via argparse and gpu_config module
