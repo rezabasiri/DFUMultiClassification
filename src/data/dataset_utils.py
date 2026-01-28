@@ -224,54 +224,90 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     thermal_folder = data_paths['thermal_folder']
     thermal_rgb_folder = data_paths['thermal_rgb_folder']
 
-    def process_single_sample(filename, bb_coords, modality_name):
-        """Process a single image sample using py_function"""
-        def _process_image(filename_tensor, bb_coords_tensor, modality_tensor):
-            try:
-                # Convert tensors to numpy/python types
-                filename_str = filename_tensor.numpy().decode('utf-8')
-                bb_coords_float = bb_coords_tensor.numpy()
-                modality_str = modality_tensor.numpy().decode('utf-8')
-                
-                base_folders = {
-                    'depth_rgb': image_folder,
-                    'depth_map': depth_folder,
-                    'thermal_rgb': thermal_rgb_folder,
-                    'thermal_map': thermal_folder
-                }
-                
-                img_path = os.path.join(base_folders[modality_str], filename_str)
-                img_tensor = load_and_preprocess_image(
-                    img_path,
-                    bb_coords_float,
-                    modality_str,
-                    target_size=(image_size, image_size),
-                    augment=is_training  # Enable augmentation for training data only
-                )
-                
-                # Convert TensorFlow tensor to numpy array
-                if isinstance(img_tensor, tf.Tensor):
-                    img_array = img_tensor.numpy()
-                else:
-                    img_array = np.array(img_tensor)
-                
-                return img_array
-            
-            except Exception as e:
-                vprint(f"Error in _process_image: {str(e)}", level=1)
-                vprint(f"Error type: {type(e)}", level=1)
-                import traceback
-                traceback.print_exc()
-                return np.zeros((image_size, image_size, 3), dtype=np.float32)
+    # Pre-compute full file paths for each modality to avoid tf.py_function for path construction
+    def get_full_path(filename, modality):
+        """Get full file path for a given modality."""
+        base_folders = {
+            'depth_rgb': image_folder,
+            'depth_map': depth_folder,
+            'thermal_rgb': thermal_rgb_folder,
+            'thermal_map': thermal_folder
+        }
+        return os.path.join(base_folders[modality], filename)
 
-        processed_image = tf.py_function(
-            _process_image,
-            [filename, bb_coords, modality_name],
-            tf.float32
+    def process_single_sample_tf_native(filepath, bb_coords, modality_name):
+        """Process a single image sample using pure TensorFlow operations (no py_function)."""
+        # Read the file
+        img_raw = tf.io.read_file(filepath)
+
+        # Decode the image (handle both PNG and JPEG)
+        # Use decode_image which auto-detects format, then ensure 3 channels
+        img = tf.io.decode_image(img_raw, channels=3, expand_animations=False)
+        img = tf.cast(img, tf.float32)
+
+        # Get image dimensions
+        img_shape = tf.shape(img)
+        img_height = tf.cast(img_shape[0], tf.float32)
+        img_width = tf.cast(img_shape[1], tf.float32)
+
+        # Extract bounding box coordinates
+        bb_xmin = bb_coords[0]
+        bb_ymin = bb_coords[1]
+        bb_xmax = bb_coords[2]
+        bb_ymax = bb_coords[3]
+
+        # Apply modality-specific bounding box adjustments
+        # depth_map: expand by 20 pixels on each side
+        # thermal_map: expand by 30 pixels on each side
+        def adjust_depth_map_bb():
+            return (bb_xmin - 20.0, bb_ymin - 20.0, bb_xmax + 20.0, bb_ymax + 20.0)
+
+        def adjust_thermal_map_bb():
+            return (bb_xmin - 30.0, bb_ymin - 30.0, bb_xmax + 30.0, bb_ymax + 30.0)
+
+        def no_adjust_bb():
+            return (bb_xmin, bb_ymin, bb_xmax, bb_ymax)
+
+        # Apply adjustments based on modality
+        is_depth_map = tf.equal(modality_name, 'depth_map')
+        is_thermal_map = tf.equal(modality_name, 'thermal_map')
+
+        adj_xmin, adj_ymin, adj_xmax, adj_ymax = tf.case([
+            (is_depth_map, adjust_depth_map_bb),
+            (is_thermal_map, adjust_thermal_map_bb)
+        ], default=no_adjust_bb)
+
+        # Clip coordinates to image bounds
+        adj_xmin = tf.maximum(0.0, tf.minimum(adj_xmin, img_width - 1.0))
+        adj_xmax = tf.maximum(adj_xmin + 1.0, tf.minimum(adj_xmax, img_width))
+        adj_ymin = tf.maximum(0.0, tf.minimum(adj_ymin, img_height - 1.0))
+        adj_ymax = tf.maximum(adj_ymin + 1.0, tf.minimum(adj_ymax, img_height))
+
+        # Convert to integers for cropping
+        y_start = tf.cast(adj_ymin, tf.int32)
+        x_start = tf.cast(adj_xmin, tf.int32)
+        crop_height = tf.cast(adj_ymax - adj_ymin, tf.int32)
+        crop_width = tf.cast(adj_xmax - adj_xmin, tf.int32)
+
+        # Ensure minimum crop size
+        crop_height = tf.maximum(crop_height, 1)
+        crop_width = tf.maximum(crop_width, 1)
+
+        # Crop the image
+        img_cropped = tf.image.crop_to_bounding_box(
+            img, y_start, x_start, crop_height, crop_width
         )
-        # Set the shape that was lost during py_function
-        processed_image.set_shape((image_size, image_size, 3))
-        return processed_image
+
+        # Resize to target size
+        img_resized = tf.image.resize(img_cropped, [image_size, image_size])
+
+        # Normalize to [0, 1]
+        img_normalized = img_resized / 255.0
+
+        # Ensure shape is set
+        img_normalized.set_shape((image_size, image_size, 3))
+
+        return img_normalized
 
     def load_and_preprocess_single_sample(row):
         features = {}
@@ -300,14 +336,14 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
             
             # Convert modality to tensor
             modality_tensor = tf.convert_to_tensor(modality, dtype=tf.string)
-            
-            # Process image
-            img_tensor = process_single_sample(
-                row[modality], 
+
+            # Process image using TF-native loader (use full path from DataFrame)
+            img_tensor = process_single_sample_tf_native(
+                row[f'{modality}_fullpath'],  # Use pre-computed full path
                 bb_coords,
                 modality_tensor
             )
-            
+
             features[f'{modality}_input'] = img_tensor
 
         # Handle metadata if selected
@@ -335,12 +371,23 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     def df_to_dataset(dataframe):
         # Make a copy to avoid modifying the original
         df = dataframe.copy()
+
+        # Pre-compute full file paths for each image modality (avoids tf.py_function for path construction)
+        for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
+            if modality in df.columns:
+                df[f'{modality}_fullpath'] = df[modality].apply(
+                    lambda x: get_full_path(str(x), modality) if pd.notna(x) else ''
+                )
+
         tensor_slices = {}
         for col in df.columns:
             # Convert to appropriate numpy dtype
             if col in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
                 tensor_slices[col] = df[col].astype(str).values
                 vprint(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}", level=2)
+            elif col.endswith('_fullpath'):
+                # Full paths are strings
+                tensor_slices[col] = df[col].astype(str).values
             elif col in ['Healing Phase Abs']:
                 tensor_slices[col] = df[col].astype(np.int32).values
                 vprint(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}", level=2)
