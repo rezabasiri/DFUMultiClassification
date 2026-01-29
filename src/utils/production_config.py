@@ -27,7 +27,7 @@ Categories:
 # Core training hyperparameters
 IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
 GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
-N_EPOCHS = 3  # Full training epochs
+N_EPOCHS = 300  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
 # ----------------------------------------------------------------
@@ -63,8 +63,8 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 1  # Stage 1 fusion training epochs (frozen image branch)
-DATA_PERCENTAGE = 30.0  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
+STAGE1_EPOCHS = 50  # Stage 1 fusion training epochs (frozen image branch)
+DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
 # Options: 'random', 'smote', 'combined', 'combined_smote'
@@ -76,8 +76,8 @@ DATA_PERCENTAGE = 30.0  # Percentage of data to use (100.0 = all data, 50.0 = ha
 SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
 
 # Early stopping and learning rate
-EARLY_STOP_PATIENCE = 3  # Epochs to wait before stopping (increased for longer training)
-REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR (increased for longer training)
+EARLY_STOP_PATIENCE = 30  # Epochs to wait before stopping (increased for longer training)
+REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for longer training)
 
 # =============================================================================
 # Data Cleaning and Outlier Detection
@@ -86,27 +86,26 @@ REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR (increased for longe
 # Multimodal outlier detection (Isolation Forest on joint feature space)
 OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
 OUTLIER_CONTAMINATION = 0.15  # Expected proportion of outliers (0.0-1.0)
-OUTLIER_BATCH_SIZE = 256  # Batch size for on-the-fly feature extraction
+OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
 
 # General augmentation (applied during training only, not validation)
 # RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15
 # Map images: brightness ±40%, contrast 0.6-1.4x, gaussian noise σ=0.1 (no saturation)
 # Applied with 60% probability, different settings for RGB vs maps
-USE_GENERAL_AUGMENTATION = False  # Enable/disable general (non-generative) augmentation - TEMPORARILY DISABLED FOR SPEED TEST
+USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augmentation
 
 # Generative augmentation (Stable Diffusion-based synthetic data generation)
 # Uses fine-tuned SD models per modality/phase from results/GenerativeAug_Models/models_5_7/
 # Only applies to RGB images (depth_rgb, thermal_rgb use rgb_I/P/R models)
 # Model mapping: thermal_rgb→rgb, depth_rgb→rgb, thermal_map→thermal_map, depth_map→depth_map
-USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation globally
-GENERATIVE_AUG_MODEL_PATH = 'src/models/sdxl_checkpoints'  # Path to SDXL checkpoints
-GENERATIVE_AUG_PROB = 0.3  # Probability of applying generative augmentation (0.0-1.0)
-GENERATIVE_AUG_MIX_RATIO = (0.2, 0.4)  # Range for mixing real/synthetic samples (min, max)
-GENERATIVE_AUG_INFERENCE_STEPS = 10  # Diffusion inference steps (30=fast, 50=quality)
-GENERATIVE_AUG_BATCH_LIMIT = 8  # Max batch size for generative aug (SDXL needs ~10-12GB for batch of 4)
-GENERATIVE_AUG_MAX_MODELS = 1  # Only one SDXL model needed
-GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for: 'I'=Inflammatory, 'P'=Proliferative, 'R'=Remodeling
-GENERATIVE_AUG_NUM_GPUS = 3  # Number of GPUs for SDXL (each needs ~10GB). With 5x 24GB GPUs: 3 for SDXL, 2 primarily for TF
+USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation (48 GB models required)
+GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD models
+GENERATIVE_AUG_PROB = 0.05  # Probability of applying generative augmentation (0.0-1.0) - Reduced from 0.50 for better quality/quantity balance
+GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
+GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (10=fast, 50=quality) - Increased from 10 for better image quality
+GENERATIVE_AUG_BATCH_LIMIT = 64  # Max batch size for generative aug (GPU memory constraint)
+GENERATIVE_AUG_MAX_MODELS = 3  # Max SD models loaded in GPU memory simultaneously
+GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for: 'I'=Inflammatory, 'P'=Proliferative, 'R'=Remodeling (use ['I'] for testing only Phase I)
 
 # Misclassification tracking (for iterative data polishing)
 # Options: 'none', 'both', 'valid', 'train'
@@ -135,7 +134,7 @@ USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassificat
 # 1 = NORMAL: Standard output (default - current behavior)
 # 2 = DETAILED: Include debug info, intermediate metrics
 # 3 = FULL: Everything + progress bars with time estimates
-VERBOSITY = 2  # Default verbosity level
+VERBOSITY = 3  # Default verbosity level
 
 # Epoch printing settings
 EPOCH_PRINT_INTERVAL = 20  # Print training progress every N epochs (0 = print all epochs)
@@ -160,12 +159,12 @@ GATING_VERBOSE = 0  # Training verbosity (0=silent, 1=progress bar, 2=epoch)
 
 # Callbacks - ReduceLROnPlateau
 GATING_REDUCE_LR_FACTOR = 0.5  # Factor to reduce learning rate
-GATING_REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR
+GATING_REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR
 GATING_REDUCE_LR_MIN_LR = 1e-9  # Minimum learning rate
 GATING_REDUCE_LR_MIN_DELTA = 2e-3  # Minimum change to qualify as improvement
 
 # Callbacks - EarlyStopping
-GATING_EARLY_STOP_PATIENCE = 3  # Epochs to wait before stopping
+GATING_EARLY_STOP_PATIENCE = 30  # Epochs to wait before stopping
 GATING_EARLY_STOP_MIN_DELTA = 2e-2  # Minimum change to qualify as improvement
 GATING_EARLY_STOP_VERBOSE = 2  # Verbosity level
 
@@ -187,7 +186,7 @@ HIERARCHICAL_VERBOSE = 2  # Training verbosity
 
 # Callbacks - ReduceLROnPlateau
 HIERARCHICAL_REDUCE_LR_FACTOR = 0.5  # Factor to reduce learning rate
-HIERARCHICAL_REDUCE_LR_PATIENCE = 1  # Epochs to wait before reducing LR
+HIERARCHICAL_REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR
 HIERARCHICAL_REDUCE_LR_MIN_LR = 1e-12  # Minimum learning rate
 
 # Focal loss for hierarchical gating
@@ -200,7 +199,7 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
 LR_SCHEDULE_MIN_LR = 1e-14  # Minimum learning rate
-LR_SCHEDULE_EXPLORATION_EPOCHS = 3  # Number of exploration epochs
+LR_SCHEDULE_EXPLORATION_EPOCHS = 300  # Number of exploration epochs
 LR_SCHEDULE_CYCLE_LENGTH = 30  # Initial cycle length
 LR_SCHEDULE_CYCLE_MULTIPLIER = 2.0  # Factor to multiply cycle length
 

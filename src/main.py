@@ -18,10 +18,6 @@ warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.
 # This will be overridden later based on verbosity level, but default to minimal logging
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING messages (keep errors only)
 
-# Add project root to path EARLY so we can import from src before TensorFlow
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, project_root)
-
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
 import glob
@@ -37,6 +33,10 @@ import csv
 import itertools
 from collections import Counter
 import gc
+
+# Add project root to path so we can import from src
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 # TensorFlow and Keras
 import tensorflow as tf
@@ -90,7 +90,7 @@ from src.data.dataset_utils import (
     create_cached_dataset, check_split_validity, prepare_cached_datasets,
     visualize_dataset, plot_net_confusion_matrix
 )
-from src.data.generative_augmentation_sdxl import (
+from src.data.generative_augmentation_v2 import (
     GenerativeAugmentationManager,
     GenerativeAugmentationCallback,
     create_enhanced_augmentation_fn,
