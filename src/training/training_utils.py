@@ -4,7 +4,6 @@ Functions for managing training runs, saving/loading predictions, and result agg
 """
 
 import os
-import time
 import pandas as pd
 import numpy as np
 import pickle
@@ -13,130 +12,6 @@ import random
 import gc
 import glob
 import tensorflow as tf
-
-
-class TimingTracker:
-    """Simple timing tracker for identifying bottlenecks in the training pipeline."""
-
-    def __init__(self):
-        self.timings = {}
-        self.start_times = {}
-        self.total_start = None
-
-    def start_total(self):
-        """Start tracking total time."""
-        self.total_start = time.time()
-        print(f"\n{'='*60}")
-        print(f"[TIMING] Starting training pipeline...")
-        print(f"{'='*60}\n", flush=True)
-
-    def start(self, name):
-        """Start timing a named section."""
-        self.start_times[name] = time.time()
-
-    def stop(self, name):
-        """Stop timing a named section and print the duration."""
-        if name in self.start_times:
-            elapsed = time.time() - self.start_times[name]
-            self.timings[name] = elapsed
-            self._print_timing(name, elapsed)
-            return elapsed
-        return 0
-
-    def _print_timing(self, name, elapsed):
-        """Print timing in a readable format."""
-        if elapsed < 60:
-            time_str = f"{elapsed:.1f}s"
-        elif elapsed < 3600:
-            minutes = int(elapsed // 60)
-            seconds = elapsed % 60
-            time_str = f"{minutes}m {seconds:.1f}s"
-        else:
-            hours = int(elapsed // 3600)
-            minutes = int((elapsed % 3600) // 60)
-            seconds = elapsed % 60
-            time_str = f"{hours}h {minutes}m {seconds:.0f}s"
-
-        print(f"[TIMING] {name}: {time_str}", flush=True)
-
-    def print_summary(self):
-        """Print a summary of all timings."""
-        if self.total_start:
-            total_elapsed = time.time() - self.total_start
-        else:
-            total_elapsed = sum(self.timings.values())
-
-        print(f"\n{'='*60}")
-        print(f"[TIMING] SUMMARY")
-        print(f"{'='*60}")
-
-        # Sort by time taken (descending)
-        sorted_timings = sorted(self.timings.items(), key=lambda x: x[1], reverse=True)
-
-        for name, elapsed in sorted_timings:
-            pct = (elapsed / total_elapsed * 100) if total_elapsed > 0 else 0
-            self._print_timing(f"{name} ({pct:.1f}%)", elapsed)
-
-        print(f"{'-'*60}")
-        self._print_timing("TOTAL", total_elapsed)
-        print(f"{'='*60}\n", flush=True)
-
-
-# Global timing tracker instance
-_timer = TimingTracker()
-
-
-class StepTimingCallback(tf.keras.callbacks.Callback):
-    """Callback to time each training and validation step for debugging bottlenecks."""
-
-    def __init__(self, num_steps_to_log=5):
-        super().__init__()
-        self.num_steps_to_log = num_steps_to_log
-        self.step_times = []
-        self.val_step_times = []
-        self.epoch_start = None
-        self.step_start = None
-        self.current_step = 0
-        self.current_val_step = 0
-
-    def on_epoch_begin(self, epoch, logs=None):
-        self.epoch_start = time.time()
-        self.current_step = 0
-        self.current_val_step = 0
-        self.step_times = []
-        self.val_step_times = []
-        print(f"[STEP TIMING] Epoch {epoch + 1} starting...", flush=True)
-
-    def on_train_batch_begin(self, batch, logs=None):
-        self.step_start = time.time()
-
-    def on_train_batch_end(self, batch, logs=None):
-        step_time = time.time() - self.step_start
-        self.step_times.append(step_time)
-        self.current_step += 1
-        if self.current_step <= self.num_steps_to_log:
-            print(f"[STEP TIMING] Train step {self.current_step}: {step_time:.2f}s", flush=True)
-
-    def on_test_batch_begin(self, batch, logs=None):
-        self.step_start = time.time()
-
-    def on_test_batch_end(self, batch, logs=None):
-        step_time = time.time() - self.step_start
-        self.val_step_times.append(step_time)
-        self.current_val_step += 1
-        if self.current_val_step <= self.num_steps_to_log:
-            print(f"[STEP TIMING] Val step {self.current_val_step}: {step_time:.2f}s", flush=True)
-
-    def on_epoch_end(self, epoch, logs=None):
-        epoch_time = time.time() - self.epoch_start
-        avg_train = sum(self.step_times) / len(self.step_times) if self.step_times else 0
-        avg_val = sum(self.val_step_times) / len(self.val_step_times) if self.val_step_times else 0
-        print(f"[STEP TIMING] Epoch {epoch + 1} summary:", flush=True)
-        print(f"  Total epoch time: {epoch_time:.1f}s", flush=True)
-        print(f"  Avg train step: {avg_train:.2f}s ({len(self.step_times)} steps)", flush=True)
-        print(f"  Avg val step: {avg_val:.2f}s ({len(self.val_step_times)} steps)", flush=True)
-
-
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 from sklearn.metrics import accuracy_score, f1_score, classification_report, cohen_kappa_score, confusion_matrix
@@ -158,7 +33,7 @@ from src.utils.production_config import (
     GENERATIVE_AUG_MODEL_PATH
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
-from src.data.generative_augmentation_sdxl import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
 from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
 from src.models.losses import get_focal_ordinal_loss, weighted_f1_score, WeightedF1Score
 from src.evaluation.metrics import track_misclassifications
@@ -1091,16 +966,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         if completed_configs:
             vprint(f"\nFound completed configs for run {run + 1}: {completed_configs}", level=1)
         
-        # Start timing for this run
-        _timer.start_total()
-
         # Initialize data manager for this run with the correct image_size
-        _timer.start("Data manager initialization")
         data_manager = ProcessedDataManager(data.copy(), directory, image_size=image_size)
 
         # Process all modalities (doesn't need strategy scope - just shape inference)
         data_manager.process_all_modalities()
-        _timer.stop("Data manager initialization")
 
         # Setup augmentation once per run (use the passed image_size, not global IMAGE_SIZE)
         aug_config = AugmentationConfig()
@@ -1112,14 +982,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         if USE_GENERATIVE_AUGMENTATION and GENERATIVE_AUG_MODEL_PATH:
             vprint(f"Initializing GenerativeAugmentationManager with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
             gen_manager = GenerativeAugmentationManager(
-                checkpoint_dir=GENERATIVE_AUG_MODEL_PATH,
+                base_dir=GENERATIVE_AUG_MODEL_PATH,
                 config=aug_config
             )
-            # CRITICAL: Pre-load SDXL generators BEFORE TensorFlow creates datasets
-            # This prevents deadlock when tf.py_function tries to load SDXL inside the
-            # data pipeline while TensorFlow's MirroredStrategy has the GPUs locked
-            print("[GPU DEBUG] Pre-loading SDXL to prevent TF pipeline deadlock...", flush=True)
-            gen_manager.preload()
         else:
             vprint("Generative augmentation disabled", level=1)
 
@@ -1131,7 +996,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
         vprint(f"\nPreparing datasets for {iteration_name} with all modalities: {all_modalities}", level=1)
         # Create cached datasets once for all modalities (doesn't need strategy scope)
-        _timer.start("Dataset preparation (prepare_cached_datasets)")
         master_train_dataset, pre_aug_dataset, master_valid_dataset, master_steps_per_epoch, master_validation_steps, master_alpha_value = prepare_cached_datasets(
             data_manager.data,
             all_modalities,  # Use all modalities
@@ -1144,8 +1008,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
             valid_patients=fold_valid_patients
         )
-        _timer.stop("Dataset preparation (prepare_cached_datasets)")
-
+        
         run_metrics = []
         
         # For each modality combination
@@ -1196,11 +1059,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             while not training_successful and retry_count < max_retries:
                 try:
                     # Filter the master datasets for the selected modalities (doesn't need strategy scope)
-                    _timer.start(f"Dataset filtering ({config_name})")
                     train_dataset = filter_dataset_modalities(master_train_dataset, selected_modalities)
                     pre_aug_train_dataset = filter_dataset_modalities(pre_aug_dataset, selected_modalities)
                     valid_dataset = filter_dataset_modalities(master_valid_dataset, selected_modalities)
-                    _timer.stop(f"Dataset filtering ({config_name})")
 
                     # Remove sample_id from training/validation datasets before model.fit()
                     # (Keras 3 strict about input dict keys matching model.inputs)
@@ -1209,10 +1070,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         model_features = {k: v for k, v in features.items() if k != 'sample_id'}
                         return model_features, labels
 
-                    # Use AUTOTUNE for baseline (no SDXL), num_parallel_calls=1 only when generative augmentation is active
-                    map_parallelism = 1 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
-                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=map_parallelism)
-                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=map_parallelism)
+                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                     # Get a single epoch's worth of data by taking the specified number of steps
                     all_labels = []
                     for batch in pre_aug_train_dataset.take(master_steps_per_epoch):
@@ -1355,11 +1214,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
 
                                     # Remove sample_id for training (Keras 3 compatibility)
-                                    # Use AUTOTUNE for baseline, num_parallel_calls=1 only when SDXL is active
                                     pretrain_train_dataset = pretrain_train_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=map_parallelism)
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                                     pretrain_valid_dataset = pretrain_valid_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=map_parallelism)
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
 
                                     pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                     pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
@@ -1408,13 +1266,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_verbose = 0  # Silent
 
                                     vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
-                                    print(f"\n[GPU DEBUG] ========== PRE-TRAINING PHASE ({image_modality}) ==========")
-                                    print(f"[GPU DEBUG] GPU usage: LOW (small CNN, 64x64 images)")
-                                    print(f"[GPU DEBUG] SDXL NOT LOADED YET - will load during FUSION training")
-                                    print(f"[GPU DEBUG] ==================================================\n", flush=True)
 
                                     # Train image-only model
-                                    _timer.start(f"Pre-training ({image_modality})")
                                     pretrain_history = pretrain_model.fit(
                                         pretrain_train_dis,
                                         epochs=max_epochs,
@@ -1424,7 +1277,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         callbacks=pretrain_callbacks,
                                         verbose=pretrain_verbose
                                     )
-                                    _timer.stop(f"Pre-training ({image_modality})")
 
                                     # Get best kappa from pre-training
                                     pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
@@ -1469,16 +1321,15 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint("  WARNING: 0 trainable parameters! This will prevent learning!", level=0)
 
                                     # DEBUG: Check RF predictions from metadata input
-                                    # DISABLED: This .take(1) call may interfere with distributed dataset iteration
-                                    # vprint("  DEBUG: Checking RF metadata predictions...", level=2)
-                                    # for batch in train_dataset.take(1):
-                                    #     inputs, labels = batch
-                                    #     if 'metadata_input' in inputs:
-                                    #         rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
-                                    #         vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
-                                    #         vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
-                                    #     labels_sample = labels.numpy()[:5]
-                                    #     vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
+                                    vprint("  DEBUG: Checking RF metadata predictions...", level=2)
+                                    for batch in train_dataset.take(1):
+                                        inputs, labels = batch
+                                        if 'metadata_input' in inputs:
+                                            rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
+                                            vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
+                                            vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
+                                        labels_sample = labels.numpy()[:5]
+                                        vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
                                     vprint("=" * 80, level=1)
 
                                 except Exception as e:
@@ -1496,11 +1347,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
-                        print(f"[TIMING DEBUG] Creating distributed datasets...", flush=True)
-                        _timer.start("Create distributed datasets")
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
                         valid_dataset_dis = strategy.experimental_distribute_dataset(valid_dataset)
-                        _timer.stop("Create distributed datasets")
                         callbacks = [
                             EarlyStopping(
                                 patience=EARLY_STOP_PATIENCE,
@@ -1614,26 +1462,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint(f"STAGE 1: Training with FROZEN image branch ({STAGE1_EPOCHS} epochs)", level=2)
                                 vprint("  Goal: Stabilize fusion layer before fine-tuning image", level=2)
                                 vprint("=" * 80, level=2)
-                                print(f"\n[GPU DEBUG] ========== FUSION STAGE 1 ==========")
-                                print(f"[GPU DEBUG] SDXL generative augmentation ACTIVE if enabled!")
-                                print(f"[GPU DEBUG] Expect HIGH GPU usage when SDXL generates images")
-                                print(f"[GPU DEBUG] =========================================\n", flush=True)
-                                print(f"[GPU DEBUG] About to call model.fit() for Stage 1...", flush=True)
-                                print(f"[GPU DEBUG] steps_per_epoch={steps_per_epoch}, stage1_epochs={STAGE1_EPOCHS}", flush=True)
-
-                                # DEBUG: Test data pipeline speed by iterating a few batches (use non-distributed dataset)
-                                print(f"[TIMING DEBUG] Testing data pipeline speed (3 batches from non-distributed)...", flush=True)
-                                _timer.start("Data pipeline test (3 batches)")
-                                batch_count = 0
-                                for batch in train_dataset.take(3):
-                                    batch_count += 1
-                                    print(f"[TIMING DEBUG] Batch {batch_count} loaded", flush=True)
-                                _timer.stop("Data pipeline test (3 batches)")
 
                                 # Stage 1: Train with frozen image branch
                                 stage1_epochs = STAGE1_EPOCHS
                                 stage1_callbacks = [
-                                    StepTimingCallback(num_steps_to_log=10),  # Time each step for debugging
                                     EarlyStopping(
                                         patience=10,  # More patient for stage 1
                                         restore_best_weights=True,
@@ -1650,7 +1482,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         save_weights_only=True
                                     ),
                                 ]
-                                _timer.start("Fusion Stage 1 (frozen image branch)")
                                 history_stage1 = model.fit(
                                     train_dataset_dis,
                                     epochs=stage1_epochs,
@@ -1660,8 +1491,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage1_callbacks,
                                     verbose=fit_verbose
                                 )
-                                _timer.stop("Fusion Stage 1 (frozen image branch)")
-                                print(f"[GPU DEBUG] Stage 1 model.fit() COMPLETED!", flush=True)
 
                                 # Load best Stage 1 weights
                                 stage1_path = checkpoint_path.replace('.ckpt', '_stage1.ckpt')
@@ -1710,7 +1539,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         save_weights_only=True
                                     ),
                                 ]
-                                _timer.start("Fusion Stage 2 (fine-tuning)")
                                 history_stage2 = model.fit(
                                     train_dataset_dis,
                                     epochs=stage2_epochs,
@@ -1720,7 +1548,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage2_callbacks,
                                     verbose=fit_verbose
                                 )
-                                _timer.stop("Fusion Stage 2 (fine-tuning)")
 
                                 stage2_best_kappa = max(history_stage2.history.get('val_cohen_kappa', [stage1_best_kappa]))
                                 vprint("=" * 80, level=2)
@@ -1735,7 +1562,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                             else:
                                 # Standard single-stage training
-                                _timer.start("Standard training (single stage)")
                                 history = model.fit(
                                     train_dataset_dis,
                                     epochs=max_epochs,
@@ -1745,7 +1571,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=callbacks,
                                     verbose=fit_verbose
                                 )
-                                _timer.stop("Standard training (single stage)")
 
                         # Load best weights (must be in strategy scope for distributed training)
                         best_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
@@ -1754,7 +1579,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             model.load_weights(best_load_path)
 
                         # Evaluate training data
-                        _timer.start(f"Evaluation/Prediction ({config_name})")
                         y_true_t = []
                         y_pred_t = []
                         probabilities_t = []
@@ -1823,8 +1647,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         if track_misclass in ['both', 'valid']:
                             sample_ids_v = np.array(all_sample_ids_v)
                             track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
-
-                        _timer.stop(f"Evaluation/Prediction ({config_name})")
 
                         # Calculate metrics
                         accuracy = accuracy_score(y_true_v, y_pred_v)
@@ -1954,10 +1776,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 gating_metrics = None
             
             all_runs_metrics.extend(run_metrics)
-
-            # Print timing summary for this run
-            _timer.print_summary()
-
             # Clean up after the run
             try:
                 tf.keras.backend.clear_session()
@@ -2433,10 +2251,9 @@ def filter_dataset_modalities(dataset, selected_modalities):
                 raise KeyError(f"Modality {modality} not found in dataset")
 
         return filtered_features, labels
-
-    # Use AUTOTUNE for baseline (best performance), limited parallelism only when SDXL is active
-    filter_parallelism = 2 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
-    return dataset.map(filter_features, num_parallel_calls=filter_parallelism)
+    
+    # return dataset.map(filter_features, num_parallel_calls=tf.data.AUTOTUNE)
+    return dataset.map(filter_features, num_parallel_calls=2)
 
 def clear_cache_files():
     """Clear any existing cache files."""
