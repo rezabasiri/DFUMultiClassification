@@ -15,6 +15,7 @@ import threading
 from src.utils.production_config import (
     IMAGE_SIZE,
     USE_GENERATIVE_AUGMENTATION,
+    USE_GENERAL_AUGMENTATION,
     GENERATIVE_AUG_PROB,
     GENERATIVE_AUG_MIX_RATIO,
     GENERATIVE_AUG_INFERENCE_STEPS,
@@ -90,10 +91,12 @@ class AugmentationConfig:
         # Per-modality settings
         # Note: depth_rgb setting acts as master switch for generative augmentation
         # Both depth_rgb and thermal_rgb use the same RGB models (rgb_I, rgb_P, rgb_R)
+        # USE_GENERAL_AUGMENTATION controls regular augmentations (brightness, contrast, etc.)
+        # USE_GENERATIVE_AUGMENTATION controls generative augmentations (diffusion models)
         self.modality_settings = {
             'depth_rgb': {
                 'regular_augmentations': {
-                    'enabled': True,
+                    'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
                     'prob': 0.6,
                     'brightness': {'enabled': True, 'max_delta': 0.6},
                     'contrast': {'enabled': True, 'range': (0.6, 1.4)},
@@ -106,7 +109,7 @@ class AugmentationConfig:
             },
             'thermal_rgb': {
                 'regular_augmentations': {
-                    'enabled': True,
+                    'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
                     'prob': 0.6,
                     'brightness': {'enabled': True, 'max_delta': 0.6},
                     'contrast': {'enabled': True, 'range': (0.6, 1.4)},
@@ -119,7 +122,7 @@ class AugmentationConfig:
             },
             'thermal_map': {
                 'regular_augmentations': {
-                    'enabled': True,  # Keep regular augmentations
+                    'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
                     'prob': 0.6,
                     'brightness': {'enabled': True, 'max_delta': 0.4},
                     'contrast': {'enabled': True, 'range': (0.6, 1.4)},
@@ -132,7 +135,7 @@ class AugmentationConfig:
             },
             'depth_map': {
                 'regular_augmentations': {
-                    'enabled': True,
+                    'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
                     'prob': 0.6,
                     'brightness': {'enabled': True, 'max_delta': 0.4},
                     'contrast': {'enabled': True, 'range': (0.6, 1.4)},
@@ -504,15 +507,17 @@ class GenerativeAugmentationManager:
                 if 'pipeline' in locals():
                     del pipeline
 
-    def generate_images(self, modality, phase, batch_size=1):
+    def generate_images(self, modality, phase, batch_size=1, target_height=None, target_width=None):
         """
         Generates images using the loaded generative model.
-        
+
         Args:
             modality (str): The input modality (e.g., 'thermal_rgb', 'depth_rgb').
             phase (str): The phase of the model to use for generation.
             batch_size (int): Number of images to generate in one batch.
-            
+            target_height (int): Target height for generated images. If None, uses config default.
+            target_width (int): Target width for generated images. If None, uses config default.
+
         Returns:
             tf.Tensor: Generated images as a TensorFlow tensor of shape [batch_size, height, width, 3].
         """
@@ -520,6 +525,10 @@ class GenerativeAugmentationManager:
             return None
 
         batch_size = min(batch_size, self.config.generative_settings['batch_size_limit'])
+
+        # Use target dimensions if provided, otherwise use config defaults
+        gen_height = target_height if target_height is not None else self.config.generative_settings['output_size']['height']
+        gen_width = target_width if target_width is not None else self.config.generative_settings['output_size']['width']
 
         try:
             pipeline = self.load_model(modality, phase)
@@ -532,8 +541,8 @@ class GenerativeAugmentationManager:
                     negative_prompt=self.prompt_generator.generate_prompt(modality, phase)[1],
                     num_images_per_prompt=batch_size,
                     num_inference_steps=self.config.generative_settings['inference_steps'],
-                    height=self.config.generative_settings['output_size']['height'],
-                    width=self.config.generative_settings['output_size']['width'],
+                    height=gen_height,
+                    width=gen_width,
                     disable_progress_bar=True  # Explicitly disable progress bar
                 ).images
             # Update generated image counter
@@ -584,92 +593,133 @@ class GenerativeAugmentationManager:
                     tf.config.experimental.reset_memory_stats(f'GPU:{i}')
 
 def create_enhanced_augmentation_fn(gen_manager, config):
+    """
+    Create augmentation function that applies generative and/or regular augmentations.
+
+    Pipeline flow:
+    1. Real images: bbox cropped at load time → general augmentation here
+    2. Generated images: created at target size → NO general augmentation (already diverse)
+
+    Args:
+        gen_manager: GenerativeAugmentationManager instance, or None for regular augmentations only
+        config: AugmentationConfig instance
+
+    Returns:
+        Augmentation function that can be applied to batched datasets
+    """
     def apply_augmentation(features, label):
         def augment_batch(features_dict, label_tensor):
             output_features = {}
-            
+
             @tf.function
             def get_label_phase(label):
                 index = tf.argmax(label)
                 phases = tf.constant(['I', 'P', 'R'], dtype=tf.string)
                 return tf.gather(phases, index)
-            
-            try:
-                current_phase = get_label_phase(label_tensor[0])
-            except Exception as e:
-                print(f"Error getting phase: {str(e)}")
-                current_phase = tf.constant('I', dtype=tf.string)
-            
+
+            # Only compute phase if gen_manager is available
+            current_phase = None
+            if gen_manager is not None:
+                try:
+                    current_phase = get_label_phase(label_tensor[0])
+                except Exception as e:
+                    print(f"Error getting phase: {str(e)}")
+                    current_phase = tf.constant('I', dtype=tf.string)
+
             for key, value in features_dict.items():
                 if '_input' in key and 'metadata' not in key:
                     modality = key.replace('_input', '')
-                    def decode_phase(phase_tensor):
-                        return phase_tensor.numpy().decode('utf-8')
+                    batch_size = tf.shape(value)[0]
 
-                    gen_manager.current_phase = tf.py_function(decode_phase, [current_phase], tf.string)
-                    
-                    if gen_manager.should_generate(modality):
-                        try:
-                            def generate_images_wrapper(phase_tensor, modality_str, batch_size_val, target_height, target_width):
-                                try:
-                                    phase = phase_tensor.numpy().decode('utf-8')
-                                    modality_raw = modality_str.numpy().decode('utf-8')
-                                    batch_size = int(batch_size_val.numpy())
-                                    height = int(target_height.numpy())
-                                    width = int(target_width.numpy())
+                    # Track which indices have generated images (should NOT be augmented)
+                    generated_indices_mask = tf.zeros([batch_size], dtype=tf.bool)
 
-                                    # Call updated generate_images
-                                    generated = gen_manager.generate_images(
-                                        modality_raw, phase, batch_size=batch_size
-                                    )
-                                    # Properly resize and pad generated images
-                                    generated = resize_and_pad_generated_images(
-                                        generated,
-                                        (height, width)
-                                    )
-                                    if generated is None:
-                                        return np.zeros([batch_size, height, width, 3], dtype=np.float32)
-                                    
-                                    return generated.numpy()
+                    # Apply generative augmentation only if gen_manager is available
+                    if gen_manager is not None:
+                        def decode_phase(phase_tensor):
+                            return phase_tensor.numpy().decode('utf-8')
 
-                                except Exception as e:
-                                    print(f"Error in generate_images_wrapper: {str(e)}")
-                                    return np.zeros([batch_size, height, width, 3], dtype=np.float32)
-                            
-                            modality_tensor = tf.constant(modality, dtype=tf.string)
-                            batch_size = tf.shape(value)[0]
-                            height = tf.shape(value)[1]
-                            width = tf.shape(value)[2]
-                            
-                            generated = tf.py_function(
-                                func=generate_images_wrapper,
-                                inp=[current_phase, modality_tensor, batch_size, height, width],
-                                Tout=tf.float32
-                            )
-                            generated.set_shape([None, value.shape[1], value.shape[2], 3])
+                        gen_manager.current_phase = tf.py_function(decode_phase, [current_phase], tf.string)
 
-                            mix_ratio = tf.random.uniform([], 
-                                minval=config.generative_settings['mix_ratio_range'][0], 
-                                maxval=config.generative_settings['mix_ratio_range'][1]
-                            )
+                        if gen_manager.should_generate(modality):
+                            try:
+                                def generate_images_wrapper(phase_tensor, modality_str, batch_size_val, target_height, target_width):
+                                    try:
+                                        phase = phase_tensor.numpy().decode('utf-8')
+                                        modality_raw = modality_str.numpy().decode('utf-8')
+                                        batch_size_int = int(batch_size_val.numpy())
+                                        height = int(target_height.numpy())
+                                        width = int(target_width.numpy())
 
-                            num_to_replace = tf.cast(
-                                tf.cast(tf.shape(value)[0], tf.float32) * mix_ratio,
-                                tf.int32
-                            )
+                                        # Generate images directly at target size
+                                        generated = gen_manager.generate_images(
+                                            modality_raw, phase,
+                                            batch_size=batch_size_int,
+                                            target_height=height,
+                                            target_width=width
+                                        )
+                                        if generated is None:
+                                            return np.zeros([batch_size_int, height, width, 3], dtype=np.float32)
 
-                            indices = tf.random.shuffle(tf.range(tf.shape(value)[0]))[:num_to_replace]
-                            updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
-                            indices = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
+                                        return generated.numpy()
 
-                            value = tf.tensor_scatter_nd_update(value, indices, updates)
-                            
-                        except Exception as e:
-                            print(f"Error in generative augmentation: {str(e)}")
+                                    except Exception as e:
+                                        print(f"Error in generate_images_wrapper: {str(e)}")
+                                        return np.zeros([batch_size_int, height, width, 3], dtype=np.float32)
 
-                    if config.modality_settings[modality]['regular_augmentations']['enabled']:
+                                modality_tensor = tf.constant(modality, dtype=tf.string)
+                                height = tf.shape(value)[1]
+                                width = tf.shape(value)[2]
+
+                                generated = tf.py_function(
+                                    func=generate_images_wrapper,
+                                    inp=[current_phase, modality_tensor, batch_size, height, width],
+                                    Tout=tf.float32
+                                )
+                                generated.set_shape([None, value.shape[1], value.shape[2], 3])
+
+                                mix_ratio = tf.random.uniform([],
+                                    minval=config.generative_settings['mix_ratio_range'][0],
+                                    maxval=config.generative_settings['mix_ratio_range'][1]
+                                )
+
+                                num_to_replace = tf.cast(
+                                    tf.cast(batch_size, tf.float32) * mix_ratio,
+                                    tf.int32
+                                )
+
+                                # Get random indices to replace
+                                indices = tf.random.shuffle(tf.range(batch_size))[:num_to_replace]
+                                updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
+                                indices_2d = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
+
+                                # Replace real images with generated ones
+                                value = tf.tensor_scatter_nd_update(value, indices_2d, updates)
+
+                                # Mark these indices as generated (should NOT be augmented)
+                                generated_indices_mask = tf.tensor_scatter_nd_update(
+                                    generated_indices_mask,
+                                    indices_2d,
+                                    tf.ones([tf.shape(updates)[0]], dtype=tf.bool)
+                                )
+
+                            except Exception as e:
+                                print(f"Error in generative augmentation: {str(e)}")
+
+                    # Apply regular augmentations ONLY to real images (not generated ones)
+                    if modality in config.modality_settings and config.modality_settings[modality]['regular_augmentations']['enabled']:
                         seed = tf.random.uniform([], maxval=1000000, dtype=tf.int32)
-                        value = augment_image(value, modality, seed, config)
+
+                        # Augment the entire batch
+                        augmented_value = augment_image(value, modality, seed, config)
+
+                        # Use mask to keep generated images unaugmented, augment only real images
+                        # Where mask is True (generated), use original value; where False (real), use augmented
+                        real_mask = tf.logical_not(generated_indices_mask)
+                        real_mask_expanded = tf.reshape(real_mask, [-1, 1, 1, 1])
+                        real_mask_expanded = tf.broadcast_to(real_mask_expanded, tf.shape(value))
+
+                        value = tf.where(real_mask_expanded, augmented_value, value)
 
                 output_features[key] = value
 

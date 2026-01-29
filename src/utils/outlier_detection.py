@@ -692,17 +692,23 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     return cleaned_df, outlier_df, output_file
 
 
-def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=True):
+def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=True, modify_file=False):
     """
     Apply combination-specific cleaned dataset by filtering best_matching.csv.
+
+    Uses depth_rgb filename as unique key (each image has unique filename based on
+    patient/appt/dfu/angle/view combination per README.md naming convention).
 
     Args:
         combination: Tuple/list of modality names
         contamination: Contamination rate used for outlier detection
-        backup: If True, backup original best_matching.csv before modifying
+        backup: If True, backup original best_matching.csv before modifying (only if modify_file=True)
+        modify_file: If True, modify best_matching.csv in place (legacy behavior).
+                    If False (default), return filtered dataframe without modifying files.
 
     Returns:
-        bool: True if successful, False otherwise
+        If modify_file=True: bool (True if successful, False otherwise)
+        If modify_file=False: pd.DataFrame (filtered dataframe) or None if failed
     """
     _, _, root = get_project_paths()
     root = Path(root)  # root is data directory (<project>/data)
@@ -719,17 +725,17 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
     if not cleaned_file.exists():
         vprint(f"Cleaned dataset not found for {combo_name}: {cleaned_file}", level=0)
         vprint(f"Run: detect_outliers_combination({combination}, contamination={contamination})", level=0)
-        return False
+        return False if modify_file else None
 
-    # Load cleaned dataset (contains Patient#, Appt#, DFU# of kept samples)
+    # Load cleaned dataset (contains full row data including depth_rgb)
     cleaned_df = pd.read_csv(cleaned_file)
 
-    # Backup original if needed
-    if backup and not best_matching_backup.exists():
+    # Backup original if needed (only if we're going to modify)
+    if modify_file and backup and not best_matching_backup.exists():
         vprint(f"Backing up original: {best_matching_file.name}", level=2)
         shutil.copy(best_matching_file, best_matching_backup)
 
-    # Load original best_matching
+    # Load original best_matching (use backup if it exists to get full dataset)
     source_file = best_matching_backup if best_matching_backup.exists() else best_matching_file
     original_df = pd.read_csv(source_file)
 
@@ -737,26 +743,29 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
     vprint(f"  Original: {len(original_df)} samples", level=2)
     vprint(f"  Cleaned: {len(cleaned_df)} samples", level=2)
 
-    # Create key for matching
-    cleaned_df['_key'] = (cleaned_df['Patient#'].astype(str) + '_' +
-                          cleaned_df['Appt#'].astype(str) + '_' +
-                          cleaned_df['DFU#'].astype(str))
-    original_df['_key'] = (original_df['Patient#'].astype(str) + '_' +
-                           original_df['Appt#'].astype(str) + '_' +
-                           original_df['DFU#'].astype(str))
-
-    # Filter to only include cleaned samples
-    filtered_df = original_df[original_df['_key'].isin(cleaned_df['_key'])].copy()
-    filtered_df = filtered_df.drop('_key', axis=1)
+    # Use depth_rgb as unique key (filename uniquely identifies each sample)
+    # Filename format: {random_number}_P{patient#}{appt#}{dfu#}{B/A}{D/T}{R/M/L}{Z/W}.png
+    # This is unique per image (includes angle R/M/L and view Z/W)
+    cleaned_keys = set(cleaned_df['depth_rgb'].astype(str))
+    filtered_df = original_df[original_df['depth_rgb'].astype(str).isin(cleaned_keys)].copy()
 
     vprint(f"  Filtered: {len(filtered_df)} samples", level=1)
+
+    # Verify filtered count matches cleaned count
+    if len(filtered_df) != len(cleaned_df):
+        vprint(f"  Warning: Filtered count ({len(filtered_df)}) != Cleaned count ({len(cleaned_df)})", level=1)
+        vprint(f"  This may indicate the cleaned file was generated from a different dataset version", level=2)
 
     # Verify class distribution
     dist = Counter(filtered_df['Healing Phase Abs'])
     vprint(f"  Class distribution: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=2)
 
-    # Save filtered dataset
-    filtered_df.to_csv(best_matching_file, index=False)
-    vprint(f"  Applied cleaned dataset to: {best_matching_file.name}", level=1)
-
-    return True
+    if modify_file:
+        # Legacy behavior: modify best_matching.csv in place
+        filtered_df.to_csv(best_matching_file, index=False)
+        vprint(f"  Applied cleaned dataset to: {best_matching_file.name}", level=1)
+        return True
+    else:
+        # New behavior: return filtered dataframe without modifying files
+        vprint(f"  Returning filtered dataframe (best_matching.csv unchanged)", level=2)
+        return filtered_df

@@ -18,8 +18,9 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
+from src.utils.production_config import USE_GENERAL_AUGMENTATION
 from src.data.image_processing import load_and_preprocess_image
-from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn
+from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn, AugmentationConfig
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -1314,13 +1315,20 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 print(f"  Mean: {train_data[cols_to_normalize].mean().mean():.4f}, Std: {train_data[cols_to_normalize].std().mean():.4f}")
 
     # Create cached datasets
+    # Create augmentation function if generative augmentation (gen_manager) OR general augmentation is enabled
+    augmentation_fn = None
+    if gen_manager is not None or USE_GENERAL_AUGMENTATION:
+        # Use provided aug_config or create default if only general augmentation is enabled
+        effective_aug_config = aug_config if aug_config is not None else AugmentationConfig()
+        augmentation_fn = create_enhanced_augmentation_fn(gen_manager, effective_aug_config)
+
     train_dataset, pre_aug_dataset, steps_per_epoch = create_cached_dataset(
         train_data,
         selected_modalities,
         batch_size,
         is_training=True,
         cache_dir=cache_dir,  # Pass through the cache_dir parameter
-        augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None,
+        augmentation_fn=augmentation_fn,
         image_size=image_size,
         fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
 
