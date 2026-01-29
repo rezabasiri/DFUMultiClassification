@@ -18,9 +18,8 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
-from src.utils.production_config import USE_GENERATIVE_AUGMENTATION, USE_GENERAL_AUGMENTATION
 from src.data.image_processing import load_and_preprocess_image
-from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn, create_general_augmentation_fn, AugmentationConfig
+from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -224,97 +223,54 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     thermal_folder = data_paths['thermal_folder']
     thermal_rgb_folder = data_paths['thermal_rgb_folder']
 
-    # Pre-compute full file paths for each modality to avoid tf.py_function for path construction
-    # Store folder paths in a dict that can be accessed in the nested function
-    modality_folders = {
-        'depth_rgb': image_folder,
-        'depth_map': depth_folder,
-        'thermal_rgb': thermal_rgb_folder,
-        'thermal_map': thermal_folder
-    }
+    def process_single_sample(filename, bb_coords, modality_name):
+        """Process a single image sample using py_function"""
+        def _process_image(filename_tensor, bb_coords_tensor, modality_tensor):
+            try:
+                # Convert tensors to numpy/python types
+                filename_str = filename_tensor.numpy().decode('utf-8')
+                bb_coords_float = bb_coords_tensor.numpy()
+                modality_str = modality_tensor.numpy().decode('utf-8')
+                
+                base_folders = {
+                    'depth_rgb': image_folder,
+                    'depth_map': depth_folder,
+                    'thermal_rgb': thermal_rgb_folder,
+                    'thermal_map': thermal_folder
+                }
+                
+                img_path = os.path.join(base_folders[modality_str], filename_str)
+                img_tensor = load_and_preprocess_image(
+                    img_path,
+                    bb_coords_float,
+                    modality_str,
+                    target_size=(image_size, image_size),
+                    augment=is_training  # Enable augmentation for training data only
+                )
+                
+                # Convert TensorFlow tensor to numpy array
+                if isinstance(img_tensor, tf.Tensor):
+                    img_array = img_tensor.numpy()
+                else:
+                    img_array = np.array(img_tensor)
+                
+                return img_array
+            
+            except Exception as e:
+                vprint(f"Error in _process_image: {str(e)}", level=1)
+                vprint(f"Error type: {type(e)}", level=1)
+                import traceback
+                traceback.print_exc()
+                return np.zeros((image_size, image_size, 3), dtype=np.float32)
 
-    def get_full_path(filename, modality):
-        """Get full file path for a given modality."""
-        # Use string concatenation to avoid os module scoping issues in nested function
-        base_folder = modality_folders[modality]
-        # Ensure proper path separator
-        if base_folder.endswith('/'):
-            return base_folder + filename
-        return base_folder + '/' + filename
-
-    def process_single_sample_tf_native(filepath, bb_coords, modality_name):
-        """Process a single image sample using pure TensorFlow operations (no py_function)."""
-        # Read the file
-        img_raw = tf.io.read_file(filepath)
-
-        # Decode the image (handle both PNG and JPEG)
-        # Use decode_image which auto-detects format, then ensure 3 channels
-        img = tf.io.decode_image(img_raw, channels=3, expand_animations=False)
-        img = tf.cast(img, tf.float32)
-
-        # Get image dimensions
-        img_shape = tf.shape(img)
-        img_height = tf.cast(img_shape[0], tf.float32)
-        img_width = tf.cast(img_shape[1], tf.float32)
-
-        # Extract bounding box coordinates
-        bb_xmin = bb_coords[0]
-        bb_ymin = bb_coords[1]
-        bb_xmax = bb_coords[2]
-        bb_ymax = bb_coords[3]
-
-        # Apply modality-specific bounding box adjustments
-        # depth_map: expand by 20 pixels on each side
-        # thermal_map: expand by 30 pixels on each side
-        def adjust_depth_map_bb():
-            return (bb_xmin - 20.0, bb_ymin - 20.0, bb_xmax + 20.0, bb_ymax + 20.0)
-
-        def adjust_thermal_map_bb():
-            return (bb_xmin - 30.0, bb_ymin - 30.0, bb_xmax + 30.0, bb_ymax + 30.0)
-
-        def no_adjust_bb():
-            return (bb_xmin, bb_ymin, bb_xmax, bb_ymax)
-
-        # Apply adjustments based on modality
-        is_depth_map = tf.equal(modality_name, 'depth_map')
-        is_thermal_map = tf.equal(modality_name, 'thermal_map')
-
-        adj_xmin, adj_ymin, adj_xmax, adj_ymax = tf.case([
-            (is_depth_map, adjust_depth_map_bb),
-            (is_thermal_map, adjust_thermal_map_bb)
-        ], default=no_adjust_bb)
-
-        # Clip coordinates to image bounds
-        adj_xmin = tf.maximum(0.0, tf.minimum(adj_xmin, img_width - 1.0))
-        adj_xmax = tf.maximum(adj_xmin + 1.0, tf.minimum(adj_xmax, img_width))
-        adj_ymin = tf.maximum(0.0, tf.minimum(adj_ymin, img_height - 1.0))
-        adj_ymax = tf.maximum(adj_ymin + 1.0, tf.minimum(adj_ymax, img_height))
-
-        # Convert to integers for cropping
-        y_start = tf.cast(adj_ymin, tf.int32)
-        x_start = tf.cast(adj_xmin, tf.int32)
-        crop_height = tf.cast(adj_ymax - adj_ymin, tf.int32)
-        crop_width = tf.cast(adj_xmax - adj_xmin, tf.int32)
-
-        # Ensure minimum crop size
-        crop_height = tf.maximum(crop_height, 1)
-        crop_width = tf.maximum(crop_width, 1)
-
-        # Crop the image
-        img_cropped = tf.image.crop_to_bounding_box(
-            img, y_start, x_start, crop_height, crop_width
+        processed_image = tf.py_function(
+            _process_image,
+            [filename, bb_coords, modality_name],
+            tf.float32
         )
-
-        # Resize to target size
-        img_resized = tf.image.resize(img_cropped, [image_size, image_size])
-
-        # Normalize to [0, 1]
-        img_normalized = img_resized / 255.0
-
-        # Ensure shape is set
-        img_normalized.set_shape((image_size, image_size, 3))
-
-        return img_normalized
+        # Set the shape that was lost during py_function
+        processed_image.set_shape((image_size, image_size, 3))
+        return processed_image
 
     def load_and_preprocess_single_sample(row):
         features = {}
@@ -343,14 +299,14 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
             
             # Convert modality to tensor
             modality_tensor = tf.convert_to_tensor(modality, dtype=tf.string)
-
-            # Process image using TF-native loader (use full path from DataFrame)
-            img_tensor = process_single_sample_tf_native(
-                row[f'{modality}_fullpath'],  # Use pre-computed full path
+            
+            # Process image
+            img_tensor = process_single_sample(
+                row[modality], 
                 bb_coords,
                 modality_tensor
             )
-
+            
             features[f'{modality}_input'] = img_tensor
 
         # Handle metadata if selected
@@ -378,23 +334,12 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     def df_to_dataset(dataframe):
         # Make a copy to avoid modifying the original
         df = dataframe.copy()
-
-        # Pre-compute full file paths for each image modality (avoids tf.py_function for path construction)
-        for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
-            if modality in df.columns:
-                df[f'{modality}_fullpath'] = df[modality].apply(
-                    lambda x: get_full_path(str(x), modality) if pd.notna(x) else ''
-                )
-
         tensor_slices = {}
         for col in df.columns:
             # Convert to appropriate numpy dtype
             if col in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
                 tensor_slices[col] = df[col].astype(str).values
                 vprint(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}", level=2)
-            elif col.endswith('_fullpath'):
-                # Full paths are strings
-                tensor_slices[col] = df[col].astype(str).values
             elif col in ['Healing Phase Abs']:
                 tensor_slices[col] = df[col].astype(np.int32).values
                 vprint(f"{col} type: {type(tensor_slices[col])} shape: {tensor_slices[col].shape}", level=2)
@@ -408,11 +353,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     dataset = df_to_dataset(best_matching_df)
     
     # Apply preprocessing to each sample
-    # Use num_parallel_calls=1 when SDXL is active to avoid deadlock, AUTOTUNE otherwise
-    map_parallelism = 1 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
     dataset = dataset.map(
         load_and_preprocess_single_sample,
-        num_parallel_calls=map_parallelism
+        num_parallel_calls=tf.data.AUTOTUNE
+        # num_parallel_calls=4
     )
     
     # Calculate how many samples we need
@@ -454,10 +398,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     if is_training:
         if augmentation_fn:
             # Use provided augmentation function (includes generative augmentations)
-            # Use num_parallel_calls=1 when SDXL is active (tf.py_function + GIL contention)
             dataset = dataset.map(
                 augmentation_fn,
-                num_parallel_calls=map_parallelism,  # AUTOTUNE for baseline, 1 for SDXL
+                num_parallel_calls=tf.data.AUTOTUNE,
+                # num_parallel_calls=4
                 )
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
@@ -467,10 +411,8 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         #     )
 
     # Prefetch for better performance
-    # Use AUTOTUNE for baseline (best performance), fixed buffer only when SDXL is active
-    # (SDXL + AUTOTUNE + experimental_distribute_dataset() can cause deadlock)
-    prefetch_buffer = 2 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
-    dataset = dataset.prefetch(prefetch_buffer)
+    dataset = dataset.prefetch(tf.data.AUTOTUNE)
+    # dataset = dataset.prefetch(2)
     return dataset, pre_aug_dataset, steps
 # First, add this helper function near the start of your prepare_cached_datasets function
 def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=False):
@@ -1371,22 +1313,6 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 print(f"  Normalized feature range: [{train_data[cols_to_normalize].min().min():.2f}, {train_data[cols_to_normalize].max().max():.2f}]")
                 print(f"  Mean: {train_data[cols_to_normalize].mean().mean():.4f}, Std: {train_data[cols_to_normalize].std().mean():.4f}")
 
-    # Determine which augmentation function to use:
-    # 1. gen_manager exists -> full augmentation with SDXL
-    # 2. gen_manager is None but USE_GENERAL_AUGMENTATION=True -> regular augmentations only
-    # 3. Both disabled -> no augmentation
-    if gen_manager:
-        train_augmentation_fn = create_enhanced_augmentation_fn(gen_manager, aug_config)
-        vprint("  Using SDXL generative + regular augmentation", level=2)
-    elif USE_GENERAL_AUGMENTATION:
-        # Create config for general augmentation if not provided
-        general_aug_config = aug_config if aug_config else AugmentationConfig()
-        train_augmentation_fn = create_general_augmentation_fn(general_aug_config)
-        vprint("  Using regular augmentation only (no SDXL)", level=2)
-    else:
-        train_augmentation_fn = None
-        vprint("  No augmentation enabled", level=2)
-
     # Create cached datasets
     train_dataset, pre_aug_dataset, steps_per_epoch = create_cached_dataset(
         train_data,
@@ -1394,7 +1320,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         batch_size,
         is_training=True,
         cache_dir=cache_dir,  # Pass through the cache_dir parameter
-        augmentation_fn=train_augmentation_fn,
+        augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None,
         image_size=image_size,
         fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
 
