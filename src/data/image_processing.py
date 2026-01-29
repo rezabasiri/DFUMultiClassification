@@ -14,7 +14,13 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 from src.utils.config import get_project_paths, get_data_paths
 from src.utils.verbosity import vprint
-from src.data.generative_augmentation_v2 import augment_image, AugmentationConfig
+from src.utils.production_config import GENERATIVE_AUG_VERSION
+
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    from src.data.generative_augmentation_v3 import augment_image, AugmentationConfig
+else:
+    from src.data.generative_augmentation_v2 import augment_image, AugmentationConfig
 
 # Get paths
 directory, result_dir, root = get_project_paths()

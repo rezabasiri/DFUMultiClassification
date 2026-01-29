@@ -95,17 +95,27 @@ OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
 USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augmentation
 
 # Generative augmentation (Stable Diffusion-based synthetic data generation)
-# Uses fine-tuned SD models per modality/phase from results/GenerativeAug_Models/models_5_7/
-# Only applies to RGB images (depth_rgb, thermal_rgb use rgb_I/P/R models)
-# Model mapping: thermal_rgb→rgb, depth_rgb→rgb, thermal_map→thermal_map, depth_map→depth_map
-USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation (48 GB models required)
-GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD models
-GENERATIVE_AUG_PROB = 0.05  # Probability of applying generative augmentation (0.0-1.0) - Reduced from 0.50 for better quality/quantity balance
+# V3: Uses single conditional SDXL model fine-tuned on all phases
+# V2 (legacy): Uses separate SD 1.5 models per modality/phase from results/GenerativeAug_Models/models_5_7/
+# Only applies to RGB images (depth_rgb, thermal_rgb)
+USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation
+GENERATIVE_AUG_VERSION = 'v3'  # 'v3' = SDXL conditional model, 'v2' = SD 1.5 per-phase models
+GENERATIVE_AUG_PROB = 0.05  # Probability of applying generative augmentation (0.0-1.0)
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
-GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (10=fast, 50=quality) - Increased from 10 for better image quality
+GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (10=fast, 50=quality)
 GENERATIVE_AUG_BATCH_LIMIT = 64  # Max batch size for generative aug (GPU memory constraint)
-GENERATIVE_AUG_MAX_MODELS = 3  # Max SD models loaded in GPU memory simultaneously
-GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for: 'I'=Inflammatory, 'P'=Proliferative, 'R'=Remodeling (use ['I'] for testing only Phase I)
+GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for
+
+# SDXL-specific settings (V3)
+# Single conditional SDXL model fine-tuned on all phases with phase-specific prompts
+# Prompts: PHASE_I/P/R, diabetic foot ulcer, [phase] phase wound
+GENERATIVE_AUG_SDXL_MODEL_PATH = 'results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt'
+GENERATIVE_AUG_SDXL_RESOLUTION = 512  # Native SDXL resolution (will be resized to IMAGE_SIZE if different)
+GENERATIVE_AUG_SDXL_GUIDANCE_SCALE = 4.0  # CFG scale (lower = more training data influence, higher = more prompt influence)
+
+# SD 1.5 legacy settings (V2) - kept for backward compatibility
+GENERATIVE_AUG_MODEL_PATH = 'results/GenerativeAug_Models/models_5_7'  # Path to SD 1.5 models (per-phase)
+GENERATIVE_AUG_MAX_MODELS = 3  # Max SD 1.5 models loaded in GPU memory simultaneously (V2 only)
 
 # Misclassification tracking (for iterative data polishing)
 # Options: 'none', 'both', 'valid', 'train'

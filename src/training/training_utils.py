@@ -30,10 +30,23 @@ from src.utils.production_config import (
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
     GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT,
     STAGE1_EPOCHS, DATA_PERCENTAGE, USE_GENERATIVE_AUGMENTATION,
-    GENERATIVE_AUG_MODEL_PATH
+    GENERATIVE_AUG_MODEL_PATH, GENERATIVE_AUG_VERSION,
+    GENERATIVE_AUG_SDXL_MODEL_PATH
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
-from src.data.generative_augmentation_v2 import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    # V3: SDXL conditional model
+    from src.data.generative_augmentation_v3 import (
+        AugmentationConfig, GenerativeAugmentationManagerSDXL as GenerativeAugmentationManager,
+        GenerativeAugmentationCallback
+    )
+else:
+    # V2 (legacy): SD 1.5 per-phase models
+    from src.data.generative_augmentation_v2 import (
+        AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+    )
 from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
 from src.models.losses import get_focal_ordinal_loss, weighted_f1_score, WeightedF1Score
 from src.evaluation.metrics import track_misclassifications
@@ -979,12 +992,27 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
         # Initialize generative augmentation manager based on config setting
         gen_manager = None
-        if USE_GENERATIVE_AUGMENTATION and GENERATIVE_AUG_MODEL_PATH:
-            vprint(f"Initializing GenerativeAugmentationManager with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
-            gen_manager = GenerativeAugmentationManager(
-                base_dir=GENERATIVE_AUG_MODEL_PATH,
-                config=aug_config
-            )
+        if USE_GENERATIVE_AUGMENTATION:
+            if GENERATIVE_AUG_VERSION == 'v3':
+                # V3: SDXL conditional model (single model for all phases)
+                if GENERATIVE_AUG_SDXL_MODEL_PATH:
+                    vprint(f"Initializing SDXL GenerativeAugmentationManager (V3) from {GENERATIVE_AUG_SDXL_MODEL_PATH}", level=1)
+                    gen_manager = GenerativeAugmentationManager(
+                        checkpoint_path=GENERATIVE_AUG_SDXL_MODEL_PATH,
+                        config=aug_config
+                    )
+                else:
+                    vprint("SDXL model path not configured, generative augmentation disabled", level=1)
+            else:
+                # V2 (legacy): SD 1.5 per-phase models
+                if GENERATIVE_AUG_MODEL_PATH:
+                    vprint(f"Initializing GenerativeAugmentationManager (V2) with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
+                    gen_manager = GenerativeAugmentationManager(
+                        base_dir=GENERATIVE_AUG_MODEL_PATH,
+                        config=aug_config
+                    )
+                else:
+                    vprint("SD 1.5 model path not configured, generative augmentation disabled", level=1)
         else:
             vprint("Generative augmentation disabled", level=1)
 

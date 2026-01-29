@@ -18,9 +18,14 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
-from src.utils.production_config import USE_GENERAL_AUGMENTATION
+from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION
 from src.data.image_processing import load_and_preprocess_image
-from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn, AugmentationConfig
+
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    from src.data.generative_augmentation_v3 import create_enhanced_augmentation_fn, AugmentationConfig
+else:
+    from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn, AugmentationConfig
 
 # Get paths
 directory, result_dir, root = get_project_paths()

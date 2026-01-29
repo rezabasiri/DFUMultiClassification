@@ -90,12 +90,23 @@ from src.data.dataset_utils import (
     create_cached_dataset, check_split_validity, prepare_cached_datasets,
     visualize_dataset, plot_net_confusion_matrix
 )
-from src.data.generative_augmentation_v2 import (
-    GenerativeAugmentationManager,
-    GenerativeAugmentationCallback,
-    create_enhanced_augmentation_fn,
-    AugmentationConfig
-)
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    # V3: SDXL conditional model
+    from src.data.generative_augmentation_v3 import (
+        GenerativeAugmentationManagerSDXL as GenerativeAugmentationManager,
+        GenerativeAugmentationCallback,
+        create_enhanced_augmentation_fn,
+        AugmentationConfig
+    )
+else:
+    # V2 (legacy): SD 1.5 per-phase models
+    from src.data.generative_augmentation_v2 import (
+        GenerativeAugmentationManager,
+        GenerativeAugmentationCallback,
+        create_enhanced_augmentation_fn,
+        AugmentationConfig
+    )
 from src.models.builders import (
     create_image_branch, create_metadata_branch, create_fusion_layer,
     create_multimodal_model
