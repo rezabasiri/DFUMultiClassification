@@ -30,10 +30,23 @@ from src.utils.production_config import (
     SEARCH_MULTIPLE_CONFIGS, SEARCH_CONFIG_VARIANTS,
     GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT,
     STAGE1_EPOCHS, DATA_PERCENTAGE, USE_GENERATIVE_AUGMENTATION,
-    GENERATIVE_AUG_MODEL_PATH
+    GENERATIVE_AUG_MODEL_PATH, GENERATIVE_AUG_VERSION,
+    GENERATIVE_AUG_SDXL_MODEL_PATH
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
-from src.data.generative_augmentation_sdxl import AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    # V3: SDXL conditional model
+    from src.data.generative_augmentation_v3 import (
+        AugmentationConfig, GenerativeAugmentationManagerSDXL as GenerativeAugmentationManager,
+        GenerativeAugmentationCallback
+    )
+else:
+    # V2 (legacy): SD 1.5 per-phase models
+    from src.data.generative_augmentation_v2 import (
+        AugmentationConfig, GenerativeAugmentationManager, GenerativeAugmentationCallback
+    )
 from src.models.builders import create_multimodal_model, MetadataConfidenceCallback
 from src.models.losses import get_focal_ordinal_loss, weighted_f1_score, WeightedF1Score
 from src.evaluation.metrics import track_misclassifications
@@ -979,17 +992,27 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
         # Initialize generative augmentation manager based on config setting
         gen_manager = None
-        if USE_GENERATIVE_AUGMENTATION and GENERATIVE_AUG_MODEL_PATH:
-            vprint(f"Initializing GenerativeAugmentationManager with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
-            gen_manager = GenerativeAugmentationManager(
-                checkpoint_dir=GENERATIVE_AUG_MODEL_PATH,
-                config=aug_config
-            )
-            # CRITICAL: Pre-load SDXL generators BEFORE TensorFlow creates datasets
-            # This prevents deadlock when tf.py_function tries to load SDXL inside the
-            # data pipeline while TensorFlow's MirroredStrategy has the GPUs locked
-            print("[GPU DEBUG] Pre-loading SDXL to prevent TF pipeline deadlock...", flush=True)
-            gen_manager.preload()
+        if USE_GENERATIVE_AUGMENTATION:
+            if GENERATIVE_AUG_VERSION == 'v3':
+                # V3: SDXL conditional model (single model for all phases)
+                if GENERATIVE_AUG_SDXL_MODEL_PATH:
+                    vprint(f"Initializing SDXL GenerativeAugmentationManager (V3) from {GENERATIVE_AUG_SDXL_MODEL_PATH}", level=1)
+                    gen_manager = GenerativeAugmentationManager(
+                        checkpoint_path=GENERATIVE_AUG_SDXL_MODEL_PATH,
+                        config=aug_config
+                    )
+                else:
+                    vprint("SDXL model path not configured, generative augmentation disabled", level=1)
+            else:
+                # V2 (legacy): SD 1.5 per-phase models
+                if GENERATIVE_AUG_MODEL_PATH:
+                    vprint(f"Initializing GenerativeAugmentationManager (V2) with models from {GENERATIVE_AUG_MODEL_PATH}", level=1)
+                    gen_manager = GenerativeAugmentationManager(
+                        base_dir=GENERATIVE_AUG_MODEL_PATH,
+                        config=aug_config
+                    )
+                else:
+                    vprint("SD 1.5 model path not configured, generative augmentation disabled", level=1)
         else:
             vprint("Generative augmentation disabled", level=1)
 
@@ -1075,10 +1098,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         model_features = {k: v for k, v in features.items() if k != 'sample_id'}
                         return model_features, labels
 
-                    # Use AUTOTUNE for baseline (no SDXL), num_parallel_calls=1 only when generative augmentation is active
-                    map_parallelism = 1 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
-                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=map_parallelism)
-                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=map_parallelism)
+                    train_dataset = train_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                    valid_dataset = valid_dataset.map(remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                     # Get a single epoch's worth of data by taking the specified number of steps
                     all_labels = []
                     for batch in pre_aug_train_dataset.take(master_steps_per_epoch):
@@ -1221,11 +1242,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
 
                                     # Remove sample_id for training (Keras 3 compatibility)
-                                    # Use AUTOTUNE for baseline, num_parallel_calls=1 only when SDXL is active
                                     pretrain_train_dataset = pretrain_train_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=map_parallelism)
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                                     pretrain_valid_dataset = pretrain_valid_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=map_parallelism)
+                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
 
                                     pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                     pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
@@ -1274,10 +1294,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_verbose = 0  # Silent
 
                                     vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
-                                    print(f"\n[GPU DEBUG] ========== PRE-TRAINING PHASE ({image_modality}) ==========")
-                                    print(f"[GPU DEBUG] GPU usage: LOW (small CNN, 64x64 images)")
-                                    print(f"[GPU DEBUG] SDXL NOT LOADED YET - will load during FUSION training")
-                                    print(f"[GPU DEBUG] ==================================================\n", flush=True)
 
                                     # Train image-only model
                                     pretrain_history = pretrain_model.fit(
@@ -1333,16 +1349,15 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint("  WARNING: 0 trainable parameters! This will prevent learning!", level=0)
 
                                     # DEBUG: Check RF predictions from metadata input
-                                    # DISABLED: This .take(1) call may interfere with distributed dataset iteration
-                                    # vprint("  DEBUG: Checking RF metadata predictions...", level=2)
-                                    # for batch in train_dataset.take(1):
-                                    #     inputs, labels = batch
-                                    #     if 'metadata_input' in inputs:
-                                    #         rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
-                                    #         vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
-                                    #         vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
-                                    #     labels_sample = labels.numpy()[:5]
-                                    #     vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
+                                    vprint("  DEBUG: Checking RF metadata predictions...", level=2)
+                                    for batch in train_dataset.take(1):
+                                        inputs, labels = batch
+                                        if 'metadata_input' in inputs:
+                                            rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
+                                            vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
+                                            vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
+                                        labels_sample = labels.numpy()[:5]
+                                        vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
                                     vprint("=" * 80, level=1)
 
                                 except Exception as e:
@@ -1475,12 +1490,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint(f"STAGE 1: Training with FROZEN image branch ({STAGE1_EPOCHS} epochs)", level=2)
                                 vprint("  Goal: Stabilize fusion layer before fine-tuning image", level=2)
                                 vprint("=" * 80, level=2)
-                                print(f"\n[GPU DEBUG] ========== FUSION STAGE 1 ==========")
-                                print(f"[GPU DEBUG] SDXL generative augmentation ACTIVE if enabled!")
-                                print(f"[GPU DEBUG] Expect HIGH GPU usage when SDXL generates images")
-                                print(f"[GPU DEBUG] =========================================\n", flush=True)
-                                print(f"[GPU DEBUG] About to call model.fit() for Stage 1...", flush=True)
-                                print(f"[GPU DEBUG] steps_per_epoch={steps_per_epoch}, stage1_epochs={STAGE1_EPOCHS}", flush=True)
 
                                 # Stage 1: Train with frozen image branch
                                 stage1_epochs = STAGE1_EPOCHS
@@ -1510,7 +1519,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage1_callbacks,
                                     verbose=fit_verbose
                                 )
-                                print(f"[GPU DEBUG] Stage 1 model.fit() COMPLETED!", flush=True)
 
                                 # Load best Stage 1 weights
                                 stage1_path = checkpoint_path.replace('.ckpt', '_stage1.ckpt')
@@ -2271,10 +2279,9 @@ def filter_dataset_modalities(dataset, selected_modalities):
                 raise KeyError(f"Modality {modality} not found in dataset")
 
         return filtered_features, labels
-
-    # Use AUTOTUNE for baseline (best performance), limited parallelism only when SDXL is active
-    filter_parallelism = 2 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
-    return dataset.map(filter_features, num_parallel_calls=filter_parallelism)
+    
+    # return dataset.map(filter_features, num_parallel_calls=tf.data.AUTOTUNE)
+    return dataset.map(filter_features, num_parallel_calls=2)
 
 def clear_cache_files():
     """Clear any existing cache files."""

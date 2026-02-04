@@ -6,7 +6,6 @@ Functions for matching depth/thermal images, preprocessing, and bounding box han
 import os
 import glob
 import re
-from collections import Counter
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -15,7 +14,13 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 from src.utils.config import get_project_paths, get_data_paths
 from src.utils.verbosity import vprint
-from src.data.generative_augmentation_v2 import augment_image, AugmentationConfig
+from src.utils.production_config import GENERATIVE_AUG_VERSION
+
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    from src.data.generative_augmentation_v3 import augment_image, AugmentationConfig
+else:
+    from src.data.generative_augmentation_v2 import augment_image, AugmentationConfig
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -199,30 +204,34 @@ def create_best_matching_dataset(depth_bb_file, thermal_bb_file, csv_file, depth
     except Exception as e:
         print(f"Error in create_best_matching_dataset: {str(e)}")
         return pd.DataFrame()
-def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities):
-    best_matching_csv = os.path.join(result_dir, 'best_matching.csv')
-    best_matching_filtered_csv = os.path.join(result_dir, 'best_matching_filtered.csv')
+def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities, filtered_df=None):
+    """
+    Prepare dataset for training/evaluation.
 
-    if not os.path.exists(best_matching_csv):
-        create_best_matching_dataset(depth_bb_file, thermal_bb_file, csv_file, depth_folder, thermal_folder, best_matching_csv)
+    Args:
+        depth_bb_file: Path to depth bounding box file
+        thermal_bb_file: Path to thermal bounding box file
+        csv_file: Path to metadata CSV file
+        selected_modalities: List of modality names to include
+        filtered_df: Optional pre-filtered dataframe (e.g., from outlier removal).
+                    If provided, uses this instead of reading from best_matching.csv.
+                    This preserves the original best_matching.csv file.
 
-    # Use filtered dataset if available (outliers removed), otherwise use original
-    if os.path.exists(best_matching_filtered_csv):
-        best_matching_df = pd.read_csv(best_matching_filtered_csv)
-        source_file = 'best_matching_filtered.csv'
+    Returns:
+        DataFrame with matched data for selected modalities
+    """
+    if filtered_df is not None:
+        # Use pre-filtered dataframe (e.g., from outlier detection)
+        best_matching_df = filtered_df.copy()
+        vprint(f"Using pre-filtered dataset with {len(best_matching_df)} samples", level=2)
     else:
+        # Load from file (original behavior)
+        best_matching_csv = os.path.join(result_dir, 'best_matching.csv')
+
+        if not os.path.exists(best_matching_csv):
+            create_best_matching_dataset(depth_bb_file, thermal_bb_file, csv_file, depth_folder, thermal_folder, best_matching_csv)
+
         best_matching_df = pd.read_csv(best_matching_csv)
-        source_file = 'best_matching.csv'
-
-    # Confirm sample count
-    total_samples = len(best_matching_df)
-    if 'Healing Phase Abs' in best_matching_df.columns:
-        class_dist = Counter(best_matching_df['Healing Phase Abs'])
-        vprint(f"Loaded {total_samples} samples from {source_file}", level=1)
-        vprint(f"  Class distribution: I={class_dist.get('I', 0)}, P={class_dist.get('P', 0)}, R={class_dist.get('R', 0)}", level=1)
-    else:
-        vprint(f"Loaded {total_samples} samples from {source_file}", level=1)
-
     matched_files = {}
     
     if 'depth_rgb' in selected_modalities:
@@ -414,15 +423,9 @@ def load_and_preprocess_image(filepath, bb_data, modality, target_size=(224, 224
                 print(f"Error tensor conversion failed for {filepath}: {str(e)} and tensor size {img_tensor.shape[:2]}")
                 return create_default_image(target_size)
             try:
-                # Apply augmentations if requested
-                if augment:
-                    # Add batch dimension for augmentation (expects 4D: [batch, height, width, channels])
-                    img_tensor_batched = tf.expand_dims(img_tensor, 0)
-                    img_tensor_batched = augment_image(img_tensor_batched, modality,
-                                                      tf.random.uniform([], maxval=1000000, dtype=tf.int32),
-                                                      _augmentation_config)
-                    # Remove batch dimension
-                    img_tensor = tf.squeeze(img_tensor_batched, 0)
+                # Note: Augmentation is now applied ONLY at batch time in create_enhanced_augmentation_fn()
+                # to avoid double augmentation and to properly handle generative images.
+                # The 'augment' parameter is kept for API compatibility but no longer used here.
 
                 if modality in ['depth_rgb', 'thermal_rgb']:
                     # Normalize image

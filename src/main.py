@@ -90,12 +90,23 @@ from src.data.dataset_utils import (
     create_cached_dataset, check_split_validity, prepare_cached_datasets,
     visualize_dataset, plot_net_confusion_matrix
 )
-from src.data.generative_augmentation_sdxl import (
-    GenerativeAugmentationManager,
-    GenerativeAugmentationCallback,
-    create_enhanced_augmentation_fn,
-    AugmentationConfig
-)
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    # V3: SDXL conditional model
+    from src.data.generative_augmentation_v3 import (
+        GenerativeAugmentationManagerSDXL as GenerativeAugmentationManager,
+        GenerativeAugmentationCallback,
+        create_enhanced_augmentation_fn,
+        AugmentationConfig
+    )
+else:
+    # V2 (legacy): SD 1.5 per-phase models
+    from src.data.generative_augmentation_v2 import (
+        GenerativeAugmentationManager,
+        GenerativeAugmentationCallback,
+        create_enhanced_augmentation_fn,
+        AugmentationConfig
+    )
 from src.models.builders import (
     create_image_branch, create_metadata_branch, create_fusion_layer,
     create_multimodal_model
@@ -1766,7 +1777,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_fo
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outlier_filtered_data=None):
     """
     Test all modality combinations and save results to CSV.
 
@@ -1774,6 +1785,8 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3):
         data_percentage: Percentage of data to use (1-100)
         train_patient_percentage: Percentage of patients for training (ignored if cv_folds > 1)
         cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
+        outlier_filtered_data: Optional dict mapping combo_key -> filtered_df from outlier detection.
+                              If provided, prepare_dataset will use filtered data instead of best_matching.csv.
 
     Configuration is read from production_config.py:
     - MODALITY_SEARCH_MODE: 'all' for all 31 combinations, 'custom' for INCLUDED_COMBINATIONS
@@ -1781,6 +1794,9 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3):
     - INCLUDED_COMBINATIONS: Combinations to include (when mode='custom')
     - RESULTS_CSV_FILENAME: Output CSV filename
     """
+    # Default to empty dict if not provided
+    if outlier_filtered_data is None:
+        outlier_filtered_data = {}
     # Determine number of iterations
     if cv_folds <= 1:
         num_iterations = 1
@@ -1850,7 +1866,10 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3):
         # selected_modalities = ['metadata', 'depth_rgb', 'thermal_map']
         vprint(f"\nTesting modalities: {', '.join(selected_modalities)}")
         # Load and prepare the dataset
-        data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities)
+        # Check if we have outlier-filtered data for this combination
+        combo_key = tuple(sorted(combination))
+        filtered_df = outlier_filtered_data.get(combo_key, None)
+        data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities, filtered_df=filtered_df)
         # Apply misclassification filtering if configured (from production_config)
         if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
             thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
@@ -2108,6 +2127,9 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
             # Specialized mode typically tests specific combinations
             modalities_to_test = INCLUDED_COMBINATIONS if INCLUDED_COMBINATIONS else []
 
+        # Dictionary to store filtered dataframes by combination (preserves best_matching.csv)
+        outlier_filtered_data = {}
+
         if modalities_to_test:
             vprint("\n" + "="*80, level=1)
             vprint("OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)", level=1)
@@ -2136,19 +2158,24 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
                     )
 
                     if cleaned_df is not None:
-                        # Apply cleaned dataset
-                        success = apply_cleaned_dataset_combination(
+                        # Get filtered dataset without modifying best_matching.csv
+                        filtered_df = apply_cleaned_dataset_combination(
                             combination=combination,
                             contamination=OUTLIER_CONTAMINATION,
-                            backup=True
+                            backup=False,  # No backup needed since we're not modifying
+                            modify_file=False  # Don't modify best_matching.csv
                         )
 
-                        if success:
-                            vprint(f"  ✓ Applied for {combo_name}: {len(cleaned_df)} samples", level=1)
+                        if filtered_df is not None:
+                            # Store for later use in prepare_dataset
+                            # Use tuple of sorted modalities as key for consistent lookup
+                            combo_key = tuple(sorted(combination))
+                            outlier_filtered_data[combo_key] = filtered_df
+                            vprint(f"  ✓ Filtered for {combo_name}: {len(filtered_df)} samples", level=1)
                             if outlier_df is not None:
                                 vprint(f"    Removed {len(outlier_df)} outliers", level=2)
                         else:
-                            vprint(f"  ⚠ Could not apply for {combo_name}, using original", level=1)
+                            vprint(f"  ⚠ Could not filter for {combo_name}, using original", level=1)
                     else:
                         vprint(f"  ⚠ Detection failed for {combo_name}, using original", level=1)
 
@@ -2161,6 +2188,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         else:
             vprint("Outlier removal skipped (no modality combinations specified)", level=2)
     else:
+        outlier_filtered_data = {}  # Initialize empty dict when outlier removal disabled
         vprint("Outlier removal disabled", level=2)
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
@@ -2183,11 +2211,11 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
             vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data)
     elif mode.lower() == 'specialized':
         # Note: Specialized mode not yet implemented, falling back to search mode
         vprint("Warning: Specialized mode not implemented, running search mode instead", level=0)
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data)
     else:
         raise ValueError("Mode must be either 'search' or 'specialized'")
 

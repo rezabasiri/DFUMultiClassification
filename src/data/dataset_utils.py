@@ -18,9 +18,14 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
-from src.utils.production_config import USE_GENERATIVE_AUGMENTATION
+from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION
 from src.data.image_processing import load_and_preprocess_image
-from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn
+
+# Conditionally import generative augmentation module based on version
+if GENERATIVE_AUG_VERSION == 'v3':
+    from src.data.generative_augmentation_v3 import create_enhanced_augmentation_fn, AugmentationConfig
+else:
+    from src.data.generative_augmentation_v2 import create_enhanced_augmentation_fn, AugmentationConfig
 
 # Get paths
 directory, result_dir, root = get_project_paths()
@@ -354,11 +359,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     dataset = df_to_dataset(best_matching_df)
     
     # Apply preprocessing to each sample
-    # Use num_parallel_calls=1 when SDXL is active to avoid deadlock, AUTOTUNE otherwise
-    map_parallelism = 1 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
     dataset = dataset.map(
         load_and_preprocess_single_sample,
-        num_parallel_calls=map_parallelism
+        num_parallel_calls=tf.data.AUTOTUNE
+        # num_parallel_calls=4
     )
     
     # Calculate how many samples we need
@@ -400,10 +404,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     if is_training:
         if augmentation_fn:
             # Use provided augmentation function (includes generative augmentations)
-            # Use num_parallel_calls=1 when SDXL is active (tf.py_function + GIL contention)
             dataset = dataset.map(
                 augmentation_fn,
-                num_parallel_calls=map_parallelism,  # AUTOTUNE for baseline, 1 for SDXL
+                num_parallel_calls=tf.data.AUTOTUNE,
+                # num_parallel_calls=4
                 )
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
@@ -413,10 +417,8 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         #     )
 
     # Prefetch for better performance
-    # Use AUTOTUNE for baseline (best performance), fixed buffer only when SDXL is active
-    # (SDXL + AUTOTUNE + experimental_distribute_dataset() can cause deadlock)
-    prefetch_buffer = 2 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
-    dataset = dataset.prefetch(prefetch_buffer)
+    dataset = dataset.prefetch(tf.data.AUTOTUNE)
+    # dataset = dataset.prefetch(2)
     return dataset, pre_aug_dataset, steps
 # First, add this helper function near the start of your prepare_cached_datasets function
 def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=False):
@@ -1318,13 +1320,20 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 print(f"  Mean: {train_data[cols_to_normalize].mean().mean():.4f}, Std: {train_data[cols_to_normalize].std().mean():.4f}")
 
     # Create cached datasets
+    # Create augmentation function if generative augmentation (gen_manager) OR general augmentation is enabled
+    augmentation_fn = None
+    if gen_manager is not None or USE_GENERAL_AUGMENTATION:
+        # Use provided aug_config or create default if only general augmentation is enabled
+        effective_aug_config = aug_config if aug_config is not None else AugmentationConfig()
+        augmentation_fn = create_enhanced_augmentation_fn(gen_manager, effective_aug_config)
+
     train_dataset, pre_aug_dataset, steps_per_epoch = create_cached_dataset(
         train_data,
         selected_modalities,
         batch_size,
         is_training=True,
         cache_dir=cache_dir,  # Pass through the cache_dir parameter
-        augmentation_fn=create_enhanced_augmentation_fn(gen_manager, aug_config) if gen_manager else None,
+        augmentation_fn=augmentation_fn,
         image_size=image_size,
         fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
 

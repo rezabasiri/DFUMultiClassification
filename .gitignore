@@ -74,3 +74,4 @@ cache_outlier/*.npy
 
 # Git backup
 .git.backup/
+results/.xla_cache/

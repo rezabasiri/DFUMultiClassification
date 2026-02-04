@@ -7,11 +7,10 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
-from src.data.generative_augmentation_sdxl import create_enhanced_augmentation_fn
+from src.data.generative_augmentation_v1_3 import create_enhanced_augmentation_fn
 from src.data.preprocessing import load_and_preprocess_image
 from src.utils.config import get_project_paths, get_data_paths
 from src.utils.verbosity import vprint, get_verbosity
-from src.utils.production_config import USE_GENERATIVE_AUGMENTATION
 
 # Get paths from centralized config
 directory, result_dir, root = get_project_paths()
@@ -169,11 +168,9 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     dataset = df_to_dataset(best_matching_df)
     
     # Apply preprocessing to each sample
-    # Use num_parallel_calls=1 when SDXL is active to avoid deadlock, AUTOTUNE otherwise
-    map_parallelism = 1 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
     dataset = dataset.map(
         load_and_preprocess_single_sample,
-        num_parallel_calls=map_parallelism
+        num_parallel_calls=tf.data.AUTOTUNE
     )
     
     # Calculate how many samples we need
@@ -200,10 +197,9 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     if is_training:
         if augmentation_fn:
             # Use provided augmentation function (includes generative augmentations)
-            # Use num_parallel_calls=1 when SDXL is active (tf.py_function + GIL contention)
             dataset = dataset.map(
                 augmentation_fn,
-                num_parallel_calls=map_parallelism,  # AUTOTUNE for baseline, 1 for SDXL
+                num_parallel_calls=tf.data.AUTOTUNE
             )
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
@@ -213,10 +209,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         #     )
 
     # Prefetch for better performance
-    # Use AUTOTUNE for baseline (best performance), fixed buffer only when SDXL is active
-    # (SDXL + AUTOTUNE + experimental_distribute_dataset() can cause deadlock)
-    prefetch_buffer = 2 if USE_GENERATIVE_AUGMENTATION else tf.data.AUTOTUNE
-    dataset = dataset.prefetch(prefetch_buffer)
+    dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset, steps
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
                           batch_size=32, cache_dir=None, gen_manager=None, aug_config=None):

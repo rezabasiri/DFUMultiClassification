@@ -546,16 +546,6 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
         vprint(f"Using existing cleaned dataset for {combo_name}: {output_file.name}", level=1)
         cleaned_df = pd.read_csv(output_file)
         outlier_df = pd.read_csv(outlier_file) if outlier_file.exists() else None
-
-        # Show summary even when using cached results
-        original_count = len(cleaned_df) + (len(outlier_df) if outlier_df is not None else 0)
-        outlier_count = len(outlier_df) if outlier_df is not None else 0
-        cleaned_dist = Counter(cleaned_df['Healing Phase Abs'])
-        vprint(f"  Original samples: {original_count}", level=1)
-        vprint(f"  Outliers removed: {outlier_count} ({outlier_count/original_count*100:.1f}%)", level=1)
-        vprint(f"  Cleaned samples: {len(cleaned_df)}", level=1)
-        vprint(f"  Class distribution: I={cleaned_dist['I']}, P={cleaned_dist['P']}, R={cleaned_dist['R']}", level=1)
-
         return cleaned_df, outlier_df, output_file
 
     vprint(f"Detecting outliers for combination: {combo_name} (contamination={contamination*100:.0f}%)...", level=1)
@@ -563,7 +553,7 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     # Load best_matching dataset (contains all samples with metadata)
     best_matching_df = pd.read_csv(data_paths['best_matching_csv'])
     n_samples = len(best_matching_df)
-    vprint(f"  Original samples: {n_samples}", level=1)
+    vprint(f"  Loaded {n_samples} samples", level=2)
 
     # Load and concatenate features for all modalities in combination
     all_features = []
@@ -613,7 +603,11 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
 
     # Get class distribution
     class_dist = Counter(y)
-    vprint(f"  Original class distribution: I={class_dist['I']}, P={class_dist['P']}, R={class_dist['R']}", level=1)
+    vprint("  Original class distribution:", level=2)
+    for cls in ['I', 'P', 'R']:
+        count = class_dist[cls]
+        pct = count / n_samples * 100
+        vprint(f"    {cls}: {count:3d} ({pct:5.1f}%)", level=2)
 
     # Per-class outlier detection (same as metadata-only, but on joint features)
     outlier_mask = np.zeros(n_samples, dtype=bool)
@@ -678,14 +672,14 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     vprint(f"  Total outliers: {total_outliers}/{n_samples} ({total_outliers/n_samples*100:.1f}%)", level=1)
     vprint(f"  Cleaned dataset: {len(cleaned_df)} samples", level=1)
 
-    # New class distribution - show at level 1 for visibility
+    # New class distribution
     cleaned_dist = Counter(cleaned_df['Healing Phase Abs'])
-    vprint("  Per-class breakdown after outlier removal:", level=1)
+    vprint("  Cleaned class distribution:", level=2)
     for cls in ['I', 'P', 'R']:
         orig_count = class_dist[cls]
         new_count = cleaned_dist[cls]
         removed = orig_count - new_count
-        vprint(f"    {cls}: {new_count:3d} samples (removed {removed}, {removed/orig_count*100:.1f}%)", level=1)
+        vprint(f"    {cls}: {new_count:3d} (removed {removed}, {removed/orig_count*100:.1f}%)", level=2)
 
     # Save cleaned dataset
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -698,20 +692,23 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
     return cleaned_df, outlier_df, output_file
 
 
-def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=True):
+def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=True, modify_file=False):
     """
     Apply combination-specific cleaned dataset by filtering best_matching.csv.
 
-    Creates best_matching_filtered.csv with outliers removed while keeping the
-    original best_matching.csv untouched as the reference.
+    Uses depth_rgb filename as unique key (each image has unique filename based on
+    patient/appt/dfu/angle/view combination per README.md naming convention).
 
     Args:
         combination: Tuple/list of modality names
         contamination: Contamination rate used for outlier detection
-        backup: If True, backup original best_matching.csv before modifying (legacy, now always preserves original)
+        backup: If True, backup original best_matching.csv before modifying (only if modify_file=True)
+        modify_file: If True, modify best_matching.csv in place (legacy behavior).
+                    If False (default), return filtered dataframe without modifying files.
 
     Returns:
-        bool: True if successful, False otherwise
+        If modify_file=True: bool (True if successful, False otherwise)
+        If modify_file=False: pd.DataFrame (filtered dataframe) or None if failed
     """
     _, _, root = get_project_paths()
     root = Path(root)  # root is data directory (<project>/data)
@@ -720,36 +717,55 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
     # Generate combination name
     combo_name = get_combination_name(combination)
 
-    # Paths - use separate filtered file to preserve original best_matching.csv
+    # Paths
     best_matching_file = project_root / "results/best_matching.csv"
-    best_matching_filtered = project_root / "results/best_matching_filtered.csv"
+    best_matching_backup = project_root / "results/best_matching_original.csv"
     cleaned_file = root / f"cleaned/{combo_name}_{int(contamination*100):02d}pct.csv"
 
     if not cleaned_file.exists():
         vprint(f"Cleaned dataset not found for {combo_name}: {cleaned_file}", level=0)
         vprint(f"Run: detect_outliers_combination({combination}, contamination={contamination})", level=0)
-        return False
+        return False if modify_file else None
 
-    # Load cleaned dataset - this IS the filtered data (outliers already removed)
+    # Load cleaned dataset (contains full row data including depth_rgb)
     cleaned_df = pd.read_csv(cleaned_file)
 
-    # Load original for reference only (to show how many were removed)
-    original_df = pd.read_csv(best_matching_file)
-    outliers_removed = len(original_df) - len(cleaned_df)
+    # Backup original if needed (only if we're going to modify)
+    if modify_file and backup and not best_matching_backup.exists():
+        vprint(f"Backing up original: {best_matching_file.name}", level=2)
+        shutil.copy(best_matching_file, best_matching_backup)
+
+    # Load original best_matching (use backup if it exists to get full dataset)
+    source_file = best_matching_backup if best_matching_backup.exists() else best_matching_file
+    original_df = pd.read_csv(source_file)
 
     vprint(f"Applying cleaned dataset for {combo_name} ({contamination*100:.0f}% outlier removal)...", level=1)
-    vprint(f"  Original (best_matching.csv): {len(original_df)} samples (preserved)", level=1)
-    vprint(f"  Outliers removed: {outliers_removed} ({outliers_removed/len(original_df)*100:.1f}%)", level=1)
-    vprint(f"  Cleaned samples: {len(cleaned_df)}", level=1)
+    vprint(f"  Original: {len(original_df)} samples", level=2)
+    vprint(f"  Cleaned: {len(cleaned_df)} samples", level=2)
+
+    # Use depth_rgb as unique key (filename uniquely identifies each sample)
+    # Filename format: {random_number}_P{patient#}{appt#}{dfu#}{B/A}{D/T}{R/M/L}{Z/W}.png
+    # This is unique per image (includes angle R/M/L and view Z/W)
+    cleaned_keys = set(cleaned_df['depth_rgb'].astype(str))
+    filtered_df = original_df[original_df['depth_rgb'].astype(str).isin(cleaned_keys)].copy()
+
+    vprint(f"  Filtered: {len(filtered_df)} samples", level=1)
+
+    # Verify filtered count matches cleaned count
+    if len(filtered_df) != len(cleaned_df):
+        vprint(f"  Warning: Filtered count ({len(filtered_df)}) != Cleaned count ({len(cleaned_df)})", level=1)
+        vprint(f"  This may indicate the cleaned file was generated from a different dataset version", level=2)
 
     # Verify class distribution
-    dist = Counter(cleaned_df['Healing Phase Abs'])
-    vprint(f"  Class distribution: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=1)
+    dist = Counter(filtered_df['Healing Phase Abs'])
+    vprint(f"  Class distribution: I={dist['I']}, P={dist['P']}, R={dist['R']}", level=2)
 
-    # Save cleaned dataset directly as filtered file (no key matching needed)
-    # The cleaned_df already contains exactly the non-outlier samples
-    cleaned_df.to_csv(best_matching_filtered, index=False)
-    vprint(f"  Saved to: {best_matching_filtered.name}", level=1)
-    vprint(f"  Training will use {len(cleaned_df)} samples", level=1)
-
-    return True
+    if modify_file:
+        # Legacy behavior: modify best_matching.csv in place
+        filtered_df.to_csv(best_matching_file, index=False)
+        vprint(f"  Applied cleaned dataset to: {best_matching_file.name}", level=1)
+        return True
+    else:
+        # New behavior: return filtered dataframe without modifying files
+        vprint(f"  Returning filtered dataframe (best_matching.csv unchanged)", level=2)
+        return filtered_df
