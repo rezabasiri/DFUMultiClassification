@@ -1331,7 +1331,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             frozen_layers.append(layer.name)
                                             vprint(f"    Frozen layer: {layer.name}", level=3)
 
-                                    del pretrain_model  # Free memory
+                                    del pretrain_model, pretrain_train_dis, pretrain_valid_dis  # Free memory and release thread pools
                                     fusion_use_pretrained = True
                                     vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
                                     vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
@@ -1804,10 +1804,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 gating_metrics = None
             
             all_runs_metrics.extend(run_metrics)
-            # Clean up after the run
+            # Clean up after the run - release distributed datasets and model
+            # to free thread pools created by MirroredStrategy (prevents thread exhaustion across folds)
             try:
+                model = None
+                train_dataset_dis = None
+                valid_dataset_dis = None
+                train_dataset = None
+                valid_dataset = None
+                master_train_dataset = None
+                master_valid_dataset = None
                 tf.keras.backend.clear_session()
                 gc.collect()
+                gc.collect()  # Second pass to catch reference cycles
                 clear_gpu_memory()
             except Exception as e:
                 vprint(f"Error clearing memory stats: {str(e)}", level=2)
