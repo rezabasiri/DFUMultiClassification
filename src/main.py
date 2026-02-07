@@ -18,6 +18,12 @@ warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.
 # This will be overridden later based on verbosity level, but default to minimal logging
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING messages (keep errors only)
 
+# Threading configuration (MUST be set before importing TensorFlow)
+# OMP_NUM_THREADS is read by OpenMP at library load time - setting it after import has no effect
+os.environ.setdefault("OMP_NUM_THREADS", "2")
+os.environ.setdefault("TF_NUM_INTEROP_THREADS", "2")
+os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "4")
+
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
 import glob
@@ -914,7 +920,6 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
         shuffle=True,
         verbose=GATING_VERBOSE
     )
-
     # Predict outputs
     predictions = model.predict(train_data, verbose=0)
     val_predictions = model.predict(val_data, verbose=0)
@@ -1777,7 +1782,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_fo
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outlier_filtered_data=None):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outlier_filtered_data=None, target_fold=None):
     """
     Test all modality combinations and save results to CSV.
 
@@ -1881,7 +1886,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
         cv_results, confusion_matrices, histories = cross_validation_manual_split(
-            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=TRACK_MISCLASS
+            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=TRACK_MISCLASS, target_fold=target_fold
         )
 
         # Save predictions per combination for later gating network ensemble
@@ -2092,7 +2097,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, target_fold=None):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2101,6 +2106,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         data_percentage (float): Percentage of data to use
         train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
         cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
+        target_fold (int): If set, only run this specific fold (1-indexed). Others loaded from disk.
 
     Configuration (from production_config.py):
         OUTLIER_REMOVAL: Enable outlier detection and removal
@@ -2211,13 +2217,73 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
             vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data, target_fold=target_fold)
     elif mode.lower() == 'specialized':
         # Note: Specialized mode not yet implemented, falling back to search mode
         vprint("Warning: Specialized mode not implemented, running search mode instead", level=0)
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data, target_fold=target_fold)
     else:
         raise ValueError("Mode must be either 'search' or 'specialized'")
+
+
+def _orchestrate_cv_folds(args):
+    """Run each CV fold in a separate subprocess to prevent TF/CUDA resource accumulation.
+
+    TensorFlow and CUDA accumulate internal C++ resources (memory maps, GPU buffers) across
+    training runs that cannot be freed by clear_session() or gc.collect(). On systems with
+    vm.max_map_count limits (e.g., Docker), this causes pthread_create EAGAIN crashes.
+    Running each fold as a separate subprocess gives each fold a fresh TF/CUDA state.
+    """
+    import subprocess
+
+    cv_folds = args.cv_folds
+
+    # Rebuild command from sys.argv, stripping --fold and --resume_mode (we add our own)
+    # Always use sys.executable to ensure subprocess uses the same Python interpreter
+    base_argv = [sys.executable]
+    skip_next = False
+    for i, arg in enumerate(sys.argv):
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in ('--fold', '--resume_mode'):
+            skip_next = True
+            continue
+        # Skip argv[0] if it's the same as sys.executable (avoid duplicating interpreter)
+        if i == 0 and os.path.basename(arg) == os.path.basename(sys.executable):
+            continue
+        base_argv.append(arg)
+
+    print(f"\n{'='*80}")
+    print(f"SUBPROCESS ISOLATION: Running {cv_folds} folds in separate processes")
+    print(f"  (Prevents TF/CUDA resource accumulation across folds)")
+    print(f"{'='*80}\n")
+
+    for fold in range(1, cv_folds + 1):
+        fold_cmd = base_argv + ['--fold', str(fold)]
+
+        # First fold: use user's original resume_mode; subsequent folds: auto
+        if fold == 1:
+            fold_cmd += ['--resume_mode', args.resume_mode]
+        else:
+            fold_cmd += ['--resume_mode', 'auto']
+
+        print(f"\n{'='*80}")
+        print(f"FOLD {fold}/{cv_folds} - Starting in isolated subprocess")
+        print(f"Command: {' '.join(fold_cmd)}")
+        print(f"{'='*80}\n")
+
+        result = subprocess.run(fold_cmd)
+
+        if result.returncode != 0:
+            print(f"\nERROR: Fold {fold}/{cv_folds} failed with return code {result.returncode}")
+            return result.returncode
+
+        print(f"\nFold {fold}/{cv_folds} completed successfully.")
+
+    print(f"\nAll {cv_folds} folds completed successfully.")
+    return 0
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -2396,7 +2462,25 @@ Configuration:
         (default: False - display GPUs excluded)"""
     )
 
+    parser.add_argument(
+        "--fold",
+        type=int,
+        default=None,
+        help="""Run only the specified fold (1-indexed). When set, only the
+        specified fold is trained; other folds' results are loaded from disk.
+        This enables subprocess isolation per fold to prevent resource
+        accumulation (thread/memory leaks in TF/CUDA across folds).
+        Example: --fold 1 (run only fold 1), --fold 3 (run only fold 3)
+        (default: None - run all folds in a single process)"""
+    )
+
     args = parser.parse_args()
+
+    # SUBPROCESS ORCHESTRATION: When running multi-fold CV without --fold,
+    # automatically spawn each fold as a separate subprocess to prevent
+    # TF/CUDA resource accumulation (memory maps, RSS growth per fold).
+    if args.fold is None and args.cv_folds > 1:
+        sys.exit(_orchestrate_cv_folds(args))
 
     # Set up GPU/device strategy BEFORE importing TensorFlow models
     # This must happen early to properly configure CUDA_VISIBLE_DEVICES
@@ -2512,7 +2596,7 @@ Configuration:
             vprint(f"  Thresholds: I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}", level=0)
 
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, target_fold=args.fold)
 
     # Clear memory after completion
     clear_gpu_memory()

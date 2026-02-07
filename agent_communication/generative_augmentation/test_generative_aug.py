@@ -326,27 +326,24 @@ def run_test(config_name, config_desc, use_gen_aug):
     # Record log file position before running test (to read only new content)
     log_start_pos = LOG_FILE.stat().st_size if LOG_FILE.exists() else 0
 
-    # Run main.py (using conda environment)
-    # Pass data_percentage as command-line argument (not just config file)
-    # Use 'fresh' resume mode to avoid loading old checkpoints
-    # Use 'multi' device mode to leverage both GPUs
+    # Run main.py (subprocess isolation per fold is handled internally by main.py)
     start_time = time.time()
     data_pct = DATA_PERCENTAGE if not QUICK_MODE else QUICK_DATA_PERCENTAGE
+
     cmd = [
         '/venv/multimodal/bin/python', 'src/main.py',
         '--data_percentage', str(data_pct),
-        '--resume_mode', 'fresh',
         '--device-mode', 'multi',
-        '--verbosity', '1'
+        '--verbosity', '1',
+        '--resume_mode', 'fresh'
     ]
 
-    logger.info(f"Running: {' '.join(cmd)}")
     logger.debug(f"[DEBUG] Working directory: {project_root}")
     logger.debug(f"[DEBUG] Log start position: {log_start_pos}")
+    logger.info(f"Running: {' '.join(cmd)}")
     log_to_file_only(f"\nCOMMAND: {' '.join(cmd)}\n")
 
     try:
-        logger.debug("[DEBUG] Starting subprocess...")
         process = subprocess.Popen(
             cmd,
             cwd=project_root,
@@ -368,10 +365,10 @@ def run_test(config_name, config_desc, use_gen_aug):
             log_to_file_only(line)
 
             # Show important messages on console
-            if any(keyword in line.lower() for keyword in ['error', 'exception', 'failed', 'kappa', 'accuracy', 'epoch', 'fold', 'stage', 'training', 'pre-training']):
+            if any(keyword in line.lower() for keyword in ['error', 'exception', 'failed', 'kappa', 'accuracy', 'epoch', 'fold', 'stage', 'training', 'pre-training', 'subprocess', 'generated']):
                 logger.info(f"  {line}")
 
-            # Periodic status update to show the process is still running
+            # Periodic status update
             current_time = time.time()
             if current_time - last_status_time >= status_interval:
                 elapsed_so_far = current_time - start_time
@@ -379,11 +376,10 @@ def run_test(config_name, config_desc, use_gen_aug):
                 logger.debug(f"[DEBUG] Last output line: {line[:100]}...")
                 last_status_time = current_time
 
-        logger.debug(f"[DEBUG] Subprocess output finished, waiting for exit...")
         process.wait()
         elapsed = time.time() - start_time
         logger.debug(f"[DEBUG] Subprocess exited with code: {process.returncode}")
-        logger.debug(f"[DEBUG] Total lines processed: {line_count}")
+        logger.debug(f"[DEBUG] Lines processed: {line_count}")
 
         if process.returncode != 0:
             logger.error(f"Test FAILED with return code {process.returncode}")

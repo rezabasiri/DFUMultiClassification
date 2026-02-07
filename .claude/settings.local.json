@@ -86,7 +86,8 @@
       "Bash(/opt/miniforge3/envs/multimodal/bin/python:*)",
       "Bash(/opt/miniforge3/bin/python:*)",
       "Bash(grep:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(ulimit:*)"
     ]
   }
 }

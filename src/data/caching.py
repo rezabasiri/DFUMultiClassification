@@ -172,7 +172,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         load_and_preprocess_single_sample,
         num_parallel_calls=tf.data.AUTOTUNE
     )
-    
+
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps

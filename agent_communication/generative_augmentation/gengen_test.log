@@ -1,0 +1,192 @@
+2026-02-07 01:38:24,647 - DEBUG - [DEBUG] main() started
+2026-02-07 01:38:24,647 - DEBUG - [DEBUG] Python version: 3.11.14 | packaged by conda-forge | (main, Oct 22 2025, 22:46:25) [GCC 14.3.0]
+2026-02-07 01:38:24,647 - DEBUG - [DEBUG] Project root: /workspace/DFUMultiClassification
+2026-02-07 01:38:24,647 - DEBUG - [DEBUG] Log file: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/gengen_test.log
+2026-02-07 01:38:24,649 - DEBUG - [DEBUG] Parsed arguments: fresh=True, quick=False
+2026-02-07 01:38:24,649 - DEBUG - [DEBUG] Saving original config...
+2026-02-07 01:38:24,651 - INFO - Saved original production_config values
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] Original config saved: ['USE_GENERAL_AUGMENTATION', 'USE_GENERATIVE_AUGMENTATION', 'GENERATIVE_AUG_VERSION', 'INCLUDED_COMBINATIONS', 'DATA_PERCENTAGE', 'N_EPOCHS', 'IMAGE_SIZE', 'STAGE1_EPOCHS', 'EARLY_STOP_PATIENCE', 'REDUCE_LR_PATIENCE', 'LR_SCHEDULE_EXPLORATION_EPOCHS', 'GLOBAL_BATCH_SIZE', 'GENERATIVE_AUG_INFERENCE_STEPS', 'GENERATIVE_AUG_BATCH_LIMIT', 'GENERATIVE_AUG_PROB', 'GENERATIVE_AUG_SDXL_RESOLUTION', 'GENERATIVE_AUG_SDXL_GUIDANCE_SCALE', 'GENERATIVE_AUG_SDXL_MODEL_PATH']
+2026-02-07 01:38:24,651 - INFO - Starting fresh test run
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] Fresh run requested or progress file doesn't exist: /workspace/DFUMultiClassification/agent_communication/generative_augmentation/GENGEN_PROGRESS.json
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] Starting test loop with 2 configs
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] Processing config 1/2: baseline
+2026-02-07 01:38:24,651 - INFO - 
+================================================================================
+2026-02-07 01:38:24,651 - INFO - Starting test 1/2
+2026-02-07 01:38:24,651 - INFO - ================================================================================
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] About to call run_test for baseline
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] Config: {'name': 'baseline', 'description': 'Baseline (no generative augmentation)', 'use_gen_aug': False}
+2026-02-07 01:38:24,651 - INFO - 
+================================================================================
+2026-02-07 01:38:24,651 - INFO - TEST: Baseline (no generative augmentation)
+2026-02-07 01:38:24,651 - INFO - ================================================================================
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] run_test called: config_name=baseline, use_gen_aug=False
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] QUICK_MODE=False, DATA_PERCENTAGE=100, N_EPOCHS=300, IMAGE_SIZE=64
+2026-02-07 01:38:24,651 - DEBUG - [DEBUG] update_config_for_test called with use_gen_aug=False
+2026-02-07 01:38:24,652 - DEBUG - [DEBUG] Read production_config (20688 bytes)
+2026-02-07 01:38:24,652 - DEBUG - [DEBUG] Config updated: USE_GENERATIVE_AUGMENTATION=False, QUICK_MODE=False
+2026-02-07 01:38:24,652 - INFO - Config updated: USE_GENERAL_AUGMENTATION=True, USE_GENERATIVE_AUGMENTATION=False
+2026-02-07 01:38:24,652 - INFO - Modalities: metadata, depth_rgb, depth_map, thermal_map
+2026-02-07 01:38:24,652 - DEBUG - [DEBUG] Working directory: /workspace/DFUMultiClassification
+2026-02-07 01:38:24,652 - DEBUG - [DEBUG] Log start position: 3094
+2026-02-07 01:38:24,652 - INFO - Running: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 1 --resume_mode fresh
+2026-02-07 01:38:24,653 - DEBUG - [DEBUG] Subprocess started with PID: 2376479
+2026-02-07 01:38:30,530 - INFO -   SUBPROCESS ISOLATION: Running 3 folds in separate processes
+2026-02-07 01:38:30,530 - INFO -     (Prevents TF/CUDA resource accumulation across folds)
+2026-02-07 01:38:30,530 - INFO -   FOLD 1/3 - Starting in isolated subprocess
+2026-02-07 01:38:30,531 - INFO -   Command: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 1 --fold 1 --resume_mode fresh
+2026-02-07 01:38:36,853 - INFO -   Cross-validation: 3-fold CV (patient-level)
+2026-02-07 01:38:36,853 - INFO -   Max epochs: 300 (with early stopping)
+2026-02-07 01:38:38,137 - INFO -   Cross-validation mode: 3-fold CV
+2026-02-07 01:38:38,138 - INFO -   Total training sessions: 3
+2026-02-07 01:38:38,176 - INFO -   MULTI-GPU TRAINING: 5 GPUs
+2026-02-07 01:38:38,177 - INFO -   GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+2026-02-07 01:38:38,229 - INFO -   STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+2026-02-07 01:38:38,230 - INFO -   Fold 1/3: 148 train patients, 76 valid patients
+2026-02-07 01:38:38,232 - INFO -   Fold 2/3: 149 train patients, 75 valid patients
+2026-02-07 01:38:38,233 - INFO -   Fold 3/3: 151 train patients, 73 valid patients
+2026-02-07 01:38:38,233 - INFO -   Generated 3 folds
+2026-02-07 01:38:38,233 - INFO -   All data will be validated exactly once across all folds
+2026-02-07 01:38:38,434 - INFO -   Fold 1/3
+2026-02-07 01:38:38,434 - INFO -   Using pre-computed fold 1 patient split
+2026-02-07 01:38:43,699 - INFO -   Preparing datasets for Fold 1/3 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
+2026-02-07 01:38:47,919 - INFO -   Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 1/3
+2026-02-07 01:40:18,055 - INFO -   [STATUS] Still running... 1.9 min elapsed, 169 lines processed
+2026-02-07 01:40:18,055 - DEBUG - [DEBUG] Last output line: ================================================================================...
+2026-02-07 01:40:18,055 - INFO -   AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+2026-02-07 01:40:18,056 - INFO -     Training depth_rgb-only model first (same data split)...
+U communication)
+  Effective batch size: 5× global batch size
+================================================================================
+
+
+Batch size per replica: 12 (global batch size: 64, replicas: 5)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1, 2, 3, 4] (multi-GPU mode, MirroredStrategy)
+  Replicas: 5× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 64x64
+Batch size: 64
+  Per-GPU batch: 12 (64 / 5 GPUs)
+Max epochs: 300 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 18 files deleted
+  Predictions: 36 files deleted
+  Csv Results: 15 files deleted
+  Tf Cache: 4 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: True
+  Outlier contamination: 20%
+  Outlier batch size: 32
+  Misclassification tracking: none
+
+================================================================================
+OUTLIER DETECTION AND REMOVAL (COMBINATION-SPECIFIC)
+================================================================================
+Contamination rate: 20%
+Processing 1 modality combination(s)
+
+[1/1] depth_map_depth_rgb_metadata_thermal_map
+Detecting outliers for combination: depth_map_depth_rgb_metadata_thermal_map (contamination=20%)...
+  Total outliers: 622/3107 (20.0%)
+  Cleaned dataset: 2485 samples
+  Saved cleaned dataset: depth_map_depth_rgb_metadata_thermal_map_20pct.csv
+Applying cleaned dataset for depth_map_depth_rgb_metadata_thermal_map (20% outlier removal)...
+  Filtered: 2565 samples
+  Warning: Filtered count (2565) != Cleaned count (2485)
+  ✓ Filtered for depth_map_depth_rgb_metadata_thermal_map: 2565 samples
+
+================================================================================
+
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata, depth_rgb, depth_map, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 2565
+  depth_bb: 2565
+  depth_map: 2565
+  thermal_map: 2565
+  thermal_bb: 2565
+  metadata: 2565
+Using 100.0% of the data: 2565 samples
+
+================================================================================
+MULTI-GPU TRAINING: 5 GPUs
+Global batch size: 64 (per-GPU: 12)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 77 patients
+Class 1: 118 patients
+Class 2: 29 patients
+================================================================================
+
+Fold 1/3: 148 train patients, 76 valid patients
+  Train dist: {0: 0.297, 1: 0.580, 2: 0.124}
+  Valid dist: {0: 0.268, 1: 0.656, 2: 0.076}
+Fold 2/3: 149 train patients, 75 valid patients
+  Train dist: {0: 0.292, 1: 0.612, 2: 0.097}
+  Valid dist: {0: 0.271, 1: 0.605, 2: 0.123}
+Fold 3/3: 151 train patients, 73 valid patients
+  Train dist: {0: 0.269, 1: 0.634, 2: 0.097}
+  Valid dist: {0: 0.322, 1: 0.554, 2: 0.124}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Using Scikit-learn RandomForestClassifier
+Generative augmentation disabled
+
+Preparing datasets for Fold 1/3 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 1
+Using Scikit-learn RandomForestClassifier
+
+No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
+
+Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 1/3
+================================================================================
+AUTOMATIC PRE-TRAINING: depth_rgb weights not found
+  Training depth_rgb-only model first (same data split)...
+================================================================================

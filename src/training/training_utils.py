@@ -31,7 +31,8 @@ from src.utils.production_config import (
     GRID_SEARCH_GAMMAS, GRID_SEARCH_ALPHAS, FOCAL_ORDINAL_WEIGHT,
     STAGE1_EPOCHS, DATA_PERCENTAGE, USE_GENERATIVE_AUGMENTATION,
     GENERATIVE_AUG_MODEL_PATH, GENERATIVE_AUG_VERSION,
-    GENERATIVE_AUG_SDXL_MODEL_PATH
+    GENERATIVE_AUG_SDXL_MODEL_PATH,
+    OUTLIER_CONTAMINATION, GENERATIVE_AUG_PROB
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 
@@ -60,6 +61,23 @@ csv_path = output_paths['csv']
 misclass_path = output_paths['misclassifications']
 vis_path = output_paths['visualizations']
 logs_path = output_paths['logs']
+pretrain_cache_dir = os.path.join(result_dir, 'pretrain_cache')
+
+
+def _get_pretrain_cache_path(image_modality, fold_num):
+    """Get config-aware cache path for pre-trained image weights.
+
+    Cache key includes all settings that affect pre-training data/model.
+    If any of these change, a different cache file is used automatically.
+    """
+    import hashlib
+    cache_key = (f"{image_modality}_fold{fold_num}_img{IMAGE_SIZE}_data{DATA_PERCENTAGE}"
+                 f"_outlier{OUTLIER_CONTAMINATION}"
+                 f"_genaug{USE_GENERATIVE_AUGMENTATION}_{GENERATIVE_AUG_PROB}")
+    config_hash = hashlib.md5(cache_key.encode()).hexdigest()[:12]
+    os.makedirs(pretrain_cache_dir, exist_ok=True)
+    return os.path.join(pretrain_cache_dir, f'pretrain_{image_modality}_fold{fold_num}_{config_hash}.ckpt')
+
 
 class EpochMemoryCallback(tf.keras.callbacks.Callback):
     """Memory management callback that's compatible with distribution strategy"""
@@ -738,7 +756,7 @@ def average_attention_values(result_dir, num_runs):
             for run_idx, run_mean in enumerate(run_means_per_modality[i]):
                 f.write(f"Run {run_idx + 1}: {run_mean:.4f}\n")
             f.write("\n")
-def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, cv_folds=3, track_misclass='both'):
+def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, cv_folds=3, track_misclass='both', target_fold=None):
     """
     Perform cross-validation using cached dataset pipeline.
 
@@ -748,6 +766,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         train_patient_percentage: Percentage of data to use for training (ignored if cv_folds > 1)
         cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single train/val split.
         track_misclass: Which dataset to track misclassifications from ('both', 'valid', 'train')
+        target_fold: If set (1-indexed), only run this specific fold. Other folds' results
+                     are loaded from disk. Enables subprocess isolation per fold.
 
     Returns:
         Tuple of (all_metrics, all_confusion_matrices, all_histories)
@@ -893,9 +913,25 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             # Legacy mode or single split: let prepare_cached_datasets handle it
             fold_train_patients, fold_valid_patients = None, None
 
+        # Subprocess isolation: skip folds that aren't the target fold
+        # Load their results from disk instead of re-running
+        if target_fold is not None and (iteration_idx + 1) != target_fold:
+            vprint(f"\n{iteration_name} skipped (target_fold={target_fold}). Loading saved results...", level=1)
+            loaded_metrics = load_run_metrics(run + 1, result_dir)
+            if loaded_metrics:
+                all_runs_metrics.extend(loaded_metrics)
+                vprint(f"  Loaded {len(loaded_metrics)} saved metric(s) for {iteration_name}", level=1)
+            else:
+                vprint(f"  Warning: No saved metrics found for {iteration_name}", level=1)
+            continue
+
         # Check if this iteration is already complete
         if is_run_complete(run + 1, ck_path):
-            vprint(f"\n{iteration_name} is already complete. Moving to next...", level=1)
+            vprint(f"\n{iteration_name} is already complete. Loading saved results...", level=1)
+            loaded_metrics = load_run_metrics(run + 1, result_dir)
+            if loaded_metrics:
+                all_runs_metrics.extend(loaded_metrics)
+                vprint(f"  Loaded {len(loaded_metrics)} saved metric(s) for {iteration_name}", level=1)
             continue
 
         # Try to load aggregated predictions first (only useful when training multiple configs for same modalities)
@@ -1036,7 +1072,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
             valid_patients=fold_valid_patients
         )
-        
         run_metrics = []
         
         # For each modality combination
@@ -1155,7 +1190,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         weighted_f1 = WeightedF1Score(alpha_values=alpha_value)  # Use alpha_value for weighted F1
                         input_shapes = data_manager.get_shapes_for_modalities(selected_modalities)
                         model = create_multimodal_model(input_shapes, selected_modalities, None)
-
                         # CRITICAL FIX: For fusion with metadata, load pre-trained image weights and FREEZE image branch
                         # Training image in fusion mode causes catastrophic overfitting (Train 0.96, Val 0.02)
                         has_metadata = 'metadata' in selected_modalities
@@ -1210,8 +1244,39 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     vprint(f"  Warning: Could not load pre-trained weights: {e}", level=1)
                                     vprint(f"  Training image branch from scratch (may overfit!)", level=1)
                                     fusion_use_pretrained = False
-                            else:
-                                # AUTOMATIC PRE-TRAINING: Train image-only model inline
+
+                            # Check pretrain cache before training from scratch
+                            if not fusion_use_pretrained:
+                                pretrain_cache_path = _get_pretrain_cache_path(image_modality, run+1)
+                                cache_ckpt, cache_fmt = find_checkpoint_for_loading(pretrain_cache_path)
+
+                                if cache_fmt is not None:
+                                    vprint("=" * 80, level=1)
+                                    vprint(f"CACHED PRE-TRAINING: Loading {image_modality} weights from cache", level=1)
+                                    vprint(f"  Cache: {pretrain_cache_path}", level=2)
+                                    vprint("=" * 80, level=1)
+                                    try:
+                                        temp_model = create_multimodal_model(input_shapes, [image_modality], None)
+                                        temp_model.load_weights(cache_ckpt)
+                                        for layer in temp_model.layers:
+                                            if image_modality in layer.name or layer.name == 'output':
+                                                try:
+                                                    fusion_layer = model.get_layer(layer.name)
+                                                    fusion_layer.set_weights(layer.get_weights())
+                                                except:
+                                                    continue
+                                        vprint(f"  STAGE 1: Freezing {image_modality} branch...", level=2)
+                                        for layer in model.layers:
+                                            if image_modality in layer.name or 'image_classifier' in layer.name:
+                                                layer.trainable = False
+                                        del temp_model
+                                        fusion_use_pretrained = True
+                                        vprint(f"  Loaded from cache - skipping ~17min pre-training!", level=1)
+                                    except Exception as e:
+                                        vprint(f"  Cache load failed: {e}. Will train from scratch.", level=1)
+
+                            # AUTOMATIC PRE-TRAINING: Train image-only model inline
+                            if not fusion_use_pretrained:
                                 vprint("=" * 80, level=1)
                                 vprint(f"AUTOMATIC PRE-TRAINING: {image_modality} weights not found", level=1)
                                 vprint(f"  Training {image_modality}-only model first (same data split)...", level=1)
@@ -1331,7 +1396,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             frozen_layers.append(layer.name)
                                             vprint(f"    Frozen layer: {layer.name}", level=3)
 
-                                    del pretrain_model, pretrain_train_dis, pretrain_valid_dis  # Free memory and release thread pools
+                                    # Save pre-trained weights to cache for future runs
+                                    try:
+                                        pretrain_cache_path = _get_pretrain_cache_path(image_modality, run+1)
+                                        pretrain_model.save_weights(pretrain_cache_path)
+                                        vprint(f"  Saved pre-trained weights to cache: {pretrain_cache_path}", level=2)
+                                    except Exception as e:
+                                        vprint(f"  Warning: Could not save to pretrain cache: {e}", level=2)
+
+                                    del pretrain_model, pretrain_train_dis, pretrain_valid_dis, pretrain_train_dataset, pretrain_valid_dataset  # Free memory and release thread pools
+                                    gc.collect()
                                     fusion_use_pretrained = True
                                     vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
                                     vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
@@ -1402,7 +1476,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 save_weights_only=True
                             ),
                             EpochMemoryCallback(strategy),
-                            # GenerativeAugmentationCallback(gen_manager),  # DISABLED for uniform testing
+                            GenerativeAugmentationCallback(gen_manager),
                             NaNMonitorCallback()
                         ]
 
@@ -1804,9 +1878,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 gating_metrics = None
             
             all_runs_metrics.extend(run_metrics)
-            # Clean up after the run - release distributed datasets and model
-            # to free thread pools created by MirroredStrategy (prevents thread exhaustion across folds)
+            # Clean up ALL per-fold objects to release thread pools (prevents thread exhaustion across folds)
+            # Each dataset's .map()/.prefetch() creates thread pools; each fold must release them
+            # or the Docker cgroup PIDs limit (7680) is exceeded by Fold 3
             try:
+                # Release all datasets and their thread pools
                 model = None
                 train_dataset_dis = None
                 valid_dataset_dis = None
@@ -1814,6 +1890,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                 valid_dataset = None
                 master_train_dataset = None
                 master_valid_dataset = None
+                pre_aug_dataset = None
+                pre_aug_train_dataset = None
+                valid_dataset_with_ids = None
+                # Release data manager and augmentation config
+                data_manager = None
+                aug_config = None
                 tf.keras.backend.clear_session()
                 gc.collect()
                 gc.collect()  # Second pass to catch reference cycles
@@ -1964,6 +2046,38 @@ def save_run_metrics(run_metrics, run_number, result_dir):
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(formatted_results)
+
+def load_run_metrics(run_number, result_dir):
+    """Load saved per-fold metrics from disk (for subprocess isolation across folds).
+
+    Returns a list of metric dicts, or None if file not found.
+    """
+    csv_filename = os.path.join(csv_path, f'modality_results_run_{run_number}.csv')
+    if not os.path.exists(csv_filename):
+        return None
+    try:
+        metrics_list = []
+        with open(csv_filename, 'r', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                metrics_list.append({
+                    'config': row.get('config', ''),
+                    'modalities': row.get('modalities', '').split('+'),
+                    'accuracy': float(row.get('accuracy', 0)),
+                    'f1_macro': float(row.get('f1_macro', 0)),
+                    'f1_weighted': float(row.get('f1_weighted', 0)),
+                    'f1_classes': [
+                        float(row.get('I_f1', 0)),
+                        float(row.get('P_f1', 0)),
+                        float(row.get('R_f1', 0))
+                    ],
+                    'kappa': float(row.get('kappa', 0))
+                })
+        return metrics_list if metrics_list else None
+    except Exception as e:
+        vprint(f"Warning: Could not load run metrics for fold {run_number}: {e}", level=1)
+        return None
+
 def save_gating_results(all_gating_results, result_dir):
     """Save aggregated gating network results to CSV."""
     if not all_gating_results:
@@ -2289,8 +2403,7 @@ def filter_dataset_modalities(dataset, selected_modalities):
 
         return filtered_features, labels
     
-    # return dataset.map(filter_features, num_parallel_calls=tf.data.AUTOTUNE)
-    return dataset.map(filter_features, num_parallel_calls=2)
+    return dataset.map(filter_features, num_parallel_calls=tf.data.AUTOTUNE)
 
 def clear_cache_files():
     """Clear any existing cache files."""

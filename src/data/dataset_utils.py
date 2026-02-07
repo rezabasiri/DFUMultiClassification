@@ -18,6 +18,7 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
+
 from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION
 from src.data.image_processing import load_and_preprocess_image
 
@@ -362,7 +363,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     dataset = dataset.map(
         load_and_preprocess_single_sample,
         num_parallel_calls=tf.data.AUTOTUNE
-        # num_parallel_calls=4
     )
     
     # Calculate how many samples we need
@@ -407,7 +407,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
             dataset = dataset.map(
                 augmentation_fn,
                 num_parallel_calls=tf.data.AUTOTUNE,
-                # num_parallel_calls=4
                 )
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
@@ -418,7 +417,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Prefetch for better performance
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
-    # dataset = dataset.prefetch(2)
     return dataset, pre_aug_dataset, steps
 # First, add this helper function near the start of your prepare_cached_datasets function
 def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=False):
@@ -1211,7 +1209,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         y_bin2 = (y > 1).astype(int)
                         # Train RF models
                         rf_model1.fit(X, y_bin1)
-                        rf_model2.fit(X, y_bin2)    
+                        rf_model2.fit(X, y_bin2)
                 try:
                     import tensorflow_decision_forests as tfdf
                     dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
