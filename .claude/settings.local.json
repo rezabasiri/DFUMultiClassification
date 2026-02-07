@@ -87,7 +87,9 @@
       "Bash(/opt/miniforge3/bin/python:*)",
       "Bash(grep:*)",
       "Bash(awk:*)",
-      "Bash(ulimit:*)"
+      "Bash(ulimit:*)",
+      "Bash(conda create:*)",
+      "Bash(mamba install:*)"
     ]
   }
 }

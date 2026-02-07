@@ -65,7 +65,8 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     # Convert labels if needed
     data = data.copy()
     if 'Healing Phase Abs' in data.columns:
-        if data['Healing Phase Abs'].dtype == 'object':
+        # Check if column contains string values (handles both 'object' and 'str' dtypes)
+        if data['Healing Phase Abs'].dtype in ['object', 'str'] or pd.api.types.is_string_dtype(data['Healing Phase Abs']):
             data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
 
     # Group patients by their majority class

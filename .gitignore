@@ -62,6 +62,7 @@ results/modality_*.csv
 !agent_communication/generative_augmentation/*.log
 !agent_communication/generative_augmentation/agent_communication/generative_augmentation/reports/full_sdxl_logs/*.log
 device*
+results/pretrain_cache/
 
 # raw data
 data/raw/Depth_Map_IMG/
