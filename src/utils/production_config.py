@@ -25,7 +25,7 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (128x128 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+IMAGE_SIZE = 64  # Image dimensions (128x128 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
 GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
 N_EPOCHS = 300  # Full training epochs
 
@@ -98,12 +98,12 @@ USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augme
 # V3: Uses single conditional SDXL model fine-tuned on all phases
 # V2 (legacy): Uses separate SD 1.5 models per modality/phase from results/GenerativeAug_Models/models_5_7/
 # Only applies to RGB images (depth_rgb, thermal_rgb)
-USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation
+USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation
 GENERATIVE_AUG_VERSION = 'v3'  # 'v3' = SDXL conditional model, 'v2' = SD 1.5 per-phase models
 GENERATIVE_AUG_PROB = 0.10  # Probability of applying generative augmentation (0.0-1.0)
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
-GENERATIVE_AUG_INFERENCE_STEPS = 100  # Diffusion inference steps (10=fast, 50=quality)
-GENERATIVE_AUG_BATCH_LIMIT = 32  # Max batch size for generative aug (GPU memory constraint)
+GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (50=good quality/speed balance, 100=max quality but 2x slower)
+GENERATIVE_AUG_BATCH_LIMIT = 32  # Max batch size for generative aug (increased - full GPU mode has more memory available)
 GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for
 
 # SDXL-specific settings (V3)

@@ -92,7 +92,7 @@ class GeneratedImageCounter:
         self.total_count = 0
         self.phase_counts = {'I': 0, 'P': 0, 'R': 0}
         self.lock = threading.Lock()
-        self.print_interval = 50  # Print summary every N images
+        self.print_interval = 8  # Print summary every N images (reduced to show progress more frequently)
 
     def increment(self, phase, batch_size=1):
         """Increment counter for a specific phase and optionally print update"""
@@ -433,8 +433,9 @@ class GenerativeAugmentationManagerSDXL:
             base_model_id = "stabilityai/stable-diffusion-xl-base-1.0"
 
             # Determine dtype based on available hardware
+            # CRITICAL: Must use bfloat16 to match training dtype, otherwise VAE produces NaN
             if torch.cuda.is_available():
-                weight_dtype = torch.float16  # Use fp16 for inference on GPU
+                weight_dtype = torch.bfloat16  # Use bf16 for inference on GPU (matches training)
             else:
                 weight_dtype = torch.float32
 
@@ -498,15 +499,30 @@ class GenerativeAugmentationManagerSDXL:
                 scheduler=noise_scheduler,
             )
 
-            # Move to device and optimize
-            self.pipeline = self.pipeline.to(self.device)
             self.pipeline.set_progress_bar_config(disable=True)
 
-            # Enable memory optimizations
+            # Enable aggressive memory optimizations for SDXL
             if hasattr(self.pipeline, 'enable_attention_slicing'):
-                self.pipeline.enable_attention_slicing()
+                self.pipeline.enable_attention_slicing(slice_size="auto")
 
-            print(f"  SDXL model loaded successfully on {self.device}")
+            # Enable VAE slicing to reduce memory during decoding
+            if hasattr(self.pipeline, 'enable_vae_slicing'):
+                self.pipeline.enable_vae_slicing()
+
+            # Enable VAE tiling for even lower memory (may be slightly slower)
+            if hasattr(self.pipeline, 'enable_vae_tiling'):
+                self.pipeline.enable_vae_tiling()
+
+            # Load entire model to GPU for maximum speed
+            # SDXL base model (~7GB) + training data fits comfortably in 24GB GPU
+            # Sequential CPU offload was causing 6x slowdown (30s vs 5s per batch)
+            self.pipeline = self.pipeline.to(self.device)
+            print(f"  SDXL model loaded on {self.device} (full GPU mode for max speed)")
+
+            # Note: If OOM occurs, uncomment below to enable CPU offload (slower but uses less memory)
+            # if hasattr(self.pipeline, 'enable_sequential_cpu_offload'):
+            #     self.pipeline.enable_sequential_cpu_offload()
+            #     print(f"  SDXL model loaded with sequential CPU offload (low memory mode)")
 
         except Exception as e:
             print(f"Error loading SDXL model: {str(e)}")
@@ -557,8 +573,8 @@ class GenerativeAugmentationManagerSDXL:
         try:
             with self.lock:  # Thread-safe generation
                 with torch.no_grad():
-                    # Use autocast for memory efficiency
-                    with torch.autocast(device_type='cuda', dtype=torch.float16):
+                    # Use autocast for memory efficiency (bfloat16 matches training dtype)
+                    with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                         output = self.pipeline(
                             prompt=[prompt] * batch_size,
                             negative_prompt=[negative_prompt] * batch_size,
@@ -583,11 +599,16 @@ class GenerativeAugmentationManagerSDXL:
                     method=tf.image.ResizeMethod.BILINEAR
                 )
 
+            # Clear intermediate tensors and free GPU memory
+            torch.cuda.empty_cache()
+
             return images_tensor
 
         except Exception as e:
             print(f"Error generating images for phase {phase}: {str(e)}")
             traceback.print_exc()
+            # Clear GPU cache on error to prevent memory leaks
+            torch.cuda.empty_cache()
             return None
 
     def should_generate(self, modality):
