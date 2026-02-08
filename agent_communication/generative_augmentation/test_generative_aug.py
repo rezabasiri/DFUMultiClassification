@@ -357,7 +357,7 @@ def run_test(config_name, config_desc, use_gen_aug):
         # Stream output with periodic status updates
         line_count = 0
         last_status_time = time.time()
-        status_interval = 60  # Print status every 60 seconds
+        status_interval = 5*60  # Print status every 5 minutes
 
         for line in process.stdout:
             line = line.rstrip()

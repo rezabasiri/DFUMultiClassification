@@ -92,7 +92,7 @@ class GeneratedImageCounter:
         self.total_count = 0
         self.phase_counts = {'I': 0, 'P': 0, 'R': 0}
         self.lock = threading.Lock()
-        self.print_interval = 8  # Print summary every N images (reduced to show progress more frequently)
+        self.print_interval = 100  # Print summary every N images (reduced to show progress more frequently)
 
     def increment(self, phase, batch_size=1):
         """Increment counter for a specific phase and optionally print update"""
@@ -599,16 +599,11 @@ class GenerativeAugmentationManagerSDXL:
                     method=tf.image.ResizeMethod.BILINEAR
                 )
 
-            # Clear intermediate tensors and free GPU memory
-            torch.cuda.empty_cache()
-
             return images_tensor
 
         except Exception as e:
             print(f"Error generating images for phase {phase}: {str(e)}")
             traceback.print_exc()
-            # Clear GPU cache on error to prevent memory leaks
-            torch.cuda.empty_cache()
             return None
 
     def should_generate(self, modality):
@@ -741,10 +736,17 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                 if not gen_manager.should_generate(modality_raw):
                                     return images, mask
 
+                                # Calculate how many images we actually need BEFORE generating
+                                mix_ratio = np.random.uniform(
+                                    config.generative_settings['mix_ratio_range'][0],
+                                    config.generative_settings['mix_ratio_range'][1]
+                                )
+                                num_to_replace = max(1, int(bs * mix_ratio))
+
                                 height, width = images.shape[1], images.shape[2]
                                 generated = gen_manager.generate_images(
                                     modality_raw, phase,
-                                    batch_size=bs,
+                                    batch_size=num_to_replace,
                                     target_height=height,
                                     target_width=width
                                 )
@@ -752,6 +754,7 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                     return images, mask
 
                                 gen_np = generated.numpy() if hasattr(generated, 'numpy') else np.array(generated)
+                                num_to_replace = min(num_to_replace, len(gen_np))
 
                                 # Save first 3 generated images for visual verification
                                 if _saved_gen_samples[0] < 3:
@@ -767,14 +770,6 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                             print(f"  Saved generated sample: {save_path} (phase: {phase}, modality: {modality_raw})", flush=True)
                                     except Exception as save_err:
                                         print(f"  Warning: Could not save generated sample: {save_err}")
-
-                                # Determine how many images to replace (mix_ratio range from config)
-                                mix_ratio = np.random.uniform(
-                                    config.generative_settings['mix_ratio_range'][0],
-                                    config.generative_settings['mix_ratio_range'][1]
-                                )
-                                num_to_replace = max(1, int(bs * mix_ratio))
-                                num_to_replace = min(num_to_replace, len(gen_np))
 
                                 # Replace random indices with generated images
                                 indices = np.random.choice(bs, size=num_to_replace, replace=False)

@@ -86,7 +86,7 @@ REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for long
 # Multimodal outlier detection (Isolation Forest on joint feature space)
 OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
 OUTLIER_CONTAMINATION = 0.10  # Expected proportion of outliers (0.0-1.0)
-OUTLIER_BATCH_SIZE = 64  # Batch size for on-the-fly feature extraction
+OUTLIER_BATCH_SIZE = 128  # Batch size for on-the-fly feature extraction
 
 # General augmentation (applied during training only, not validation)
 # RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15
@@ -100,10 +100,10 @@ USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augme
 # Only applies to RGB images (depth_rgb, thermal_rgb)
 USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation
 GENERATIVE_AUG_VERSION = 'v3'  # 'v3' = SDXL conditional model, 'v2' = SD 1.5 per-phase models
-GENERATIVE_AUG_PROB = 0.10  # Probability of applying generative augmentation (0.0-1.0)
+GENERATIVE_AUG_PROB = 0.06  # Probability of applying generative augmentation (0.0-1.0)
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
-GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (50=good quality/speed balance, 100=max quality but 2x slower)
-GENERATIVE_AUG_BATCH_LIMIT = 32  # Max batch size for generative aug (increased - full GPU mode has more memory available)
+GENERATIVE_AUG_INFERENCE_STEPS = 25  # Diffusion inference steps (25=fast/good quality, 50=higher quality but 2x slower)
+GENERATIVE_AUG_BATCH_LIMIT = 150  # Max batch size for generative aug (increased - full GPU mode has more memory available)
 GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for
 
 # SDXL-specific settings (V3)
