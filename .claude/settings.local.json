@@ -89,7 +89,9 @@
       "Bash(awk:*)",
       "Bash(ulimit:*)",
       "Bash(conda create:*)",
-      "Bash(mamba install:*)"
+      "Bash(mamba install:*)",
+      "Bash(apt install:*)",
+      "Bash(rsync:*)"
     ]
   }
 }

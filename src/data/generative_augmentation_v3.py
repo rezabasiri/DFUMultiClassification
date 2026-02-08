@@ -667,6 +667,9 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     Returns:
         Augmentation function that can be applied to batched datasets
     """
+    # Track how many generated sample images have been saved (max 3)
+    _saved_gen_samples = [0]
+
     def apply_augmentation(features, label):
         def augment_batch(features_dict, label_tensor):
             output_features = {}
@@ -696,75 +699,88 @@ def create_enhanced_augmentation_fn(gen_manager, config):
 
                     # Apply generative augmentation only if gen_manager is available
                     if gen_manager is not None:
-                        def decode_phase(phase_tensor):
-                            return phase_tensor.numpy().decode('utf-8')
-
-                        gen_manager.current_phase = tf.py_function(decode_phase, [current_phase], tf.string)
-
-                        if gen_manager.should_generate(modality):
+                        # All generation logic runs inside tf.py_function for reliable eager execution.
+                        # Python if-statements in the outer scope are evaluated during TF graph tracing,
+                        # where .numpy() fails on symbolic tensors, causing should_generate() to
+                        # silently return False and exclude generation from the graph entirely.
+                        def maybe_generate_and_mix(images_batch, phase_tensor, modality_str):
+                            """Generate synthetic images and mix into batch (runs eagerly via py_function)"""
                             try:
-                                def generate_images_wrapper(phase_tensor, modality_str, batch_size_val, target_height, target_width):
+                                images = images_batch.numpy().copy()
+                                modality_raw = modality_str.numpy().decode('utf-8')
+                                phase = phase_tensor.numpy().decode('utf-8')
+                                bs = images.shape[0]
+
+                                # Set current phase as string for should_generate check
+                                gen_manager.current_phase = phase
+
+                                # Create mask (0=real, 1=generated)
+                                mask = np.zeros(bs, dtype=np.float32)
+
+                                if not gen_manager.should_generate(modality_raw):
+                                    return images, mask
+
+                                height, width = images.shape[1], images.shape[2]
+                                generated = gen_manager.generate_images(
+                                    modality_raw, phase,
+                                    batch_size=bs,
+                                    target_height=height,
+                                    target_width=width
+                                )
+                                if generated is None:
+                                    return images, mask
+
+                                gen_np = generated.numpy() if hasattr(generated, 'numpy') else np.array(generated)
+
+                                # Save first 3 generated images for visual verification
+                                if _saved_gen_samples[0] < 3:
                                     try:
-                                        phase = phase_tensor.numpy().decode('utf-8')
-                                        modality_raw = modality_str.numpy().decode('utf-8')
-                                        batch_size_int = int(batch_size_val.numpy())
-                                        height = int(target_height.numpy())
-                                        width = int(target_width.numpy())
+                                        from PIL import Image
+                                        save_dir = os.path.join('results', 'visualizations')
+                                        os.makedirs(save_dir, exist_ok=True)
+                                        for si in range(min(len(gen_np), 3 - _saved_gen_samples[0])):
+                                            _saved_gen_samples[0] += 1
+                                            img = (gen_np[si] * 255).clip(0, 255).astype(np.uint8)
+                                            save_path = os.path.join(save_dir, f'gen{_saved_gen_samples[0]}.png')
+                                            Image.fromarray(img).save(save_path)
+                                            print(f"  Saved generated sample: {save_path} (phase: {phase}, modality: {modality_raw})", flush=True)
+                                    except Exception as save_err:
+                                        print(f"  Warning: Could not save generated sample: {save_err}")
 
-                                        # Generate images directly at target size
-                                        generated = gen_manager.generate_images(
-                                            modality_raw, phase,
-                                            batch_size=batch_size_int,
-                                            target_height=height,
-                                            target_width=width
-                                        )
-                                        if generated is None:
-                                            return np.zeros([batch_size_int, height, width, 3], dtype=np.float32)
-
-                                        return generated.numpy()
-
-                                    except Exception as e:
-                                        print(f"Error in generate_images_wrapper: {str(e)}")
-                                        return np.zeros([batch_size_int, height, width, 3], dtype=np.float32)
-
-                                modality_tensor = tf.constant(modality, dtype=tf.string)
-                                height = tf.shape(value)[1]
-                                width = tf.shape(value)[2]
-
-                                generated = tf.py_function(
-                                    func=generate_images_wrapper,
-                                    inp=[current_phase, modality_tensor, batch_size, height, width],
-                                    Tout=tf.float32
+                                # Determine how many images to replace (mix_ratio range from config)
+                                mix_ratio = np.random.uniform(
+                                    config.generative_settings['mix_ratio_range'][0],
+                                    config.generative_settings['mix_ratio_range'][1]
                                 )
-                                generated.set_shape([None, value.shape[1], value.shape[2], 3])
+                                num_to_replace = max(1, int(bs * mix_ratio))
+                                num_to_replace = min(num_to_replace, len(gen_np))
 
-                                mix_ratio = tf.random.uniform([],
-                                    minval=config.generative_settings['mix_ratio_range'][0],
-                                    maxval=config.generative_settings['mix_ratio_range'][1]
-                                )
+                                # Replace random indices with generated images
+                                indices = np.random.choice(bs, size=num_to_replace, replace=False)
+                                for i, idx in enumerate(indices):
+                                    if i < len(gen_np):
+                                        images[idx] = gen_np[i]
+                                        mask[idx] = 1.0
 
-                                num_to_replace = tf.cast(
-                                    tf.cast(batch_size, tf.float32) * mix_ratio,
-                                    tf.int32
-                                )
-
-                                # Get random indices to replace
-                                indices = tf.random.shuffle(tf.range(batch_size))[:num_to_replace]
-                                updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
-                                indices_2d = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
-
-                                # Replace real images with generated ones
-                                value = tf.tensor_scatter_nd_update(value, indices_2d, updates)
-
-                                # Mark these indices as generated (should NOT be augmented)
-                                generated_indices_mask = tf.tensor_scatter_nd_update(
-                                    generated_indices_mask,
-                                    indices_2d,
-                                    tf.ones([tf.shape(updates)[0]], dtype=tf.bool)
-                                )
+                                return images, mask
 
                             except Exception as e:
                                 print(f"Error in generative augmentation: {str(e)}")
+                                import traceback
+                                traceback.print_exc()
+                                return images_batch.numpy(), np.zeros(images_batch.shape[0], dtype=np.float32)
+
+                        modality_tensor = tf.constant(modality, dtype=tf.string)
+                        result_images, gen_mask = tf.py_function(
+                            func=maybe_generate_and_mix,
+                            inp=[value, current_phase, modality_tensor],
+                            Tout=[tf.float32, tf.float32]
+                        )
+                        result_images.set_shape(value.shape)
+                        gen_mask.set_shape([None])
+
+                        value = result_images
+                        generated_indices_mask = tf.cast(gen_mask, tf.bool)
 
                     # Apply regular augmentations ONLY to real images (not generated ones)
                     if modality in config.modality_settings and config.modality_settings[modality]['regular_augmentations']['enabled']:
