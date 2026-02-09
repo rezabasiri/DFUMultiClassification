@@ -629,7 +629,8 @@ class GenerativeAugmentationManagerSDXL:
         # Decode phase string if it's a TensorFlow tensor
         try:
             phase_str = self.current_phase if isinstance(self.current_phase, str) else self.current_phase.numpy().decode('utf-8')
-        except:
+        except (AttributeError, UnicodeDecodeError) as e:
+            print(f"  [WARNING] Failed to decode phase tensor in should_generate: {type(e).__name__}: {e}", flush=True)
             return False
 
         if phase_str not in GENERATIVE_AUG_PHASES:
@@ -664,8 +665,8 @@ class GenerativeAugmentationManagerSDXL:
                     for i, _ in enumerate(gpus):
                         try:
                             tf.config.experimental.reset_memory_stats(f'GPU:{i}')
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"  [WARNING] Failed to reset GPU:{i} memory stats during cleanup: {type(e).__name__}: {e}", flush=True)
 
 
 def create_enhanced_augmentation_fn(gen_manager, config):

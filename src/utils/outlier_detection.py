@@ -460,7 +460,8 @@ def extract_features_on_the_fly(modality, best_matching_df, data_paths, image_si
                         augment=False
                     )
                     batch_images.append(img_tensor.numpy())
-                except Exception:
+                except Exception as e:
+                    print(f"  [WARNING] Failed to load image for outlier detection (index {start_idx + j}): {type(e).__name__}: {e}", flush=True)
                     batch_images.append(np.zeros((image_size, image_size, 3), dtype=np.float32))
 
             batch_array = np.array(batch_images)

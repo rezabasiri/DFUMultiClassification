@@ -57,7 +57,7 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         try:
             random_state = int(os.environ['CV_FOLD_SEED'])
         except ValueError:
-            pass  # Keep default if invalid
+            print(f"  [WARNING] Invalid CV_FOLD_SEED env var value: '{os.environ['CV_FOLD_SEED']}', using default seed={random_state}", flush=True)
 
     np.random.seed(random_state)
     random.seed(random_state)

@@ -568,7 +568,8 @@ class GenerativeAugmentationManager:
         # current_phase is a TensorFlow string tensor, need to decode it for comparison
         try:
             phase_str = self.current_phase if isinstance(self.current_phase, str) else self.current_phase.numpy().decode('utf-8')
-        except:
+        except (AttributeError, UnicodeDecodeError) as e:
+            print(f"  [WARNING] Failed to decode phase tensor in should_generate: {type(e).__name__}: {e}", flush=True)
             return False
 
         if phase_str not in GENERATIVE_AUG_PHASES:

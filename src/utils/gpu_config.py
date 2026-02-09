@@ -349,5 +349,7 @@ def print_gpu_memory_usage():
                     if len(parts) >= 3:
                         gpu_id, used, total = parts[0], parts[1], parts[2]
                         print(f"  GPU {gpu_id}: {used}MB / {total}MB ({float(used)/float(total)*100:.1f}%)")
-    except Exception:
-        pass  # Silently fail if nvidia-smi unavailable
+    except FileNotFoundError:
+        pass  # nvidia-smi not installed - expected on non-GPU systems
+    except Exception as e:
+        print(f"  [WARNING] Failed to query GPU memory via nvidia-smi: {type(e).__name__}: {e}", flush=True)

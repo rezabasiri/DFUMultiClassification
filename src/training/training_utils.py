@@ -1083,8 +1083,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                     for i in range(len(gpus)):
                         try:
                             tf.config.experimental.reset_memory_stats(f'GPU:{i}')  # Reset GPU stats without clearing session
-                        except:
-                            pass
+                        except Exception as e:
+                            vprint(f"[WARNING] Failed to reset GPU:{i} memory stats: {type(e).__name__}: {e}", level=2)
             except Exception as e:
                 vprint(f"Error in cleanup between configs: {str(e)}", level=2)
             # First check if this config is in completed_configs
@@ -1223,8 +1223,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 fusion_layer = model.get_layer(layer.name)
                                                 fusion_layer.set_weights(layer.get_weights())
                                                 vprint(f"    Loaded weights for layer: {layer.name}", level=3)
-                                            except:
-                                                continue  # Layer might not exist in fusion model (e.g., output layer)
+                                            except ValueError:
+                                                continue  # Layer not found in fusion model (e.g., output layer) - expected
+                                            except Exception as e:
+                                                print(f"  [WARNING] Unexpected error loading weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
+                                                continue
 
                                     # FREEZE all image branch layers for STAGE 1
                                     vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
@@ -1263,7 +1266,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 try:
                                                     fusion_layer = model.get_layer(layer.name)
                                                     fusion_layer.set_weights(layer.get_weights())
-                                                except:
+                                                except ValueError:
+                                                    continue  # Layer not found in fusion model - expected
+                                                except Exception as e:
+                                                    print(f"  [WARNING] Unexpected error loading cached weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
                                                     continue
                                         vprint(f"  STAGE 1: Freezing {image_modality} branch...", level=2)
                                         for layer in model.layers:
@@ -1384,8 +1390,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 fusion_layer = model.get_layer(layer.name)
                                                 fusion_layer.set_weights(layer.get_weights())
                                                 vprint(f"    Loaded weights for layer: {layer.name}", level=3)
-                                            except:
-                                                continue  # Layer might not exist in fusion model
+                                            except ValueError:
+                                                continue  # Layer not found in fusion model - expected
+                                            except Exception as e:
+                                                print(f"  [WARNING] Unexpected error transferring pre-trained weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
+                                                continue
 
                                     # FREEZE all image branch layers for STAGE 1
                                     vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
