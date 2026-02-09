@@ -1,7 +1,7 @@
 ================================================================================
 GENERATIVE AUGMENTATION EFFECTIVENESS TEST - RESULTS
 ================================================================================
-Test Date: 2026-02-07 19:45:33
+Test Date: 2026-02-09 04:09:45
 Modalities: metadata, depth_rgb, depth_map, thermal_map
 Mode: FULL PRODUCTION
 Settings: 100% data, 300 epochs, 64x64 images
@@ -12,17 +12,17 @@ RESULTS SUMMARY
 
 Configuration                       Kappa   Accuracy   F1 Macro    Runtime
 --------------------------------------------------------------------------------
-Baseline (no gen aug)          0.2717   0.5592   0.4467   66.2 min
-With SDXL gen aug (v3)         0.2733   0.5625   0.4476   68.5 min
+Baseline (no gen aug)          0.2459   0.6262   0.4692   226.0 min
+With SDXL gen aug (v3)         0.2259   0.6177   0.4594   246.4 min
 
-Kappa Improvement: +0.6%
+Kappa Improvement: -8.1%
 
 ================================================================================
 INTERPRETATION
 ================================================================================
 
-⚠ MARGINAL: Generative augmentation shows minor improvement.
-  Recommendation: Consider cost/benefit (48 GB models, slower training).
+✗ NOT EFFECTIVE: Generative augmentation does not improve performance.
+  Recommendation: Keep USE_GENERATIVE_AUGMENTATION = False.
 
 Detailed logs: agent_communication/generative_augmentation/gengen_test.log
 ================================================================================
