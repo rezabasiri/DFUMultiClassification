@@ -92,9 +92,10 @@ class EpochMemoryCallback(tf.keras.callbacks.Callback):
             for i, _ in enumerate(gpus):
                 try:
                     tf.config.experimental.reset_memory_stats(f'GPU:{i}')
-                except (ValueError, RuntimeError):
+                except (ValueError, RuntimeError) as e:
                     # GPU may not be available (e.g., CPU-only mode)
-                    pass
+                    if i == 0:  # Only warn once to avoid spam
+                        print(f"\033[1m⚠️  Note: Could not reset GPU memory stats - may be running in CPU-only mode ({str(e)})\033[0m")
 
 class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
     """Print epoch metrics only every N epochs to reduce output clutter"""

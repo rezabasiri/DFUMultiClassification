@@ -65,19 +65,19 @@ def get_gpu_info() -> List[Dict[str, any]]:
                     'compute_cap': compute_cap
                 })
             except (ValueError, IndexError) as e:
-                print(f"⚠️  Failed to parse GPU info line: {line} ({e})")
+                print(f"\033[1m⚠️  Failed to parse GPU info line: {line} ({e})\033[0m")
                 continue
 
         return gpus
 
     except FileNotFoundError:
-        print("⚠️  nvidia-smi not found - no NVIDIA GPUs available")
+        print("\033[1m⚠️  nvidia-smi not found - no NVIDIA GPUs available\033[0m")
         return []
     except subprocess.TimeoutExpired:
-        print("⚠️  nvidia-smi timeout - GPU detection failed")
+        print("\033[1m⚠️  nvidia-smi timeout - GPU detection failed\033[0m")
         return []
     except Exception as e:
-        print(f"⚠️  GPU detection error: {e}")
+        print(f"\033[1m⚠️  GPU detection error: {e}\033[0m")
         return []
 
 

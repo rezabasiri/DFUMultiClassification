@@ -2062,6 +2062,13 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
     try:
         results_df = pd.read_csv(csv_filename)
         if len(results_df) > 0:
+            # IMPORTANT: When running with subprocess isolation per fold, the CSV will have multiple rows
+            # for the same modality combination (one per fold subprocess completing). Each fold subprocess
+            # appends a new row with metrics aggregated from all completed folds up to that point.
+            # The LAST row for each modality combination has the most folds aggregated (most complete result).
+            # Drop duplicates keeping 'last' occurrence of each modality combination.
+            results_df = results_df.drop_duplicates(subset='Modalities', keep='last')
+
             # Best by accuracy
             best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
             best_acc_row = results_df.loc[best_acc_idx]
