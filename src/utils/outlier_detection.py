@@ -551,6 +551,20 @@ def detect_outliers_combination(combination, contamination=0.15, random_state=42
 
     vprint(f"Detecting outliers for combination: {combo_name} (contamination={contamination*100:.0f}%)...", level=1)
 
+    # Ensure best_matching.csv exists
+    if not Path(data_paths['best_matching_csv']).exists():
+        print(f"\033[1m📝 Creating best_matching.csv (not found at {data_paths['best_matching_csv']})\033[0m")
+        from src.data.image_processing import create_best_matching_dataset
+        create_best_matching_dataset(
+            data_paths['bb_depth_csv'],
+            data_paths['bb_thermal_csv'],
+            data_paths['csv_file'],
+            data_paths['depth_folder'],
+            data_paths['thermal_folder'],
+            data_paths['best_matching_csv']
+        )
+        print(f"\033[1m✓ Successfully created best_matching.csv\033[0m")
+
     # Load best_matching dataset (contains all samples with metadata)
     best_matching_df = pd.read_csv(data_paths['best_matching_csv'])
     n_samples = len(best_matching_df)

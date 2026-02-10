@@ -5,19 +5,19 @@
   ],
   "results": {
     "baseline": {
-      "kappa": 0.2867,
-      "accuracy": 0.5753,
-      "f1_macro": 0.484,
+      "kappa": 0.2694,
+      "accuracy": 0.5432,
+      "f1_macro": 0.4475,
       "f1_weighted": null,
-      "runtime_min": 158.48549910386404,
+      "runtime_min": 442.56355065107346,
       "success": true
     },
     "gengen_enabled": {
-      "kappa": 0.2569,
-      "accuracy": 0.5642,
-      "f1_macro": 0.4733,
+      "kappa": 0.2742,
+      "accuracy": 0.5518,
+      "f1_macro": 0.4591,
       "f1_weighted": null,
-      "runtime_min": 170.95981888373692,
+      "runtime_min": 602.0870609283447,
       "success": true
     }
   }
