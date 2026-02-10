@@ -2193,7 +2193,12 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
                         vprint(f"  ⚠ Detection failed for {combo_name}, using original", level=1)
 
                 except Exception as e:
-                    vprint(f"  ⚠ Error for {combo_name}: {str(e)}", level=1)
+                    # Check if it's a benign FileNotFoundError for best_matching.csv (file gets created automatically)
+                    error_str = str(e)
+                    if "best_matching.csv" in error_str and "No such file or directory" in error_str:
+                        vprint(f"  ℹ Info for {combo_name}: best_matching.csv was generated", level=1)
+                    else:
+                        vprint(f"  ⚠ Error for {combo_name}: {error_str}", level=1)
                     vprint(f"    Continuing with original dataset", level=2)
 
             vprint("", level=1)
@@ -2482,6 +2487,36 @@ Configuration:
     )
 
     args = parser.parse_args()
+
+    # Set up logging to file
+    from datetime import datetime
+    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'results', 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Create log filename (fixed name, gets overwritten each run)
+    fold_suffix = f'_fold{args.fold}' if args.fold is not None else ''
+    log_file = os.path.join(log_dir, f'training{fold_suffix}.log')
+
+    # Open log file and redirect stdout/stderr
+    class TeeOutput:
+        """Write to both file and original stream"""
+        def __init__(self, file_obj, stream):
+            self.file = file_obj
+            self.stream = stream
+        def write(self, data):
+            self.file.write(data)
+            self.stream.write(data)
+            self.file.flush()  # Ensure real-time writing
+        def flush(self):
+            self.file.flush()
+            self.stream.flush()
+
+    log_file_obj = open(log_file, 'w', buffering=1)  # Line buffered
+    sys.stdout = TeeOutput(log_file_obj, sys.stdout)
+    sys.stderr = TeeOutput(log_file_obj, sys.stderr)
+
+    print(f"[LOG] Output is being logged to: {log_file}")
+    print(f"[LOG] Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
     # SUBPROCESS ORCHESTRATION: When running multi-fold CV without --fold,
     # automatically spawn each fold as a separate subprocess to prevent

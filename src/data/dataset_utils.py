@@ -225,6 +225,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         image_size: Target image size for preprocessing (default: 128)
         fold_id: Fold/run identifier for k-fold CV (ensures unique cache per fold)
     """
+    import time
+    print(f"[TIME_DEBUG] create_cached_dataset START (fold={fold_id}, training={is_training})", flush=True)
+    t_start = time.time()
+
     # Extract folder paths from data_paths for use in nested functions
     image_folder = data_paths['image_folder']
     depth_folder = data_paths['depth_folder']
@@ -232,53 +236,114 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     thermal_rgb_folder = data_paths['thermal_rgb_folder']
 
     def process_single_sample(filename, bb_coords, modality_name):
-        """Process a single image sample using py_function"""
-        def _process_image(filename_tensor, bb_coords_tensor, modality_tensor):
-            try:
-                # Convert tensors to numpy/python types
-                filename_str = filename_tensor.numpy().decode('utf-8')
-                bb_coords_float = bb_coords_tensor.numpy()
-                modality_str = modality_tensor.numpy().decode('utf-8')
-                
-                base_folders = {
-                    'depth_rgb': image_folder,
-                    'depth_map': depth_folder,
-                    'thermal_rgb': thermal_rgb_folder,
-                    'thermal_map': thermal_folder
-                }
-                
-                img_path = os.path.join(base_folders[modality_str], filename_str)
-                img_tensor = load_and_preprocess_image(
-                    img_path,
-                    bb_coords_float,
-                    modality_str,
-                    target_size=(image_size, image_size),
-                    augment=is_training  # Enable augmentation for training data only
-                )
-                
-                # Convert TensorFlow tensor to numpy array
-                if isinstance(img_tensor, tf.Tensor):
-                    img_array = img_tensor.numpy()
-                else:
-                    img_array = np.array(img_tensor)
-                
-                return img_array
-            
-            except Exception as e:
-                vprint(f"Error in _process_image: {str(e)}", level=1)
-                vprint(f"Error type: {type(e)}", level=1)
-                import traceback
-                traceback.print_exc()
-                return np.zeros((image_size, image_size, 3), dtype=np.float32)
+        """Process a single image sample using GPU-accelerated tf.io (replaces PIL/py_function)"""
+        # Build file path using tf.case for conditional logic
+        img_path = tf.case([
+            (tf.equal(modality_name, 'depth_rgb'), lambda: tf.strings.join([image_folder, '/', filename])),
+            (tf.equal(modality_name, 'depth_map'), lambda: tf.strings.join([depth_folder, '/', filename])),
+            (tf.equal(modality_name, 'thermal_rgb'), lambda: tf.strings.join([thermal_rgb_folder, '/', filename])),
+            (tf.equal(modality_name, 'thermal_map'), lambda: tf.strings.join([thermal_folder, '/', filename])),
+        ], default=lambda: tf.strings.join([image_folder, '/', filename]), exclusive=True)
 
-        processed_image = tf.py_function(
-            _process_image,
-            [filename, bb_coords, modality_name],
-            tf.float32
+        # GPU-accelerated JPEG decode
+        img_raw = tf.io.read_file(img_path)
+        img = tf.io.decode_jpeg(img_raw, channels=3)
+        img = tf.cast(img, tf.float32)
+
+        # Extract bounding box coordinates
+        xmin = tf.cast(bb_coords[0], tf.int32)
+        ymin = tf.cast(bb_coords[1], tf.int32)
+        xmax = tf.cast(bb_coords[2], tf.int32)
+        ymax = tf.cast(bb_coords[3], tf.int32)
+
+        # Get image dimensions
+        img_shape = tf.shape(img)
+        img_height = img_shape[0]
+        img_width = img_shape[1]
+
+        # Apply modality-specific bounding box adjustments
+        def adjust_depth_map_bb(xmin, ymin, xmax, ymax):
+            # Replicate adjust_bounding_box logic from image_processing.py
+            fov_error = 3
+            fov_min_h = 69  # min(87, 69)
+            fov_min_v = 42  # min(58, 42)
+
+            xmin_adj = tf.cast(tf.cast(xmin, tf.float32) * (1.0 - tf.cast(fov_error, tf.float32)/tf.cast(fov_min_h, tf.float32)), tf.int32)
+            ymin_adj = tf.cast(tf.cast(ymin, tf.float32) * (1.0 - tf.cast(fov_error, tf.float32)/tf.cast(fov_min_v, tf.float32)), tf.int32)
+            xmax_adj = tf.cast(tf.cast(xmax, tf.float32) * (1.0 + tf.cast(fov_error, tf.float32)/tf.cast(fov_min_h, tf.float32)), tf.int32)
+            ymax_adj = tf.cast(tf.cast(ymax, tf.float32) * (1.0 + tf.cast(fov_error, tf.float32)/tf.cast(fov_min_v, tf.float32)), tf.int32)
+
+            return xmin_adj, ymin_adj, xmax_adj, ymax_adj
+
+        def adjust_thermal_map_bb(xmin, ymin, xmax, ymax):
+            return xmin - 30, ymin - 30, xmax + 30, ymax + 30
+
+        # Conditional bounding box adjustment
+        xmin, ymin, xmax, ymax = tf.case([
+            (tf.equal(modality_name, 'depth_map'), lambda: adjust_depth_map_bb(xmin, ymin, xmax, ymax)),
+            (tf.equal(modality_name, 'thermal_map'), lambda: adjust_thermal_map_bb(xmin, ymin, xmax, ymax)),
+        ], default=lambda: (xmin, ymin, xmax, ymax))
+
+        # Ensure coordinates are within bounds
+        xmin = tf.maximum(0, tf.minimum(xmin, img_width - 1))
+        xmax = tf.maximum(xmin + 1, tf.minimum(xmax, img_width))
+        ymin = tf.maximum(0, tf.minimum(ymin, img_height - 1))
+        ymax = tf.maximum(ymin + 1, tf.minimum(ymax, img_height))
+
+        # Crop to bounding box
+        crop_height = ymax - ymin
+        crop_width = xmax - xmin
+        cropped_img = tf.image.crop_to_bounding_box(img, ymin, xmin, crop_height, crop_width)
+
+        # Resize with aspect ratio preservation and padding
+        # Calculate target dimensions maintaining aspect ratio
+        original_height = tf.cast(crop_height, tf.float32)
+        original_width = tf.cast(crop_width, tf.float32)
+        aspect_ratio = original_width / original_height
+
+        target_size_float = tf.cast(image_size, tf.float32)
+        new_width = tf.cond(
+            aspect_ratio > 1.0,
+            lambda: target_size_float,
+            lambda: target_size_float * aspect_ratio
         )
-        # Set the shape that was lost during py_function
-        processed_image.set_shape((image_size, image_size, 3))
-        return processed_image
+        new_height = tf.cond(
+            aspect_ratio > 1.0,
+            lambda: target_size_float / aspect_ratio,
+            lambda: target_size_float
+        )
+
+        new_width = tf.cast(tf.maximum(new_width, 1.0), tf.int32)
+        new_height = tf.cast(tf.maximum(new_height, 1.0), tf.int32)
+
+        # Resize
+        resized_img = tf.image.resize(cropped_img, [new_height, new_width], method='lanczos3')
+
+        # Pad to target size
+        pad_height = image_size - new_height
+        pad_width = image_size - new_width
+        pad_top = pad_height // 2
+        pad_bottom = pad_height - pad_top
+        pad_left = pad_width // 2
+        pad_right = pad_width - pad_left
+
+        padded_img = tf.pad(resized_img, [[pad_top, pad_bottom], [pad_left, pad_right], [0, 0]], constant_values=0)
+
+        # Normalize based on modality
+        normalized_img = tf.case([
+            (tf.logical_or(tf.equal(modality_name, 'depth_rgb'), tf.equal(modality_name, 'thermal_rgb')),
+             lambda: padded_img / 255.0),
+            (tf.logical_or(tf.equal(modality_name, 'depth_map'), tf.equal(modality_name, 'thermal_map')),
+             lambda: tf.cond(tf.reduce_max(padded_img) != 0,
+                           lambda: padded_img / tf.reduce_max(padded_img),
+                           lambda: padded_img / 255.0)),
+        ], default=lambda: padded_img / 255.0)
+
+        # Ensure shape
+        normalized_img = tf.reshape(normalized_img, (image_size, image_size, 3))
+        normalized_img.set_shape((image_size, image_size, 3))
+
+        return normalized_img
 
     def load_and_preprocess_single_sample(row):
         features = {}
@@ -359,12 +424,15 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Initialize dataset from DataFrame
     dataset = df_to_dataset(best_matching_df)
-    
+
     # Apply preprocessing to each sample
     dataset = dataset.map(
         load_and_preprocess_single_sample,
         num_parallel_calls=tf.data.AUTOTUNE
     )
+
+    t_after_map = time.time()
+    print(f"[TIME_DEBUG] Image loading map completed: {t_after_map - t_start:.2f}s", flush=True)
     
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
@@ -389,7 +457,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     os.makedirs(cache_dir, exist_ok=True)
     dataset = dataset.cache(os.path.join(cache_dir, cache_filename))
-    
+
+    t_after_cache = time.time()
+    print(f"[TIME_DEBUG] Cache setup completed: {t_after_cache - t_after_map:.2f}s", flush=True)
+
     with tf.device('/CPU:0'):
         pre_aug_dataset = dataset
         pre_aug_dataset = pre_aug_dataset.batch(batch_size)
@@ -409,6 +480,8 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
                 augmentation_fn,
                 num_parallel_calls=tf.data.AUTOTUNE,
                 )
+            t_after_aug = time.time()
+            print(f"[TIME_DEBUG] Augmentation setup: {t_after_aug - t_after_cache:.2f}s", flush=True)
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
         #     dataset = dataset.map(
@@ -418,6 +491,10 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Prefetch for better performance
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
+    t_end = time.time()
+    print(f"[TIME_DEBUG] create_cached_dataset COMPLETE: {t_end - t_start:.2f}s total", flush=True)
+
     return dataset, pre_aug_dataset, steps
 # First, add this helper function near the start of your prepare_cached_datasets function
 def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=False):
@@ -1114,6 +1191,10 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                 # Random Forest processing
                 if is_training:
+                    import time
+                    print(f"[TIME_DEBUG] RandomForest training START", flush=True)
+                    t_rf_start = time.time()
+
                     try:
                         import tensorflow_decision_forests as tfdf
                         vprint("Using TensorFlow Decision Forests", level=2)
@@ -1175,8 +1256,13 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         )
                         
                         # Train models
+                        print(f"[TIME_DEBUG] RF models created (tfdf)", flush=True)
                         rf_model1.fit(dataset1)
+                        t_rf1_done = time.time()
+                        print(f"[TIME_DEBUG] RF model 1 trained: {t_rf1_done - t_rf_start:.2f}s", flush=True)
                         rf_model2.fit(dataset2)
+                        t_rf2_done = time.time()
+                        print(f"[TIME_DEBUG] RF model 2 trained: {t_rf2_done - t_rf1_done:.2f}s", flush=True)
                     except ImportError:
                         vprint("Using Scikit-learn RandomForestClassifier")
                         from sklearn.ensemble import RandomForestClassifier
@@ -1209,8 +1295,13 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         y_bin1 = (y > 0).astype(int)
                         y_bin2 = (y > 1).astype(int)
                         # Train RF models
+                        print(f"[TIME_DEBUG] RF models created (sklearn)", flush=True)
                         rf_model1.fit(X, y_bin1)
+                        t_rf1_done = time.time()
+                        print(f"[TIME_DEBUG] RF model 1 trained: {t_rf1_done - t_rf_start:.2f}s", flush=True)
                         rf_model2.fit(X, y_bin2)
+                        t_rf2_done = time.time()
+                        print(f"[TIME_DEBUG] RF model 2 trained: {t_rf2_done - t_rf1_done:.2f}s", flush=True)
                 try:
                     import tensorflow_decision_forests as tfdf
                     dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
@@ -1251,6 +1342,11 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 split_data['rf_prob_I'] = prob_I
                 split_data['rf_prob_P'] = prob_P
                 split_data['rf_prob_R'] = prob_R
+
+                if is_training:
+                    t_rf_end = time.time()
+                    print(f"[TIME_DEBUG] RF predictions complete: {t_rf_end - t_rf2_done:.2f}s", flush=True)
+                    print(f"[TIME_DEBUG] RandomForest TOTAL: {t_rf_end - t_rf_start:.2f}s", flush=True)
             
             metadata_columns = [col for col in split_data.columns if col not in [
                 'Healing Phase Abs',

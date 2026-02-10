@@ -317,10 +317,23 @@ def adjust_bounding_box(xmin, ymin, xmax, ymax):
 
     return xmin, ymin, xmax, ymax
 def load_and_preprocess_image(filepath, bb_data, modality, target_size=(224, 224), augment=False):
+    import time
+    import random
+
+    # Sample timing every 1% of images
+    should_time = random.random() < 0.01
+
+    if should_time:
+        t_start = time.time()
 
     try:
         # Load image and convert to array
         img = load_img(filepath, color_mode="rgb", target_size=None)
+
+        if should_time:
+            t_after_load = time.time()
+            print(f"[TIME_DEBUG] Image load (PIL): {(t_after_load - t_start)*1000:.1f}ms", flush=True)
+
         img_array = img_to_array(img)
         
         # Get image dimensions
@@ -435,6 +448,11 @@ def load_and_preprocess_image(filepath, bb_data, modality, target_size=(224, 224
                     img_tensor = img_tensor / tf.reduce_max(img_tensor) if tf.reduce_max(img_tensor) != 0 else 255.
                 
                 img_tensor = tf.reshape(img_tensor, (*target_size, 3))
+
+                if should_time:
+                    t_end = time.time()
+                    print(f"[TIME_DEBUG] Image preprocess total: {(t_end - t_start)*1000:.1f}ms", flush=True)
+
                 return img_tensor
             except Exception as e:
                 print(f"Error processing augmentations for {filepath}: {str(e)} and tensor size {img_tensor.shape[:2]}")

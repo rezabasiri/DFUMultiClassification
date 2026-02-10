@@ -76,7 +76,7 @@ def _get_pretrain_cache_path(image_modality, fold_num):
                  f"_genaug{USE_GENERATIVE_AUGMENTATION}_{GENERATIVE_AUG_PROB}")
     config_hash = hashlib.md5(cache_key.encode()).hexdigest()[:12]
     os.makedirs(pretrain_cache_dir, exist_ok=True)
-    return os.path.join(pretrain_cache_dir, f'pretrain_{image_modality}_fold{fold_num}_{config_hash}.ckpt')
+    return os.path.join(pretrain_cache_dir, f'pretrain_{image_modality}_fold{fold_num}_{config_hash}.weights.h5')
 
 
 class EpochMemoryCallback(tf.keras.callbacks.Callback):
@@ -103,10 +103,19 @@ class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
         super().__init__()
         self.print_interval = print_interval if print_interval > 0 else 1
         self.total_epochs = total_epochs
+        self.epoch_start_time = None  # Track epoch start time
+
+    def on_epoch_begin(self, epoch, logs=None):
+        import time
+        self.epoch_start_time = time.time()
 
     def on_epoch_end(self, epoch, logs=None):
+        import time
         logs = logs or {}
         epoch_num = epoch + 1  # Convert 0-indexed to 1-indexed
+
+        # Calculate epoch time
+        epoch_time = time.time() - self.epoch_start_time if self.epoch_start_time else 0
 
         # Print if: first epoch, last epoch, or at interval
         should_print = (
@@ -116,7 +125,7 @@ class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
         )
 
         if should_print:
-            metrics_str = f"Epoch {epoch_num}/{self.total_epochs}"
+            metrics_str = f"[TIME_DEBUG] Epoch {epoch_num}/{self.total_epochs} - {epoch_time:.1f}s"
             if 'loss' in logs:
                 metrics_str += f" - loss: {logs['loss']:.4f}"
             if 'val_loss' in logs:
@@ -134,7 +143,7 @@ class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
             if 'val_cohen_kappa' in logs:
                 metrics_str += f" - val_kappa: {logs['val_cohen_kappa']:.4f}"
 
-            print(metrics_str)
+            print(metrics_str, flush=True)
 
 class NaNMonitorCallback(tf.keras.callbacks.Callback):
     """
@@ -188,11 +197,10 @@ def clean_up_training_resources():
 
 def create_checkpoint_filename(selected_modalities, run=1, config_name=0):
     modality_str = '_'.join(sorted(selected_modalities))
-    # Use TF checkpoint format (not .weights.h5) for multi-GPU compatibility
-    # TF checkpoint format avoids the "unsupported operand type(s) for /: 'Dataset' and 'int'" bug
-    # that occurs with HDF5 format on TF 2.15.1 with RTX 5090 multi-GPU
-    # When filepath doesn't end with .h5, ModelCheckpoint uses TF checkpoint format automatically
-    checkpoint_name = f'{modality_str}_{run}_{config_name}.ckpt'
+    # Keras 3 requires .weights.h5 extension when save_weights_only=True
+    # Previous TF checkpoint format (.ckpt) is no longer supported with save_weights_only=True
+    # Note: Keras 3 uses .weights.h5 but it's actually a more efficient format than Keras 2's HDF5
+    checkpoint_name = f'{modality_str}_{run}_{config_name}.weights.h5'
     return os.path.join(models_path, checkpoint_name)
 
 
@@ -200,26 +208,35 @@ def find_checkpoint_for_loading(checkpoint_path):
     """
     Find the best available checkpoint file for loading.
 
-    Supports backward compatibility: prefers .ckpt (TF format) but falls back to
-    .weights.h5 (HDF5 format) for older checkpoints.
+    Supports backward compatibility: prefers .weights.h5 (Keras 3 format) but falls back to
+    .ckpt (TF checkpoint format from Keras 2) for older checkpoints.
 
     Args:
-        checkpoint_path: Path to checkpoint (should end with .ckpt)
+        checkpoint_path: Path to checkpoint (should end with .weights.h5)
 
     Returns:
         Path to existing checkpoint file, or original path if none found.
-        Also returns format type ('ckpt', 'h5', or None).
+        Also returns format type ('h5', 'ckpt', or None).
     """
-    # Try .ckpt format first (TF checkpoint creates .ckpt.index and .ckpt.data-*)
-    ckpt_index = checkpoint_path + '.index'
-    if os.path.exists(ckpt_index) or os.path.exists(checkpoint_path):
-        return checkpoint_path, 'ckpt'
+    # Try .weights.h5 format first (Keras 3 standard)
+    if checkpoint_path.endswith('.weights.h5'):
+        if os.path.exists(checkpoint_path):
+            return checkpoint_path, 'h5'
+        # Also try legacy .ckpt format (convert path)
+        ckpt_path = checkpoint_path.replace('.weights.h5', '.ckpt')
+    else:
+        # Input path might be legacy .ckpt format
+        ckpt_path = checkpoint_path
+        # Try .weights.h5 format first
+        h5_path = checkpoint_path.replace('.ckpt', '.weights.h5')
+        if os.path.exists(h5_path):
+            return h5_path, 'h5'
 
-    # Fall back to .weights.h5 format (legacy)
-    h5_path = checkpoint_path.replace('.ckpt', '.weights.h5')
-    if os.path.exists(h5_path):
-        vprint(f"  Note: Loading legacy .weights.h5 checkpoint (will save as .ckpt)", level=2)
-        return h5_path, 'h5'
+    # Fall back to .ckpt format (legacy TF checkpoint creates .ckpt.index and .ckpt.data-*)
+    ckpt_index = ckpt_path + '.index'
+    if os.path.exists(ckpt_index) or os.path.exists(ckpt_path):
+        vprint(f"  Note: Loading legacy .ckpt checkpoint (will save as .weights.h5)", level=2)
+        return ckpt_path, 'ckpt'
 
     # No checkpoint found
     return checkpoint_path, None
@@ -1284,6 +1301,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                             # AUTOMATIC PRE-TRAINING: Train image-only model inline
                             if not fusion_use_pretrained:
+                                import time
+                                print(f"[TIME_DEBUG] Pre-training phase START", flush=True)
+                                t_pretrain_start = time.time()
+
                                 vprint("=" * 80, level=1)
                                 vprint(f"AUTOMATIC PRE-TRAINING: {image_modality} weights not found", level=1)
                                 vprint(f"  Training {image_modality}-only model first (same data split)...", level=1)
@@ -1308,6 +1329,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
                                     )
 
+                                    t_after_compile = time.time()
+                                    print(f"[TIME_DEBUG] Pre-train model compiled: {t_after_compile - t_pretrain_start:.2f}s", flush=True)
+
                                     # Create filtered dataset for pre-training (only image modality, not metadata)
                                     # Must filter from master datasets to get only the image modality input
                                     pretrain_train_dataset = filter_dataset_modalities(master_train_dataset, [image_modality])
@@ -1321,6 +1345,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                     pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                     pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
+
+                                    t_after_dist = time.time()
+                                    print(f"[TIME_DEBUG] Datasets distributed to GPUs: {t_after_dist - t_after_compile:.2f}s", flush=True)
 
                                     # Pre-training callbacks
                                     pretrain_callbacks = [
@@ -1367,6 +1394,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                     vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
 
+                                    print(f"[TIME_DEBUG] Starting pre-train model.fit() with {max_epochs} max epochs", flush=True)
+                                    t_fit_start = time.time()
+
                                     # Train image-only model
                                     pretrain_history = pretrain_model.fit(
                                         pretrain_train_dis,
@@ -1377,6 +1407,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         callbacks=pretrain_callbacks,
                                         verbose=pretrain_verbose
                                     )
+
+                                    t_fit_end = time.time()
+                                    print(f"[TIME_DEBUG] Pre-train model.fit() completed: {t_fit_end - t_fit_start:.2f}s ({(t_fit_end - t_fit_start)/60:.1f} min)", flush=True)
 
                                     # Get best kappa from pre-training
                                     pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
@@ -1419,6 +1452,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     fusion_use_pretrained = True
                                     vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
                                     vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+
+                                    t_pretrain_end = time.time()
+                                    print(f"[TIME_DEBUG] Pre-training TOTAL: {t_pretrain_end - t_pretrain_start:.2f}s ({(t_pretrain_end - t_pretrain_start)/60:.1f} min)", flush=True)
 
                                     # DEBUG: Show trainable weights breakdown
                                     vprint("  DEBUG: Trainable weights breakdown after freezing:", level=2)
@@ -1576,6 +1612,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint("=" * 80, level=2)
 
                                 # Stage 1: Train with frozen image branch
+                                import time
+                                print(f"[TIME_DEBUG] Stage 1 training START (max_epochs={STAGE1_EPOCHS})", flush=True)
+                                t_stage1_start = time.time()
+
                                 stage1_epochs = STAGE1_EPOCHS
                                 stage1_callbacks = [
                                     EarlyStopping(
@@ -1587,7 +1627,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         verbose=1
                                     ),
                                     tf.keras.callbacks.ModelCheckpoint(
-                                        checkpoint_path.replace('.ckpt', '_stage1.ckpt'),
+                                        checkpoint_path.replace('.weights.h5', '_stage1.weights.h5'),
                                         monitor='val_weighted_f1_score',
                                         save_best_only=True,
                                         mode='max',
@@ -1604,8 +1644,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     verbose=fit_verbose
                                 )
 
+                                t_stage1_end = time.time()
+                                print(f"[TIME_DEBUG] Stage 1 training COMPLETE: {t_stage1_end - t_stage1_start:.2f}s ({(t_stage1_end - t_stage1_start)/60:.1f} min)", flush=True)
+
                                 # Load best Stage 1 weights
-                                stage1_path = checkpoint_path.replace('.ckpt', '_stage1.ckpt')
+                                stage1_path = checkpoint_path.replace('.weights.h5', '_stage1.weights.h5')
                                 stage1_load_path, _ = find_checkpoint_for_loading(stage1_path)
                                 model.load_weights(stage1_load_path)
                                 stage1_best_kappa = max(history_stage1.history.get('val_cohen_kappa', [0]))
@@ -1633,6 +1676,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint(f"  Model recompiled with LR=1e-6", level=2)
 
                                 # Stage 2: Fine-tune with aggressive early stopping
+                                print(f"[TIME_DEBUG] Stage 2 training START (max_epochs=100)", flush=True)
+                                t_stage2_start = time.time()
+
                                 stage2_epochs = 100  # Allow more epochs but will likely stop early
                                 stage2_callbacks = [
                                     EarlyStopping(
@@ -1660,6 +1706,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage2_callbacks,
                                     verbose=fit_verbose
                                 )
+
+                                t_stage2_end = time.time()
+                                print(f"[TIME_DEBUG] Stage 2 training COMPLETE: {t_stage2_end - t_stage2_start:.2f}s ({(t_stage2_end - t_stage2_start)/60:.1f} min)", flush=True)
 
                                 stage2_best_kappa = max(history_stage2.history.get('val_cohen_kappa', [stage1_best_kappa]))
                                 vprint("=" * 80, level=2)

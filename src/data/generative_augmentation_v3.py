@@ -266,22 +266,23 @@ def augment_image(image, modality, seed, config):
     if seed_val is None:
         seed_val = 42
 
-    # Try augmentation - run on CPU to avoid deterministic GPU issues with AdjustContrastv2
+    # Apply GPU-accelerated augmentation
+    # NOTE: Removed CPU device placement - all tf.image ops are GPU-compatible
+    # If deterministic behavior is required, set TF_DETERMINISTIC_OPS=1 environment variable
     try:
         settings = config.modality_settings[modality]['regular_augmentations']
-        with tf.device('/CPU:0'):
-            if modality in ['depth_rgb', 'thermal_rgb']:
-                augmented = tf.map_fn(
-                    lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
-                    image,
-                    fn_output_signature=tf.float32
-                )
-            else:
-                augmented = tf.map_fn(
-                    lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
-                    image,
-                    fn_output_signature=tf.float32
-                )
+        if modality in ['depth_rgb', 'thermal_rgb']:
+            augmented = tf.map_fn(
+                lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
+                image,
+                fn_output_signature=tf.float32
+            )
+        else:
+            augmented = tf.map_fn(
+                lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
+                image,
+                fn_output_signature=tf.float32
+            )
 
         augmented = tf.ensure_shape(augmented, [
             None,
@@ -687,8 +688,18 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     # Track how many generated sample images have been saved (max 3)
     _saved_gen_samples = [0]
 
+    # Track augmentation timing (sample 1% of batches)
+    import time
+    _aug_timing_counter = [0]
+    _aug_timing_interval = 100  # Sample every 100 batches
+
     def apply_augmentation(features, label):
         def augment_batch(features_dict, label_tensor):
+            # Timing: Sample every N batches to measure performance
+            should_time = (_aug_timing_counter[0] % _aug_timing_interval == 0)
+            if should_time:
+                t_aug_start = time.time()
+
             output_features = {}
 
             @tf.function
@@ -815,6 +826,13 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                         value = tf.where(real_mask_expanded, augmented_value, value)
 
                 output_features[key] = value
+
+            # Timing: Print if this batch was sampled
+            if should_time:
+                t_aug_end = time.time()
+                print(f"[TIME_DEBUG] Augmentation batch (GPU): {(t_aug_end - t_aug_start)*1000:.1f}ms", flush=True)
+
+            _aug_timing_counter[0] += 1
 
             return output_features, label_tensor
 
