@@ -25,9 +25,9 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+IMAGE_SIZE = 32  # TEMPORARY: Multi-param search trial 0
 GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
-N_EPOCHS = 100  # Full training epochs
+N_EPOCHS = 160  # TEMPORARY: Multi-param search trial 0
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
 # ----------------------------------------------------------------
@@ -63,7 +63,7 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 10  # Stage 1 fusion training epochs (frozen image branch)
+STAGE1_EPOCHS = 8  # TEMPORARY: Multi-param search trial 0
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
@@ -85,8 +85,8 @@ REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for long
 
 # Multimodal outlier detection (Isolation Forest on joint feature space)
 OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
-OUTLIER_CONTAMINATION = 0.15  # Expected proportion of outliers (0.0-1.0)
-OUTLIER_BATCH_SIZE = 64  # Batch size for on-the-fly feature extraction
+OUTLIER_CONTAMINATION = 0.18  # TEMPORARY: Multi-param search trial 0
+OUTLIER_BATCH_SIZE = 16  # TEMPORARY: Multi-param search trial 0
 
 # General augmentation (applied during training only, not validation)
 # RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15

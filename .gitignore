@@ -66,8 +66,12 @@ results/pretrain_cache/
 
 # Contamination search experiment
 agent_communication/contamination_search/logs/
+agent_communication/contamination_search/logs_multi/
 agent_communication/contamination_search/results/
 *.backup_search
+*.backup_multi
+*.db  # Optuna SQLite database
+*.db-journal  # SQLite journal files
 
 # raw data
 data/raw/Depth_Map_IMG/
