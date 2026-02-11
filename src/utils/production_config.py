@@ -46,10 +46,10 @@ N_EPOCHS = 100  # Full training epochs
 #   - Quick test: 5 epochs
 #
 # LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
-#   - Defines how long to explore different learning rates
-#   - Should match N_EPOCHS for full training
-#   - Production: 100 epochs
-#   - Quick test: 50 epochs (auto-set to match N_EPOCHS in test script)
+#   - Defines how long to stay at initial LR before entering cosine annealing
+#   - Automatically set to 10% of N_EPOCHS (matches STAGE1_EPOCHS ratio)
+#   - Production (N_EPOCHS=100): 10 epochs exploration
+#   - After exploration, uses cosine annealing with warm restarts
 #
 # Example production timeline (N_EPOCHS=100, STAGE1_EPOCHS=10):
 #   1. Pre-training: 0-100 epochs (trains image-only model)
@@ -161,6 +161,15 @@ PROGRESS_BAR_UPDATE_INTERVAL = 1  # Seconds between progress bar updates
 GATING_NUM_HEADS_MULTIPLIER = 1  # num_heads = max(8, num_models + this)
 GATING_KEY_DIM_MULTIPLIER = 2  # key_dim = max(16, multiplier * (num_models + 1))
 
+# Neural network hyperparameters (moved from hardcoded values in main.py)
+DROPOUT_RATE = 0.3  # Dropout rate for ResidualBlock
+GATING_DROPOUT_RATE = 0.1  # Dropout rate for gating network MultiHeadAttention layers
+GATING_L2_REGULARIZATION = 1e-4  # L2 regularization for gating network dense layers
+ATTENTION_TEMPERATURE = 0.1  # Initial temperature for dual-level attention
+TEMPERATURE_MIN_VALUE = 0.01  # Minimum temperature value for scaling
+ATTENTION_CLASS_NUM_HEADS = 8  # Number of attention heads for class-level attention
+ATTENTION_CLASS_KEY_DIM = 32  # Key dimension for class-level attention
+
 # Training parameters
 GATING_LEARNING_RATE = 1e-3  # Adam optimizer learning rate
 GATING_EPOCHS = 30  # Maximum number of epochs (reduced for faster testing)
@@ -187,6 +196,11 @@ HIERARCHICAL_EMBEDDING_DIM = 32  # Embedding dimension for hierarchical network
 HIERARCHICAL_NUM_HEADS = 2  # Number of attention heads in transformer
 HIERARCHICAL_FF_DIM_MULTIPLIER = 2  # Feed-forward dim = embedding_dim * this
 
+# Hierarchical neural network hyperparameters (moved from hardcoded values in main.py)
+TRANSFORMER_DROPOUT_RATE = 0.1  # Dropout rate for TransformerBlock
+HIERARCHICAL_L2_REGULARIZATION = 0.001  # L2 regularization for hierarchical gating output layer
+LAYER_NORM_EPSILON = 1e-6  # Epsilon for LayerNormalization layers
+
 # Training parameters
 HIERARCHICAL_LEARNING_RATE = 1e-3  # Adam optimizer learning rate
 HIERARCHICAL_EPOCHS = 50  # Maximum number of epochs
@@ -209,7 +223,7 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
 LR_SCHEDULE_MIN_LR = 1e-14  # Minimum learning rate
-LR_SCHEDULE_EXPLORATION_EPOCHS = 300  # Number of exploration epochs
+LR_SCHEDULE_EXPLORATION_EPOCHS = int(N_EPOCHS * 0.10)  # Exploration epochs (10% of N_EPOCHS, auto-adjusts when N_EPOCHS changes)
 LR_SCHEDULE_CYCLE_LENGTH = 30  # Initial cycle length
 LR_SCHEDULE_CYCLE_MULTIPLIER = 2.0  # Factor to multiply cycle length
 
@@ -263,8 +277,7 @@ ENTROPY_LOSS_WEIGHT = 0.2  # Base weight for entropy in total loss
 
 # Focal ordinal loss defaults (when not specified)
 FOCAL_ORDINAL_WEIGHT = 0.5  # Default ordinal penalty weight
-FOCAL_GAMMA = 1.0  # Reduced from 2.0 to be less aggressive with easy examples
-FOCAL_ALPHA = 0.25  # Default focal loss alpha
+# Note: HIERARCHICAL_FOCAL_GAMMA and HIERARCHICAL_FOCAL_ALPHA are used for hierarchical gating
 
 # =============================================================================
 # Cross-Validation Configuration

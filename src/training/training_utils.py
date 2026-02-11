@@ -125,7 +125,7 @@ class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
         )
 
         if should_print:
-            metrics_str = f"[TIME_DEBUG] Epoch {epoch_num}/{self.total_epochs} - {epoch_time:.1f}s"
+            metrics_str = f"Epoch {epoch_num}/{self.total_epochs} - {epoch_time:.1f}s"
             if 'loss' in logs:
                 metrics_str += f" - loss: {logs['loss']:.4f}"
             if 'val_loss' in logs:
@@ -1316,10 +1316,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                             # AUTOMATIC PRE-TRAINING: Train ALL missing image modalities
                             if missing_modalities:
-                                import time
-                                print(f"[TIME_DEBUG] Pre-training phase START (training {len(missing_modalities)} modalities)", flush=True)
-                                t_pretrain_all_start = time.time()
-
                                 vprint("=" * 80, level=1)
                                 vprint(f"AUTOMATIC PRE-TRAINING: {len(missing_modalities)} modality(ies) need training", level=1)
                                 vprint(f"  Missing modalities: {missing_modalities}", level=1)
@@ -1331,8 +1327,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     vprint("=" * 80, level=1)
                                     vprint(f"PRE-TRAINING {modality_idx}/{len(missing_modalities)}: {image_modality}", level=1)
                                     vprint("=" * 80, level=1)
-
-                                    t_pretrain_start = time.time()
 
                                     try:
                                         # Get checkpoint path for this specific modality
@@ -1356,9 +1350,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
                                         )
 
-                                        t_after_compile = time.time()
-                                        print(f"[TIME_DEBUG] Pre-train {image_modality} model compiled: {t_after_compile - t_pretrain_start:.2f}s", flush=True)
-
                                         # Create filtered dataset for pre-training (only this image modality, not metadata)
                                         # Must filter from master datasets to get only the image modality input
                                         pretrain_train_dataset = filter_dataset_modalities(master_train_dataset, [image_modality])
@@ -1372,9 +1363,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                         pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
-
-                                        t_after_dist = time.time()
-                                        print(f"[TIME_DEBUG] Datasets distributed to GPUs: {t_after_dist - t_after_compile:.2f}s", flush=True)
 
                                         # Pre-training callbacks
                                         pretrain_callbacks = [
@@ -1421,9 +1409,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
 
-                                        print(f"[TIME_DEBUG] Starting pre-train {image_modality} model.fit() with {max_epochs} max epochs", flush=True)
-                                        t_fit_start = time.time()
-
                                         # Train image-only model
                                         pretrain_history = pretrain_model.fit(
                                             pretrain_train_dis,
@@ -1434,9 +1419,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             callbacks=pretrain_callbacks,
                                             verbose=pretrain_verbose
                                         )
-
-                                        t_fit_end = time.time()
-                                        print(f"[TIME_DEBUG] Pre-train {image_modality} model.fit() completed: {t_fit_end - t_fit_start:.2f}s ({(t_fit_end - t_fit_start)/60:.1f} min)", flush=True)
 
                                         # Get best kappa from pre-training
                                         pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
@@ -1472,8 +1454,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         del pretrain_model, pretrain_train_dis, pretrain_valid_dis, pretrain_train_dataset, pretrain_valid_dataset  # Free memory and release thread pools
                                         gc.collect()
 
-                                        t_pretrain_end = time.time()
-                                        print(f"[TIME_DEBUG] Pre-training {image_modality} TOTAL: {t_pretrain_end - t_pretrain_start:.2f}s ({(t_pretrain_end - t_pretrain_start)/60:.1f} min)", flush=True)
                                         pretrained_modalities.append(image_modality)
 
                                     except Exception as e:
@@ -1502,9 +1482,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                     # Update fusion flag: True if we pre-trained at least one modality
                                     fusion_use_pretrained = True
-
-                                    t_pretrain_all_end = time.time()
-                                    print(f"[TIME_DEBUG] Pre-training ALL modalities TOTAL: {t_pretrain_all_end - t_pretrain_all_start:.2f}s ({(t_pretrain_all_end - t_pretrain_all_start)/60:.1f} min)", flush=True)
 
                                     # DEBUG: Show trainable weights breakdown
                                     vprint("  DEBUG: Trainable weights breakdown after freezing:", level=2)
@@ -1661,10 +1638,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint("=" * 80, level=2)
 
                                 # Stage 1: Train with frozen image branch
-                                import time
-                                print(f"[TIME_DEBUG] Stage 1 training START (max_epochs={STAGE1_EPOCHS})", flush=True)
-                                t_stage1_start = time.time()
-
                                 stage1_epochs = STAGE1_EPOCHS
                                 stage1_callbacks = [
                                     EarlyStopping(
@@ -1692,9 +1665,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage1_callbacks,
                                     verbose=fit_verbose
                                 )
-
-                                t_stage1_end = time.time()
-                                print(f"[TIME_DEBUG] Stage 1 training COMPLETE: {t_stage1_end - t_stage1_start:.2f}s ({(t_stage1_end - t_stage1_start)/60:.1f} min)", flush=True)
 
                                 # Load best Stage 1 weights
                                 stage1_path = checkpoint_path.replace('.weights.h5', '_stage1.weights.h5')
@@ -1731,9 +1701,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint(f"  Model recompiled with LR=1e-6", level=2)
 
                                 # Stage 2: Fine-tune with aggressive early stopping
-                                print(f"[TIME_DEBUG] Stage 2 training START (max_epochs=100)", flush=True)
-                                t_stage2_start = time.time()
-
                                 stage2_epochs = 100  # Allow more epochs but will likely stop early
                                 stage2_callbacks = [
                                     EarlyStopping(
@@ -1761,9 +1728,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     callbacks=stage2_callbacks,
                                     verbose=fit_verbose
                                 )
-
-                                t_stage2_end = time.time()
-                                print(f"[TIME_DEBUG] Stage 2 training COMPLETE: {t_stage2_end - t_stage2_start:.2f}s ({(t_stage2_end - t_stage2_start)/60:.1f} min)", flush=True)
 
                                 stage2_best_kappa = max(history_stage2.history.get('val_cohen_kappa', [stage1_best_kappa]))
                                 vprint("=" * 80, level=2)

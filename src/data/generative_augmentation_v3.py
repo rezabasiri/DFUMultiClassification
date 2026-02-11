@@ -688,18 +688,8 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     # Track how many generated sample images have been saved (max 3)
     _saved_gen_samples = [0]
 
-    # Track augmentation timing (sample 1% of batches)
-    import time
-    _aug_timing_counter = [0]
-    _aug_timing_interval = 100  # Sample every 100 batches
-
     def apply_augmentation(features, label):
         def augment_batch(features_dict, label_tensor):
-            # Timing: Sample every N batches to measure performance
-            should_time = (_aug_timing_counter[0] % _aug_timing_interval == 0)
-            if should_time:
-                t_aug_start = time.time()
-
             output_features = {}
 
             @tf.function
@@ -826,13 +816,6 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                         value = tf.where(real_mask_expanded, augmented_value, value)
 
                 output_features[key] = value
-
-            # Timing: Print if this batch was sampled
-            if should_time:
-                t_aug_end = time.time()
-                print(f"[TIME_DEBUG] Augmentation batch (GPU): {(t_aug_end - t_aug_start)*1000:.1f}ms", flush=True)
-
-            _aug_timing_counter[0] += 1
 
             return output_features, label_tensor
 

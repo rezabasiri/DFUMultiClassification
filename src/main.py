@@ -18,12 +18,6 @@ warnings.filterwarnings('ignore', message='.*BaseEstimator._check_feature_names.
 # This will be overridden later based on verbosity level, but default to minimal logging
 os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')  # Suppress INFO and WARNING messages (keep errors only)
 
-# Threading configuration (MUST be set before importing TensorFlow)
-# OMP_NUM_THREADS is read by OpenMP at library load time - setting it after import has no effect
-os.environ.setdefault("OMP_NUM_THREADS", "2")
-os.environ.setdefault("TF_NUM_INTEROP_THREADS", "2")
-os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "4")
-
 # GPU configuration will be set up later via argparse and gpu_config module
 # DO NOT set CUDA_VISIBLE_DEVICES here - it's handled dynamically based on --device-mode
 import glob
@@ -43,6 +37,11 @@ import gc
 # Add project root to path so we can import from src
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+
+# Import production config and apply environment settings BEFORE importing TensorFlow
+# Threading and determinism settings must be set before TF import
+from src.utils.production_config import apply_environment_config
+apply_environment_config()
 
 # TensorFlow and Keras
 import tensorflow as tf
@@ -498,17 +497,17 @@ class BestModelAttentionCallback(tf.keras.callbacks.Callback):
             # Only call the attention visualization when metric improves
             self.base_callback.on_epoch_end(epoch, logs)
 class ResidualBlock(tf.keras.layers.Layer):
-    def __init__(self, input_dim, dropout_rate=0.3):
+    def __init__(self, input_dim, dropout_rate=DROPOUT_RATE):
         super(ResidualBlock, self).__init__()
         # Store the arguments as instance attributes
         self._input_dim = input_dim  # using _input_dim to avoid conflict
         self._dropout_rate = dropout_rate
-        
+
         # Create layers in __init__
         self.dense1 = tf.keras.layers.Dense(input_dim, activation=None)
         self.dense2 = tf.keras.layers.Dense(input_dim, activation=None)
-        self.norm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        self.norm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.norm1 = tf.keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON)
+        self.norm2 = tf.keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON)
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
         self.activation = tf.keras.layers.ReLU()
     
@@ -553,22 +552,22 @@ class DualLevelAttentionLayer(tf.keras.layers.Layer):
         self.model_attention_scores = None
         self.class_attention_scores = None
         
-        # Add trainable temperature parameter
-        self.temperature = tf.Variable(0.1, trainable=True, name='attention_temperature')
-        
+        # Add trainable temperature parameter (from production_config)
+        self.temperature = tf.Variable(ATTENTION_TEMPERATURE, trainable=True, name='attention_temperature')
+
         # Add separate attention for different purposes
         self.model_attention = tf.keras.layers.MultiHeadAttention(
             num_heads=num_heads,
             key_dim=key_dim,
-            dropout=0.1,
-            kernel_regularizer=tf.keras.regularizers.l2(1e-4)
+            dropout=GATING_DROPOUT_RATE,
+            kernel_regularizer=tf.keras.regularizers.l2(GATING_L2_REGULARIZATION)
         )
-        
+
         self.class_attention = tf.keras.layers.MultiHeadAttention(
-            num_heads=8, #num_heads//2,  # Fewer heads for class attention or fix values becuase calsses dont change
-            key_dim=32,       # Larger key dimension
-            dropout=0.1,
-            kernel_regularizer=tf.keras.regularizers.l2(1e-4)
+            num_heads=ATTENTION_CLASS_NUM_HEADS,  # Fixed for class attention (classes don't change)
+            key_dim=ATTENTION_CLASS_KEY_DIM,
+            dropout=GATING_DROPOUT_RATE,
+            kernel_regularizer=tf.keras.regularizers.l2(GATING_L2_REGULARIZATION)
         )
         
         # Add gating mechanism
@@ -600,8 +599,8 @@ class DualLevelAttentionLayer(tf.keras.layers.Layer):
         return tf.py_function(convert_to_numpy, [attention_weights], attention_weights.dtype)
 
     def call(self, inputs, training=True):
-        # Scale inputs by learned temperature
-        scaled_inputs = inputs / tf.math.maximum(self.temperature, 0.01)
+        # Scale inputs by learned temperature (from production_config)
+        scaled_inputs = inputs / tf.math.maximum(self.temperature, TEMPERATURE_MIN_VALUE)
         
         # Model-level attention
         model_attended, model_weights = self.model_attention(
@@ -1338,13 +1337,13 @@ def write_save_best_combo_results(best_predictions, best_accuracy, best_weighted
 
     print(f"\nDetailed results saved to {results_file}")
 class TransformerBlock(Layer):
-    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
+    def __init__(self, embed_dim, num_heads, ff_dim, rate=TRANSFORMER_DROPOUT_RATE):
         super(TransformerBlock, self).__init__()
         self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
         self.ffn1 = Dense(ff_dim, activation="gelu")  # First Dense layer
         self.ffn2 = Dense(embed_dim)  # Second Dense layer
-        self.layernorm1 = LayerNormalization(epsilon=1e-6)
-        self.layernorm2 = LayerNormalization(epsilon=1e-6)
+        self.layernorm1 = LayerNormalization(epsilon=LAYER_NORM_EPSILON)
+        self.layernorm2 = LayerNormalization(epsilon=LAYER_NORM_EPSILON)
         self.dropout1 = Dropout(rate)
         self.dropout2 = Dropout(rate)
 
@@ -1413,11 +1412,10 @@ def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=HI
     combined = Concatenate()([transformer_pooled, residual])
     combined = Dense(embedding_dim, activation='relu')(combined)
     combined = LayerNormalization()(combined)
-    combined = Dropout(0.1)(combined)
-    
-    # Output probabilities
-    outputs = Dense(num_classes, activation='softmax', kernel_regularizer=tf.keras.regularizers.l2(0.001))(combined) ##TRY THIS TO AVOID OVERFITTING
-    # outputs = Dense(num_classes, activation='softmax')(combined)
+    combined = Dropout(TRANSFORMER_DROPOUT_RATE)(combined)
+
+    # Output probabilities (using L2 regularization from production_config)
+    outputs = Dense(num_classes, activation='softmax', kernel_regularizer=tf.keras.regularizers.l2(HIERARCHICAL_L2_REGULARIZATION))(combined)
     
     return Model(inputs=inputs, outputs=outputs)
 def focal_loss_gating_network(gamma=HIERARCHICAL_FOCAL_GAMMA, alpha=HIERARCHICAL_FOCAL_ALPHA):
@@ -1675,16 +1673,13 @@ def create_current_get_focal_ordinal_loss(ordinal_weight, gamma, alpha):
 def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
     """
     Perform grid search over loss function parameters.
+    Uses parameter values from production_config.py for consistency.
     """
-    # Define parameter grids
+    # Define parameter grids from production_config
     param_grid = {
-        'ordinal_weight': [1.0],
-        'gamma': [2.0, 3.0],
-        'alpha': [
-            [0.598, 0.315, 1.597],  # Your current weights
-            [1, 0.5, 2],  # Alternative weights
-            [1.5, 0.3, 1.5]  # Another alternative
-        ]
+        'ordinal_weight': GRID_SEARCH_ORDINAL_WEIGHTS,
+        'gamma': GRID_SEARCH_GAMMAS,
+        'alpha': GRID_SEARCH_ALPHAS
     }
     
     # Create results CSV
@@ -2546,7 +2541,7 @@ Configuration:
 
     # Now that CUDA_VISIBLE_DEVICES is set, configure TensorFlow
     tf.random.set_seed(RANDOM_SEED)
-    apply_environment_config()  # Apply threading and determinism settings
+    # Environment config already applied early (before TF import) - no need to reapply
     tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
 
     # Calculate effective batch size now that strategy is set up

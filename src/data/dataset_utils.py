@@ -225,10 +225,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         image_size: Target image size for preprocessing (default: 128)
         fold_id: Fold/run identifier for k-fold CV (ensures unique cache per fold)
     """
-    import time
-    print(f"[TIME_DEBUG] create_cached_dataset START (fold={fold_id}, training={is_training})", flush=True)
-    t_start = time.time()
-
     # Extract folder paths from data_paths for use in nested functions
     image_folder = data_paths['image_folder']
     depth_folder = data_paths['depth_folder']
@@ -431,9 +427,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         num_parallel_calls=tf.data.AUTOTUNE
     )
 
-    t_after_map = time.time()
-    print(f"[TIME_DEBUG] Image loading map completed: {t_after_map - t_start:.2f}s", flush=True)
-    
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
@@ -458,9 +451,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     os.makedirs(cache_dir, exist_ok=True)
     dataset = dataset.cache(os.path.join(cache_dir, cache_filename))
 
-    t_after_cache = time.time()
-    print(f"[TIME_DEBUG] Cache setup completed: {t_after_cache - t_after_map:.2f}s", flush=True)
-
     with tf.device('/CPU:0'):
         pre_aug_dataset = dataset
         pre_aug_dataset = pre_aug_dataset.batch(batch_size)
@@ -480,8 +470,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
                 augmentation_fn,
                 num_parallel_calls=tf.data.AUTOTUNE,
                 )
-            t_after_aug = time.time()
-            print(f"[TIME_DEBUG] Augmentation setup: {t_after_aug - t_after_cache:.2f}s", flush=True)
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
         #     dataset = dataset.map(
@@ -491,9 +479,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Prefetch for better performance
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
-
-    t_end = time.time()
-    print(f"[TIME_DEBUG] create_cached_dataset COMPLETE: {t_end - t_start:.2f}s total", flush=True)
 
     return dataset, pre_aug_dataset, steps
 # First, add this helper function near the start of your prepare_cached_datasets function
@@ -1191,10 +1176,6 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                 # Random Forest processing
                 if is_training:
-                    import time
-                    print(f"[TIME_DEBUG] RandomForest training START", flush=True)
-                    t_rf_start = time.time()
-
                     try:
                         import tensorflow_decision_forests as tfdf
                         vprint("Using TensorFlow Decision Forests", level=2)
@@ -1256,13 +1237,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         )
                         
                         # Train models
-                        print(f"[TIME_DEBUG] RF models created (tfdf)", flush=True)
                         rf_model1.fit(dataset1)
-                        t_rf1_done = time.time()
-                        print(f"[TIME_DEBUG] RF model 1 trained: {t_rf1_done - t_rf_start:.2f}s", flush=True)
                         rf_model2.fit(dataset2)
-                        t_rf2_done = time.time()
-                        print(f"[TIME_DEBUG] RF model 2 trained: {t_rf2_done - t_rf1_done:.2f}s", flush=True)
                     except ImportError:
                         vprint("Using Scikit-learn RandomForestClassifier")
                         from sklearn.ensemble import RandomForestClassifier
@@ -1295,13 +1271,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         y_bin1 = (y > 0).astype(int)
                         y_bin2 = (y > 1).astype(int)
                         # Train RF models
-                        print(f"[TIME_DEBUG] RF models created (sklearn)", flush=True)
                         rf_model1.fit(X, y_bin1)
-                        t_rf1_done = time.time()
-                        print(f"[TIME_DEBUG] RF model 1 trained: {t_rf1_done - t_rf_start:.2f}s", flush=True)
                         rf_model2.fit(X, y_bin2)
-                        t_rf2_done = time.time()
-                        print(f"[TIME_DEBUG] RF model 2 trained: {t_rf2_done - t_rf1_done:.2f}s", flush=True)
                 try:
                     import tensorflow_decision_forests as tfdf
                     dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
@@ -1343,11 +1314,6 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 split_data['rf_prob_P'] = prob_P
                 split_data['rf_prob_R'] = prob_R
 
-                if is_training:
-                    t_rf_end = time.time()
-                    print(f"[TIME_DEBUG] RF predictions complete: {t_rf_end - t_rf2_done:.2f}s", flush=True)
-                    print(f"[TIME_DEBUG] RandomForest TOTAL: {t_rf_end - t_rf_start:.2f}s", flush=True)
-            
             metadata_columns = [col for col in split_data.columns if col not in [
                 'Healing Phase Abs',
                 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',

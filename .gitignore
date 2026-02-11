@@ -64,6 +64,11 @@ results/modality_*.csv
 device*
 results/pretrain_cache/
 
+# Contamination search experiment
+agent_communication/contamination_search/logs/
+agent_communication/contamination_search/results/
+*.backup_search
+
 # raw data
 data/raw/Depth_Map_IMG/
 data/raw/Depth_RGB/
