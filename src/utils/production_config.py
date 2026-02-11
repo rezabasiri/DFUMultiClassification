@@ -25,9 +25,9 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 128  # Image dimensions (128x128 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 32  # Total batch size across all GPU replicas
-N_EPOCHS = 300  # Full training epochs
+IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
+N_EPOCHS = 100  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
 # ----------------------------------------------------------------
@@ -35,26 +35,26 @@ N_EPOCHS = 300  # Full training epochs
 #   - For pre-training (image-only models): Uses N_EPOCHS epochs
 #   - For Stage 1 (frozen image branch): Uses STAGE1_EPOCHS epochs
 #   - For Stage 2 (fine-tuning): Uses (N_EPOCHS - STAGE1_EPOCHS) epochs
-#   - Production: 300 epochs total
+#   - Production: 100 epochs total
 #   - Quick test: 50 epochs total (agent_communication/generative_augmentation/test_generative_aug.py)
 #
 # STAGE1_EPOCHS: Number of epochs for Stage 1 fusion training (frozen image branch)
 #   - Only used in two-stage fusion training
 #   - Image branch is frozen, only fusion layers train
 #   - Typically ~10% of N_EPOCHS (30 out of 300)
-#   - Production: 50 epochs
-#   - Quick test: 25 epochs
+#   - Production: 10 epochs
+#   - Quick test: 5 epochs
 #
 # LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
 #   - Defines how long to explore different learning rates
 #   - Should match N_EPOCHS for full training
-#   - Production: 300 epochs
+#   - Production: 100 epochs
 #   - Quick test: 50 epochs (auto-set to match N_EPOCHS in test script)
 #
-# Example production timeline (N_EPOCHS=300, STAGE1_EPOCHS=30):
-#   1. Pre-training: 0-300 epochs (trains image-only model)
-#   2. Stage 1: 0-30 epochs (frozen image, train fusion)
-#   3. Stage 2: 30-300 epochs (fine-tune everything)
+# Example production timeline (N_EPOCHS=100, STAGE1_EPOCHS=10):
+#   1. Pre-training: 0-100 epochs (trains image-only model)
+#   2. Stage 1: 0-10 epochs (frozen image, train fusion)
+#   3. Stage 2: 10-100 epochs (fine-tune everything)
 
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
@@ -63,7 +63,7 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 100  # Stage 1 fusion training epochs (frozen image branch)
+STAGE1_EPOCHS = 10  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)

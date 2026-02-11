@@ -1216,245 +1216,295 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         fusion_use_pretrained = False  # Track if pre-trained weights loaded successfully
 
                         if is_fusion:
-                            # Get the image modality name
-                            image_modality = [m for m in selected_modalities if m != 'metadata'][0]
+                            # Get ALL image modality names (not just the first one!)
+                            image_modalities = [m for m in selected_modalities if m != 'metadata']
 
-                            # CRITICAL: Use image modality as config_name to match thermal_map-only checkpoint
-                            # When thermal_map-only trains, it saves as: thermal_map_run1_thermal_map.ckpt
-                            # We need to load that same file, not thermal_map_run1_metadata+thermal_map.ckpt
-                            image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, image_modality)
-                            image_only_checkpoint, ckpt_format = find_checkpoint_for_loading(image_only_checkpoint)
+                            # Track which modalities successfully loaded pre-trained weights
+                            pretrained_modalities = []
+                            missing_modalities = []
 
-                            # Try to load pre-trained image weights
-                            if ckpt_format is not None:
-                                vprint(f"  Loading pre-trained {image_modality} weights from standalone training...", level=2)
-                                try:
-                                    # Create a temporary model with just the image modality to load weights
-                                    temp_model = create_multimodal_model(input_shapes, [image_modality], None)
-                                    temp_model.load_weights(image_only_checkpoint)
+                            vprint(f"  Fusion model with {len(image_modalities)} image modalities: {image_modalities}", level=2)
 
-                                    # Transfer image branch weights to fusion model
-                                    # Match layers by name (image layers have modality prefix)
-                                    for layer in temp_model.layers:
-                                        if image_modality in layer.name or layer.name == 'output':
-                                            try:
-                                                fusion_layer = model.get_layer(layer.name)
-                                                fusion_layer.set_weights(layer.get_weights())
-                                                vprint(f"    Loaded weights for layer: {layer.name}", level=3)
-                                            except ValueError:
-                                                continue  # Layer not found in fusion model (e.g., output layer) - expected
-                                            except Exception as e:
-                                                print(f"  [WARNING] Unexpected error loading weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
-                                                continue
+                            # Try to load pre-trained weights for EACH image modality
+                            for image_modality in image_modalities:
+                                modality_loaded = False
 
-                                    # FREEZE all image branch layers for STAGE 1
-                                    vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
-                                    frozen_layers = []
-                                    for layer in model.layers:
-                                        if image_modality in layer.name or 'image_classifier' in layer.name:
-                                            layer.trainable = False
-                                            frozen_layers.append(layer.name)
-                                            vprint(f"    Frozen layer: {layer.name}", level=3)
+                                # CRITICAL: Use image modality as config_name to match thermal_map-only checkpoint
+                                # When thermal_map-only trains, it saves as: thermal_map_run1_thermal_map.ckpt
+                                # We need to load that same file, not thermal_map_run1_metadata+thermal_map.ckpt
+                                image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, image_modality)
+                                image_only_checkpoint, ckpt_format = find_checkpoint_for_loading(image_only_checkpoint)
 
-                                    del temp_model  # Free memory
-                                    fusion_use_pretrained = True
-                                    vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
-                                    vprint(f"  Two-stage training: Stage 1 (frozen, 30 epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
-
-                                except Exception as e:
-                                    vprint(f"  Warning: Could not load pre-trained weights: {e}", level=1)
-                                    vprint(f"  Training image branch from scratch (may overfit!)", level=1)
-                                    fusion_use_pretrained = False
-
-                            # Check pretrain cache before training from scratch
-                            if not fusion_use_pretrained:
-                                pretrain_cache_path = _get_pretrain_cache_path(image_modality, run+1)
-                                cache_ckpt, cache_fmt = find_checkpoint_for_loading(pretrain_cache_path)
-
-                                if cache_fmt is not None:
-                                    vprint("=" * 80, level=1)
-                                    vprint(f"CACHED PRE-TRAINING: Loading {image_modality} weights from cache", level=1)
-                                    vprint(f"  Cache: {pretrain_cache_path}", level=2)
-                                    vprint("=" * 80, level=1)
+                                # Try to load pre-trained image weights from standalone training
+                                if ckpt_format is not None:
+                                    vprint(f"  Loading pre-trained {image_modality} weights from standalone training...", level=2)
                                     try:
+                                        # Create a temporary model with just the image modality to load weights
                                         temp_model = create_multimodal_model(input_shapes, [image_modality], None)
-                                        temp_model.load_weights(cache_ckpt)
+                                        temp_model.load_weights(image_only_checkpoint)
+
+                                        # Transfer image branch weights to fusion model
+                                        # Match layers by name (image layers have modality prefix)
+                                        transferred_layers = 0
                                         for layer in temp_model.layers:
                                             if image_modality in layer.name or layer.name == 'output':
                                                 try:
                                                     fusion_layer = model.get_layer(layer.name)
                                                     fusion_layer.set_weights(layer.get_weights())
+                                                    transferred_layers += 1
+                                                    vprint(f"    Loaded weights for layer: {layer.name}", level=3)
+                                                except ValueError:
+                                                    continue  # Layer not found in fusion model (e.g., output layer) - expected
+                                                except Exception as e:
+                                                    print(f"  [WARNING] Unexpected error loading weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
+                                                    continue
+
+                                        del temp_model  # Free memory
+                                        modality_loaded = True
+                                        pretrained_modalities.append(image_modality)
+                                        vprint(f"  Successfully loaded {transferred_layers} layers for {image_modality}!", level=2)
+
+                                    except Exception as e:
+                                        vprint(f"  Warning: Could not load pre-trained weights for {image_modality}: {e}", level=1)
+                                        modality_loaded = False
+
+                                # If standalone training didn't work, check pretrain cache
+                                if not modality_loaded:
+                                    pretrain_cache_path = _get_pretrain_cache_path(image_modality, run+1)
+                                    cache_ckpt, cache_fmt = find_checkpoint_for_loading(pretrain_cache_path)
+
+                                    if cache_fmt is not None:
+                                        vprint("=" * 80, level=1)
+                                        vprint(f"CACHED PRE-TRAINING: Loading {image_modality} weights from cache", level=1)
+                                        vprint(f"  Cache: {pretrain_cache_path}", level=2)
+                                        vprint("=" * 80, level=1)
+                                        try:
+                                            temp_model = create_multimodal_model(input_shapes, [image_modality], None)
+                                            temp_model.load_weights(cache_ckpt)
+                                            transferred_layers = 0
+                                            for layer in temp_model.layers:
+                                                if image_modality in layer.name or layer.name == 'output':
+                                                    try:
+                                                        fusion_layer = model.get_layer(layer.name)
+                                                        fusion_layer.set_weights(layer.get_weights())
+                                                        transferred_layers += 1
+                                                    except ValueError:
+                                                        continue  # Layer not found in fusion model - expected
+                                                    except Exception as e:
+                                                        print(f"  [WARNING] Unexpected error loading cached weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
+                                                        continue
+                                            del temp_model
+                                            modality_loaded = True
+                                            pretrained_modalities.append(image_modality)
+                                            vprint(f"  Loaded from cache - {transferred_layers} layers for {image_modality}!", level=1)
+                                        except Exception as e:
+                                            vprint(f"  Cache load failed for {image_modality}: {e}. Will train from scratch.", level=1)
+                                            modality_loaded = False
+
+                                # Track which modalities need pre-training
+                                if not modality_loaded:
+                                    missing_modalities.append(image_modality)
+
+                            # Update fusion_use_pretrained flag: True only if ALL modalities loaded successfully
+                            fusion_use_pretrained = (len(pretrained_modalities) == len(image_modalities))
+
+                            if pretrained_modalities:
+                                vprint(f"  ✓ Loaded pre-trained weights for: {pretrained_modalities}", level=1)
+                            if missing_modalities:
+                                vprint(f"  ✗ Missing pre-trained weights for: {missing_modalities}", level=1)
+                                vprint(f"    These modalities will be trained from scratch", level=1)
+
+                            # AUTOMATIC PRE-TRAINING: Train ALL missing image modalities
+                            if missing_modalities:
+                                import time
+                                print(f"[TIME_DEBUG] Pre-training phase START (training {len(missing_modalities)} modalities)", flush=True)
+                                t_pretrain_all_start = time.time()
+
+                                vprint("=" * 80, level=1)
+                                vprint(f"AUTOMATIC PRE-TRAINING: {len(missing_modalities)} modality(ies) need training", level=1)
+                                vprint(f"  Missing modalities: {missing_modalities}", level=1)
+                                vprint(f"  Will train each modality separately (same data split)...", level=1)
+                                vprint("=" * 80, level=1)
+
+                                # Pre-train each missing modality separately
+                                for modality_idx, image_modality in enumerate(missing_modalities, 1):
+                                    vprint("=" * 80, level=1)
+                                    vprint(f"PRE-TRAINING {modality_idx}/{len(missing_modalities)}: {image_modality}", level=1)
+                                    vprint("=" * 80, level=1)
+
+                                    t_pretrain_start = time.time()
+
+                                    try:
+                                        # Get checkpoint path for this specific modality
+                                        image_only_checkpoint = create_checkpoint_filename([image_modality], run+1, image_modality)
+
+                                        # Create standalone image-only model
+                                        pretrain_model = create_multimodal_model(input_shapes, [image_modality], None)
+
+                                        # Use same loss configuration as fusion
+                                        pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
+                                        pretrain_gamma = config.get('gamma', 2.0)
+                                        pretrain_alpha = config.get('alpha', alpha_value)
+                                        pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
+                                                                               gamma=pretrain_gamma, alpha=pretrain_alpha)
+                                        pretrain_macro_f1 = MacroF1Score(num_classes=3)
+
+                                        # Compile pre-training model
+                                        pretrain_model.compile(
+                                            optimizer=Adam(learning_rate=1e-4, clipnorm=1.0),
+                                            loss=pretrain_loss,
+                                            metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
+                                        )
+
+                                        t_after_compile = time.time()
+                                        print(f"[TIME_DEBUG] Pre-train {image_modality} model compiled: {t_after_compile - t_pretrain_start:.2f}s", flush=True)
+
+                                        # Create filtered dataset for pre-training (only this image modality, not metadata)
+                                        # Must filter from master datasets to get only the image modality input
+                                        pretrain_train_dataset = filter_dataset_modalities(master_train_dataset, [image_modality])
+                                        pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
+
+                                        # Remove sample_id for training (Keras 3 compatibility)
+                                        pretrain_train_dataset = pretrain_train_dataset.map(
+                                            remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+                                        pretrain_valid_dataset = pretrain_valid_dataset.map(
+                                            remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+
+                                        pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
+                                        pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
+
+                                        t_after_dist = time.time()
+                                        print(f"[TIME_DEBUG] Datasets distributed to GPUs: {t_after_dist - t_after_compile:.2f}s", flush=True)
+
+                                        # Pre-training callbacks
+                                        pretrain_callbacks = [
+                                            EarlyStopping(
+                                                patience=EARLY_STOP_PATIENCE,
+                                                restore_best_weights=True,
+                                                monitor='val_weighted_f1_score',
+                                                min_delta=0.001,
+                                                mode='max',
+                                                verbose=1
+                                            ),
+                                            ReduceLROnPlateau(
+                                                factor=0.50,
+                                                patience=REDUCE_LR_PATIENCE,
+                                                monitor='val_weighted_f1_score',
+                                                min_delta=0.0005,
+                                                min_lr=1e-10,
+                                                mode='max',
+                                            ),
+                                            tf.keras.callbacks.ModelCheckpoint(
+                                                image_only_checkpoint,  # Save to same path fusion will load from
+                                                monitor='val_weighted_f1_score',
+                                                save_best_only=True,
+                                                mode='max',
+                                                save_weights_only=True
+                                            )
+                                        ]
+
+                                        # Add periodic print callback for pre-training if using interval
+                                        if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                            pretrain_callbacks.append(PeriodicEpochPrintCallback(
+                                                print_interval=EPOCH_PRINT_INTERVAL,
+                                                total_epochs=max_epochs
+                                            ))
+
+                                        # Determine verbosity for pre-training
+                                        # If using periodic callback, use verbose=0 and let callback handle printing
+                                        if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
+                                            pretrain_verbose = 0  # Callback will handle printing
+                                        elif get_verbosity() >= 2:
+                                            pretrain_verbose = 2  # Print every epoch
+                                        else:
+                                            pretrain_verbose = 0  # Silent
+
+                                        vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
+
+                                        print(f"[TIME_DEBUG] Starting pre-train {image_modality} model.fit() with {max_epochs} max epochs", flush=True)
+                                        t_fit_start = time.time()
+
+                                        # Train image-only model
+                                        pretrain_history = pretrain_model.fit(
+                                            pretrain_train_dis,
+                                            epochs=max_epochs,
+                                            steps_per_epoch=steps_per_epoch,
+                                            validation_data=pretrain_valid_dis,
+                                            validation_steps=validation_steps,
+                                            callbacks=pretrain_callbacks,
+                                            verbose=pretrain_verbose
+                                        )
+
+                                        t_fit_end = time.time()
+                                        print(f"[TIME_DEBUG] Pre-train {image_modality} model.fit() completed: {t_fit_end - t_fit_start:.2f}s ({(t_fit_end - t_fit_start)/60:.1f} min)", flush=True)
+
+                                        # Get best kappa from pre-training
+                                        pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
+                                        vprint(f"  {image_modality} pre-training completed! Best val kappa: {pretrain_best_kappa:.4f}", level=1)
+                                        vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
+
+                                        # Now load the pre-trained weights into fusion model
+                                        vprint(f"  Transferring {image_modality} pre-trained weights to fusion model...", level=2)
+                                        transferred_layers = 0
+                                        for layer in pretrain_model.layers:
+                                            if image_modality in layer.name or layer.name == 'output':
+                                                try:
+                                                    fusion_layer = model.get_layer(layer.name)
+                                                    fusion_layer.set_weights(layer.get_weights())
+                                                    transferred_layers += 1
+                                                    vprint(f"    Transferred weights for layer: {layer.name}", level=3)
                                                 except ValueError:
                                                     continue  # Layer not found in fusion model - expected
                                                 except Exception as e:
-                                                    print(f"  [WARNING] Unexpected error loading cached weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
+                                                    print(f"  [WARNING] Unexpected error transferring pre-trained weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
                                                     continue
-                                        vprint(f"  STAGE 1: Freezing {image_modality} branch...", level=2)
+
+                                        vprint(f"  Successfully transferred {transferred_layers} layers for {image_modality}!", level=2)
+
+                                        # Save pre-trained weights to cache for future runs
+                                        try:
+                                            pretrain_cache_path = _get_pretrain_cache_path(image_modality, run+1)
+                                            pretrain_model.save_weights(pretrain_cache_path)
+                                            vprint(f"  Saved {image_modality} pre-trained weights to cache", level=2)
+                                        except Exception as e:
+                                            vprint(f"  Warning: Could not save {image_modality} to pretrain cache: {e}", level=2)
+
+                                        del pretrain_model, pretrain_train_dis, pretrain_valid_dis, pretrain_train_dataset, pretrain_valid_dataset  # Free memory and release thread pools
+                                        gc.collect()
+
+                                        t_pretrain_end = time.time()
+                                        print(f"[TIME_DEBUG] Pre-training {image_modality} TOTAL: {t_pretrain_end - t_pretrain_start:.2f}s ({(t_pretrain_end - t_pretrain_start)/60:.1f} min)", flush=True)
+                                        pretrained_modalities.append(image_modality)
+
+                                    except Exception as e:
+                                        vprint(f"  ERROR: Automatic pre-training failed for {image_modality}: {e}", level=0)
+                                        vprint(f"  {image_modality} will use random initialization (may overfit)...", level=1)
+                                        import traceback
+                                        traceback.print_exc()
+
+                                # After pre-training all missing modalities, freeze ALL image branches
+                                if pretrained_modalities:
+                                    vprint("=" * 80, level=1)
+                                    vprint(f"FREEZING ALL IMAGE BRANCHES FOR STAGE 1", level=1)
+                                    vprint(f"  Pre-trained modalities to freeze: {pretrained_modalities}", level=1)
+                                    vprint("=" * 80, level=1)
+
+                                    all_frozen_layers = []
+                                    for image_modality in pretrained_modalities:
                                         for layer in model.layers:
                                             if image_modality in layer.name or 'image_classifier' in layer.name:
                                                 layer.trainable = False
-                                        del temp_model
-                                        fusion_use_pretrained = True
-                                        vprint(f"  Loaded from cache - skipping ~17min pre-training!", level=1)
-                                    except Exception as e:
-                                        vprint(f"  Cache load failed: {e}. Will train from scratch.", level=1)
+                                                all_frozen_layers.append(layer.name)
+                                                vprint(f"    Frozen layer: {layer.name}", level=3)
 
-                            # AUTOMATIC PRE-TRAINING: Train image-only model inline
-                            if not fusion_use_pretrained:
-                                import time
-                                print(f"[TIME_DEBUG] Pre-training phase START", flush=True)
-                                t_pretrain_start = time.time()
-
-                                vprint("=" * 80, level=1)
-                                vprint(f"AUTOMATIC PRE-TRAINING: {image_modality} weights not found", level=1)
-                                vprint(f"  Training {image_modality}-only model first (same data split)...", level=1)
-                                vprint("=" * 80, level=1)
-
-                                try:
-                                    # Create standalone image-only model
-                                    pretrain_model = create_multimodal_model(input_shapes, [image_modality], None)
-
-                                    # Use same loss configuration as fusion
-                                    pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
-                                    pretrain_gamma = config.get('gamma', 2.0)
-                                    pretrain_alpha = config.get('alpha', alpha_value)
-                                    pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
-                                                                           gamma=pretrain_gamma, alpha=pretrain_alpha)
-                                    pretrain_macro_f1 = MacroF1Score(num_classes=3)
-
-                                    # Compile pre-training model
-                                    pretrain_model.compile(
-                                        optimizer=Adam(learning_rate=1e-4, clipnorm=1.0),
-                                        loss=pretrain_loss,
-                                        metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
-                                    )
-
-                                    t_after_compile = time.time()
-                                    print(f"[TIME_DEBUG] Pre-train model compiled: {t_after_compile - t_pretrain_start:.2f}s", flush=True)
-
-                                    # Create filtered dataset for pre-training (only image modality, not metadata)
-                                    # Must filter from master datasets to get only the image modality input
-                                    pretrain_train_dataset = filter_dataset_modalities(master_train_dataset, [image_modality])
-                                    pretrain_valid_dataset = filter_dataset_modalities(master_valid_dataset, [image_modality])
-
-                                    # Remove sample_id for training (Keras 3 compatibility)
-                                    pretrain_train_dataset = pretrain_train_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
-                                    pretrain_valid_dataset = pretrain_valid_dataset.map(
-                                        remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
-
-                                    pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
-                                    pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
-
-                                    t_after_dist = time.time()
-                                    print(f"[TIME_DEBUG] Datasets distributed to GPUs: {t_after_dist - t_after_compile:.2f}s", flush=True)
-
-                                    # Pre-training callbacks
-                                    pretrain_callbacks = [
-                                        EarlyStopping(
-                                            patience=EARLY_STOP_PATIENCE,
-                                            restore_best_weights=True,
-                                            monitor='val_weighted_f1_score',
-                                            min_delta=0.001,
-                                            mode='max',
-                                            verbose=1
-                                        ),
-                                        ReduceLROnPlateau(
-                                            factor=0.50,
-                                            patience=REDUCE_LR_PATIENCE,
-                                            monitor='val_weighted_f1_score',
-                                            min_delta=0.0005,
-                                            min_lr=1e-10,
-                                            mode='max',
-                                        ),
-                                        tf.keras.callbacks.ModelCheckpoint(
-                                            image_only_checkpoint,  # Save to same path fusion will load from
-                                            monitor='val_weighted_f1_score',
-                                            save_best_only=True,
-                                            mode='max',
-                                            save_weights_only=True
-                                        )
-                                    ]
-
-                                    # Add periodic print callback for pre-training if using interval
-                                    if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
-                                        pretrain_callbacks.append(PeriodicEpochPrintCallback(
-                                            print_interval=EPOCH_PRINT_INTERVAL,
-                                            total_epochs=max_epochs
-                                        ))
-
-                                    # Determine verbosity for pre-training
-                                    # If using periodic callback, use verbose=0 and let callback handle printing
-                                    if EPOCH_PRINT_INTERVAL > 0 and get_verbosity() >= 2:
-                                        pretrain_verbose = 0  # Callback will handle printing
-                                    elif get_verbosity() >= 2:
-                                        pretrain_verbose = 2  # Print every epoch
-                                    else:
-                                        pretrain_verbose = 0  # Silent
-
-                                    vprint(f"  Pre-training {image_modality}-only on same data split (prevents data leakage)", level=2)
-
-                                    print(f"[TIME_DEBUG] Starting pre-train model.fit() with {max_epochs} max epochs", flush=True)
-                                    t_fit_start = time.time()
-
-                                    # Train image-only model
-                                    pretrain_history = pretrain_model.fit(
-                                        pretrain_train_dis,
-                                        epochs=max_epochs,
-                                        steps_per_epoch=steps_per_epoch,
-                                        validation_data=pretrain_valid_dis,
-                                        validation_steps=validation_steps,
-                                        callbacks=pretrain_callbacks,
-                                        verbose=pretrain_verbose
-                                    )
-
-                                    t_fit_end = time.time()
-                                    print(f"[TIME_DEBUG] Pre-train model.fit() completed: {t_fit_end - t_fit_start:.2f}s ({(t_fit_end - t_fit_start)/60:.1f} min)", flush=True)
-
-                                    # Get best kappa from pre-training
-                                    pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
-                                    vprint(f"  Pre-training completed! Best val kappa: {pretrain_best_kappa:.4f}", level=1)
-                                    vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
-
-                                    # Now load the pre-trained weights into fusion model
-                                    vprint(f"  Transferring pre-trained weights to fusion model...", level=2)
-                                    for layer in pretrain_model.layers:
-                                        if image_modality in layer.name or layer.name == 'output':
-                                            try:
-                                                fusion_layer = model.get_layer(layer.name)
-                                                fusion_layer.set_weights(layer.get_weights())
-                                                vprint(f"    Loaded weights for layer: {layer.name}", level=3)
-                                            except ValueError:
-                                                continue  # Layer not found in fusion model - expected
-                                            except Exception as e:
-                                                print(f"  [WARNING] Unexpected error transferring pre-trained weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
-                                                continue
-
-                                    # FREEZE all image branch layers for STAGE 1
-                                    vprint(f"  STAGE 1: Freezing {image_modality} branch (will unfreeze for Stage 2)...", level=2)
-                                    frozen_layers = []
-                                    for layer in model.layers:
-                                        if image_modality in layer.name or 'image_classifier' in layer.name:
-                                            layer.trainable = False
-                                            frozen_layers.append(layer.name)
-                                            vprint(f"    Frozen layer: {layer.name}", level=3)
-
-                                    # Save pre-trained weights to cache for future runs
-                                    try:
-                                        pretrain_cache_path = _get_pretrain_cache_path(image_modality, run+1)
-                                        pretrain_model.save_weights(pretrain_cache_path)
-                                        vprint(f"  Saved pre-trained weights to cache: {pretrain_cache_path}", level=2)
-                                    except Exception as e:
-                                        vprint(f"  Warning: Could not save to pretrain cache: {e}", level=2)
-
-                                    del pretrain_model, pretrain_train_dis, pretrain_valid_dis, pretrain_train_dataset, pretrain_valid_dataset  # Free memory and release thread pools
-                                    gc.collect()
-                                    fusion_use_pretrained = True
-                                    vprint(f"  Successfully loaded and frozen {len(frozen_layers)} layers!", level=2)
+                                    vprint(f"  Successfully frozen {len(all_frozen_layers)} layers across {len(pretrained_modalities)} modalities!", level=2)
                                     vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
 
-                                    t_pretrain_end = time.time()
-                                    print(f"[TIME_DEBUG] Pre-training TOTAL: {t_pretrain_end - t_pretrain_start:.2f}s ({(t_pretrain_end - t_pretrain_start)/60:.1f} min)", flush=True)
+                                    # Update fusion flag: True if we pre-trained at least one modality
+                                    fusion_use_pretrained = True
+
+                                    t_pretrain_all_end = time.time()
+                                    print(f"[TIME_DEBUG] Pre-training ALL modalities TOTAL: {t_pretrain_all_end - t_pretrain_all_start:.2f}s ({(t_pretrain_all_end - t_pretrain_all_start)/60:.1f} min)", flush=True)
 
                                     # DEBUG: Show trainable weights breakdown
                                     vprint("  DEBUG: Trainable weights breakdown after freezing:", level=2)
@@ -1479,10 +1529,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         labels_sample = labels.numpy()[:5]
                                         vprint(f"    Sample labels (first 5): {labels_sample}", level=2)
                                     vprint("=" * 80, level=1)
-
-                                except Exception as e:
-                                    vprint(f"  ERROR: Automatic pre-training failed: {e}", level=0)
-                                    vprint(f"  Continuing with random init (will likely overfit)...", level=1)
+                                else:
+                                    vprint(f"  WARNING: No modalities were successfully pre-trained!", level=0)
+                                    vprint(f"  Model will train from random initialization (may overfit)...", level=1)
                                     fusion_use_pretrained = False
 
                         # Use loss parameters from config if available, otherwise use defaults
@@ -1654,18 +1703,24 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 stage1_best_kappa = max(history_stage1.history.get('val_cohen_kappa', [0]))
                                 vprint(f"  Stage 1 completed. Best val kappa: {stage1_best_kappa:.4f}", level=2)
 
-                                # STAGE 2: Unfreeze image branch and fine-tune with VERY low LR
+                                # STAGE 2: Unfreeze ALL image branches and fine-tune with VERY low LR
                                 vprint("=" * 80, level=2)
-                                vprint("STAGE 2: Fine-tuning with UNFROZEN image branch", level=2)
+                                vprint(f"STAGE 2: Fine-tuning with UNFROZEN image branches ({len(image_modalities)} modalities)", level=2)
+                                vprint(f"  Image modalities to unfreeze: {image_modalities}", level=2)
                                 vprint("  Learning rate: 1e-6 (very low to prevent overfitting)", level=2)
                                 vprint("  Unfreezing image layers...", level=2)
                                 vprint("=" * 80, level=2)
 
-                                # Unfreeze image branch
-                                for layer in model.layers:
-                                    if image_modality in layer.name or 'image_classifier' in layer.name:
-                                        layer.trainable = True
-                                        vprint(f"    Unfrozen: {layer.name}", level=3)
+                                # Unfreeze ALL image branches
+                                unfrozen_count = 0
+                                for image_modality in image_modalities:
+                                    for layer in model.layers:
+                                        if image_modality in layer.name or 'image_classifier' in layer.name:
+                                            layer.trainable = True
+                                            unfrozen_count += 1
+                                            vprint(f"    Unfrozen: {layer.name}", level=3)
+
+                                vprint(f"  Successfully unfrozen {unfrozen_count} layers across {len(image_modalities)} modalities", level=2)
 
                                 # Recompile with VERY low learning rate
                                 model.compile(
