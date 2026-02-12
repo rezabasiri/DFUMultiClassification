@@ -854,6 +854,15 @@ def run_confidence_filtering_pipeline(
         retrain=False  # Don't retrain here, main.py will handle that
     )
 
+    # Write exclusion list to disk for main.py to use
+    if success and low_conf_samples:
+        exclusion_file = get_exclusion_list_path()
+        with open(exclusion_file, 'w') as f:
+            for sid in low_conf_samples:
+                f.write(f"{sid}\n")
+        if verbosity > 0:
+            print(f"✓ Wrote exclusion list to: {exclusion_file}")
+
     return success, low_conf_samples
 
 
