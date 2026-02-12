@@ -2662,6 +2662,14 @@ Configuration:
             print(f"⚠ Error during confidence filtering: {e}")
             print("  Continuing without confidence filtering")
 
+        # Set environment variable so fold subprocesses can access the exclusion list
+        # The exclusion list file path is used by image_processing.py during data loading
+        exclusion_file = os.path.join(result_dir, 'confidence_exclusion_list.txt')
+        if os.path.exists(exclusion_file):
+            os.environ['CONFIDENCE_EXCLUSION_FILE'] = exclusion_file
+            if args.verbosity >= 2:
+                print(f"Set CONFIDENCE_EXCLUSION_FILE={exclusion_file}")
+
         print("="*80 + "\n")
 
     # SUBPROCESS ORCHESTRATION: When running multi-fold CV without --fold,
