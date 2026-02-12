@@ -2630,15 +2630,41 @@ Configuration:
                 if stats and args.verbosity >= 2:
                     print(f"  Created: {stats.get('timestamp', 'unknown')}")
                     print(f"  Config: {stats.get('config', {})}")
-                print(f"  Excluding {len(confidence_exclusion_set)} samples ({CONFIDENCE_FILTER_PERCENTILE}% lowest confidence)")
+
+                # Show per-class percentiles if available
+                if hasattr(sys.modules['src.utils.production_config'], 'CONFIDENCE_FILTER_PERCENTILE_I'):
+                    from src.utils.production_config import (
+                        CONFIDENCE_FILTER_PERCENTILE_I,
+                        CONFIDENCE_FILTER_PERCENTILE_P,
+                        CONFIDENCE_FILTER_PERCENTILE_R
+                    )
+                    print(f"  Excluding {len(confidence_exclusion_set)} samples [I:{CONFIDENCE_FILTER_PERCENTILE_I}%, P:{CONFIDENCE_FILTER_PERCENTILE_P}%, R:{CONFIDENCE_FILTER_PERCENTILE_R}%]")
+                else:
+                    print(f"  Excluding {len(confidence_exclusion_set)} samples ({CONFIDENCE_FILTER_PERCENTILE}% lowest confidence)")
             else:
                 print(f"Running preliminary training to identify low-confidence samples...")
-                print(f"  Filtering: bottom {CONFIDENCE_FILTER_PERCENTILE}% per class using {CONFIDENCE_METRIC} metric")
+                # Use per-class percentiles if available, otherwise fall back to single percentile
+                if hasattr(sys.modules['src.utils.production_config'], 'CONFIDENCE_FILTER_PERCENTILE_I'):
+                    from src.utils.production_config import (
+                        CONFIDENCE_FILTER_PERCENTILE_I,
+                        CONFIDENCE_FILTER_PERCENTILE_P,
+                        CONFIDENCE_FILTER_PERCENTILE_R
+                    )
+                    per_class_pct = {
+                        0: CONFIDENCE_FILTER_PERCENTILE_I,
+                        1: CONFIDENCE_FILTER_PERCENTILE_P,
+                        2: CONFIDENCE_FILTER_PERCENTILE_R
+                    }
+                    print(f"  Filtering: per-class percentiles [I:{CONFIDENCE_FILTER_PERCENTILE_I}%, P:{CONFIDENCE_FILTER_PERCENTILE_P}%, R:{CONFIDENCE_FILTER_PERCENTILE_R}%] using {CONFIDENCE_METRIC} metric")
+                else:
+                    per_class_pct = None
+                    print(f"  Filtering: bottom {CONFIDENCE_FILTER_PERCENTILE}% per class using {CONFIDENCE_METRIC} metric")
 
-                # Run confidence filtering pipeline (uses 1 fold for speed)
+                # Run confidence filtering pipeline (uses 3 folds for complete coverage)
                 # Set verbosity to 0 to suppress internal prints, we'll handle the output here
                 success, excluded_samples = run_confidence_filtering_pipeline(
-                    percentile=CONFIDENCE_FILTER_PERCENTILE,
+                    percentile=CONFIDENCE_FILTER_PERCENTILE if per_class_pct is None else None,
+                    percentiles_per_class=per_class_pct,
                     mode=CONFIDENCE_FILTER_MODE,
                     metric=CONFIDENCE_METRIC,
                     min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,

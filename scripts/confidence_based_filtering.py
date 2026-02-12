@@ -154,7 +154,12 @@ class ConfidenceBasedFilter:
         print("CONFIDENCE-BASED FILTERING: TRAINING PHASE")
         print("="*70)
         print(f"\nConfiguration:")
-        print(f"  Percentile: {self.percentile}% (remove bottom {self.percentile}%)")
+        if self.percentiles_per_class:
+            print(f"  Per-class percentiles: I={self.percentiles_per_class.get(0, self.percentile)}%, "
+                  f"P={self.percentiles_per_class.get(1, self.percentile)}%, "
+                  f"R={self.percentiles_per_class.get(2, self.percentile)}%")
+        else:
+            print(f"  Percentile: {self.percentile}% (remove bottom {self.percentile}%)")
         print(f"  Mode: {self.mode}")
         print(f"  Metric: {self.metric}")
         print(f"  CV Folds: {self.cv_folds}")

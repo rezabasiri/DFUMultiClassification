@@ -26,8 +26,8 @@ Categories:
 
 # Core training hyperparameters
 IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
-N_EPOCHS = 190  # Full training epochs
+GLOBAL_BATCH_SIZE = 600  # Total batch size across all GPU replicas
+N_EPOCHS = 200  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
 # ----------------------------------------------------------------
@@ -35,26 +35,26 @@ N_EPOCHS = 190  # Full training epochs
 #   - For pre-training (image-only models): Uses N_EPOCHS epochs
 #   - For Stage 1 (frozen image branch): Uses STAGE1_EPOCHS epochs
 #   - For Stage 2 (fine-tuning): Uses (N_EPOCHS - STAGE1_EPOCHS) epochs
-#   - Production: 190 epochs total
+#   - Production: 200 epochs total
 #   - Quick test: 50 epochs total (agent_communication/generative_augmentation/test_generative_aug.py)
 #
 # STAGE1_EPOCHS: Number of epochs for Stage 1 fusion training (frozen image branch)
 #   - Only used in two-stage fusion training
 #   - Image branch is frozen, only fusion layers train
-#   - Typically ~10% of N_EPOCHS (16 out of 190)
-#   - Production: 16 epochs
+#   - Typically ~10% of N_EPOCHS (20 out of 200)
+#   - Production: 20 epochs
 #   - Quick test: 5 epochs
 #
 # LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
 #   - Defines how long to stay at initial LR before entering cosine annealing
 #   - Automatically set to 10% of N_EPOCHS (matches STAGE1_EPOCHS ratio)
-#   - Production (N_EPOCHS=190): 16 epochs exploration
+#   - Production (N_EPOCHS=200): 20 epochs exploration
 #   - After exploration, uses cosine annealing with warm restarts
 #
-# Example production timeline (N_EPOCHS=190, STAGE1_EPOCHS=16):
-#   1. Pre-training: 0-190 epochs (trains image-only model)
-#   2. Stage 1: 0-16 epochs (frozen image, train fusion)
-#   3. Stage 2: 16-190 epochs (fine-tune everything)
+# Example production timeline (N_EPOCHS=200, STAGE1_EPOCHS=20):
+#   1. Pre-training: 0-200 epochs (trains image-only model)
+#   2. Stage 1: 0-20 epochs (frozen image, train fusion)
+#   3. Stage 2: 20-200 epochs (fine-tune everything)
 
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
@@ -63,7 +63,7 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 16  # Stage 1 fusion training epochs (frozen image branch)
+STAGE1_EPOCHS = 20  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
@@ -144,8 +144,8 @@ USE_CONFIDENCE_FILTERING = True  # Set to True to enable
 
 # Filtering parameters - PER-CLASS percentiles (bottom X% to remove from each class)
 # This allows different filtering intensity for each class based on data quality
-CONFIDENCE_FILTER_PERCENTILE_I = 15  # Inflammatory class (class 0)
-CONFIDENCE_FILTER_PERCENTILE_P = 15  # Proliferative class (class 1) - majority class
+CONFIDENCE_FILTER_PERCENTILE_I = 17  # Inflammatory class (class 0)
+CONFIDENCE_FILTER_PERCENTILE_P = 23  # Proliferative class (class 1) - majority class
 CONFIDENCE_FILTER_PERCENTILE_R = 15  # Remodeling class (class 2) - minority class
 
 # Legacy single percentile (used as fallback if per-class not specified)
