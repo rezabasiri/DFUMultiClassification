@@ -69,6 +69,7 @@ class ConfidenceBasedFilter:
                  mode='per_class',
                  metric='max_prob',
                  min_samples_per_class=50,
+                 max_class_removal_pct=30,
                  cv_folds=3,
                  data_percentage=100.0,
                  verbosity=2):
@@ -83,6 +84,7 @@ class ConfidenceBasedFilter:
                     'margin' = top1 - top2 probability (uncertainty measure)
                     'entropy' = prediction entropy (information-theoretic)
             min_samples_per_class: Minimum samples to keep per class (safety limit)
+            max_class_removal_pct: Maximum percentage to remove from ANY class (protects minorities)
             cv_folds: Number of CV folds for training
             data_percentage: Percentage of data to use
             verbosity: Output verbosity level
@@ -91,6 +93,7 @@ class ConfidenceBasedFilter:
         self.mode = mode
         self.metric = metric
         self.min_samples_per_class = min_samples_per_class
+        self.max_class_removal_pct = max_class_removal_pct
         self.cv_folds = cv_folds
         self.data_percentage = data_percentage
         self.verbosity = verbosity
@@ -337,6 +340,9 @@ class ConfidenceBasedFilter:
         print(f"Filtering mode: {self.mode}")
         print(f"Target percentile: {self.percentile}%")
 
+        # Safety: Maximum percentage that can be removed from ANY class (protect minorities)
+        MAX_CLASS_REMOVAL_PCT = self.max_class_removal_pct
+
         # Calculate threshold(s)
         if self.mode == 'global':
             # Global threshold - bottom X% overall
@@ -344,6 +350,42 @@ class ConfidenceBasedFilter:
             low_conf_mask = df['confidence'] <= threshold
 
             print(f"\nGlobal confidence threshold: {threshold:.4f}")
+
+            # SAFETY CHECK: Ensure no class loses too many samples
+            print(f"\nApplying class balance protection (max {MAX_CLASS_REMOVAL_PCT}% removal per class):")
+            for label_idx, label_name in enumerate(CLASS_LABELS):
+                class_mask = df['true_label'] == label_idx
+                class_df = df[class_mask]
+
+                if len(class_df) == 0:
+                    continue
+
+                # Count how many would be flagged from this class
+                class_flagged_mask = low_conf_mask & class_mask
+                num_flagged = class_flagged_mask.sum()
+
+                # Calculate limits
+                max_removable_pct = int(len(class_df) * MAX_CLASS_REMOVAL_PCT / 100)
+                min_to_keep = max(self.min_samples_per_class, len(class_df) - max_removable_pct)
+                max_to_remove = len(class_df) - min_to_keep
+
+                if num_flagged > max_to_remove:
+                    # Too many flagged - keep only the lowest confidence ones up to limit
+                    class_indices = df[class_mask].index
+                    class_confidences = df.loc[class_indices, 'confidence']
+
+                    # Sort by confidence, keep only bottom max_to_remove
+                    sorted_class_indices = class_confidences.sort_values().index
+                    indices_to_unflag = sorted_class_indices[max_to_remove:]
+
+                    # Unflag the ones above limit
+                    low_conf_mask.loc[indices_to_unflag] = False
+
+                    print(f"  ⚠️  {label_name}: Limited removal {num_flagged} → {max_to_remove} "
+                          f"(protecting minority class, keeping {min_to_keep}/{len(class_df)})")
+                else:
+                    print(f"  {label_name}: {num_flagged}/{len(class_df)} flagged "
+                          f"({100*num_flagged/len(class_df):.1f}%) - OK")
 
         else:  # per_class
             # Per-class threshold - bottom X% per class
@@ -358,20 +400,38 @@ class ConfidenceBasedFilter:
                     continue
 
                 threshold = np.percentile(class_df['confidence'], self.percentile)
-                class_low_mask = class_df['confidence'] <= threshold
 
-                # Apply safety limit
-                num_to_keep = max(self.min_samples_per_class, int(len(class_df) * (100 - self.percentile) / 100))
-                num_to_remove = len(class_df) - num_to_keep
+                # Apply safety limits:
+                # 1. Never go below min_samples_per_class
+                # 2. Never remove more than MAX_CLASS_REMOVAL_PCT from any class
+                max_removable_pct = int(len(class_df) * MAX_CLASS_REMOVAL_PCT / 100)
+                max_removable_percentile = int(len(class_df) * self.percentile / 100)
+
+                num_to_keep = max(
+                    self.min_samples_per_class,
+                    len(class_df) - max_removable_pct,
+                    len(class_df) - max_removable_percentile
+                )
+                num_to_remove = max(0, len(class_df) - num_to_keep)
 
                 if num_to_remove > 0:
                     # Sort by confidence and mark bottom ones
                     sorted_indices = class_df['confidence'].nsmallest(num_to_remove).index
                     low_conf_mask.loc[sorted_indices] = True
 
-                print(f"  {label_name}: threshold={threshold:.4f}, "
-                      f"samples={len(class_df)}, "
-                      f"flagged={sum(class_low_mask)}")
+                actual_flagged = low_conf_mask[class_mask].sum()
+                pct_flagged = 100 * actual_flagged / len(class_df) if len(class_df) > 0 else 0
+
+                # Warning if we had to limit removal
+                if num_to_remove < max_removable_percentile:
+                    print(f"  {label_name}: threshold={threshold:.4f}, "
+                          f"samples={len(class_df)}, "
+                          f"flagged={actual_flagged} ({pct_flagged:.1f}%) "
+                          f"⚠️ LIMITED (min_samples={self.min_samples_per_class})")
+                else:
+                    print(f"  {label_name}: threshold={threshold:.4f}, "
+                          f"samples={len(class_df)}, "
+                          f"flagged={actual_flagged} ({pct_flagged:.1f}%)")
 
         # Get low-confidence sample IDs
         self.low_confidence_samples = df[low_conf_mask]['sample_id'].tolist()
@@ -417,6 +477,7 @@ class ConfidenceBasedFilter:
                 'mode': self.mode,
                 'metric': self.metric,
                 'min_samples_per_class': self.min_samples_per_class,
+                'max_class_removal_pct': self.max_class_removal_pct,
                 'cv_folds': self.cv_folds,
                 'data_percentage': self.data_percentage
             },
@@ -641,6 +702,9 @@ Filtering Modes:
     parser.add_argument('--min-samples', type=int, default=50,
                        help='Minimum samples to keep per class (default: 50)')
 
+    parser.add_argument('--max-class-removal', type=int, default=30,
+                       help='Maximum %% to remove from ANY class, protects minorities (default: 30)')
+
     parser.add_argument('--cv-folds', type=int, default=3,
                        help='Number of CV folds for training (default: 3)')
 
@@ -664,6 +728,7 @@ Filtering Modes:
         mode=args.mode,
         metric=args.metric,
         min_samples_per_class=args.min_samples,
+        max_class_removal_pct=args.max_class_removal,
         cv_folds=args.cv_folds,
         data_percentage=args.data_percentage,
         verbosity=args.verbosity

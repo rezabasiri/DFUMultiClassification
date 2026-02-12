@@ -139,6 +139,7 @@ USE_CONFIDENCE_FILTERING = False  # Set to True to enable
 CONFIDENCE_FILTER_PERCENTILE = 15  # Remove bottom X% lowest confidence samples (default: 15%)
 CONFIDENCE_FILTER_MODE = 'per_class'  # 'global' = bottom X% overall, 'per_class' = bottom X% per class
 CONFIDENCE_FILTER_MIN_SAMPLES = 50  # Minimum samples to keep per class (safety limit)
+CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT = 30  # Never remove more than X% from ANY class (protects minority classes)
 
 # Confidence metric to use
 # 'max_prob': Maximum softmax probability (simple, fast)
