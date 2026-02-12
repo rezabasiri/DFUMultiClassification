@@ -644,6 +644,206 @@ class ConfidenceBasedFilter:
         return True, low_conf_samples
 
 
+# =============================================================================
+# Helper Functions for main.py Integration
+# =============================================================================
+
+
+def get_exclusion_list_path():
+    """Get the path to the confidence exclusion list file."""
+    _, result_dir, _ = get_project_paths()
+    return os.path.join(result_dir, 'confidence_exclusion_list.txt')
+
+
+def get_results_file_path():
+    """Get the path to the confidence filter results JSON file."""
+    _, result_dir, _ = get_project_paths()
+    return os.path.join(result_dir, 'confidence_filter_results.json')
+
+
+def exclusion_list_exists():
+    """Check if a confidence exclusion list already exists."""
+    return os.path.exists(get_exclusion_list_path())
+
+
+def load_exclusion_set():
+    """
+    Load the set of sample IDs to exclude.
+
+    Returns:
+        set: Set of sample IDs (as strings) to exclude, empty set if file doesn't exist
+    """
+    exclusion_file = get_exclusion_list_path()
+    if not os.path.exists(exclusion_file):
+        return set()
+
+    try:
+        with open(exclusion_file, 'r') as f:
+            return set(line.strip() for line in f if line.strip())
+    except Exception as e:
+        print(f"Warning: Failed to load exclusion list: {e}")
+        return set()
+
+
+def apply_confidence_filter_to_dataframe(df, sample_id_column='depth_rgb'):
+    """
+    Apply confidence-based filtering to a DataFrame.
+
+    Args:
+        df: pandas DataFrame to filter
+        sample_id_column: Column to use as sample identifier (default: 'depth_rgb')
+
+    Returns:
+        tuple: (filtered_df, num_excluded)
+    """
+    from collections import Counter
+
+    excluded_ids = load_exclusion_set()
+
+    if not excluded_ids:
+        return df, 0
+
+    original_count = len(df)
+
+    # Create mask for samples to keep
+    sample_ids = df[sample_id_column].astype(str)
+    keep_mask = ~sample_ids.isin(excluded_ids)
+
+    filtered_df = df[keep_mask].copy()
+    num_excluded = original_count - len(filtered_df)
+
+    if num_excluded > 0:
+        print(f"  Confidence filtering: excluded {num_excluded}/{original_count} samples "
+              f"({100*num_excluded/original_count:.1f}%)")
+
+        # Log per-class breakdown if available
+        if 'Healing Phase Abs' in df.columns:
+            orig_dist = Counter(df['Healing Phase Abs'])
+            filt_dist = Counter(filtered_df['Healing Phase Abs'])
+            print(f"  Per-class breakdown:")
+            for cls in ['I', 'P', 'R']:
+                orig = orig_dist.get(cls, 0)
+                filt = filt_dist.get(cls, 0)
+                removed = orig - filt
+                if orig > 0:
+                    print(f"    {cls}: {filt}/{orig} (removed {removed}, {100*removed/orig:.1f}%)")
+
+    return filtered_df, num_excluded
+
+
+def run_confidence_filtering_pipeline(
+    percentile=None,
+    mode=None,
+    metric=None,
+    min_samples_per_class=None,
+    max_class_removal_pct=None,
+    cv_folds=1,
+    data_percentage=100.0,
+    force_recompute=False,
+    verbosity=2
+):
+    """
+    Run the confidence filtering pipeline from main.py.
+
+    This function is called by main.py when USE_CONFIDENCE_FILTERING=True
+    and no exclusion list exists (or force_recompute=True).
+
+    Args:
+        percentile: Filter percentile (uses config default if None)
+        mode: Filter mode (uses config default if None)
+        metric: Confidence metric (uses config default if None)
+        min_samples_per_class: Min samples per class (uses config default if None)
+        max_class_removal_pct: Max removal % per class (uses config default if None)
+        cv_folds: Number of CV folds for preliminary training (default: 1 for speed)
+        data_percentage: Data percentage to use
+        force_recompute: If True, recompute even if exclusion list exists
+        verbosity: Output verbosity level
+
+    Returns:
+        tuple: (success, excluded_sample_ids)
+    """
+    # Import config values for defaults
+    from src.utils.production_config import (
+        CONFIDENCE_FILTER_PERCENTILE,
+        CONFIDENCE_FILTER_MODE,
+        CONFIDENCE_METRIC,
+        CONFIDENCE_FILTER_MIN_SAMPLES,
+        CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT
+    )
+
+    # Use config defaults if not specified
+    if percentile is None:
+        percentile = CONFIDENCE_FILTER_PERCENTILE
+    if mode is None:
+        mode = CONFIDENCE_FILTER_MODE
+    if metric is None:
+        metric = CONFIDENCE_METRIC
+    if min_samples_per_class is None:
+        min_samples_per_class = CONFIDENCE_FILTER_MIN_SAMPLES
+    if max_class_removal_pct is None:
+        max_class_removal_pct = CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT
+
+    # Check if we can skip
+    if not force_recompute and exclusion_list_exists():
+        print(f"\n✓ Using existing confidence exclusion list: {get_exclusion_list_path()}")
+        excluded_ids = load_exclusion_set()
+        print(f"  {len(excluded_ids)} samples will be excluded")
+        return True, list(excluded_ids)
+
+    print("\n" + "="*70)
+    print("CONFIDENCE-BASED FILTERING (Preliminary Training Phase)")
+    print("="*70)
+    print(f"Running preliminary training to identify low-confidence samples...")
+    print(f"  Percentile: {percentile}%")
+    print(f"  Mode: {mode}")
+    print(f"  Metric: {metric}")
+    print(f"  CV Folds: {cv_folds}")
+
+    # Create and run filter
+    filter_obj = ConfidenceBasedFilter(
+        percentile=percentile,
+        mode=mode,
+        metric=metric,
+        min_samples_per_class=min_samples_per_class,
+        max_class_removal_pct=max_class_removal_pct,
+        cv_folds=cv_folds,
+        data_percentage=data_percentage,
+        verbosity=verbosity
+    )
+
+    success, low_conf_samples = filter_obj.run(
+        skip_training=False,
+        retrain=False  # Don't retrain here, main.py will handle that
+    )
+
+    return success, low_conf_samples
+
+
+def get_confidence_filter_stats():
+    """
+    Get statistics from the most recent confidence filtering run.
+
+    Returns:
+        dict or None: Statistics dictionary if results exist
+    """
+    results_file = get_results_file_path()
+
+    if not os.path.exists(results_file):
+        return None
+
+    try:
+        with open(results_file, 'r') as f:
+            results = json.load(f)
+        return {
+            'timestamp': results.get('timestamp'),
+            'config': results.get('config', {}),
+            'statistics': results.get('statistics', {}),
+            'num_excluded': len(results.get('low_confidence_sample_ids', []))
+        }
+    except Exception:
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Identify bad samples using prediction confidence analysis',

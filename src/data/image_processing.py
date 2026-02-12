@@ -232,6 +232,29 @@ def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalitie
             create_best_matching_dataset(depth_bb_file, thermal_bb_file, csv_file, depth_folder, thermal_folder, best_matching_csv)
 
         best_matching_df = pd.read_csv(best_matching_csv)
+
+    # Apply confidence-based filtering if enabled
+    confidence_exclusion_file = os.environ.get('CONFIDENCE_EXCLUSION_FILE')
+    if confidence_exclusion_file and os.path.exists(confidence_exclusion_file):
+        try:
+            # Load exclusion list
+            with open(confidence_exclusion_file, 'r') as f:
+                excluded_ids = set(line.strip() for line in f if line.strip())
+
+            if excluded_ids:
+                original_count = len(best_matching_df)
+                # Use depth_rgb as sample identifier (unique per image)
+                sample_ids = best_matching_df['depth_rgb'].astype(str)
+                keep_mask = ~sample_ids.isin(excluded_ids)
+                best_matching_df = best_matching_df[keep_mask].copy()
+                num_excluded = original_count - len(best_matching_df)
+
+                if num_excluded > 0:
+                    vprint(f"Confidence filtering: excluded {num_excluded}/{original_count} samples "
+                           f"({100*num_excluded/original_count:.1f}%)", level=1)
+        except Exception as e:
+            vprint(f"Warning: Failed to apply confidence filtering: {e}", level=1)
+
     matched_files = {}
     
     if 'depth_rgb' in selected_modalities:

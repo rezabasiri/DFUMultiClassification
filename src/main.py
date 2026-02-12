@@ -85,6 +85,8 @@ from src.utils.outlier_detection import (
     detect_outliers, apply_cleaned_dataset, restore_original_dataset, check_metadata_in_modalities,
     detect_outliers_combination, apply_cleaned_dataset_combination
 )
+# Confidence-based filtering (imported conditionally when USE_CONFIDENCE_FILTERING=True)
+# Import is done lazily in main() to avoid circular imports
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
     create_best_matching_dataset, prepare_dataset, preprocess_image_data,
@@ -2203,6 +2205,81 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
     else:
         outlier_filtered_data = {}  # Initialize empty dict when outlier removal disabled
         vprint("Outlier removal disabled", level=2)
+
+    # =========================================================================
+    # CONFIDENCE-BASED FILTERING (if enabled)
+    # =========================================================================
+    # This runs a preliminary training to identify low-confidence samples,
+    # then filters them out for the main training run.
+    confidence_exclusion_set = set()
+
+    if USE_CONFIDENCE_FILTERING:
+        vprint("\n" + "="*80, level=1)
+        vprint("CONFIDENCE-BASED FILTERING", level=1)
+        vprint("="*80, level=1)
+
+        # Import helper functions from confidence_based_filtering script
+        try:
+            from scripts.confidence_based_filtering import (
+                run_confidence_filtering_pipeline,
+                load_exclusion_set,
+                exclusion_list_exists,
+                get_confidence_filter_stats
+            )
+
+            # Check if we already have an exclusion list
+            if exclusion_list_exists():
+                vprint("Found existing confidence exclusion list", level=1)
+                confidence_exclusion_set = load_exclusion_set()
+                stats = get_confidence_filter_stats()
+                if stats:
+                    vprint(f"  Created: {stats.get('timestamp', 'unknown')}", level=2)
+                    vprint(f"  Config: {stats.get('config', {})}", level=2)
+                vprint(f"  Samples to exclude: {len(confidence_exclusion_set)}", level=1)
+            else:
+                vprint("No exclusion list found - running preliminary training...", level=1)
+                vprint(f"  Percentile: {CONFIDENCE_FILTER_PERCENTILE}%", level=2)
+                vprint(f"  Mode: {CONFIDENCE_FILTER_MODE}", level=2)
+                vprint(f"  Metric: {CONFIDENCE_METRIC}", level=2)
+
+                # Run confidence filtering pipeline (uses 1 fold for speed)
+                success, excluded_samples = run_confidence_filtering_pipeline(
+                    percentile=CONFIDENCE_FILTER_PERCENTILE,
+                    mode=CONFIDENCE_FILTER_MODE,
+                    metric=CONFIDENCE_METRIC,
+                    min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
+                    max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
+                    cv_folds=1,  # Use 1 fold for preliminary training (faster)
+                    data_percentage=data_percentage,
+                    force_recompute=False,
+                    verbosity=verbosity
+                )
+
+                if success:
+                    confidence_exclusion_set = set(excluded_samples)
+                    vprint(f"\n✓ Confidence filtering complete: {len(confidence_exclusion_set)} samples to exclude", level=1)
+                else:
+                    vprint("⚠ Confidence filtering failed, continuing without filtering", level=1)
+
+        except ImportError as e:
+            vprint(f"⚠ Could not import confidence_based_filtering: {e}", level=1)
+            vprint("  Continuing without confidence filtering", level=1)
+        except Exception as e:
+            vprint(f"⚠ Error during confidence filtering: {e}", level=1)
+            vprint("  Continuing without confidence filtering", level=1)
+
+        vprint("="*80 + "\n", level=1)
+    else:
+        vprint("Confidence filtering disabled", level=2)
+
+    # Store exclusion set for use in data loading
+    # This will be accessed via environment or passed to prepare_dataset
+    if confidence_exclusion_set:
+        import json
+        exclusion_file = os.path.join(result_dir, 'confidence_exclusion_list.txt')
+        os.environ['CONFIDENCE_EXCLUSION_FILE'] = exclusion_file
+        vprint(f"Set CONFIDENCE_EXCLUSION_FILE={exclusion_file}", level=2)
+
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
     cache_patterns = [
