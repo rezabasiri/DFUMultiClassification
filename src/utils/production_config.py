@@ -25,9 +25,9 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 32  # TEMPORARY: Multi-param search trial 0
+IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
 GLOBAL_BATCH_SIZE = 320  # Total batch size across all GPU replicas
-N_EPOCHS = 160  # TEMPORARY: Multi-param search trial 0
+N_EPOCHS = 190  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
 # ----------------------------------------------------------------
@@ -35,26 +35,26 @@ N_EPOCHS = 160  # TEMPORARY: Multi-param search trial 0
 #   - For pre-training (image-only models): Uses N_EPOCHS epochs
 #   - For Stage 1 (frozen image branch): Uses STAGE1_EPOCHS epochs
 #   - For Stage 2 (fine-tuning): Uses (N_EPOCHS - STAGE1_EPOCHS) epochs
-#   - Production: 100 epochs total
+#   - Production: 190 epochs total
 #   - Quick test: 50 epochs total (agent_communication/generative_augmentation/test_generative_aug.py)
 #
 # STAGE1_EPOCHS: Number of epochs for Stage 1 fusion training (frozen image branch)
 #   - Only used in two-stage fusion training
 #   - Image branch is frozen, only fusion layers train
-#   - Typically ~10% of N_EPOCHS (30 out of 300)
-#   - Production: 10 epochs
+#   - Typically ~10% of N_EPOCHS (16 out of 190)
+#   - Production: 16 epochs
 #   - Quick test: 5 epochs
 #
 # LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
 #   - Defines how long to stay at initial LR before entering cosine annealing
 #   - Automatically set to 10% of N_EPOCHS (matches STAGE1_EPOCHS ratio)
-#   - Production (N_EPOCHS=100): 10 epochs exploration
+#   - Production (N_EPOCHS=190): 16 epochs exploration
 #   - After exploration, uses cosine annealing with warm restarts
 #
-# Example production timeline (N_EPOCHS=100, STAGE1_EPOCHS=10):
-#   1. Pre-training: 0-100 epochs (trains image-only model)
-#   2. Stage 1: 0-10 epochs (frozen image, train fusion)
-#   3. Stage 2: 10-100 epochs (fine-tune everything)
+# Example production timeline (N_EPOCHS=190, STAGE1_EPOCHS=16):
+#   1. Pre-training: 0-190 epochs (trains image-only model)
+#   2. Stage 1: 0-16 epochs (frozen image, train fusion)
+#   3. Stage 2: 16-190 epochs (fine-tune everything)
 
 # Image backbone selection (for backbone comparison experiments)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
@@ -63,7 +63,7 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 8  # TEMPORARY: Multi-param search trial 0
+STAGE1_EPOCHS = 16  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
@@ -72,7 +72,7 @@ DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = hal
 #   'smote': SMOTE synthetic oversampling to MAX class (Kappa ~0.14)
 #   'combined': Undersample majority + oversample minority to MIDDLE class (Kappa ~0.17) - RECOMMENDED
 #   'combined_smote': Undersample majority + SMOTE minority to MIDDLE class - NOT for fusion (creates synthetic samples without images)
-# For production with 15% outlier removal: Expected Kappa 0.27 ± 0.08
+# For production with 25% outlier removal: Expected Kappa 0.31 ± 0.08
 SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
 
 # Early stopping and learning rate
@@ -85,8 +85,8 @@ REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for long
 
 # Multimodal outlier detection (Isolation Forest on joint feature space)
 OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
-OUTLIER_CONTAMINATION = 0.18  # TEMPORARY: Multi-param search trial 0
-OUTLIER_BATCH_SIZE = 16  # TEMPORARY: Multi-param search trial 0
+OUTLIER_CONTAMINATION = 0.25  # Expected proportion of outliers (0.0-1.0)
+OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
 
 # General augmentation (applied during training only, not validation)
 # RGB images: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, gaussian noise σ=0.15
