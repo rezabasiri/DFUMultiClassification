@@ -243,8 +243,13 @@ def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalitie
 
             if excluded_ids:
                 original_count = len(best_matching_df)
-                # Use depth_rgb as sample identifier (unique per image)
-                sample_ids = best_matching_df['depth_rgb'].astype(str)
+                # Create sample IDs in format: P{patient}A{appt}D{dfu}
+                # This matches the format used by confidence_based_filtering.py
+                sample_ids = (
+                    'P' + best_matching_df['Patient#'].astype(int).astype(str).str.zfill(3) +
+                    'A' + best_matching_df['Appt#'].astype(int).astype(str).str.zfill(2) +
+                    'D' + best_matching_df['DFU#'].astype(int).astype(str)
+                )
                 keep_mask = ~sample_ids.isin(excluded_ids)
                 best_matching_df = best_matching_df[keep_mask].copy()
                 num_excluded = original_count - len(best_matching_df)

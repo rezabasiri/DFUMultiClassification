@@ -183,21 +183,25 @@ class ConfidenceBasedFilter:
 
     def collect_predictions(self):
         """
-        Collect predictions from saved numpy files.
+        Collect predictions from saved numpy files across all CV folds.
+
+        File naming convention:
+        - pred_run{N}_{config}_{type}.npy - predictions (softmax probabilities)
+        - true_label_run{N}_{config}_{type}.npy - true labels
+        - sample_ids_run{N}_{config}_{type}.npy - sample identifiers [Patient, Appt, DFU]
 
         Returns:
             True if predictions were found and loaded, False otherwise
         """
         print("\n" + "="*70)
-        print("COLLECTING PREDICTIONS")
+        print("COLLECTING PREDICTIONS FROM ALL FOLDS")
         print("="*70)
 
         checkpoint_dir = self.output_paths['checkpoints']
 
-        # Look for prediction files (format: {modality}_predictions_fold{N}.npy)
-        pred_files = list(Path(checkpoint_dir).glob('*_predictions_*.npy'))
-        label_files = list(Path(checkpoint_dir).glob('*_labels_*.npy'))
-        sample_id_files = list(Path(checkpoint_dir).glob('*_sample_ids_*.npy'))
+        # Look for validation prediction files (format: pred_run{N}_{config}_valid.npy)
+        # We use validation predictions because they're out-of-sample (unbiased confidence estimates)
+        pred_files = sorted(Path(checkpoint_dir).glob('pred_run*_valid.npy'))
 
         if not pred_files:
             print(f"⚠️  No prediction files found in {checkpoint_dir}")
@@ -211,72 +215,93 @@ class ConfidenceBasedFilter:
             print("❌ No prediction data found. Run training first.")
             return False
 
-        print(f"Found {len(pred_files)} prediction files")
+        print(f"Found {len(pred_files)} fold prediction files")
 
-        # Aggregate predictions across folds
-        all_sample_ids = []
-        all_predictions = []
-        all_labels = []
-        all_probabilities = []
+        # Dictionary to store unique samples (keyed by sample ID string)
+        # This handles the case where the same sample might appear in multiple files
+        # (shouldn't happen with proper k-fold, but safe to handle)
+        unique_samples = {}
 
         for pred_file in pred_files:
             try:
                 # Load predictions
                 predictions = np.load(pred_file)
 
-                # Try to find matching labels and sample_ids
-                base_name = pred_file.stem.replace('_predictions', '')
-                label_file = pred_file.parent / f"{base_name}_labels{pred_file.suffix}"
-                sample_id_file = pred_file.parent / f"{base_name}_sample_ids{pred_file.suffix}"
+                # Extract base name to find matching files
+                # Example: pred_run1_metadata+depth_rgb_valid.npy
+                #       -> true_label_run1_metadata+depth_rgb_valid.npy
+                #       -> sample_ids_run1_metadata+depth_rgb_valid.npy
+                base_name = pred_file.stem.replace('pred_', '')  # run1_metadata+depth_rgb_valid
+                label_file = pred_file.parent / f"true_label_{base_name}.npy"
+                sample_ids_file = pred_file.parent / f"sample_ids_{base_name}.npy"
 
+                # Load labels
                 if label_file.exists():
                     labels = np.load(label_file)
                 else:
+                    print(f"  ⚠️  No label file for {pred_file.name}")
                     labels = None
 
-                if sample_id_file.exists():
-                    sample_ids = np.load(sample_id_file)
+                # Load sample IDs - CRITICAL for confidence filtering
+                if sample_ids_file.exists():
+                    sample_ids = np.load(sample_ids_file)
                 else:
-                    # Generate placeholder IDs
-                    sample_ids = np.arange(len(predictions))
+                    print(f"  ⚠️  No sample_ids file for {pred_file.name} - cannot identify samples!")
+                    continue  # Skip this file, we can't use predictions without sample IDs
 
-                all_predictions.append(predictions)
-                all_sample_ids.append(sample_ids)
-                if labels is not None:
-                    all_labels.append(labels)
+                # Process each sample
+                for i in range(len(predictions)):
+                    # Create unique sample ID string from [Patient, Appt, DFU]
+                    if len(sample_ids.shape) == 2 and sample_ids.shape[1] >= 3:
+                        # Format: P{patient}A{appt}D{dfu} (matches misclassification tracking format)
+                        sid = f"P{int(sample_ids[i, 0]):03d}A{int(sample_ids[i, 1]):02d}D{int(sample_ids[i, 2])}"
+                    else:
+                        # Fallback to string representation
+                        sid = str(sample_ids[i])
+
+                    # Store/update sample data (later fold overwrites if duplicate - shouldn't happen)
+                    unique_samples[sid] = {
+                        'predictions': predictions[i],
+                        'label': labels[i] if labels is not None else None
+                    }
 
                 print(f"  Loaded {len(predictions)} predictions from {pred_file.name}")
 
             except Exception as e:
                 print(f"  ⚠️  Error loading {pred_file.name}: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
 
-        if not all_predictions:
-            print("❌ Failed to load any predictions")
+        if not unique_samples:
+            print("❌ Failed to load any predictions with sample IDs")
             return False
 
-        # Combine all predictions
-        all_predictions = np.vstack(all_predictions)
-        all_sample_ids = np.concatenate(all_sample_ids)
-
-        if all_labels:
-            all_labels = np.concatenate(all_labels)
-        else:
-            all_labels = None
+        # Convert to arrays for confidence calculation
+        sample_ids_list = list(unique_samples.keys())
+        predictions_array = np.array([unique_samples[sid]['predictions'] for sid in sample_ids_list])
 
         # Calculate confidence scores
-        confidences = self.calculate_confidence(all_predictions)
-        predicted_classes = np.argmax(all_predictions, axis=1)
+        confidences = self.calculate_confidence(predictions_array)
+        predicted_classes = np.argmax(predictions_array, axis=1)
 
         # Store results
-        for i, sample_id in enumerate(all_sample_ids):
-            sid = str(sample_id) if isinstance(sample_id, (int, np.integer)) else sample_id
+        for i, sid in enumerate(sample_ids_list):
             self.sample_confidences[sid] = float(confidences[i])
             self.sample_predictions[sid] = int(predicted_classes[i])
-            if all_labels is not None:
-                self.sample_true_labels[sid] = int(all_labels[i]) if isinstance(all_labels[i], (int, np.integer)) else int(np.argmax(all_labels[i]))
 
-        print(f"\n✅ Collected confidence scores for {len(self.sample_confidences)} samples")
+            label = unique_samples[sid]['label']
+            if label is not None:
+                # Handle both scalar and one-hot encoded labels
+                if isinstance(label, (int, np.integer)):
+                    self.sample_true_labels[sid] = int(label)
+                elif hasattr(label, '__len__') and len(label) > 1:
+                    self.sample_true_labels[sid] = int(np.argmax(label))
+                else:
+                    self.sample_true_labels[sid] = int(label)
+
+        print(f"\n✅ Collected confidence scores for {len(self.sample_confidences)} unique samples")
+        print(f"   (Aggregated from {len(pred_files)} fold files)")
         return True
 
     def _load_from_misclass_file(self, misclass_file):
@@ -690,13 +715,12 @@ def load_exclusion_set():
         return set()
 
 
-def apply_confidence_filter_to_dataframe(df, sample_id_column='depth_rgb'):
+def apply_confidence_filter_to_dataframe(df):
     """
     Apply confidence-based filtering to a DataFrame.
 
     Args:
-        df: pandas DataFrame to filter
-        sample_id_column: Column to use as sample identifier (default: 'depth_rgb')
+        df: pandas DataFrame to filter (must have Patient#, Appt#, DFU# columns)
 
     Returns:
         tuple: (filtered_df, num_excluded)
@@ -710,8 +734,13 @@ def apply_confidence_filter_to_dataframe(df, sample_id_column='depth_rgb'):
 
     original_count = len(df)
 
-    # Create mask for samples to keep
-    sample_ids = df[sample_id_column].astype(str)
+    # Create sample IDs in format: P{patient}A{appt}D{dfu}
+    # This matches the format used throughout the confidence filtering pipeline
+    sample_ids = (
+        'P' + df['Patient#'].astype(int).astype(str).str.zfill(3) +
+        'A' + df['Appt#'].astype(int).astype(str).str.zfill(2) +
+        'D' + df['DFU#'].astype(int).astype(str)
+    )
     keep_mask = ~sample_ids.isin(excluded_ids)
 
     filtered_df = df[keep_mask].copy()

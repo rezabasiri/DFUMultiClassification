@@ -1780,7 +1780,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
                             gc.collect()
 
-                        save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train')
+                        # Save predictions with sample IDs for confidence-based filtering
+                        sample_ids_t = np.array(all_sample_ids_t)
+                        save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train', sample_ids=sample_ids_t)
                         # Store probabilities for gating network
                         run_predictions_list_t.append(np.array(probabilities_t))
                         if run_true_labels_t is None:
@@ -1788,7 +1790,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                         # Track misclassifications from training set (if requested)
                         if track_misclass in ['both', 'train']:
-                            sample_ids_t = np.array(all_sample_ids_t)
                             track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
 
                         # Evaluate model
@@ -1817,15 +1818,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
                             gc.collect()
 
-                        save_run_predictions(run + 1, config_name, np.array(probabilities_v), np.array(y_true_v), ck_path, dataset_type='valid')
+                        # Save predictions with sample IDs for confidence-based filtering
+                        sample_ids_v = np.array(all_sample_ids_v)
+                        save_run_predictions(run + 1, config_name, np.array(probabilities_v), np.array(y_true_v), ck_path, dataset_type='valid', sample_ids=sample_ids_v)
                         # Store probabilities for gating network
                         run_predictions_list_v.append(np.array(probabilities_v))
                         if run_true_labels_v is None:
                             run_true_labels_v = np.array(y_true_v)
-                        
+
                         # Track misclassifications from validation set (if requested)
                         if track_misclass in ['both', 'valid']:
-                            sample_ids_v = np.array(all_sample_ids_v)
                             track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
 
                         # Calculate metrics
@@ -2229,20 +2231,58 @@ def save_aggregated_results(all_metrics, configs, result_dir):
         writer.writerows(results)
     
     vprint(f"Results saved to {csv_filename}", level=1)
-def save_run_predictions(run_number, config_name, predictions, true_labels, ck_path, dataset_type='valid'):
-    """Save predictions and true labels for a specific run and config."""
+def save_run_predictions(run_number, config_name, predictions, true_labels, ck_path, dataset_type='valid', sample_ids=None):
+    """Save predictions, true labels, and optionally sample IDs for a specific run and config.
+
+    Args:
+        run_number: Run/fold number
+        config_name: Configuration name (e.g., modality combination)
+        predictions: Softmax predictions array (N, num_classes)
+        true_labels: True label indices (N,)
+        ck_path: Checkpoint directory path
+        dataset_type: 'train' or 'valid'
+        sample_ids: Optional sample identifiers array (N, 3) for [Patient, Appt, DFU]
+    """
     pred_file = os.path.join(ck_path, f'pred_run{run_number}_{config_name}_{dataset_type}.npy')
     labels_file = os.path.join(ck_path, f'true_label_run{run_number}_{config_name}_{dataset_type}.npy')
     np.save(pred_file, predictions)
     np.save(labels_file, true_labels)
 
-def load_run_predictions(run_number, config_name, ck_path, dataset_type='valid'):
-    """Load predictions and true labels for a specific run and config."""
+    # Save sample IDs if provided (needed for confidence-based filtering)
+    if sample_ids is not None:
+        sample_ids_file = os.path.join(ck_path, f'sample_ids_run{run_number}_{config_name}_{dataset_type}.npy')
+        np.save(sample_ids_file, sample_ids)
+
+def load_run_predictions(run_number, config_name, ck_path, dataset_type='valid', load_sample_ids=False):
+    """Load predictions, true labels, and optionally sample IDs for a specific run and config.
+
+    Args:
+        run_number: Run/fold number
+        config_name: Configuration name
+        ck_path: Checkpoint directory path
+        dataset_type: 'train' or 'valid'
+        load_sample_ids: If True, also load sample IDs
+
+    Returns:
+        If load_sample_ids=False: (predictions, labels) or (None, None)
+        If load_sample_ids=True: (predictions, labels, sample_ids) or (None, None, None)
+    """
     pred_file = os.path.join(ck_path, f'pred_run{run_number}_{config_name}_{dataset_type}.npy')
     labels_file = os.path.join(ck_path, f'true_label_run{run_number}_{config_name}_{dataset_type}.npy')
-    
+
     if os.path.exists(pred_file) and os.path.exists(labels_file):
-        return np.load(pred_file), np.load(labels_file)
+        predictions = np.load(pred_file)
+        labels = np.load(labels_file)
+
+        if load_sample_ids:
+            sample_ids_file = os.path.join(ck_path, f'sample_ids_run{run_number}_{config_name}_{dataset_type}.npy')
+            sample_ids = np.load(sample_ids_file) if os.path.exists(sample_ids_file) else None
+            return predictions, labels, sample_ids
+
+        return predictions, labels
+
+    if load_sample_ids:
+        return None, None, None
     return None, None
 
 def get_completed_configs_for_run(run_number, config_names, ck_path, dataset_type='valid'):

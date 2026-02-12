@@ -2256,7 +2256,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
                     metric=CONFIDENCE_METRIC,
                     min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
                     max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
-                    cv_folds=1,  # Use 1 fold for preliminary training (faster)
+                    cv_folds=3,  # Use 3 folds for complete sample coverage
                     data_percentage=data_percentage,
                     force_recompute=False,
                     verbosity=get_verbosity()
@@ -2643,7 +2643,7 @@ Configuration:
                     metric=CONFIDENCE_METRIC,
                     min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
                     max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
-                    cv_folds=1,  # Use 1 fold for preliminary training (faster)
+                    cv_folds=3,  # Use 3 folds for complete sample coverage
                     data_percentage=args.data_percentage,
                     force_recompute=False,
                     verbosity=0  # Suppress verbose output from confidence filtering script
