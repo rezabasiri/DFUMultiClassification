@@ -169,8 +169,10 @@ class ConfidenceBasedFilter:
         print(f"\nRunning: {' '.join(cmd)}")
         print("\n" + "-"*70)
 
-        # Run training
-        result = subprocess.run(cmd, cwd=project_root)
+        # Run training with confidence filtering DISABLED to avoid infinite recursion
+        env = os.environ.copy()
+        env['DISABLE_CONFIDENCE_FILTERING'] = '1'
+        result = subprocess.run(cmd, cwd=project_root, env=env)
 
         if result.returncode != 0:
             print(f"\n❌ Training failed with return code {result.returncode}")
@@ -575,7 +577,10 @@ class ConfidenceBasedFilter:
         print(f"\nRunning filtered training: {' '.join(cmd)}")
         print("\n" + "-"*70)
 
-        result = subprocess.run(cmd, cwd=project_root, env=os.environ.copy())
+        # Disable confidence filtering for this subprocess to avoid recursion
+        env = os.environ.copy()
+        env['DISABLE_CONFIDENCE_FILTERING'] = '1'
+        result = subprocess.run(cmd, cwd=project_root, env=env)
 
         # Clean up
         if 'CONFIDENCE_EXCLUSION_FILE' in os.environ:
@@ -785,19 +790,23 @@ def run_confidence_filtering_pipeline(
 
     # Check if we can skip
     if not force_recompute and exclusion_list_exists():
-        print(f"\n✓ Using existing confidence exclusion list: {get_exclusion_list_path()}")
+        if verbosity > 0:
+            print(f"\n✓ Using existing confidence exclusion list: {get_exclusion_list_path()}")
         excluded_ids = load_exclusion_set()
-        print(f"  {len(excluded_ids)} samples will be excluded")
+        if verbosity > 0:
+            print(f"  {len(excluded_ids)} samples will be excluded")
         return True, list(excluded_ids)
 
-    print("\n" + "="*70)
-    print("CONFIDENCE-BASED FILTERING (Preliminary Training Phase)")
-    print("="*70)
-    print(f"Running preliminary training to identify low-confidence samples...")
-    print(f"  Percentile: {percentile}%")
-    print(f"  Mode: {mode}")
-    print(f"  Metric: {metric}")
-    print(f"  CV Folds: {cv_folds}")
+    # Only print headers if verbosity > 0
+    if verbosity > 0:
+        print("\n" + "="*70)
+        print("CONFIDENCE-BASED FILTERING (Preliminary Training Phase)")
+        print("="*70)
+        print(f"Running preliminary training to identify low-confidence samples...")
+        print(f"  Percentile: {percentile}%")
+        print(f"  Mode: {mode}")
+        print(f"  Metric: {metric}")
+        print(f"  CV Folds: {cv_folds}")
 
     # Create and run filter
     filter_obj = ConfidenceBasedFilter(

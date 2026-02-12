@@ -84,7 +84,7 @@ REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for long
 # =============================================================================
 
 # Multimodal outlier detection (Isolation Forest on joint feature space)
-OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
+OUTLIER_REMOVAL = False  # Enable/disable outlier detection and removal
 OUTLIER_CONTAMINATION = 0.25  # Expected proportion of outliers (0.0-1.0)
 OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
 
@@ -133,7 +133,7 @@ TRACK_MISCLASS = 'none'  # Misclassification tracking mode
 # Faster than iterative misclassification tracking (requires only 1 training run).
 
 # Enable/disable confidence-based filtering during training
-USE_CONFIDENCE_FILTERING = False  # Set to True to enable
+USE_CONFIDENCE_FILTERING = True  # Set to True to enable
 
 # Filtering parameters
 CONFIDENCE_FILTER_PERCENTILE = 15  # Remove bottom X% lowest confidence samples (default: 15%)

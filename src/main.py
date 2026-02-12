@@ -2213,7 +2213,14 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
     # then filters them out for the main training run.
     confidence_exclusion_set = set()
 
-    if USE_CONFIDENCE_FILTERING:
+    # Skip confidence filtering if:
+    # 1. Explicitly disabled via environment variable (e.g., during preliminary training)
+    # 2. Running a specific fold subprocess (target_fold is set) - filtering should only run in orchestrator
+    if os.environ.get('DISABLE_CONFIDENCE_FILTERING') == '1':
+        vprint("Confidence filtering disabled (DISABLE_CONFIDENCE_FILTERING=1)", level=2)
+    elif target_fold is not None:
+        vprint("Confidence filtering skipped (running specific fold subprocess)", level=2)
+    elif USE_CONFIDENCE_FILTERING:
         vprint("\n" + "="*80, level=1)
         vprint("CONFIDENCE-BASED FILTERING", level=1)
         vprint("="*80, level=1)
@@ -2252,7 +2259,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
                     cv_folds=1,  # Use 1 fold for preliminary training (faster)
                     data_percentage=data_percentage,
                     force_recompute=False,
-                    verbosity=verbosity
+                    verbosity=get_verbosity()
                 )
 
                 if success:
@@ -2357,7 +2364,9 @@ def _orchestrate_cv_folds(args):
         print(f"Command: {' '.join(fold_cmd)}")
         print(f"{'='*80}\n")
 
-        result = subprocess.run(fold_cmd)
+        # Pass through DISABLE_CONFIDENCE_FILTERING if set (to prevent recursion in fold subprocesses)
+        env = os.environ.copy()
+        result = subprocess.run(fold_cmd, env=env)
 
         if result.returncode != 0:
             print(f"\nERROR: Fold {fold}/{cv_folds} failed with return code {result.returncode}")
@@ -2589,6 +2598,71 @@ Configuration:
 
     print(f"[LOG] Output is being logged to: {log_file}")
     print(f"[LOG] Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+    # Set verbosity early for confidence filtering
+    set_verbosity(args.verbosity)
+
+    # =========================================================================
+    # CONFIDENCE-BASED FILTERING (if enabled) - Run BEFORE fold orchestration
+    # =========================================================================
+    # This runs a preliminary training to identify low-confidence samples,
+    # then filters them out for the main training run.
+    # IMPORTANT: This must run in the orchestrator (args.fold is None), not in fold subprocesses
+    if args.fold is None and args.cv_folds > 1 and USE_CONFIDENCE_FILTERING and os.environ.get('DISABLE_CONFIDENCE_FILTERING') != '1':
+        print("\n" + "="*80)
+        print("CONFIDENCE-BASED FILTERING")
+        print("="*80)
+
+        # Import helper functions from confidence_based_filtering script
+        try:
+            from scripts.confidence_based_filtering import (
+                run_confidence_filtering_pipeline,
+                load_exclusion_set,
+                exclusion_list_exists,
+                get_confidence_filter_stats
+            )
+
+            # Check if we already have an exclusion list
+            if exclusion_list_exists():
+                print("Using existing confidence exclusion list")
+                confidence_exclusion_set = load_exclusion_set()
+                stats = get_confidence_filter_stats()
+                if stats and args.verbosity >= 2:
+                    print(f"  Created: {stats.get('timestamp', 'unknown')}")
+                    print(f"  Config: {stats.get('config', {})}")
+                print(f"  Excluding {len(confidence_exclusion_set)} samples ({CONFIDENCE_FILTER_PERCENTILE}% lowest confidence)")
+            else:
+                print(f"Running preliminary training to identify low-confidence samples...")
+                print(f"  Filtering: bottom {CONFIDENCE_FILTER_PERCENTILE}% per class using {CONFIDENCE_METRIC} metric")
+
+                # Run confidence filtering pipeline (uses 1 fold for speed)
+                # Set verbosity to 0 to suppress internal prints, we'll handle the output here
+                success, excluded_samples = run_confidence_filtering_pipeline(
+                    percentile=CONFIDENCE_FILTER_PERCENTILE,
+                    mode=CONFIDENCE_FILTER_MODE,
+                    metric=CONFIDENCE_METRIC,
+                    min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
+                    max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
+                    cv_folds=1,  # Use 1 fold for preliminary training (faster)
+                    data_percentage=args.data_percentage,
+                    force_recompute=False,
+                    verbosity=0  # Suppress verbose output from confidence filtering script
+                )
+
+                if success:
+                    confidence_exclusion_set = set(excluded_samples)
+                    print(f"✓ Identified {len(confidence_exclusion_set)} low-confidence samples to exclude")
+                else:
+                    print("⚠ Confidence filtering failed, continuing without filtering")
+
+        except ImportError as e:
+            print(f"⚠ Could not import confidence_based_filtering: {e}")
+            print("  Continuing without confidence filtering")
+        except Exception as e:
+            print(f"⚠ Error during confidence filtering: {e}")
+            print("  Continuing without confidence filtering")
+
+        print("="*80 + "\n")
 
     # SUBPROCESS ORCHESTRATION: When running multi-fold CV without --fold,
     # automatically spawn each fold as a separate subprocess to prevent
