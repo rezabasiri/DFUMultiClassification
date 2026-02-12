@@ -66,6 +66,7 @@ class ConfidenceBasedFilter:
 
     def __init__(self,
                  percentile=15,
+                 percentiles_per_class=None,
                  mode='per_class',
                  metric='max_prob',
                  min_samples_per_class=50,
@@ -77,7 +78,9 @@ class ConfidenceBasedFilter:
         Initialize the confidence-based filter.
 
         Args:
-            percentile: Bottom X% of samples to flag as low-confidence (default: 15)
+            percentile: Bottom X% of samples to flag as low-confidence (default: 15, fallback)
+            percentiles_per_class: Dict mapping class index to percentile, e.g., {0: 15, 1: 15, 2: 10}
+                                   If provided, overrides 'percentile' for per_class mode
             mode: 'per_class' = filter bottom X% per class, 'global' = filter bottom X% overall
             metric: Confidence metric to use:
                     'max_prob' = max softmax probability (simple, fast)
@@ -90,6 +93,7 @@ class ConfidenceBasedFilter:
             verbosity: Output verbosity level
         """
         self.percentile = percentile
+        self.percentiles_per_class = percentiles_per_class  # {0: 15, 1: 15, 2: 10} for I, P, R
         self.mode = mode
         self.metric = metric
         self.min_samples_per_class = min_samples_per_class
@@ -365,14 +369,21 @@ class ConfidenceBasedFilter:
         print(f"\nTotal samples: {len(df)}")
         print(f"Confidence metric: {self.metric}")
         print(f"Filtering mode: {self.mode}")
-        print(f"Target percentile: {self.percentile}%")
+
+        # Display percentile settings
+        if self.percentiles_per_class:
+            print(f"Per-class percentiles: I={self.percentiles_per_class.get(0, self.percentile)}%, "
+                  f"P={self.percentiles_per_class.get(1, self.percentile)}%, "
+                  f"R={self.percentiles_per_class.get(2, self.percentile)}%")
+        else:
+            print(f"Target percentile: {self.percentile}% (uniform for all classes)")
 
         # Safety: Maximum percentage that can be removed from ANY class (protect minorities)
         MAX_CLASS_REMOVAL_PCT = self.max_class_removal_pct
 
         # Calculate threshold(s)
         if self.mode == 'global':
-            # Global threshold - bottom X% overall
+            # Global threshold - bottom X% overall (uses single percentile)
             threshold = np.percentile(df['confidence'], self.percentile)
             low_conf_mask = df['confidence'] <= threshold
 
@@ -415,7 +426,7 @@ class ConfidenceBasedFilter:
                           f"({100*num_flagged/len(class_df):.1f}%) - OK")
 
         else:  # per_class
-            # Per-class threshold - bottom X% per class
+            # Per-class threshold - bottom X% per class (supports different percentiles per class)
             low_conf_mask = pd.Series([False] * len(df), index=df.index)
 
             print(f"\nPer-class confidence thresholds:")
@@ -426,13 +437,18 @@ class ConfidenceBasedFilter:
                 if len(class_df) == 0:
                     continue
 
-                threshold = np.percentile(class_df['confidence'], self.percentile)
+                # Get class-specific percentile (fallback to default if not specified)
+                class_percentile = self.percentile
+                if self.percentiles_per_class and label_idx in self.percentiles_per_class:
+                    class_percentile = self.percentiles_per_class[label_idx]
+
+                threshold = np.percentile(class_df['confidence'], class_percentile)
 
                 # Apply safety limits:
                 # 1. Never go below min_samples_per_class
                 # 2. Never remove more than MAX_CLASS_REMOVAL_PCT from any class
                 max_removable_pct = int(len(class_df) * MAX_CLASS_REMOVAL_PCT / 100)
-                max_removable_percentile = int(len(class_df) * self.percentile / 100)
+                max_removable_percentile = int(len(class_df) * class_percentile / 100)
 
                 num_to_keep = max(
                     self.min_samples_per_class,
@@ -451,12 +467,12 @@ class ConfidenceBasedFilter:
 
                 # Warning if we had to limit removal
                 if num_to_remove < max_removable_percentile:
-                    print(f"  {label_name}: threshold={threshold:.4f}, "
+                    print(f"  {label_name}: percentile={class_percentile}%, threshold={threshold:.4f}, "
                           f"samples={len(class_df)}, "
                           f"flagged={actual_flagged} ({pct_flagged:.1f}%) "
                           f"⚠️ LIMITED (min_samples={self.min_samples_per_class})")
                 else:
-                    print(f"  {label_name}: threshold={threshold:.4f}, "
+                    print(f"  {label_name}: percentile={class_percentile}%, threshold={threshold:.4f}, "
                           f"samples={len(class_df)}, "
                           f"flagged={actual_flagged} ({pct_flagged:.1f}%)")
 
@@ -767,6 +783,7 @@ def apply_confidence_filter_to_dataframe(df):
 
 def run_confidence_filtering_pipeline(
     percentile=None,
+    percentiles_per_class=None,
     mode=None,
     metric=None,
     min_samples_per_class=None,
@@ -783,7 +800,9 @@ def run_confidence_filtering_pipeline(
     and no exclusion list exists (or force_recompute=True).
 
     Args:
-        percentile: Filter percentile (uses config default if None)
+        percentile: Filter percentile fallback (uses config default if None)
+        percentiles_per_class: Dict mapping class index to percentile, e.g., {0: 15, 1: 15, 2: 10}
+                              If None, reads from config per-class values
         mode: Filter mode (uses config default if None)
         metric: Confidence metric (uses config default if None)
         min_samples_per_class: Min samples per class (uses config default if None)
@@ -805,9 +824,26 @@ def run_confidence_filtering_pipeline(
         CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT
     )
 
+    # Try to import per-class percentiles from config
+    try:
+        from src.utils.production_config import (
+            CONFIDENCE_FILTER_PERCENTILE_I,
+            CONFIDENCE_FILTER_PERCENTILE_P,
+            CONFIDENCE_FILTER_PERCENTILE_R
+        )
+        config_percentiles_per_class = {
+            0: CONFIDENCE_FILTER_PERCENTILE_I,  # I class
+            1: CONFIDENCE_FILTER_PERCENTILE_P,  # P class
+            2: CONFIDENCE_FILTER_PERCENTILE_R   # R class
+        }
+    except ImportError:
+        config_percentiles_per_class = None
+
     # Use config defaults if not specified
     if percentile is None:
         percentile = CONFIDENCE_FILTER_PERCENTILE
+    if percentiles_per_class is None:
+        percentiles_per_class = config_percentiles_per_class
     if mode is None:
         mode = CONFIDENCE_FILTER_MODE
     if metric is None:
@@ -832,7 +868,12 @@ def run_confidence_filtering_pipeline(
         print("CONFIDENCE-BASED FILTERING (Preliminary Training Phase)")
         print("="*70)
         print(f"Running preliminary training to identify low-confidence samples...")
-        print(f"  Percentile: {percentile}%")
+        if percentiles_per_class:
+            print(f"  Per-class percentiles: I={percentiles_per_class.get(0, percentile)}%, "
+                  f"P={percentiles_per_class.get(1, percentile)}%, "
+                  f"R={percentiles_per_class.get(2, percentile)}%")
+        else:
+            print(f"  Percentile: {percentile}%")
         print(f"  Mode: {mode}")
         print(f"  Metric: {metric}")
         print(f"  CV Folds: {cv_folds}")
@@ -840,6 +881,7 @@ def run_confidence_filtering_pipeline(
     # Create and run filter
     filter_obj = ConfidenceBasedFilter(
         percentile=percentile,
+        percentiles_per_class=percentiles_per_class,
         mode=mode,
         metric=metric,
         min_samples_per_class=min_samples_per_class,
@@ -938,7 +980,15 @@ Filtering Modes:
     )
 
     parser.add_argument('--percentile', type=float, default=15,
-                       help='Bottom X%% of samples to flag as low-confidence (default: 15)')
+                       help='Bottom X%% of samples to flag as low-confidence (default: 15, fallback for all classes)')
+
+    # Per-class percentile options (override --percentile for specific classes)
+    parser.add_argument('--percentile-i', type=float, default=None,
+                       help='Percentile for Inflammatory class (default: use --percentile value)')
+    parser.add_argument('--percentile-p', type=float, default=None,
+                       help='Percentile for Proliferative class (default: use --percentile value)')
+    parser.add_argument('--percentile-r', type=float, default=None,
+                       help='Percentile for Remodeling class (default: use --percentile value)')
 
     parser.add_argument('--mode', choices=['per_class', 'global'], default='per_class',
                        help='Filtering mode (default: per_class)')
@@ -969,9 +1019,19 @@ Filtering Modes:
 
     args = parser.parse_args()
 
+    # Build per-class percentiles dict if any class-specific values provided
+    percentiles_per_class = None
+    if args.percentile_i is not None or args.percentile_p is not None or args.percentile_r is not None:
+        percentiles_per_class = {
+            0: args.percentile_i if args.percentile_i is not None else args.percentile,  # I
+            1: args.percentile_p if args.percentile_p is not None else args.percentile,  # P
+            2: args.percentile_r if args.percentile_r is not None else args.percentile   # R
+        }
+
     # Create filter
     filter = ConfidenceBasedFilter(
         percentile=args.percentile,
+        percentiles_per_class=percentiles_per_class,
         mode=args.mode,
         metric=args.metric,
         min_samples_per_class=args.min_samples,

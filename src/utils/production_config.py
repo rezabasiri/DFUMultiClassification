@@ -75,6 +75,13 @@ DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = hal
 # For production with 25% outlier removal: Expected Kappa 0.31 ± 0.08
 SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
 
+# Additional class weighting based on original class frequencies (applied ON TOP of sampling strategy)
+# When enabled, computes alpha weights from inverse class frequencies before resampling,
+# then applies these weights during training via model.fit(class_weight=...) or focal loss alpha
+# This provides extra emphasis on minority classes even after resampling balances the dataset
+USE_FREQUENCY_BASED_WEIGHTS = True  # Enable/disable frequency-based class weighting
+FREQUENCY_WEIGHT_NORMALIZATION = 3.0  # Weights are normalized to sum to this value (default: 3.0 for 3 classes)
+
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
 REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for longer training)
@@ -135,8 +142,15 @@ TRACK_MISCLASS = 'none'  # Misclassification tracking mode
 # Enable/disable confidence-based filtering during training
 USE_CONFIDENCE_FILTERING = True  # Set to True to enable
 
-# Filtering parameters
+# Filtering parameters - PER-CLASS percentiles (bottom X% to remove from each class)
+# This allows different filtering intensity for each class based on data quality
+CONFIDENCE_FILTER_PERCENTILE_I = 15  # Inflammatory class (class 0)
+CONFIDENCE_FILTER_PERCENTILE_P = 15  # Proliferative class (class 1) - majority class
+CONFIDENCE_FILTER_PERCENTILE_R = 15  # Remodeling class (class 2) - minority class
+
+# Legacy single percentile (used as fallback if per-class not specified)
 CONFIDENCE_FILTER_PERCENTILE = 15  # Remove bottom X% lowest confidence samples (default: 15%)
+
 CONFIDENCE_FILTER_MODE = 'per_class'  # 'global' = bottom X% overall, 'per_class' = bottom X% per class
 CONFIDENCE_FILTER_MIN_SAMPLES = 50  # Minimum samples to keep per class (safety limit)
 CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT = 30  # Never remove more than X% from ANY class (protects minority classes)

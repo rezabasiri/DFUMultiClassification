@@ -961,18 +961,33 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
-            # Recalculate alpha values from BALANCED distribution
-            # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
-            total_resampled = len(y_resampled)
-            balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
-            alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
-            alpha_sum_balanced = sum(alpha_values_balanced)
-            alpha_values_balanced = [alpha/alpha_sum_balanced * 3.0 for alpha in alpha_values_balanced]
+            # Check if we should use frequency-based weights from original distribution
+            try:
+                from src.utils.production_config import USE_FREQUENCY_BASED_WEIGHTS, FREQUENCY_WEIGHT_NORMALIZATION
+            except ImportError:
+                USE_FREQUENCY_BASED_WEIGHTS = False
+                FREQUENCY_WEIGHT_NORMALIZATION = 3.0
 
-            vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
-            vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
+            if USE_FREQUENCY_BASED_WEIGHTS:
+                # Use alpha_values from ORIGINAL distribution (calculated at start of function)
+                # This applies class weighting ON TOP of the balanced sampling
+                vprint(f"\nUsing frequency-based weights from ORIGINAL distribution:", level=2)
+                vprint(f"Alpha values [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
+                vprint("(These weights emphasize minority classes even after resampling)", level=2)
+                return resampled_df, alpha_values
+            else:
+                # Recalculate alpha values from BALANCED distribution
+                # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
+                total_resampled = len(y_resampled)
+                balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
+                alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
+                alpha_sum_balanced = sum(alpha_values_balanced)
+                alpha_values_balanced = [alpha/alpha_sum_balanced * FREQUENCY_WEIGHT_NORMALIZATION for alpha in alpha_values_balanced]
 
-            return resampled_df, alpha_values_balanced
+                vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
+                vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
+
+                return resampled_df, alpha_values_balanced
     if 'metadata' in selected_modalities:
         # Calculate class weights for Random Forest models
         unique_cases = train_data[['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']].drop_duplicates().copy()
