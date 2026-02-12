@@ -784,3 +784,217 @@ def apply_cleaned_dataset_combination(combination, contamination=0.15, backup=Tr
         # New behavior: return filtered dataframe without modifying files
         vprint(f"  Returning filtered dataframe (best_matching.csv unchanged)", level=2)
         return filtered_df
+
+
+# =============================================================================
+# Confidence-Based Filtering Integration
+# =============================================================================
+
+
+def load_confidence_exclusion_list(exclusion_file=None, results_file=None):
+    """
+    Load sample IDs to exclude based on confidence-based filtering.
+
+    Looks for exclusion data from multiple sources in order of priority:
+    1. Environment variable CONFIDENCE_EXCLUSION_FILE (set by confidence_based_filtering.py)
+    2. Explicit exclusion_file parameter
+    3. Explicit results_file parameter (JSON with low_confidence_sample_ids)
+    4. Default locations in results directory
+
+    Args:
+        exclusion_file: Path to exclusion list text file (one sample ID per line)
+        results_file: Path to confidence filter results JSON file
+
+    Returns:
+        set: Set of sample IDs (as strings) to exclude, empty set if no exclusion list found
+    """
+    import json
+    from src.utils.config import get_project_paths
+
+    excluded_ids = set()
+
+    # Priority 1: Environment variable (set by confidence_based_filtering.py during retraining)
+    env_exclusion_file = os.environ.get('CONFIDENCE_EXCLUSION_FILE')
+    if env_exclusion_file and Path(env_exclusion_file).exists():
+        vprint(f"Loading confidence exclusion list from env: {env_exclusion_file}", level=2)
+        try:
+            with open(env_exclusion_file, 'r') as f:
+                excluded_ids = set(line.strip() for line in f if line.strip())
+            vprint(f"  Loaded {len(excluded_ids)} sample IDs to exclude", level=2)
+            return excluded_ids
+        except Exception as e:
+            vprint(f"  Warning: Failed to load exclusion file: {e}", level=1)
+
+    # Priority 2: Explicit exclusion_file parameter
+    if exclusion_file and Path(exclusion_file).exists():
+        vprint(f"Loading confidence exclusion list from: {exclusion_file}", level=2)
+        try:
+            with open(exclusion_file, 'r') as f:
+                excluded_ids = set(line.strip() for line in f if line.strip())
+            vprint(f"  Loaded {len(excluded_ids)} sample IDs to exclude", level=2)
+            return excluded_ids
+        except Exception as e:
+            vprint(f"  Warning: Failed to load exclusion file: {e}", level=1)
+
+    # Priority 3: Explicit results_file parameter (JSON)
+    if results_file and Path(results_file).exists():
+        vprint(f"Loading confidence filter results from: {results_file}", level=2)
+        try:
+            with open(results_file, 'r') as f:
+                results = json.load(f)
+            if 'low_confidence_sample_ids' in results:
+                excluded_ids = set(str(sid) for sid in results['low_confidence_sample_ids'])
+                vprint(f"  Loaded {len(excluded_ids)} sample IDs to exclude", level=2)
+                return excluded_ids
+        except Exception as e:
+            vprint(f"  Warning: Failed to load results file: {e}", level=1)
+
+    # Priority 4: Check default locations in results directory
+    _, result_dir, _ = get_project_paths()
+    result_dir = Path(result_dir)
+
+    # Try exclusion list file
+    default_exclusion = result_dir / 'confidence_exclusion_list.txt'
+    if default_exclusion.exists():
+        vprint(f"Loading confidence exclusion list from: {default_exclusion}", level=2)
+        try:
+            with open(default_exclusion, 'r') as f:
+                excluded_ids = set(line.strip() for line in f if line.strip())
+            vprint(f"  Loaded {len(excluded_ids)} sample IDs to exclude", level=2)
+            return excluded_ids
+        except Exception as e:
+            vprint(f"  Warning: Failed to load exclusion file: {e}", level=1)
+
+    # Try results JSON file
+    default_results = result_dir / 'confidence_filter_results.json'
+    if default_results.exists():
+        vprint(f"Loading confidence filter results from: {default_results}", level=2)
+        try:
+            with open(default_results, 'r') as f:
+                results = json.load(f)
+            if 'low_confidence_sample_ids' in results:
+                excluded_ids = set(str(sid) for sid in results['low_confidence_sample_ids'])
+                vprint(f"  Loaded {len(excluded_ids)} sample IDs to exclude", level=2)
+                return excluded_ids
+        except Exception as e:
+            vprint(f"  Warning: Failed to load results file: {e}", level=1)
+
+    vprint("No confidence exclusion list found", level=2)
+    return excluded_ids
+
+
+def apply_confidence_filtering(df, sample_id_column='depth_rgb'):
+    """
+    Apply confidence-based filtering to a DataFrame by removing low-confidence samples.
+
+    This function is designed to be called from the data loading pipeline to filter
+    samples based on a previously generated confidence exclusion list.
+
+    Args:
+        df: pandas DataFrame containing sample data
+        sample_id_column: Column to use for sample identification (default: 'depth_rgb')
+                         Can also use a composite key like 'Patient#_Appt#_DFU#'
+
+    Returns:
+        tuple: (filtered_df, num_excluded) - DataFrame with low-confidence samples removed
+               and count of excluded samples
+    """
+    from src.utils.production_config import USE_CONFIDENCE_FILTERING
+
+    if not USE_CONFIDENCE_FILTERING:
+        vprint("Confidence filtering disabled (USE_CONFIDENCE_FILTERING=False)", level=2)
+        return df, 0
+
+    # Load exclusion list
+    excluded_ids = load_confidence_exclusion_list()
+
+    if not excluded_ids:
+        vprint("No samples to exclude (empty exclusion list)", level=2)
+        return df, 0
+
+    original_count = len(df)
+
+    # Generate sample IDs from DataFrame
+    if sample_id_column == 'composite':
+        # Use composite key: Patient#_Appt#_DFU#
+        df_sample_ids = (df['Patient#'].astype(str) + '_' +
+                        df['Appt#'].astype(str) + '_' +
+                        df['DFU#'].astype(str))
+    else:
+        # Use specified column directly
+        df_sample_ids = df[sample_id_column].astype(str)
+
+    # Create mask for samples to keep
+    keep_mask = ~df_sample_ids.isin(excluded_ids)
+
+    # Filter DataFrame
+    filtered_df = df[keep_mask].copy()
+    num_excluded = original_count - len(filtered_df)
+
+    if num_excluded > 0:
+        vprint(f"Confidence filtering: excluded {num_excluded}/{original_count} samples "
+               f"({num_excluded/original_count*100:.1f}%)", level=1)
+
+        # Log per-class breakdown if 'Healing Phase Abs' exists
+        if 'Healing Phase Abs' in df.columns:
+            orig_dist = Counter(df['Healing Phase Abs'])
+            filt_dist = Counter(filtered_df['Healing Phase Abs'])
+            vprint("  Per-class breakdown:", level=2)
+            for cls in ['I', 'P', 'R']:
+                orig_count_cls = orig_dist.get(cls, 0)
+                filt_count_cls = filt_dist.get(cls, 0)
+                removed = orig_count_cls - filt_count_cls
+                if orig_count_cls > 0:
+                    vprint(f"    {cls}: {filt_count_cls}/{orig_count_cls} "
+                           f"(removed {removed}, {removed/orig_count_cls*100:.1f}%)", level=2)
+
+    return filtered_df, num_excluded
+
+
+def get_confidence_filtering_stats():
+    """
+    Get statistics from the most recent confidence-based filtering run.
+
+    Returns:
+        dict: Statistics dictionary or None if no results found
+    """
+    import json
+    from src.utils.config import get_project_paths
+
+    _, result_dir, _ = get_project_paths()
+    results_file = Path(result_dir) / 'confidence_filter_results.json'
+
+    if not results_file.exists():
+        return None
+
+    try:
+        with open(results_file, 'r') as f:
+            results = json.load(f)
+        return {
+            'timestamp': results.get('timestamp'),
+            'config': results.get('config', {}),
+            'statistics': results.get('statistics', {}),
+            'confidence_summary': results.get('confidence_summary', {}),
+            'num_excluded': len(results.get('low_confidence_sample_ids', []))
+        }
+    except Exception as e:
+        vprint(f"Warning: Failed to load confidence filter stats: {e}", level=1)
+        return None
+
+
+def check_confidence_filtering_enabled():
+    """
+    Check if confidence-based filtering is enabled and an exclusion list exists.
+
+    Returns:
+        tuple: (is_enabled, has_exclusion_list, num_samples_to_exclude)
+    """
+    from src.utils.production_config import USE_CONFIDENCE_FILTERING
+
+    if not USE_CONFIDENCE_FILTERING:
+        return False, False, 0
+
+    excluded_ids = load_confidence_exclusion_list()
+    has_list = len(excluded_ids) > 0
+
+    return True, has_list, len(excluded_ids)

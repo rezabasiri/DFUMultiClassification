@@ -125,6 +125,31 @@ GENERATIVE_AUG_MAX_MODELS = 3  # Max SD 1.5 models loaded in GPU memory simultan
 #   'train': Track only from training set (not recommended)
 TRACK_MISCLASS = 'none'  # Misclassification tracking mode
 
+# =============================================================================
+# Confidence-Based Filtering (scripts/confidence_based_filtering.py)
+# =============================================================================
+# Identifies "bad" samples by analyzing model prediction confidence.
+# Low-confidence samples are often annotation errors or ambiguous cases.
+# Faster than iterative misclassification tracking (requires only 1 training run).
+
+# Enable/disable confidence-based filtering during training
+USE_CONFIDENCE_FILTERING = False  # Set to True to enable
+
+# Filtering parameters
+CONFIDENCE_FILTER_PERCENTILE = 15  # Remove bottom X% lowest confidence samples (default: 15%)
+CONFIDENCE_FILTER_MODE = 'per_class'  # 'global' = bottom X% overall, 'per_class' = bottom X% per class
+CONFIDENCE_FILTER_MIN_SAMPLES = 50  # Minimum samples to keep per class (safety limit)
+
+# Confidence metric to use
+# 'max_prob': Maximum softmax probability (simple, fast)
+# 'margin': Difference between top-2 probabilities (measures uncertainty)
+# 'entropy': Prediction entropy (information-theoretic uncertainty)
+CONFIDENCE_METRIC = 'max_prob'
+
+# Output files (relative to results directory)
+CONFIDENCE_FILTER_RESULTS_FILE = 'confidence_filter_results.json'
+CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
+
 # Misclassification filtering thresholds (for core-data mode)
 # Lower threshold = exclude more misclassified samples
 # Set to None to use auto-optimized values from bayesian_optimization_results.json
