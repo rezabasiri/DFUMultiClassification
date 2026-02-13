@@ -263,6 +263,9 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 # =============================================================================
 # Learning Rate Scheduler (DynamicLRSchedule)
+# NOTE: These LR_SCHEDULE_* params are currently UNUSED. They are only referenced
+# by the DynamicLRSchedule class (defined in src/main.py) which is never
+# instantiated anywhere. Kept for potential future use.
 # =============================================================================
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
