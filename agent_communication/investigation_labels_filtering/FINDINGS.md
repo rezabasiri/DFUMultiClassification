@@ -216,3 +216,64 @@ User confirmed this is NOT the issue.
 **The confidence filtering bug has been identified, fixed, and verified.** The dtype check inconsistency at line 1148 was preventing proper label conversion in some edge cases. With the fix applied, the filtering mechanism now correctly excludes low-confidence samples from training data as designed.
 
 **Status**: ✅ **INVESTIGATION COMPLETE - BUG FIXED**
+
+---
+
+## 🔍 VERIFICATION TEST: "0 Trainable Parameters" Fix (2026-02-13 17:45 UTC)
+
+### Test Setup
+- **Git commit**: 2b65c80 (after cloud agent's layer freezing fix)
+- **Command**: `python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 --resume_mode fresh`
+- **Modalities tested**: metadata + depth_rgb
+- **Device**: Multi-GPU (2× NVIDIA RTX A5000)
+
+### ✅ SUCCESS: "0 Trainable Parameters" Bug is FIXED
+
+**Fold 1 Results**:
+- ✅ Training completed successfully
+- ✅ **NO "WARNING: 0 trainable parameters!" message** (was present before fix)
+- ✅ Early stopping worked (epochs 21 and 11)
+- ✅ Model learned and generated predictions
+- ✅ Metrics: Accuracy 0.3816, F1 Macro 0.3762, Kappa 0.2218
+- ⚠️ **All 3 training runs restored weights from epoch 1** (model not improving after first epoch)
+
+**Logs showing epoch 1 as best**:
+```
+Successfully created best matching dataset with 3108 entries
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+```
+
+**Verification**: The fix in [training_utils.py:1478](src/training/training_utils.py#L1478) is working correctly. The `image_classifier` layer now remains trainable during Stage 1.
+
+**Concern**: While trainable parameters exist and training runs, the model is not improving after epoch 1. This could indicate learning rate issues, immediate overfitting, or that pre-trained weights are already near-optimal. Needs investigation.
+
+### ❌ NEW ISSUE DISCOVERED: Multi-GPU Batch Size Mismatch
+
+**Error in Fold 2**:
+```
+InvalidArgumentError: Inputs to operation AddN must have the same size and shape.
+Input 0: [280,256,256,3] != input 1: [279,256,256,3]
+```
+
+**Root cause**:
+- Fold 2 has 559 samples (280 + 279 across 2 GPUs)
+- TensorFlow's MirroredStrategy cannot aggregate gradients with mismatched batch shapes
+- Happens during both pre-training and main training
+
+**Impact**:
+- Fold 1 completed successfully
+- Fold 2 failed (retrying but same error)
+- Preliminary confidence filtering cannot complete without both folds
+
+**Recommended fix**: Add `drop_remainder=True` to `tf.data.Dataset.batch()` to ensure uniform batch sizes across GPUs.
+
+**Details**: See [LOCAL_AGENT_VERIFICATION_RESULTS.md](agent_communication/investigation_labels_filtering/LOCAL_AGENT_VERIFICATION_RESULTS.md)
+
+---
+
+**Status Update**: Original "0 trainable parameters" bug ✅ FIXED. New batch size issue ❌ BLOCKING fold 2.

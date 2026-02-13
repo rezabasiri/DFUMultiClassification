@@ -1,0 +1,113 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold2.log
+[LOG] Started at: 2026-02-13 17:40:57
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+  GPU 1: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 (24.0GB)
+  GPU 1: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.6 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 300 (global batch size: 600, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 40.0%
+Verbosity: 0 (MINIMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 2-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 600
+  Per-GPU batch: 300 (600 / 2 GPUs)
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+  ERROR: Automatic pre-training failed for depth_rgb: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1413, in cross_validation_manual_split
+    pretrain_history = pretrain_model.fit(
+                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/framework/ops.py", line 6002, in raise_from_not_ok_status
+    raise core._status_to_exception(e) from None  # pylint: disable=protected-access
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tensorflow.python.framework.errors_impl.InvalidArgumentError: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+  WARNING: No modalities were successfully pre-trained!
+Error during training (attempt 1/3): {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1748, in cross_validation_manual_split
+    history = model.fit(
+              ^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/framework/ops.py", line 6002, in raise_from_not_ok_status
+    raise core._status_to_exception(e) from None  # pylint: disable=protected-access
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tensorflow.python.framework.errors_impl.InvalidArgumentError: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+
+  ERROR: Automatic pre-training failed for depth_rgb: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1413, in cross_validation_manual_split
+    pretrain_history = pretrain_model.fit(
+                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/framework/ops.py", line 6002, in raise_from_not_ok_status
+    raise core._status_to_exception(e) from None  # pylint: disable=protected-access
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tensorflow.python.framework.errors_impl.InvalidArgumentError: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+  WARNING: No modalities were successfully pre-trained!
+Error during training (attempt 2/3): {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1748, in cross_validation_manual_split
+    history = model.fit(
+              ^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/framework/ops.py", line 6002, in raise_from_not_ok_status
+    raise core._status_to_exception(e) from None  # pylint: disable=protected-access
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tensorflow.python.framework.errors_impl.InvalidArgumentError: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+
+  ERROR: Automatic pre-training failed for depth_rgb: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1413, in cross_validation_manual_split
+    pretrain_history = pretrain_model.fit(
+                       ^^^^^^^^^^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/framework/ops.py", line 6002, in raise_from_not_ok_status
+    raise core._status_to_exception(e) from None  # pylint: disable=protected-access
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tensorflow.python.framework.errors_impl.InvalidArgumentError: {{function_node __wrapped__AddN_N_2_device_/job:localhost/replica:0/task:0/device:CPU:0}} Inputs to operation AddN of type AddN must have the same size and shape.  Input 0: [280,256,256,3] != input 1: [279,256,256,3] [Op:AddN] name: 
+  WARNING: No modalities were successfully pre-trained!
