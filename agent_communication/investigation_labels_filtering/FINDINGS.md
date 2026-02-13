@@ -41,13 +41,16 @@ Added documentation to `production_config.py:322-346` explaining:
 
 ---
 
-## Quick Test Command
+## Quick Test Command (LOCAL AGENT)
 
 Run this for fast debugging (2 folds, 40% data):
 ```bash
 cd /home/user/DFUMultiClassification
-python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 2>&1 | tee debug_run.log
+# Use the correct Python environment with dependencies
+/venv/multimodal/bin/python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 2>&1 | tee debug_run.log
 ```
+
+**Note**: Cloud agent cannot run this - requires local Python environment with TensorFlow, pandas, etc.
 
 Watch for these debug lines:
 ```
