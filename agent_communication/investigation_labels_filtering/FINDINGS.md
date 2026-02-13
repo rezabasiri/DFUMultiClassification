@@ -41,6 +41,49 @@ Added documentation to `production_config.py:322-346` explaining:
 
 ---
 
+## 🚨 CRITICAL BUG FOUND AND FIXED: 0 Trainable Parameters (2026-02-13)
+
+**Location**: `src/training/training_utils.py:1475`
+
+**Discovery**: Local agent test showed "0 trainable parameters" warning in training logs.
+
+**Root Cause**: The layer freezing logic was incorrectly freezing the `image_classifier` layer during Stage 1 training.
+
+Old code (BUGGY):
+```python
+if image_modality in layer.name or 'image_classifier' in layer.name:
+    layer.trainable = False
+```
+
+This froze ALL layers including `image_classifier`, which is the **only** trainable layer in the metadata+image fusion model.
+
+**Impact**:
+- Models had 0 trainable parameters during preliminary training
+- Confidence scores were from untrained/random predictions
+- Exclusion list was essentially random samples
+- This explains why confidence filtering appeared to work but didn't improve metrics
+
+**Fix Applied**:
+```python
+# Freeze image feature extraction layers, but NOT image_classifier
+# image_classifier is the fusion model's classification head that learns
+# to classify based on frozen image features - it must remain trainable!
+if image_modality in layer.name and 'image_classifier' not in layer.name:
+    layer.trainable = False
+```
+
+**Architecture Explanation**:
+For metadata + 1 image (e.g., metadata+depth_rgb):
+1. `metadata_input` → Lambda cast → RF probabilities (no trainable params)
+2. `depth_rgb_*` layers → frozen image features (frozen during Stage 1)
+3. `image_classifier` → Dense layer that MUST learn to classify image features ← **was incorrectly frozen!**
+4. `weighted_rf`, `weighted_image` → Lambda layers (no trainable params)
+5. `output` → Add layer (no trainable params)
+
+With the fix, `image_classifier` remains trainable during Stage 1.
+
+---
+
 ## Quick Test Command (LOCAL AGENT)
 
 Run this for fast debugging (2 folds, 40% data):

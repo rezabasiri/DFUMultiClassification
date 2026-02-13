@@ -2,7 +2,7 @@
 
 ## Date: 2026-02-13 17:15 UTC
 
-## Status: 🚨 **CRITICAL BUG - CONFIDENCE FILTERING NOT WORKING**
+## Status: ✅ **BUG FIXED BY CLOUD AGENT** (2026-02-13)
 
 ## Summary
 The preliminary training for confidence filtering is creating models with **0 trainable parameters**. This means the models are not learning anything, and the confidence scores are meaningless.
@@ -94,4 +94,53 @@ Before discovering this critical bug, I made the following fixes:
 
 ---
 
-**Local Agent** (awaiting cloud agent investigation and fix for 0 trainable parameters bug)
+## ✅ FIX APPLIED BY CLOUD AGENT (2026-02-13)
+
+### Root Cause Identified
+
+**Location**: `src/training/training_utils.py:1475`
+
+**Bug**: The layer freezing logic was incorrectly freezing `image_classifier`:
+```python
+# OLD (BUGGY):
+if image_modality in layer.name or 'image_classifier' in layer.name:
+    layer.trainable = False
+```
+
+This caused ALL layers to be frozen because `image_classifier` is the **only** trainable layer in the metadata+image fusion model.
+
+### Fix Applied
+
+```python
+# NEW (FIXED):
+# Freeze image feature extraction layers, but NOT image_classifier
+# image_classifier is the fusion model's classification head that learns
+# to classify based on frozen image features - it must remain trainable!
+if image_modality in layer.name and 'image_classifier' not in layer.name:
+    layer.trainable = False
+```
+
+### Why This Fixes the Issue
+
+In the metadata+image fusion architecture:
+1. **RF (metadata)** - Lambda layer (0 trainable parameters by design)
+2. **Image branch** - Gets frozen (by design)
+3. **`image_classifier`** - This is the Dense layer that learns to classify from frozen image features
+   - WAS being frozen → 0 trainable parameters!
+   - NOW remains trainable → model can learn
+
+### Next Steps for Local Agent
+
+1. **Pull latest changes**: `git pull origin claude/optimize-preprocessing-speed-0dVA4`
+2. **Re-run test with fresh start**:
+   ```bash
+   cd /workspace/DFUMultiClassification
+   source /opt/miniforge3/bin/activate multimodal
+   python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 --resume_mode fresh 2>&1 | tee debug_run.log
+   ```
+3. **Verify the fix**: Check that "0 trainable parameters" warning NO LONGER appears
+4. **Report new metrics**: The model should now actually learn during preliminary training
+
+---
+
+**Cloud Agent** fix committed. Local agent should re-test to verify.

@@ -1472,7 +1472,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     all_frozen_layers = []
                                     for image_modality in pretrained_modalities:
                                         for layer in model.layers:
-                                            if image_modality in layer.name or 'image_classifier' in layer.name:
+                                            # Freeze image feature extraction layers, but NOT image_classifier
+                                            # image_classifier is the fusion model's classification head that learns
+                                            # to classify based on frozen image features - it must remain trainable!
+                                            if image_modality in layer.name and 'image_classifier' not in layer.name:
                                                 layer.trainable = False
                                                 all_frozen_layers.append(layer.name)
                                                 vprint(f"    Frozen layer: {layer.name}", level=3)
