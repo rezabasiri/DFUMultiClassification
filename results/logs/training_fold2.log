@@ -1,0 +1,198 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold2.log
+[LOG] Started at: 2026-02-13 20:27:08
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+  GPU 1: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 (24.0GB)
+  GPU 1: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.6 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 16 (global batch size: 32, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 1 (NORMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 32
+  Per-GPU batch: 16 (32 / 2 GPUs)
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (1 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 1
+Cross-validation mode: 3-fold CV
+Iterations per combination: 3
+Total training sessions: 3
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata, depth_rgb
+Confidence filtering: excluded 617/3108 samples (19.9%)
+Number of samples for each selected modality:
+  depth_rgb: 2491
+  depth_bb: 2491
+  metadata: 2491
+Using 100.0% of the data: 2491 samples
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 32 (per-GPU: 16)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 79 patients
+Class 1: 104 patients
+Class 2: 30 patients
+================================================================================
+
+Fold 1/3: 141 train patients, 72 valid patients
+  Train dist: {0: 0.287, 1: 0.608, 2: 0.105}
+  Valid dist: {0: 0.354, 1: 0.516, 2: 0.130}
+Fold 2/3: 142 train patients, 71 valid patients
+  Train dist: {0: 0.341, 1: 0.539, 2: 0.121}
+  Valid dist: {0: 0.243, 1: 0.660, 2: 0.097}
+Fold 3/3: 143 train patients, 70 valid patients
+  Train dist: {0: 0.297, 1: 0.590, 2: 0.113}
+  Valid dist: {0: 0.328, 1: 0.559, 2: 0.113}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+
+Fold 1/3 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/3
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+Using Scikit-learn RandomForestClassifier
+Generative augmentation disabled
+
+Preparing datasets for Fold 2/3 with all modalities: ['depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+Using Scikit-learn RandomForestClassifier
+
+No existing data found for metadata+depth_rgb, starting fresh
+
+Training metadata+depth_rgb with modalities: ['metadata', 'depth_rgb'], fold 2/3
+  ✗ Missing pre-trained weights for: ['depth_rgb']
+    These modalities will be trained from scratch
+================================================================================
+AUTOMATIC PRE-TRAINING: 1 modality(ies) need training
+  Missing modalities: ['depth_rgb']
+  Will train each modality separately (same data split)...
+================================================================================
+================================================================================
+PRE-TRAINING 1/1: depth_rgb
+================================================================================
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 24.
+  depth_rgb pre-training completed! Best val kappa: 0.0798
+================================================================================
+FREEZING ALL IMAGE BRANCHES FOR STAGE 1
+  Pre-trained modalities to freeze: ['depth_rgb']
+================================================================================
+================================================================================
+No existing pretrained weights found
+Restoring model weights from the end of the best epoch: 11.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+
+Run 2 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.42      0.73      0.54       200
+           P       0.77      0.58      0.66       551
+           R       0.25      0.22      0.24        81
+
+    accuracy                           0.58       832
+   macro avg       0.48      0.51      0.48       832
+weighted avg       0.64      0.58      0.59       832
+
+Cohen's Kappa: 0.3290
+
+Training gating network for run 2...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 2:
+Accuracy: 0.5817
+F1 Macro: 0.4783
+Kappa: 0.3290
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+
+Fold 3/3 skipped (target_fold=2). Loading saved results...
+  Warning: No saved metrics found for Fold 3/3
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_valid.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_valid.npy
+Results for metadata, depth_rgb appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb
+  Accuracy: 0.5181 ± 0.0637
+  F1 Macro: 0.4371
+  Kappa: 0.2783
+
+Total combinations tested: 1
+================================================================================
+

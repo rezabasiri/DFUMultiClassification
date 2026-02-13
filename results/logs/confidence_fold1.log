@@ -1,0 +1,96 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/confidence_fold1.log
+[LOG] Started at: 2026-02-13 19:36:58
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+  GPU 1: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 (24.0GB)
+  GPU 1: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.6 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 16 (global batch size: 32, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 32
+  Per-GPU batch: 16 (32 / 2 GPUs)
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Models: 6 files deleted
+  Predictions: 24 files deleted
+  Csv Results: 11 files deleted
+  Tf Cache: 6 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+Epoch 51: early stopping
+Restoring model weights from the end of the best epoch: 31.
+Epoch 17: early stopping
+Restoring model weights from the end of the best epoch: 7.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+
+Run 1 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.31      0.59      0.40       291
+           P       0.59      0.41      0.48       716
+           R       0.21      0.15      0.17       177
+
+    accuracy                           0.41      1184
+   macro avg       0.37      0.38      0.35      1184
+weighted avg       0.46      0.41      0.42      1184
+
+Cohen's Kappa: 0.1692
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb
+  Accuracy: 0.4147 ± 0.0000
+  F1 Macro: 0.3530
+  Kappa: 0.1692
+
+Total combinations tested: 1
+================================================================================
+

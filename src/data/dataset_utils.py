@@ -429,6 +429,28 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
+
+    # SAFEGUARD: Auto-reduce batch size when it exceeds the dataset size
+    # A batch_size >= n_samples means only 1 gradient update per epoch, which
+    # makes learning extremely slow (especially at low learning rates).
+    # Minimum 4 steps/epoch ensures meaningful training progress.
+    MIN_STEPS_PER_EPOCH = 4
+    if is_training and batch_size > n_samples // MIN_STEPS_PER_EPOCH:
+        # Get number of GPUs for divisibility
+        try:
+            num_gpus = max(1, len(tf.config.list_physical_devices('GPU')))
+        except Exception:
+            num_gpus = 1
+        # Target batch size that gives at least MIN_STEPS_PER_EPOCH steps
+        new_batch_size = max(num_gpus, (n_samples // MIN_STEPS_PER_EPOCH // num_gpus) * num_gpus)
+        print(f"\n{'!'*80}")
+        print(f"WARNING: GLOBAL_BATCH_SIZE ({batch_size}) is too large for {n_samples} training samples!")
+        print(f"  This would give only {max(1, n_samples // batch_size)} step(s) per epoch, causing extremely slow learning.")
+        print(f"  Auto-reducing batch size: {batch_size} → {new_batch_size} ({n_samples // new_batch_size} steps/epoch)")
+        print(f"  To fix permanently, set GLOBAL_BATCH_SIZE <= {new_batch_size} in production_config.py")
+        print(f"{'!'*80}\n")
+        batch_size = new_batch_size
+
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
     k = steps * batch_size  # Total number of samples needed
     
@@ -487,7 +509,8 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
         dataset = dataset.batch(effective_val_batch_size, drop_remainder=True)
         # Recalculate steps with the effective batch size
-        steps = int(np.ceil(n_samples / effective_val_batch_size))
+        # Use floor (not ceil) because drop_remainder=True discards the partial last batch
+        steps = n_samples // effective_val_batch_size
 
     # Apply augmentation after batching
     if is_training:

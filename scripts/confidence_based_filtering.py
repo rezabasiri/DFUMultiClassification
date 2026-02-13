@@ -167,7 +167,7 @@ class ConfidenceBasedFilter:
 
         # Prepare command
         cmd = [
-            'python', 'src/main.py',
+            sys.executable, 'src/main.py',
             '--mode', 'search',
             '--cv_folds', str(self.cv_folds),
             '--data_percentage', str(self.data_percentage),
@@ -612,7 +612,7 @@ class ConfidenceBasedFilter:
         os.environ['CONFIDENCE_EXCLUSION_FILE'] = exclusion_file
 
         cmd = [
-            'python', 'src/main.py',
+            sys.executable, 'src/main.py',
             '--mode', 'search',
             '--cv_folds', str(self.cv_folds),
             '--data_percentage', str(self.data_percentage),

@@ -1,0 +1,88 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/confidence_fold2.log
+[LOG] Started at: 2026-02-13 19:49:39
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+  GPU 1: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 (24.0GB)
+  GPU 1: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.6 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 16 (global batch size: 32, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 3-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 32
+  Per-GPU batch: 16 (32 / 2 GPUs)
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+Epoch 45: early stopping
+Restoring model weights from the end of the best epoch: 25.
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
+
+Run 2 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.41      0.66      0.50       329
+           P       0.71      0.49      0.58       572
+           R       0.61      0.24      0.34        59
+
+    accuracy                           0.54       960
+   macro avg       0.57      0.46      0.48       960
+weighted avg       0.60      0.54      0.54       960
+
+Cohen's Kappa: 0.1430
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb
+  Accuracy: 0.4756 ± 0.0609
+  F1 Macro: 0.4144
+  Kappa: 0.1561
+
+Total combinations tested: 1
+================================================================================
+

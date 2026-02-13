@@ -26,7 +26,7 @@ Categories:
 
 # Core training hyperparameters
 IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 600  # Total batch size across all GPU replicas
+GLOBAL_BATCH_SIZE = 32  # Total batch size across all GPU replicas (16 per GPU; reduced from 600 to get ~17 steps/epoch with ~516 training samples instead of 1)
 N_EPOCHS = 200  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
@@ -63,7 +63,7 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-PRETRAIN_LR = 1e-5  # Learning rate for image-only pre-training (lower than Stage 1 to reduce overfitting on small datasets)
+PRETRAIN_LR = 1e-3  # Learning rate for image-only pre-training (trains projection+classifier layers on top of ImageNet features; higher than fusion stages because pre-training starts from random head weights)
 STAGE1_LR = 1e-4  # Learning rate for Stage 1 fusion training (frozen image branch)
 STAGE2_LR = 1e-5  # Learning rate for Stage 2 fine-tuning (unfrozen image branch, lower to preserve pre-trained features)
 FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
