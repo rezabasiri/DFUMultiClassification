@@ -323,35 +323,22 @@ FOCAL_ORDINAL_WEIGHT = 0.5  # Default ordinal penalty weight
 # Cross-Validation Configuration
 # =============================================================================
 #
-# FOLD MECHANISM - How cross-validation works in this codebase:
-# -------------------------------------------------------------
-# There are TWO separate CV parameters:
+# IMPORTANT: Use --cv_folds flag (NOT this config) to control main training!
 #
-# 1. --cv_folds (command line argument, default: 3)
-#    - Controls main training pipeline CV (main.py)
-#    - When cv_folds > 1 and --fold is not specified:
-#      main.py spawns cv_folds SUBPROCESSES (one per fold)
-#      This prevents TF/CUDA resource accumulation across folds
-#    - When --fold N is specified (1-indexed):
-#      Only fold N runs; other folds load from disk
-#    - Example: --cv_folds 3 runs 3 subprocesses
-#    - Example: --cv_folds 3 --fold 2 runs only fold 2
+# --cv_folds N (command line, default: 3)
+#   - Controls BOTH main training AND confidence filtering folds
+#   - Each fold runs in isolated subprocess to prevent memory leaks
+#   - Examples:
+#       --cv_folds 3              # Run 3 folds
+#       --cv_folds 3 --fold 2     # Run only fold 2 (others load from disk)
 #
-# 2. CV_N_SPLITS (this config, default: 3)
-#    - Used ONLY for hierarchical gating network (train_hierarchical_gating_network)
-#    - NOT used for main training pipeline
-#    - Should match --cv_folds for consistency but doesn't affect main training
+# CV_N_SPLITS (this config)
+#   - Used ONLY for hierarchical gating network
+#   - Does NOT affect main training or confidence filtering
 #
-# QUICK TESTING with reduced folds:
-#   python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi
-#   This runs 2 folds with 40% data - faster for debugging
+# Quick testing: python src/main.py --cv_folds 2 --data_percentage 40 --resume_mode fresh
 #
-# SUBPROCESS ISOLATION:
-#   Each fold runs in a separate subprocess to prevent thread/memory leaks.
-#   The orchestrator (_orchestrate_cv_folds) spawns fold subprocesses sequentially.
-#   Environment variables (like DISABLE_CONFIDENCE_FILTERING) are passed to subprocesses.
-#
-CV_N_SPLITS = 3  # Number of cross-validation folds (for hierarchical gating only)
+CV_N_SPLITS = 2  # For hierarchical gating only (use --cv_folds for main training)
 CV_RANDOM_STATE = 42  # Random state for reproducibility
 CV_SHUFFLE = True  # Whether to shuffle data before splitting
 
@@ -391,7 +378,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
+    ('metadata', 'depth_rgb'),  # Temporarily reduced for faster debugging
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming

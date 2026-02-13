@@ -1,0 +1,23 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
+[LOG] Started at: 2026-02-13 17:10:47
+
+
+================================================================================
+SUBPROCESS ISOLATION: Running 2 folds in separate processes
+  (Prevents TF/CUDA resource accumulation across folds)
+================================================================================
+
+
+================================================================================
+FOLD 1/2 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 2 --data_percentage 40.0 --verbosity 0 --fold 1 --resume_mode fresh
+================================================================================
+
+
+Fold 1/2 completed successfully.
+
+================================================================================
+FOLD 2/2 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 2 --data_percentage 40.0 --verbosity 0 --fold 2 --resume_mode auto
+================================================================================
+

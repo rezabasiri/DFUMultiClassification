@@ -2249,14 +2249,14 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
                 vprint(f"  Mode: {CONFIDENCE_FILTER_MODE}", level=2)
                 vprint(f"  Metric: {CONFIDENCE_METRIC}", level=2)
 
-                # Run confidence filtering pipeline (uses 1 fold for speed)
+                # Run confidence filtering pipeline (uses same cv_folds as main training)
                 success, excluded_samples = run_confidence_filtering_pipeline(
                     percentile=CONFIDENCE_FILTER_PERCENTILE,
                     mode=CONFIDENCE_FILTER_MODE,
                     metric=CONFIDENCE_METRIC,
                     min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
                     max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
-                    cv_folds=3,  # Use 3 folds for complete sample coverage
+                    cv_folds=cv_folds,  # Use same number of folds as main training
                     data_percentage=data_percentage,
                     force_recompute=False,
                     verbosity=get_verbosity()
@@ -2660,7 +2660,7 @@ Configuration:
                     per_class_pct = None
                     print(f"  Filtering: bottom {CONFIDENCE_FILTER_PERCENTILE}% per class using {CONFIDENCE_METRIC} metric")
 
-                # Run confidence filtering pipeline (uses 3 folds for complete coverage)
+                # Run confidence filtering pipeline (uses same cv_folds as main training)
                 # Set verbosity to 0 to suppress internal prints, we'll handle the output here
                 success, excluded_samples = run_confidence_filtering_pipeline(
                     percentile=CONFIDENCE_FILTER_PERCENTILE if per_class_pct is None else None,
@@ -2669,7 +2669,7 @@ Configuration:
                     metric=CONFIDENCE_METRIC,
                     min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
                     max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
-                    cv_folds=3,  # Use 3 folds for complete sample coverage
+                    cv_folds=args.cv_folds,  # Use same number of folds as main training
                     data_percentage=args.data_percentage,
                     force_recompute=False,
                     verbosity=0  # Suppress verbose output from confidence filtering script

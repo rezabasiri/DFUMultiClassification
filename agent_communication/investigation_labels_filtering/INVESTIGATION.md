@@ -58,14 +58,26 @@ else:
 ## LOCAL AGENT TASKS
 
 ### CRITICAL Task 1: Run Training With Debug
+**IMPORTANT**: Use `--cv_folds` flag, NOT `CV_N_SPLITS` config parameter!
+
 ```bash
 cd /home/user/DFUMultiClassification
-python src/main.py --mode search --cv_folds 3 --verbosity 2 2>&1 | tee training_debug.log
+python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 --resume_mode fresh 2>&1 | tee training_debug.log
 ```
-Watch for:
+
+**Why these flags**:
+- `--cv_folds 2`: Controls BOTH preliminary training AND main training folds (was hardcoded to 3, now fixed)
+- `--data_percentage 40`: Faster testing with subset of data
+- `--device-mode multi`: Use multiple GPUs
+- `--verbosity 2`: Show detailed output
+- `--resume_mode fresh`: Start from scratch, ignore cached results
+
+**What to watch for**:
 1. "CONFIDENCE-BASED FILTERING" header
-2. "Running preliminary training..." vs "Found existing exclusion list"
-3. "Confidence filtering: excluded X/Y samples"
+2. "CV Folds: 2" in preliminary training (not 3!)
+3. "Running preliminary training..." vs "Found existing exclusion list"
+4. "Confidence filtering: excluded X/Y samples"
+5. "DEBUG CONF-FILTER:" lines showing actual filtering
 
 ### Task 2: Verify Sample ID Format
 After training:
@@ -107,6 +119,54 @@ At checkpoints:
 2. `src/data/image_processing.py:237-261` - exclusion application
 3. `src/data/dataset_utils.py:1148-1153` - label mapping
 4. `scripts/confidence_based_filtering.py:193-310` - collect_predictions
+
+---
+
+## Key Learnings (Local Agent)
+
+### 1. Confidence Filtering Fold Configuration
+**PROBLEM**: Preliminary training was hardcoded to use 3 folds, even when main training used different number.
+
+**SOLUTION**: Changed both occurrences in `main.py`:
+- Line 2259: `cv_folds=3` → `cv_folds=cv_folds` (inside main() function)
+- Line 2672: `cv_folds=3` → `cv_folds=args.cv_folds` (in __main__ section)
+
+Now preliminary training uses same number of folds as main training.
+
+### 2. Modality Testing Configuration
+**PROBLEM**: When testing with fewer modalities, need to change `INCLUDED_COMBINATIONS`, NOT `ALL_MODALITIES`.
+
+**WHY**: Because `MODALITY_SEARCH_MODE = 'custom'` in production_config.py, which uses `INCLUDED_COMBINATIONS`.
+
+**Example**:
+```python
+# production_config.py
+MODALITY_SEARCH_MODE = 'custom'
+INCLUDED_COMBINATIONS = [
+    ('metadata', 'depth_rgb'),  # Only test this combination
+]
+```
+
+### 3. Command Line Flags vs Config Parameters
+**Use `--cv_folds` flag, NOT `CV_N_SPLITS` config!**
+
+- `--cv_folds N`: Controls main training AND preliminary confidence filtering
+- `CV_N_SPLITS`: Only used for hierarchical gating network (NOT main training)
+
+**Correct**: `python src/main.py --cv_folds 2`
+**Wrong**: Changing `CV_N_SPLITS` in production_config.py
+
+### 4. Fresh Restart Best Practices
+When starting fresh test:
+```bash
+# Clean up old outputs
+rm -f debug_run.log /tmp/claude-0/-workspace-DFUMultiClassification/tasks/*.output
+
+# Run with fresh flag
+python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 --resume_mode fresh
+```
+
+---
 
 ## Communication
 Update FINDINGS.md with results. Mark tasks DONE/BLOCKED.
