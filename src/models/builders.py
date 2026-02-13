@@ -20,7 +20,7 @@ from src.utils.verbosity import vprint
 directory, result_dir, root = get_project_paths()
 
 # Import IMAGE_SIZE and backbone configs from production config
-from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE
+from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE, FUSION_INIT_RF_WEIGHT
 
 
 class LearnableFusionWeights(Layer):
@@ -436,8 +436,8 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 # Fixed weights prevented the model from improving because:
                 # 1. Gradient to image branch was scaled by fixed 0.30
                 # 2. Even a perfect image branch could only contribute 30%
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
                 output = fusion_layer([rf_probs, image_probs])
             else:
                 # Two image modalities - original architecture
@@ -463,8 +463,8 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
                 output = fusion_layer([rf_probs, image_probs])
             else:
                 # Three image modalities - original architecture
@@ -496,8 +496,8 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
                 output = fusion_layer([rf_probs, image_probs])
             else:
                 # Four image modalities - original architecture
@@ -535,8 +535,8 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_3')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
                 output = fusion_layer([rf_probs, image_probs])
             else:
                 # Five image modalities - original architecture

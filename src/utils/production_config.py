@@ -63,6 +63,10 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
+PRETRAIN_LR = 1e-5  # Learning rate for image-only pre-training (lower than Stage 1 to reduce overfitting on small datasets)
+STAGE1_LR = 1e-4  # Learning rate for Stage 1 fusion training (frozen image branch)
+STAGE2_LR = 1e-5  # Learning rate for Stage 2 fine-tuning (unfrozen image branch, lower to preserve pre-trained features)
+FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
 STAGE1_EPOCHS = 20  # Stage 1 fusion training epochs (frozen image branch)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
@@ -79,7 +83,7 @@ SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion per
 # When enabled, computes alpha weights from inverse class frequencies before resampling,
 # then applies these weights during training via model.fit(class_weight=...) or focal loss alpha
 # This provides extra emphasis on minority classes even after resampling balances the dataset
-USE_FREQUENCY_BASED_WEIGHTS = True  # Enable/disable frequency-based class weighting
+USE_FREQUENCY_BASED_WEIGHTS = False  # Disabled: after 'combined' resampling classes are balanced, extra weighting causes degenerate predictions
 FREQUENCY_WEIGHT_NORMALIZATION = 3.0  # Weights are normalized to sum to this value (default: 3.0 for 3 classes)
 
 # Early stopping and learning rate

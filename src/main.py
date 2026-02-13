@@ -2574,9 +2574,12 @@ Configuration:
     log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'results', 'logs')
     os.makedirs(log_dir, exist_ok=True)
 
-    # Create log filename (fixed name, gets overwritten each run)
+    # Create log filename with prefix for confidence filtering vs main training
+    # Confidence filtering subprocesses have DISABLE_CONFIDENCE_FILTERING=1
+    is_confidence_run = os.environ.get('DISABLE_CONFIDENCE_FILTERING') == '1'
+    log_prefix = 'confidence' if is_confidence_run else 'training'
     fold_suffix = f'_fold{args.fold}' if args.fold is not None else ''
-    log_file = os.path.join(log_dir, f'training{fold_suffix}.log')
+    log_file = os.path.join(log_dir, f'{log_prefix}{fold_suffix}.log')
 
     # Open log file and redirect stdout/stderr
     class TeeOutput:

@@ -32,7 +32,8 @@ from src.utils.production_config import (
     STAGE1_EPOCHS, DATA_PERCENTAGE, USE_GENERATIVE_AUGMENTATION,
     GENERATIVE_AUG_MODEL_PATH, GENERATIVE_AUG_VERSION,
     GENERATIVE_AUG_SDXL_MODEL_PATH,
-    OUTLIER_CONTAMINATION, GENERATIVE_AUG_PROB
+    OUTLIER_CONTAMINATION, GENERATIVE_AUG_PROB,
+    PRETRAIN_LR, STAGE1_LR, STAGE2_LR
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 
@@ -1336,22 +1337,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         # Create standalone image-only model
                                         pretrain_model = create_multimodal_model(input_shapes, [image_modality], None)
 
-                                        # Pre-training uses EQUAL alpha weights to prevent degenerate predictions.
-                                        # The fusion alpha weights (e.g. [0.6, 0.3, 2.1]) heavily bias toward
-                                        # minority class R, causing the image-only model to predict all-R
-                                        # (val_kappa=0.0000). After resampling, classes are balanced, so
-                                        # equal weights are appropriate for pre-training.
+                                        # Use same loss configuration as fusion
                                         pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
                                         pretrain_gamma = config.get('gamma', 2.0)
-                                        pretrain_alpha = [1.0, 1.0, 1.0]  # Equal weights for pre-training
+                                        pretrain_alpha = config.get('alpha', alpha_value)
                                         pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
                                                                                gamma=pretrain_gamma, alpha=pretrain_alpha)
                                         pretrain_macro_f1 = MacroF1Score(num_classes=3)
 
-                                        # Compile pre-training model with lower LR (1e-5) to reduce overfitting
-                                        # on small datasets (EfficientNet has ~12M params vs ~500 samples)
+                                        # Compile pre-training model
                                         pretrain_model.compile(
-                                            optimizer=Adam(learning_rate=1e-5, clipnorm=1.0),
+                                            optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
                                             loss=pretrain_loss,
                                             metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
                                         )
@@ -1492,7 +1488,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 vprint(f"    Frozen layer: {layer.name}", level=3)
 
                                     vprint(f"  Successfully frozen {len(all_frozen_layers)} layers across {len(pretrained_modalities)} modalities!", level=2)
-                                    vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-5)", level=2)
+                                    vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR={STAGE2_LR})", level=2)
 
                                     # Update fusion flag: True if we pre-trained at least one modality
                                     fusion_use_pretrained = True
@@ -1531,7 +1527,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         alpha = config.get('alpha', alpha_value)  # Use alpha_value for consistency
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
                         macro_f1 = MacroF1Score(num_classes=3)
-                        model.compile(optimizer=Adam(learning_rate=1e-4, clipnorm=1.0), loss=loss,  # Reduced LR from 1e-3 to 1e-4
+                        model.compile(optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0), loss=loss,
                             metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                         )
                         # Create distributed datasets
@@ -1707,15 +1703,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint(f"  Successfully unfrozen {unfrozen_count} layers across {len(image_modalities)} modalities", level=2)
 
                                 # Recompile with reduced learning rate for fine-tuning
-                                # 1e-5 is 10x lower than Stage 1, balancing between:
-                                # - Too low (1e-6): insufficient gradient updates, no improvement
-                                # - Too high (1e-4): destroys pre-trained features
                                 model.compile(
-                                    optimizer=Adam(learning_rate=1e-5, clipnorm=1.0),  # 10x lower than Stage 1
+                                    optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
                                     loss=loss,
                                     metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                                 )
-                                vprint(f"  Model recompiled with LR=1e-5", level=2)
+                                vprint(f"  Model recompiled with LR={STAGE2_LR}", level=2)
 
                                 # Stage 2: Fine-tune with aggressive early stopping
                                 stage2_epochs = 100  # Allow more epochs but will likely stop early
