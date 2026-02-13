@@ -1145,7 +1145,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     y_train_raw = source_df['Healing Phase Abs']
 
                     # Convert to numeric if needed
-                    if y_train_raw.dtype == object or y_train_raw.dtype.name == 'string':
+                    # Use is_string_dtype() for robust detection (catches 'object', 'string', StringDtype, etc.)
+                    if y_train_raw.dtype in ['object', 'str'] or pd.api.types.is_string_dtype(y_train_raw):
                         # String labels: map to numeric
                         y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
                     else:

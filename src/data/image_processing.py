@@ -235,11 +235,14 @@ def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalitie
 
     # Apply confidence-based filtering if enabled
     confidence_exclusion_file = os.environ.get('CONFIDENCE_EXCLUSION_FILE')
+    vprint(f"DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = {confidence_exclusion_file}", level=2)
+    vprint(f"DEBUG CONF-FILTER: File exists = {os.path.exists(confidence_exclusion_file) if confidence_exclusion_file else 'N/A'}", level=2)
     if confidence_exclusion_file and os.path.exists(confidence_exclusion_file):
         try:
             # Load exclusion list
             with open(confidence_exclusion_file, 'r') as f:
                 excluded_ids = set(line.strip() for line in f if line.strip())
+            vprint(f"DEBUG CONF-FILTER: Loaded {len(excluded_ids)} excluded IDs from file", level=2)
 
             if excluded_ids:
                 original_count = len(best_matching_df)
@@ -250,9 +253,13 @@ def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalitie
                     'A' + best_matching_df['Appt#'].astype(int).astype(str).str.zfill(2) +
                     'D' + best_matching_df['DFU#'].astype(int).astype(str)
                 )
+                # Debug: show sample ID format comparison
+                vprint(f"DEBUG CONF-FILTER: Sample IDs in data (first 3): {sample_ids.head(3).tolist()}", level=2)
+                vprint(f"DEBUG CONF-FILTER: Sample IDs in exclusion (first 3): {list(excluded_ids)[:3]}", level=2)
                 keep_mask = ~sample_ids.isin(excluded_ids)
                 best_matching_df = best_matching_df[keep_mask].copy()
                 num_excluded = original_count - len(best_matching_df)
+                vprint(f"DEBUG CONF-FILTER: Matched & excluded {num_excluded} samples", level=2)
 
                 if num_excluded > 0:
                     vprint(f"Confidence filtering: excluded {num_excluded}/{original_count} samples "

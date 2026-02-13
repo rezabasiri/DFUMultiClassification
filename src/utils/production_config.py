@@ -322,8 +322,36 @@ FOCAL_ORDINAL_WEIGHT = 0.5  # Default ordinal penalty weight
 # =============================================================================
 # Cross-Validation Configuration
 # =============================================================================
-
-CV_N_SPLITS = 3  # Number of cross-validation folds
+#
+# FOLD MECHANISM - How cross-validation works in this codebase:
+# -------------------------------------------------------------
+# There are TWO separate CV parameters:
+#
+# 1. --cv_folds (command line argument, default: 3)
+#    - Controls main training pipeline CV (main.py)
+#    - When cv_folds > 1 and --fold is not specified:
+#      main.py spawns cv_folds SUBPROCESSES (one per fold)
+#      This prevents TF/CUDA resource accumulation across folds
+#    - When --fold N is specified (1-indexed):
+#      Only fold N runs; other folds load from disk
+#    - Example: --cv_folds 3 runs 3 subprocesses
+#    - Example: --cv_folds 3 --fold 2 runs only fold 2
+#
+# 2. CV_N_SPLITS (this config, default: 3)
+#    - Used ONLY for hierarchical gating network (train_hierarchical_gating_network)
+#    - NOT used for main training pipeline
+#    - Should match --cv_folds for consistency but doesn't affect main training
+#
+# QUICK TESTING with reduced folds:
+#   python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi
+#   This runs 2 folds with 40% data - faster for debugging
+#
+# SUBPROCESS ISOLATION:
+#   Each fold runs in a separate subprocess to prevent thread/memory leaks.
+#   The orchestrator (_orchestrate_cv_folds) spawns fold subprocesses sequentially.
+#   Environment variables (like DISABLE_CONFIDENCE_FILTERING) are passed to subprocesses.
+#
+CV_N_SPLITS = 3  # Number of cross-validation folds (for hierarchical gating only)
 CV_RANDOM_STATE = 42  # Random state for reproducibility
 CV_SHUFFLE = True  # Whether to shuffle data before splitting
 
