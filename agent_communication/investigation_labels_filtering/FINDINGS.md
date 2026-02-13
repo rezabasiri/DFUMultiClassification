@@ -46,8 +46,8 @@ Added documentation to `production_config.py:322-346` explaining:
 Run this for fast debugging (2 folds, 40% data):
 ```bash
 cd /home/user/DFUMultiClassification
-# Use the correct Python environment with dependencies
-/venv/multimodal/bin/python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 2>&1 | tee debug_run.log
+source /opt/miniforge3/bin/activate multimodal
+python src/main.py --mode search --cv_folds 2 --data_percentage 40 --device-mode multi --verbosity 2 2>&1 | tee debug_run.log
 ```
 
 **Note**: Cloud agent cannot run this - requires local Python environment with TensorFlow, pandas, etc.
