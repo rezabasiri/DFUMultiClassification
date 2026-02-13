@@ -92,30 +92,34 @@ via `repeat()`. Warning: "Your input ran out of data" appears in logs.
 
 ## Fixes APPLIED (all on branch claude/fix-trainable-parameters-UehxS)
 
-1. **Pre-training uses equal alpha [1,1,1] + lower LR (1e-5)** (RC1, RC2)
-   - File: `src/training/training_utils.py:1338-1354`
-   - Prevents degenerate all-R predictions during image pre-training
+All tunable values in `src/utils/production_config.py` (not hardcoded):
 
-2. **Alpha weight ratio capped at 3x** (RC2)
-   - File: `src/data/dataset_utils.py:745-760, 787-800`
-   - MAX_ALPHA_RATIO=3.0 prevents extreme class weighting
+1. **USE_FREQUENCY_BASED_WEIGHTS = False** (RC2)
+   - After 'combined' resampling, classes are balanced → alpha ≈ [1,1,1]
+   - Was True → alpha [0.6, 0.3, 2.1] caused all-R degenerate predictions
 
-3. **Stage 2 LR increased from 1e-6 to 1e-5** (RC4)
-   - File: `src/training/training_utils.py:1700`
-   - 10x more gradient signal for fine-tuning
+2. **PRETRAIN_LR = 1e-5** (RC1) — pre-training image model
+   - Was 1e-4 hardcoded. Lower LR reduces overfitting on small datasets
 
-4. **Fusion weights now LEARNABLE** (initialized 0.70/0.30) (RC5)
-   - File: `src/models/builders.py:26-60` (LearnableFusionWeights class)
-   - Applied to all 2/3/4/5 modality fusion architectures
-   - Adds 1 trainable param (sigmoid-constrained logit) + gradient now flows unscaled
+3. **STAGE2_LR = 1e-5** (RC4) — fine-tuning unfrozen image branch
+   - Was 1e-6 hardcoded. 10x more gradient signal for meaningful updates
 
-5. **Pre-training monitors val_cohen_kappa instead of val_weighted_f1_score** (RC1)
-   - File: `src/training/training_utils.py:1373-1397`
-   - Kappa=0 for degenerate predictions, so early stopping won't save bad models
+4. **FUSION_INIT_RF_WEIGHT = 0.70** (RC5) — learnable fusion
+   - `src/models/builders.py:26-60` (LearnableFusionWeights class)
+   - Replaces fixed 70/30 Lambda layers with sigmoid-constrained learnable weight
+   - Gradient flows unscaled through learnable layer
+
+5. **Pre-training monitors val_cohen_kappa** (RC1)
+   - `src/training/training_utils.py:1373-1397`
+   - Kappa=0 for degenerate predictions, prevents saving bad models
 
 6. **Weight transfer excludes 'output' layer** (RC5)
-   - File: `src/training/training_utils.py:1248-1260, 1285-1295, 1435-1447`
    - Standalone model has Dense(3) output; fusion has LearnableFusionWeights
+
+7. **Log overwriting fixed**
+   - `src/main.py:2577-2582`
+   - Confidence filtering logs → `confidence_fold1.log`, `confidence_fold2.log`
+   - Main training logs → `training_fold1.log`, `training_fold2.log`
 
 ---
 
