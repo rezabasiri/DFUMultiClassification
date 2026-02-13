@@ -18,6 +18,7 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
+
 from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION
 from src.data.image_processing import load_and_preprocess_image
 
@@ -56,7 +57,7 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         try:
             random_state = int(os.environ['CV_FOLD_SEED'])
         except ValueError:
-            pass  # Keep default if invalid
+            print(f"  [WARNING] Invalid CV_FOLD_SEED env var value: '{os.environ['CV_FOLD_SEED']}', using default seed={random_state}", flush=True)
 
     np.random.seed(random_state)
     random.seed(random_state)
@@ -64,7 +65,8 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     # Convert labels if needed
     data = data.copy()
     if 'Healing Phase Abs' in data.columns:
-        if data['Healing Phase Abs'].dtype == 'object':
+        # Check if column contains string values (handles both 'object' and 'str' dtypes)
+        if data['Healing Phase Abs'].dtype in ['object', 'str'] or pd.api.types.is_string_dtype(data['Healing Phase Abs']):
             data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
 
     # Group patients by their majority class
@@ -230,53 +232,114 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     thermal_rgb_folder = data_paths['thermal_rgb_folder']
 
     def process_single_sample(filename, bb_coords, modality_name):
-        """Process a single image sample using py_function"""
-        def _process_image(filename_tensor, bb_coords_tensor, modality_tensor):
-            try:
-                # Convert tensors to numpy/python types
-                filename_str = filename_tensor.numpy().decode('utf-8')
-                bb_coords_float = bb_coords_tensor.numpy()
-                modality_str = modality_tensor.numpy().decode('utf-8')
-                
-                base_folders = {
-                    'depth_rgb': image_folder,
-                    'depth_map': depth_folder,
-                    'thermal_rgb': thermal_rgb_folder,
-                    'thermal_map': thermal_folder
-                }
-                
-                img_path = os.path.join(base_folders[modality_str], filename_str)
-                img_tensor = load_and_preprocess_image(
-                    img_path,
-                    bb_coords_float,
-                    modality_str,
-                    target_size=(image_size, image_size),
-                    augment=is_training  # Enable augmentation for training data only
-                )
-                
-                # Convert TensorFlow tensor to numpy array
-                if isinstance(img_tensor, tf.Tensor):
-                    img_array = img_tensor.numpy()
-                else:
-                    img_array = np.array(img_tensor)
-                
-                return img_array
-            
-            except Exception as e:
-                vprint(f"Error in _process_image: {str(e)}", level=1)
-                vprint(f"Error type: {type(e)}", level=1)
-                import traceback
-                traceback.print_exc()
-                return np.zeros((image_size, image_size, 3), dtype=np.float32)
+        """Process a single image sample using GPU-accelerated tf.io (replaces PIL/py_function)"""
+        # Build file path using tf.case for conditional logic
+        img_path = tf.case([
+            (tf.equal(modality_name, 'depth_rgb'), lambda: tf.strings.join([image_folder, '/', filename])),
+            (tf.equal(modality_name, 'depth_map'), lambda: tf.strings.join([depth_folder, '/', filename])),
+            (tf.equal(modality_name, 'thermal_rgb'), lambda: tf.strings.join([thermal_rgb_folder, '/', filename])),
+            (tf.equal(modality_name, 'thermal_map'), lambda: tf.strings.join([thermal_folder, '/', filename])),
+        ], default=lambda: tf.strings.join([image_folder, '/', filename]), exclusive=True)
 
-        processed_image = tf.py_function(
-            _process_image,
-            [filename, bb_coords, modality_name],
-            tf.float32
+        # GPU-accelerated JPEG decode
+        img_raw = tf.io.read_file(img_path)
+        img = tf.io.decode_jpeg(img_raw, channels=3)
+        img = tf.cast(img, tf.float32)
+
+        # Extract bounding box coordinates
+        xmin = tf.cast(bb_coords[0], tf.int32)
+        ymin = tf.cast(bb_coords[1], tf.int32)
+        xmax = tf.cast(bb_coords[2], tf.int32)
+        ymax = tf.cast(bb_coords[3], tf.int32)
+
+        # Get image dimensions
+        img_shape = tf.shape(img)
+        img_height = img_shape[0]
+        img_width = img_shape[1]
+
+        # Apply modality-specific bounding box adjustments
+        def adjust_depth_map_bb(xmin, ymin, xmax, ymax):
+            # Replicate adjust_bounding_box logic from image_processing.py
+            fov_error = 3
+            fov_min_h = 69  # min(87, 69)
+            fov_min_v = 42  # min(58, 42)
+
+            xmin_adj = tf.cast(tf.cast(xmin, tf.float32) * (1.0 - tf.cast(fov_error, tf.float32)/tf.cast(fov_min_h, tf.float32)), tf.int32)
+            ymin_adj = tf.cast(tf.cast(ymin, tf.float32) * (1.0 - tf.cast(fov_error, tf.float32)/tf.cast(fov_min_v, tf.float32)), tf.int32)
+            xmax_adj = tf.cast(tf.cast(xmax, tf.float32) * (1.0 + tf.cast(fov_error, tf.float32)/tf.cast(fov_min_h, tf.float32)), tf.int32)
+            ymax_adj = tf.cast(tf.cast(ymax, tf.float32) * (1.0 + tf.cast(fov_error, tf.float32)/tf.cast(fov_min_v, tf.float32)), tf.int32)
+
+            return xmin_adj, ymin_adj, xmax_adj, ymax_adj
+
+        def adjust_thermal_map_bb(xmin, ymin, xmax, ymax):
+            return xmin - 30, ymin - 30, xmax + 30, ymax + 30
+
+        # Conditional bounding box adjustment
+        xmin, ymin, xmax, ymax = tf.case([
+            (tf.equal(modality_name, 'depth_map'), lambda: adjust_depth_map_bb(xmin, ymin, xmax, ymax)),
+            (tf.equal(modality_name, 'thermal_map'), lambda: adjust_thermal_map_bb(xmin, ymin, xmax, ymax)),
+        ], default=lambda: (xmin, ymin, xmax, ymax))
+
+        # Ensure coordinates are within bounds
+        xmin = tf.maximum(0, tf.minimum(xmin, img_width - 1))
+        xmax = tf.maximum(xmin + 1, tf.minimum(xmax, img_width))
+        ymin = tf.maximum(0, tf.minimum(ymin, img_height - 1))
+        ymax = tf.maximum(ymin + 1, tf.minimum(ymax, img_height))
+
+        # Crop to bounding box
+        crop_height = ymax - ymin
+        crop_width = xmax - xmin
+        cropped_img = tf.image.crop_to_bounding_box(img, ymin, xmin, crop_height, crop_width)
+
+        # Resize with aspect ratio preservation and padding
+        # Calculate target dimensions maintaining aspect ratio
+        original_height = tf.cast(crop_height, tf.float32)
+        original_width = tf.cast(crop_width, tf.float32)
+        aspect_ratio = original_width / original_height
+
+        target_size_float = tf.cast(image_size, tf.float32)
+        new_width = tf.cond(
+            aspect_ratio > 1.0,
+            lambda: target_size_float,
+            lambda: target_size_float * aspect_ratio
         )
-        # Set the shape that was lost during py_function
-        processed_image.set_shape((image_size, image_size, 3))
-        return processed_image
+        new_height = tf.cond(
+            aspect_ratio > 1.0,
+            lambda: target_size_float / aspect_ratio,
+            lambda: target_size_float
+        )
+
+        new_width = tf.cast(tf.maximum(new_width, 1.0), tf.int32)
+        new_height = tf.cast(tf.maximum(new_height, 1.0), tf.int32)
+
+        # Resize
+        resized_img = tf.image.resize(cropped_img, [new_height, new_width], method='lanczos3')
+
+        # Pad to target size
+        pad_height = image_size - new_height
+        pad_width = image_size - new_width
+        pad_top = pad_height // 2
+        pad_bottom = pad_height - pad_top
+        pad_left = pad_width // 2
+        pad_right = pad_width - pad_left
+
+        padded_img = tf.pad(resized_img, [[pad_top, pad_bottom], [pad_left, pad_right], [0, 0]], constant_values=0)
+
+        # Normalize based on modality
+        normalized_img = tf.case([
+            (tf.logical_or(tf.equal(modality_name, 'depth_rgb'), tf.equal(modality_name, 'thermal_rgb')),
+             lambda: padded_img / 255.0),
+            (tf.logical_or(tf.equal(modality_name, 'depth_map'), tf.equal(modality_name, 'thermal_map')),
+             lambda: tf.cond(tf.reduce_max(padded_img) != 0,
+                           lambda: padded_img / tf.reduce_max(padded_img),
+                           lambda: padded_img / 255.0)),
+        ], default=lambda: padded_img / 255.0)
+
+        # Ensure shape
+        normalized_img = tf.reshape(normalized_img, (image_size, image_size, 3))
+        normalized_img.set_shape((image_size, image_size, 3))
+
+        return normalized_img
 
     def load_and_preprocess_single_sample(row):
         features = {}
@@ -357,14 +420,13 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Initialize dataset from DataFrame
     dataset = df_to_dataset(best_matching_df)
-    
+
     # Apply preprocessing to each sample
     dataset = dataset.map(
         load_and_preprocess_single_sample,
         num_parallel_calls=tf.data.AUTOTUNE
-        # num_parallel_calls=4
     )
-    
+
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
@@ -388,17 +450,44 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     os.makedirs(cache_dir, exist_ok=True)
     dataset = dataset.cache(os.path.join(cache_dir, cache_filename))
-    
+
     with tf.device('/CPU:0'):
         pre_aug_dataset = dataset
         pre_aug_dataset = pre_aug_dataset.batch(batch_size)
-    
+
     if is_training:
         dataset = dataset.shuffle(buffer_size=1000 if len(best_matching_df) > 1000 else len(best_matching_df), reshuffle_each_iteration=True)
         dataset = dataset.repeat()
-    
-    # Batch the dataset
-    dataset = dataset.batch(batch_size)
+        # For training with repeat(), drop_remainder=True is safe (data cycles infinitely)
+        dataset = dataset.batch(batch_size, drop_remainder=True)
+    else:
+        # For validation (no repeat): adjust batch_size to ensure at least one complete batch
+        # This is critical for multi-GPU training where MirroredStrategy requires
+        # identical batch sizes across all replicas for gradient aggregation
+
+        # Get number of GPUs from TensorFlow (defaults to 1 if no GPUs detected)
+        try:
+            num_gpus = len(tf.config.list_physical_devices('GPU'))
+            if num_gpus == 0:
+                num_gpus = 1  # CPU fallback
+        except:
+            num_gpus = 1
+
+        # Calculate effective batch size for validation:
+        # 1. Must be <= n_samples (so at least one batch exists)
+        # 2. Must be divisible by num_gpus (for even distribution across replicas)
+        effective_val_batch_size = min(batch_size, n_samples)
+        # Round down to nearest multiple of num_gpus for even distribution
+        effective_val_batch_size = (effective_val_batch_size // num_gpus) * num_gpus
+        # Ensure at least num_gpus samples (minimum valid batch)
+        effective_val_batch_size = max(effective_val_batch_size, num_gpus)
+
+        vprint(f"  Validation batch size adjusted: {batch_size} → {effective_val_batch_size} "
+               f"(n_samples={n_samples}, num_gpus={num_gpus})", level=2)
+
+        dataset = dataset.batch(effective_val_batch_size, drop_remainder=True)
+        # Recalculate steps with the effective batch size
+        steps = int(np.ceil(n_samples / effective_val_batch_size))
 
     # Apply augmentation after batching
     if is_training:
@@ -407,7 +496,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
             dataset = dataset.map(
                 augmentation_fn,
                 num_parallel_calls=tf.data.AUTOTUNE,
-                # num_parallel_calls=4
                 )
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
@@ -418,7 +506,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Prefetch for better performance
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
-    # dataset = dataset.prefetch(2)
+
     return dataset, pre_aug_dataset, steps
 # First, add this helper function near the start of your prepare_cached_datasets function
 def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=False):
@@ -900,18 +988,33 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
-            # Recalculate alpha values from BALANCED distribution
-            # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
-            total_resampled = len(y_resampled)
-            balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
-            alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
-            alpha_sum_balanced = sum(alpha_values_balanced)
-            alpha_values_balanced = [alpha/alpha_sum_balanced * 3.0 for alpha in alpha_values_balanced]
+            # Check if we should use frequency-based weights from original distribution
+            try:
+                from src.utils.production_config import USE_FREQUENCY_BASED_WEIGHTS, FREQUENCY_WEIGHT_NORMALIZATION
+            except ImportError:
+                USE_FREQUENCY_BASED_WEIGHTS = False
+                FREQUENCY_WEIGHT_NORMALIZATION = 3.0
 
-            vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
-            vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
+            if USE_FREQUENCY_BASED_WEIGHTS:
+                # Use alpha_values from ORIGINAL distribution (calculated at start of function)
+                # This applies class weighting ON TOP of the balanced sampling
+                vprint(f"\nUsing frequency-based weights from ORIGINAL distribution:", level=2)
+                vprint(f"Alpha values [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
+                vprint("(These weights emphasize minority classes even after resampling)", level=2)
+                return resampled_df, alpha_values
+            else:
+                # Recalculate alpha values from BALANCED distribution
+                # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
+                total_resampled = len(y_resampled)
+                balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
+                alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
+                alpha_sum_balanced = sum(alpha_values_balanced)
+                alpha_values_balanced = [alpha/alpha_sum_balanced * FREQUENCY_WEIGHT_NORMALIZATION for alpha in alpha_values_balanced]
 
-            return resampled_df, alpha_values_balanced
+                vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
+                vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
+
+                return resampled_df, alpha_values_balanced
     if 'metadata' in selected_modalities:
         # Calculate class weights for Random Forest models
         unique_cases = train_data[['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']].drop_duplicates().copy()
@@ -1069,7 +1172,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     y_train_raw = source_df['Healing Phase Abs']
 
                     # Convert to numeric if needed
-                    if y_train_raw.dtype == object or y_train_raw.dtype.name == 'string':
+                    # Use is_string_dtype() for robust detection (catches 'object', 'string', StringDtype, etc.)
+                    if y_train_raw.dtype in ['object', 'str'] or pd.api.types.is_string_dtype(y_train_raw):
                         # String labels: map to numeric
                         y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
                     else:
@@ -1211,7 +1315,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         y_bin2 = (y > 1).astype(int)
                         # Train RF models
                         rf_model1.fit(X, y_bin1)
-                        rf_model2.fit(X, y_bin2)    
+                        rf_model2.fit(X, y_bin2)
                 try:
                     import tensorflow_decision_forests as tfdf
                     dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
@@ -1252,7 +1356,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 split_data['rf_prob_I'] = prob_I
                 split_data['rf_prob_P'] = prob_P
                 split_data['rf_prob_R'] = prob_R
-            
+
             metadata_columns = [col for col in split_data.columns if col not in [
                 'Healing Phase Abs',
                 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',

@@ -65,19 +65,19 @@ def get_gpu_info() -> List[Dict[str, any]]:
                     'compute_cap': compute_cap
                 })
             except (ValueError, IndexError) as e:
-                print(f"⚠️  Failed to parse GPU info line: {line} ({e})")
+                print(f"\033[1m⚠️  Failed to parse GPU info line: {line} ({e})\033[0m")
                 continue
 
         return gpus
 
     except FileNotFoundError:
-        print("⚠️  nvidia-smi not found - no NVIDIA GPUs available")
+        print("\033[1m⚠️  nvidia-smi not found - no NVIDIA GPUs available\033[0m")
         return []
     except subprocess.TimeoutExpired:
-        print("⚠️  nvidia-smi timeout - GPU detection failed")
+        print("\033[1m⚠️  nvidia-smi timeout - GPU detection failed\033[0m")
         return []
     except Exception as e:
-        print(f"⚠️  GPU detection error: {e}")
+        print(f"\033[1m⚠️  GPU detection error: {e}\033[0m")
         return []
 
 
@@ -349,5 +349,7 @@ def print_gpu_memory_usage():
                     if len(parts) >= 3:
                         gpu_id, used, total = parts[0], parts[1], parts[2]
                         print(f"  GPU {gpu_id}: {used}MB / {total}MB ({float(used)/float(total)*100:.1f}%)")
-    except Exception:
-        pass  # Silently fail if nvidia-smi unavailable
+    except FileNotFoundError:
+        pass  # nvidia-smi not installed - expected on non-GPU systems
+    except Exception as e:
+        print(f"  [WARNING] Failed to query GPU memory via nvidia-smi: {type(e).__name__}: {e}", flush=True)

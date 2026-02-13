@@ -232,6 +232,41 @@ def prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalitie
             create_best_matching_dataset(depth_bb_file, thermal_bb_file, csv_file, depth_folder, thermal_folder, best_matching_csv)
 
         best_matching_df = pd.read_csv(best_matching_csv)
+
+    # Apply confidence-based filtering if enabled
+    confidence_exclusion_file = os.environ.get('CONFIDENCE_EXCLUSION_FILE')
+    vprint(f"DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = {confidence_exclusion_file}", level=2)
+    vprint(f"DEBUG CONF-FILTER: File exists = {os.path.exists(confidence_exclusion_file) if confidence_exclusion_file else 'N/A'}", level=2)
+    if confidence_exclusion_file and os.path.exists(confidence_exclusion_file):
+        try:
+            # Load exclusion list
+            with open(confidence_exclusion_file, 'r') as f:
+                excluded_ids = set(line.strip() for line in f if line.strip())
+            vprint(f"DEBUG CONF-FILTER: Loaded {len(excluded_ids)} excluded IDs from file", level=2)
+
+            if excluded_ids:
+                original_count = len(best_matching_df)
+                # Create sample IDs in format: P{patient}A{appt}D{dfu}
+                # This matches the format used by confidence_based_filtering.py
+                sample_ids = (
+                    'P' + best_matching_df['Patient#'].astype(int).astype(str).str.zfill(3) +
+                    'A' + best_matching_df['Appt#'].astype(int).astype(str).str.zfill(2) +
+                    'D' + best_matching_df['DFU#'].astype(int).astype(str)
+                )
+                # Debug: show sample ID format comparison
+                vprint(f"DEBUG CONF-FILTER: Sample IDs in data (first 3): {sample_ids.head(3).tolist()}", level=2)
+                vprint(f"DEBUG CONF-FILTER: Sample IDs in exclusion (first 3): {list(excluded_ids)[:3]}", level=2)
+                keep_mask = ~sample_ids.isin(excluded_ids)
+                best_matching_df = best_matching_df[keep_mask].copy()
+                num_excluded = original_count - len(best_matching_df)
+                vprint(f"DEBUG CONF-FILTER: Matched & excluded {num_excluded} samples", level=2)
+
+                if num_excluded > 0:
+                    vprint(f"Confidence filtering: excluded {num_excluded}/{original_count} samples "
+                           f"({100*num_excluded/original_count:.1f}%)", level=1)
+        except Exception as e:
+            vprint(f"Warning: Failed to apply confidence filtering: {e}", level=1)
+
     matched_files = {}
     
     if 'depth_rgb' in selected_modalities:
@@ -317,7 +352,6 @@ def adjust_bounding_box(xmin, ymin, xmax, ymax):
 
     return xmin, ymin, xmax, ymax
 def load_and_preprocess_image(filepath, bb_data, modality, target_size=(224, 224), augment=False):
-
     try:
         # Load image and convert to array
         img = load_img(filepath, color_mode="rgb", target_size=None)

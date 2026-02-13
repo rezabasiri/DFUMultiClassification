@@ -1,0 +1,43 @@
+DATASET STATISTICS
+==================
+
+RAW DATA FILES
+--------------
+Depth RGB images:        2,884 files
+Depth map images:        3,025 files
+Thermal map images:      2,854 files
+Metadata entries:        890 DFU records
+
+BOUNDING BOX ANNOTATIONS
+------------------------
+Depth bounding boxes:    3,255 DFU annotations across 2,884 images
+  - 2,581 images with 1 DFU  = 2,581 annotations
+  - 235 images with 2 DFUs   = 470 annotations
+  - 68 images with 3 DFUs    = 204 annotations
+
+Thermal bounding boxes:  3,163 DFU annotations across 2,884 images
+  - 2,651 images with 1 DFU  = 2,651 annotations
+  - 187 images with 2 DFUs   = 374 annotations
+  - 46 images with 3 DFUs    = 138 annotations
+
+MATCHED MULTIMODAL DATASET (best_matching.csv)
+-----------------------------------------------
+Total matched samples:   3,108 DFU instances
+  - Successfully matched depth + thermal + metadata
+  - Lost 147 entries (4.5%) due to missing matches
+
+Unique patients:         233 patients
+Unique appointments:     559 patient visits
+Unique DFU instances:    648 distinct wounds
+
+CLASS DISTRIBUTION
+------------------
+Healing Phase 0 (Non-healing):  2,569 samples (82.7%)
+Healing Phase 1 (Healing):      496 samples (16.0%)
+Missing/Unknown:                43 samples (1.4%)
+
+NOTES
+-----
+- Multiple DFUs per image: Some patients presented with multiple wounds captured in the same image
+- Matching loss: 4.5% of depth annotations lost during depth-thermal-metadata matching
+- Class imbalance: ~5:1 ratio of non-healing to healing wounds

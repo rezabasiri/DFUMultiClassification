@@ -40,7 +40,18 @@ def create_simple_cnn_map(image_input, modality):
     return x
 
 def create_efficientnet_branch(image_input, modality, backbone_name):
-    """Create EfficientNet branch with specified variant and unique layer names"""
+    """Create EfficientNet branch with specified variant and unique layer names
+
+    Keras 3 Compatibility Note:
+    - In Keras 3, model/layer names must be globally unique within a Model graph
+    - When using the same backbone for multiple modalities, we must create separate instances
+    - Solution: Wrap each backbone model call in a Lambda layer with modality-specific name
+      This prevents the sub-model name from being registered in the parent model's namespace
+    """
+    # Cache to store loaded base models (shared weights, separate instances per modality)
+    if not hasattr(create_efficientnet_branch, '_model_cache'):
+        create_efficientnet_branch._model_cache = {}
+
     # Map backbone name to Keras application
     backbone_map = {
         'EfficientNetB0': tf.keras.applications.EfficientNetB0,
@@ -51,42 +62,45 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
 
     EfficientNetClass = backbone_map[backbone_name]
 
-    # Try to load local weights, fall back to ImageNet
-    local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
-    if os.path.exists(local_weights_path):
-        vprint(f"Loading {backbone_name} from local weights", level=2)
-        # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        # Note: EfficientNet wrappers don't support 'name' parameter
-        # We'll rename layers after creation instead
-        base_model = EfficientNetClass(
-            weights=None,
-            include_top=False,
-            pooling='avg'
-        )
-        base_model.load_weights(local_weights_path)
+    # Create a unique model instance for this modality
+    # Even if we load the same backbone, each modality gets its own instance
+    cache_key = f"{modality}_{backbone_name}"
+
+    if cache_key not in create_efficientnet_branch._model_cache:
+        # Try to load local weights, fall back to ImageNet
+        local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
+        if os.path.exists(local_weights_path):
+            vprint(f"Loading {backbone_name} from local weights", level=2)
+            # Create model WITHOUT input_tensor - creates standalone model
+            base_model = EfficientNetClass(
+                weights=None,
+                include_top=False,
+                pooling='avg'
+            )
+            base_model.load_weights(local_weights_path)
+        else:
+            vprint(f"Loading {backbone_name} from ImageNet", level=2)
+            # Create model WITHOUT input_tensor - creates standalone model
+            base_model = EfficientNetClass(
+                weights='imagenet',
+                include_top=False,
+                pooling='avg'
+            )
+
+        # Cache this model instance for this modality
+        create_efficientnet_branch._model_cache[cache_key] = base_model
     else:
-        vprint(f"Loading {backbone_name} from ImageNet", level=2)
-        # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        # Note: EfficientNet wrappers don't support 'name' parameter
-        # We'll rename layers after creation instead
-        base_model = EfficientNetClass(
-            weights='imagenet',
-            include_top=False,
-            pooling='avg'
-        )
+        base_model = create_efficientnet_branch._model_cache[cache_key]
 
     base_model.trainable = True
 
-    # Rename the base model itself to avoid conflicts when same backbone is used for multiple modalities
-    base_model._name = f'{modality}_{backbone_name.lower()}'
-
-    # Rename ALL layers (including nested ones) to avoid conflicts between modalities
-    # This is critical when using same backbone for multiple modalities
-    for layer in base_model.layers:
-        layer._name = f'{modality}_{layer.name}'
-
-    # Connect the input manually
-    x = base_model(image_input)
+    # Wrap the model call in a Lambda layer with unique name
+    # This prevents the sub-model's name from conflicting in the parent model
+    # The Lambda layer acts as a named wrapper that applies the model
+    x = Lambda(
+        lambda img: base_model(img),
+        name=f'{modality}_{backbone_name.lower()}_wrapper'
+    )(image_input)
 
     vprint(f"{modality} using {backbone_name}: {len(base_model.trainable_weights)} trainable weights", level=2)
 

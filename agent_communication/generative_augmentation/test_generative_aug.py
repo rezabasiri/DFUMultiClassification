@@ -85,7 +85,7 @@ TEST_CONFIGS = [
     },
     {
         'name': 'gengen_enabled',
-        'description': 'With generative augmentation (depth_rgb)',
+        'description': 'With SDXL generative augmentation (v3)',
         'use_gen_aug': True,
     }
 ]
@@ -99,7 +99,7 @@ TEST_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
 QUICK_MODE = False
 DATA_PERCENTAGE = 100
 N_EPOCHS = 300
-IMAGE_SIZE = 64
+IMAGE_SIZE = 128
 
 # Quick mode settings
 QUICK_DATA_PERCENTAGE = 30.0  # Reduced for faster quick testing
@@ -114,7 +114,6 @@ QUICK_BATCH_SIZE = 256  # Large batch size for quick mode with 64x64 images to m
 QUICK_GENERATIVE_AUG_INFERENCE_STEPS = 10  # Reduced from 50 - much faster, quality doesn't matter for quick test
 QUICK_GENERATIVE_AUG_BATCH_LIMIT = 4  # Reduced from 8 - fewer images per generation call
 QUICK_GENERATIVE_AUG_PROB = 0.2  # Reduced from 0.3 - generate less frequently in quick mode
-QUICK_GENERATIVE_AUG_NUM_GPUS = 3  # Use 3 GPUs for SDXL (each ~10GB). With 5x 24GB: 3 for SDXL, 2 for TF
 
 # Paths
 PRODUCTION_CONFIG = project_root / 'src/utils/production_config.py'
@@ -132,21 +131,25 @@ def save_original_config():
 
     # Extract key values
     patterns = {
+        'USE_GENERAL_AUGMENTATION': r'USE_GENERAL_AUGMENTATION = (True|False)',
         'USE_GENERATIVE_AUGMENTATION': r'USE_GENERATIVE_AUGMENTATION = (True|False)',
+        'GENERATIVE_AUG_VERSION': r"GENERATIVE_AUG_VERSION = '[^']*'",
         'INCLUDED_COMBINATIONS': r'INCLUDED_COMBINATIONS = \[[\s\S]*?\n\]',
         'DATA_PERCENTAGE': r'DATA_PERCENTAGE = ([\d.]+)',
-        'N_EPOCHS': r'N_EPOCHS = (\d+)',
+        'N_EPOCHS': r'(?<![A-Z_])N_EPOCHS = (\d+)',
         'IMAGE_SIZE': r'IMAGE_SIZE = (\d+)',
         'STAGE1_EPOCHS': r'STAGE1_EPOCHS = (\d+)',
-        'EARLY_STOP_PATIENCE': r'EARLY_STOP_PATIENCE = (\d+)',
-        'REDUCE_LR_PATIENCE': r'REDUCE_LR_PATIENCE = (\d+)',
+        'EARLY_STOP_PATIENCE': r'(?<![A-Z_])EARLY_STOP_PATIENCE = (\d+)',
+        'REDUCE_LR_PATIENCE': r'(?<![A-Z_])REDUCE_LR_PATIENCE = (\d+)',
         'LR_SCHEDULE_EXPLORATION_EPOCHS': r'LR_SCHEDULE_EXPLORATION_EPOCHS = (\d+)',
         'GLOBAL_BATCH_SIZE': r'GLOBAL_BATCH_SIZE = (\d+)',
         # SDXL generative augmentation settings
         'GENERATIVE_AUG_INFERENCE_STEPS': r'GENERATIVE_AUG_INFERENCE_STEPS = (\d+)',
         'GENERATIVE_AUG_BATCH_LIMIT': r'GENERATIVE_AUG_BATCH_LIMIT = (\d+)',
         'GENERATIVE_AUG_PROB': r'GENERATIVE_AUG_PROB = ([\d.]+)',
-        'GENERATIVE_AUG_NUM_GPUS': r'GENERATIVE_AUG_NUM_GPUS = (\d+)',
+        'GENERATIVE_AUG_SDXL_RESOLUTION': r'GENERATIVE_AUG_SDXL_RESOLUTION = (\d+)',
+        'GENERATIVE_AUG_SDXL_GUIDANCE_SCALE': r'GENERATIVE_AUG_SDXL_GUIDANCE_SCALE = ([\d.]+)',
+        'GENERATIVE_AUG_SDXL_MODEL_PATH': r"GENERATIVE_AUG_SDXL_MODEL_PATH = '[^']*'",
     }
 
     for key, pattern in patterns.items():
@@ -164,36 +167,31 @@ def restore_original_config():
     with open(PRODUCTION_CONFIG, 'r') as f:
         content = f.read()
 
+    # Map each config key to its regex pattern for restoration
+    restore_patterns = {
+        'USE_GENERAL_AUGMENTATION': r'USE_GENERAL_AUGMENTATION = (True|False)',
+        'USE_GENERATIVE_AUGMENTATION': r'USE_GENERATIVE_AUGMENTATION = (True|False)',
+        'GENERATIVE_AUG_VERSION': r"GENERATIVE_AUG_VERSION = '[^']*'",
+        'INCLUDED_COMBINATIONS': r'INCLUDED_COMBINATIONS = \[[\s\S]*?\n\]',
+        'DATA_PERCENTAGE': r'DATA_PERCENTAGE = [\d.]+',
+        'N_EPOCHS': r'(?<![A-Z_])N_EPOCHS = \d+',
+        'IMAGE_SIZE': r'IMAGE_SIZE = \d+',
+        'STAGE1_EPOCHS': r'STAGE1_EPOCHS = \d+',
+        'EARLY_STOP_PATIENCE': r'(?<![A-Z_])EARLY_STOP_PATIENCE = \d+',
+        'REDUCE_LR_PATIENCE': r'(?<![A-Z_])REDUCE_LR_PATIENCE = \d+',
+        'LR_SCHEDULE_EXPLORATION_EPOCHS': r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+',
+        'GLOBAL_BATCH_SIZE': r'GLOBAL_BATCH_SIZE = \d+',
+        'GENERATIVE_AUG_INFERENCE_STEPS': r'GENERATIVE_AUG_INFERENCE_STEPS = \d+',
+        'GENERATIVE_AUG_BATCH_LIMIT': r'GENERATIVE_AUG_BATCH_LIMIT = \d+',
+        'GENERATIVE_AUG_PROB': r'GENERATIVE_AUG_PROB = [\d.]+',
+        'GENERATIVE_AUG_SDXL_RESOLUTION': r'GENERATIVE_AUG_SDXL_RESOLUTION = \d+',
+        'GENERATIVE_AUG_SDXL_GUIDANCE_SCALE': r'GENERATIVE_AUG_SDXL_GUIDANCE_SCALE = [\d.]+',
+        'GENERATIVE_AUG_SDXL_MODEL_PATH': r"GENERATIVE_AUG_SDXL_MODEL_PATH = '[^']*'",
+    }
+
     for key, original_value in ORIGINAL_CONFIG.items():
-        if key == 'USE_GENERATIVE_AUGMENTATION':
-            content = re.sub(r'USE_GENERATIVE_AUGMENTATION = (True|False)', original_value, content)
-        elif key == 'INCLUDED_COMBINATIONS':
-            content = re.sub(r'INCLUDED_COMBINATIONS = \[[\s\S]*?\n\]', original_value, content)
-        elif key == 'DATA_PERCENTAGE':
-            content = re.sub(r'DATA_PERCENTAGE = [\d.]+', original_value, content)
-        elif key == 'N_EPOCHS':
-            content = re.sub(r'N_EPOCHS = \d+', original_value, content)
-        elif key == 'IMAGE_SIZE':
-            content = re.sub(r'IMAGE_SIZE = \d+', original_value, content)
-        elif key == 'STAGE1_EPOCHS':
-            content = re.sub(r'STAGE1_EPOCHS = \d+', original_value, content)
-        elif key == 'EARLY_STOP_PATIENCE':
-            content = re.sub(r'EARLY_STOP_PATIENCE = \d+', original_value, content)
-        elif key == 'REDUCE_LR_PATIENCE':
-            content = re.sub(r'REDUCE_LR_PATIENCE = \d+', original_value, content)
-        elif key == 'LR_SCHEDULE_EXPLORATION_EPOCHS':
-            content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', original_value, content)
-        elif key == 'GLOBAL_BATCH_SIZE':
-            content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', original_value, content)
-        # SDXL generative augmentation settings
-        elif key == 'GENERATIVE_AUG_INFERENCE_STEPS':
-            content = re.sub(r'GENERATIVE_AUG_INFERENCE_STEPS = \d+', original_value, content)
-        elif key == 'GENERATIVE_AUG_BATCH_LIMIT':
-            content = re.sub(r'GENERATIVE_AUG_BATCH_LIMIT = \d+', original_value, content)
-        elif key == 'GENERATIVE_AUG_PROB':
-            content = re.sub(r'GENERATIVE_AUG_PROB = [\d.]+', original_value, content)
-        elif key == 'GENERATIVE_AUG_NUM_GPUS':
-            content = re.sub(r'GENERATIVE_AUG_NUM_GPUS = \d+', original_value, content)
+        if key in restore_patterns:
+            content = re.sub(restore_patterns[key], original_value, content)
 
     with open(PRODUCTION_CONFIG, 'w') as f:
         f.write(content)
@@ -207,12 +205,33 @@ def update_config_for_test(use_gen_aug):
         content = f.read()
     logger.debug(f"[DEBUG] Read production_config ({len(content)} bytes)")
 
-    # Update USE_GENERATIVE_AUGMENTATION
+    # Always enable general augmentation (brightness, contrast, etc.) for both tests
+    content = re.sub(
+        r'USE_GENERAL_AUGMENTATION = (True|False)',
+        'USE_GENERAL_AUGMENTATION = True',
+        content
+    )
+
+    # Update USE_GENERATIVE_AUGMENTATION (SDXL) - only enabled for the gengen test
     content = re.sub(
         r'USE_GENERATIVE_AUGMENTATION = (True|False)',
         f'USE_GENERATIVE_AUGMENTATION = {use_gen_aug}',
         content
     )
+
+    # Ensure SDXL (v3) is used when generative augmentation is enabled
+    if use_gen_aug:
+        content = re.sub(
+            r"GENERATIVE_AUG_VERSION = '[^']*'",
+            "GENERATIVE_AUG_VERSION = 'v3'",
+            content
+        )
+        # Ensure correct SDXL checkpoint path
+        content = re.sub(
+            r"GENERATIVE_AUG_SDXL_MODEL_PATH = '[^']*'",
+            "GENERATIVE_AUG_SDXL_MODEL_PATH = 'results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt'",
+            content
+        )
 
     # Update INCLUDED_COMBINATIONS with test modalities
     modalities_str = ', '.join([f"'{m}'" for m in TEST_MODALITIES])
@@ -227,21 +246,20 @@ def update_config_for_test(use_gen_aug):
     # Update test parameters if in quick mode
     if QUICK_MODE:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {QUICK_DATA_PERCENTAGE}', content)
-        content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {QUICK_N_EPOCHS}', content)
+        content = re.sub(r'(?<![A-Z_])N_EPOCHS = \d+', f'N_EPOCHS = {QUICK_N_EPOCHS}', content)
         content = re.sub(r'IMAGE_SIZE = \d+', f'IMAGE_SIZE = {QUICK_IMAGE_SIZE}', content)
         content = re.sub(r'STAGE1_EPOCHS = \d+', f'STAGE1_EPOCHS = {QUICK_STAGE1_EPOCHS}', content)
-        content = re.sub(r'EARLY_STOP_PATIENCE = \d+', f'EARLY_STOP_PATIENCE = {QUICK_EARLY_STOP_PATIENCE}', content)
-        content = re.sub(r'REDUCE_LR_PATIENCE = \d+', f'REDUCE_LR_PATIENCE = {QUICK_REDUCE_LR_PATIENCE}', content)
+        content = re.sub(r'(?<![A-Z_])EARLY_STOP_PATIENCE = \d+', f'EARLY_STOP_PATIENCE = {QUICK_EARLY_STOP_PATIENCE}', content)
+        content = re.sub(r'(?<![A-Z_])REDUCE_LR_PATIENCE = \d+', f'REDUCE_LR_PATIENCE = {QUICK_REDUCE_LR_PATIENCE}', content)
         content = re.sub(r'LR_SCHEDULE_EXPLORATION_EPOCHS = \d+', f'LR_SCHEDULE_EXPLORATION_EPOCHS = {QUICK_N_EPOCHS}', content)
         content = re.sub(r'GLOBAL_BATCH_SIZE = \d+', f'GLOBAL_BATCH_SIZE = {QUICK_BATCH_SIZE}', content)
         # SDXL settings for quick mode - significantly faster generation
         content = re.sub(r'GENERATIVE_AUG_INFERENCE_STEPS = \d+', f'GENERATIVE_AUG_INFERENCE_STEPS = {QUICK_GENERATIVE_AUG_INFERENCE_STEPS}', content)
         content = re.sub(r'GENERATIVE_AUG_BATCH_LIMIT = \d+', f'GENERATIVE_AUG_BATCH_LIMIT = {QUICK_GENERATIVE_AUG_BATCH_LIMIT}', content)
         content = re.sub(r'GENERATIVE_AUG_PROB = [\d.]+', f'GENERATIVE_AUG_PROB = {QUICK_GENERATIVE_AUG_PROB}', content)
-        content = re.sub(r'GENERATIVE_AUG_NUM_GPUS = \d+', f'GENERATIVE_AUG_NUM_GPUS = {QUICK_GENERATIVE_AUG_NUM_GPUS}', content)
     else:
         content = re.sub(r'DATA_PERCENTAGE = [\d.]+', f'DATA_PERCENTAGE = {DATA_PERCENTAGE}', content)
-        content = re.sub(r'N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
+        content = re.sub(r'(?<![A-Z_])N_EPOCHS = \d+', f'N_EPOCHS = {N_EPOCHS}', content)
         content = re.sub(r'IMAGE_SIZE = \d+', f'IMAGE_SIZE = {IMAGE_SIZE}', content)
 
     with open(PRODUCTION_CONFIG, 'w') as f:
@@ -249,7 +267,7 @@ def update_config_for_test(use_gen_aug):
     logger.debug(f"[DEBUG] Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}, QUICK_MODE={QUICK_MODE}")
     if QUICK_MODE:
         logger.debug(f"[DEBUG] Quick mode config: DATA_PERCENTAGE={QUICK_DATA_PERCENTAGE}, N_EPOCHS={QUICK_N_EPOCHS}, IMAGE_SIZE={QUICK_IMAGE_SIZE}, BATCH_SIZE={QUICK_BATCH_SIZE}")
-        logger.debug(f"[DEBUG] Quick mode SDXL: INFERENCE_STEPS={QUICK_GENERATIVE_AUG_INFERENCE_STEPS}, BATCH_LIMIT={QUICK_GENERATIVE_AUG_BATCH_LIMIT}, PROB={QUICK_GENERATIVE_AUG_PROB}, NUM_GPUS={QUICK_GENERATIVE_AUG_NUM_GPUS}")
+        logger.debug(f"[DEBUG] Quick mode SDXL: INFERENCE_STEPS={QUICK_GENERATIVE_AUG_INFERENCE_STEPS}, BATCH_LIMIT={QUICK_GENERATIVE_AUG_BATCH_LIMIT}, PROB={QUICK_GENERATIVE_AUG_PROB}")
 
 def load_progress():
     """Load progress from file"""
@@ -291,35 +309,41 @@ def run_test(config_name, config_desc, use_gen_aug):
         filtered_file.unlink()
         logger.info(f"Deleted filtered dataset: {filtered_file.name}")
 
+    # Validate SDXL checkpoint exists before running augmented test
+    if use_gen_aug:
+        sdxl_checkpoint = project_root / 'results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt'
+        if not sdxl_checkpoint.exists():
+            logger.error(f"SDXL checkpoint not found: {sdxl_checkpoint}")
+            logger.error("Cannot run SDXL generative augmentation test without the model checkpoint.")
+            return None, None
+        logger.info(f"SDXL checkpoint verified: {sdxl_checkpoint} ({sdxl_checkpoint.stat().st_size / 1e9:.2f} GB)")
+
     # Update config
     update_config_for_test(use_gen_aug)
-    logger.info(f"Config updated: USE_GENERATIVE_AUGMENTATION={use_gen_aug}")
+    logger.info(f"Config updated: USE_GENERAL_AUGMENTATION=True, USE_GENERATIVE_AUGMENTATION={use_gen_aug}")
     logger.info(f"Modalities: {', '.join(TEST_MODALITIES)}")
 
     # Record log file position before running test (to read only new content)
     log_start_pos = LOG_FILE.stat().st_size if LOG_FILE.exists() else 0
 
-    # Run main.py (using conda environment)
-    # Pass data_percentage as command-line argument (not just config file)
-    # Use 'fresh' resume mode to avoid loading old checkpoints
-    # Use 'multi' device mode to leverage both GPUs
+    # Run main.py (subprocess isolation per fold is handled internally by main.py)
     start_time = time.time()
     data_pct = DATA_PERCENTAGE if not QUICK_MODE else QUICK_DATA_PERCENTAGE
+
     cmd = [
         '/venv/multimodal/bin/python', 'src/main.py',
         '--data_percentage', str(data_pct),
-        '--resume_mode', 'fresh',
         '--device-mode', 'multi',
-        '--verbosity', '1'
+        '--verbosity', '1',
+        '--resume_mode', 'fresh'
     ]
 
-    logger.info(f"Running: {' '.join(cmd)}")
     logger.debug(f"[DEBUG] Working directory: {project_root}")
     logger.debug(f"[DEBUG] Log start position: {log_start_pos}")
+    logger.info(f"Running: {' '.join(cmd)}")
     log_to_file_only(f"\nCOMMAND: {' '.join(cmd)}\n")
 
     try:
-        logger.debug("[DEBUG] Starting subprocess...")
         process = subprocess.Popen(
             cmd,
             cwd=project_root,
@@ -333,7 +357,7 @@ def run_test(config_name, config_desc, use_gen_aug):
         # Stream output with periodic status updates
         line_count = 0
         last_status_time = time.time()
-        status_interval = 60  # Print status every 60 seconds
+        status_interval = 5*60  # Print status every 5 minutes
 
         for line in process.stdout:
             line = line.rstrip()
@@ -341,10 +365,10 @@ def run_test(config_name, config_desc, use_gen_aug):
             log_to_file_only(line)
 
             # Show important messages on console
-            if any(keyword in line.lower() for keyword in ['error', 'exception', 'failed', 'kappa', 'accuracy', 'epoch', 'fold', 'stage', 'training', 'pre-training']):
+            if any(keyword in line.lower() for keyword in ['error', 'exception', 'failed', 'kappa', 'accuracy', 'epoch', 'fold', 'stage', 'training', 'pre-training', 'subprocess', 'generated']):
                 logger.info(f"  {line}")
 
-            # Periodic status update to show the process is still running
+            # Periodic status update
             current_time = time.time()
             if current_time - last_status_time >= status_interval:
                 elapsed_so_far = current_time - start_time
@@ -352,11 +376,10 @@ def run_test(config_name, config_desc, use_gen_aug):
                 logger.debug(f"[DEBUG] Last output line: {line[:100]}...")
                 last_status_time = current_time
 
-        logger.debug(f"[DEBUG] Subprocess output finished, waiting for exit...")
         process.wait()
         elapsed = time.time() - start_time
         logger.debug(f"[DEBUG] Subprocess exited with code: {process.returncode}")
-        logger.debug(f"[DEBUG] Total lines processed: {line_count}")
+        logger.debug(f"[DEBUG] Lines processed: {line_count}")
 
         if process.returncode != 0:
             logger.error(f"Test FAILED with return code {process.returncode}")
@@ -466,7 +489,7 @@ def generate_report(progress):
                 f"{safe_format(baseline.get('runtime_min'), fmt='.1f')} min\n")
 
         # Gen aug row
-        f.write(f"{'With gen aug (depth_rgb)':<30} "
+        f.write(f"{'With SDXL gen aug (v3)':<30} "
                 f"{safe_format(gengen.get('kappa'))}   "
                 f"{safe_format(gengen.get('accuracy'))}   "
                 f"{safe_format(gengen.get('f1_macro'))}   "

@@ -185,10 +185,13 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
             os.path.join(output_paths['checkpoints'], 'patient_split_*.npz'),
         ], 'patient_splits')
 
-        # Delete TensorFlow cache
+        # Delete TensorFlow cache and pretrain cache
         delete_files([
             os.path.join(result_dir, 'tf_cache_*'),
             os.path.join(result_dir, 'tf_records/*'),
+            os.path.join(result_dir, 'pretrain_cache', '*.ckpt*'),
+            os.path.join(result_dir, 'pretrain_cache', '*.h5'),  # Also delete .h5 pretrain weights
+            os.path.join(result_dir, 'pretrain_cache', '*.weights.h5'),  # And .weights.h5 format
         ], 'tf_cache')
 
         # Delete progress files

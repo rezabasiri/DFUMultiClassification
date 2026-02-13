@@ -100,16 +100,27 @@ git clone https://github.com/rezabasiri/DFUMultiClassification.git
 cd DFUMultiClassification
 ```
 
-2. **Create and activate a virtual environment:**
+2. **Setup environment (choose one):**
+
+**Option A - Conda (recommended):**
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+conda env create -f environment_multimodal.yml
+conda activate multimodal
 ```
 
-3. **Install dependencies:**
+**Option B - pip + venv:**
 ```bash
-pip install -r requirements.txt
+python3.11 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements_multimodal.txt
 ```
+
+3. **Verify GPU detection:**
+```bash
+python -c "import tensorflow as tf; print(f'TensorFlow: {tf.__version__}'); print(f'GPUs: {len(tf.config.list_physical_devices(\"GPU\"))}')"
+```
+
+Expected: `TensorFlow: 2.18.1`, `GPUs: 2` (or your GPU count)
 
 ## Data Structure
 
