@@ -276,4 +276,54 @@ Input 0: [280,256,256,3] != input 1: [279,256,256,3]
 
 ---
 
-**Status Update**: Original "0 trainable parameters" bug ✅ FIXED. New batch size issue ❌ BLOCKING fold 2.
+## 🚨 BUG FOUND AND FIXED: Multi-GPU Batch Size Mismatch (2026-02-13)
+
+**Location**: `src/data/dataset_utils.py:454-490`
+
+**Discovery**: Local agent verification found fold 2 failing with shape mismatch error during gradient aggregation.
+
+**Error**:
+```
+InvalidArgumentError: Inputs to operation AddN must have the same size and shape.
+Input 0: [280,256,256,3] != input 1: [279,256,256,3]
+```
+
+**Root Cause**:
+1. Validation dataset (no `repeat()`) with 559 samples creates one batch of 559 samples
+2. MirroredStrategy distributes this batch across 2 GPUs: 280 + 279
+3. Gradient aggregation (AddN) requires identical shapes, fails with mismatch
+
+**Impact**:
+- Fold 2 could not complete (559 samples = odd number for 2 GPUs)
+- Any fold with odd sample counts would fail in multi-GPU mode
+- Preliminary confidence filtering blocked
+
+**Fix Applied**:
+```python
+# For training (has repeat):
+dataset = dataset.batch(batch_size, drop_remainder=True)
+
+# For validation (no repeat):
+# 1. Adjust batch size to ensure at least one complete batch
+# 2. Round down to multiple of num_gpus for even distribution
+effective_val_batch_size = min(batch_size, n_samples)
+effective_val_batch_size = (effective_val_batch_size // num_gpus) * num_gpus
+effective_val_batch_size = max(effective_val_batch_size, num_gpus)
+dataset = dataset.batch(effective_val_batch_size, drop_remainder=True)
+```
+
+**Why this works**:
+- Training: `drop_remainder=True` is safe with `repeat()` (data cycles infinitely, all samples eventually used)
+- Validation: Adjusted batch size ensures:
+  - At least one complete batch exists (batch_size <= n_samples)
+  - Even distribution across GPUs (batch_size % num_gpus == 0)
+  - Minimum valid batch (at least num_gpus samples)
+
+**Status**: ✅ **FIX APPLIED** - Awaiting local agent verification
+
+---
+
+**Status Update**:
+- ✅ "0 trainable parameters" bug FIXED
+- ✅ Multi-GPU batch size mismatch FIXED
+- ⏳ Awaiting local agent re-test

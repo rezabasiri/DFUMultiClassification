@@ -454,13 +454,40 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     with tf.device('/CPU:0'):
         pre_aug_dataset = dataset
         pre_aug_dataset = pre_aug_dataset.batch(batch_size)
-    
+
     if is_training:
         dataset = dataset.shuffle(buffer_size=1000 if len(best_matching_df) > 1000 else len(best_matching_df), reshuffle_each_iteration=True)
         dataset = dataset.repeat()
-    
-    # Batch the dataset
-    dataset = dataset.batch(batch_size)
+        # For training with repeat(), drop_remainder=True is safe (data cycles infinitely)
+        dataset = dataset.batch(batch_size, drop_remainder=True)
+    else:
+        # For validation (no repeat): adjust batch_size to ensure at least one complete batch
+        # This is critical for multi-GPU training where MirroredStrategy requires
+        # identical batch sizes across all replicas for gradient aggregation
+
+        # Get number of GPUs from TensorFlow (defaults to 1 if no GPUs detected)
+        try:
+            num_gpus = len(tf.config.list_physical_devices('GPU'))
+            if num_gpus == 0:
+                num_gpus = 1  # CPU fallback
+        except:
+            num_gpus = 1
+
+        # Calculate effective batch size for validation:
+        # 1. Must be <= n_samples (so at least one batch exists)
+        # 2. Must be divisible by num_gpus (for even distribution across replicas)
+        effective_val_batch_size = min(batch_size, n_samples)
+        # Round down to nearest multiple of num_gpus for even distribution
+        effective_val_batch_size = (effective_val_batch_size // num_gpus) * num_gpus
+        # Ensure at least num_gpus samples (minimum valid batch)
+        effective_val_batch_size = max(effective_val_batch_size, num_gpus)
+
+        vprint(f"  Validation batch size adjusted: {batch_size} → {effective_val_batch_size} "
+               f"(n_samples={n_samples}, num_gpus={num_gpus})", level=2)
+
+        dataset = dataset.batch(effective_val_batch_size, drop_remainder=True)
+        # Recalculate steps with the effective batch size
+        steps = int(np.ceil(n_samples / effective_val_batch_size))
 
     # Apply augmentation after batching
     if is_training:
