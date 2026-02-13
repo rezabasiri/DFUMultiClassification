@@ -1245,16 +1245,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         # Transfer image branch weights to fusion model
                                         # Match layers by name (image layers have modality prefix)
+                                        # Don't transfer 'output' - fusion model has different output architecture
                                         transferred_layers = 0
                                         for layer in temp_model.layers:
-                                            if image_modality in layer.name or layer.name == 'output':
+                                            if image_modality in layer.name:
                                                 try:
                                                     fusion_layer = model.get_layer(layer.name)
                                                     fusion_layer.set_weights(layer.get_weights())
                                                     transferred_layers += 1
                                                     vprint(f"    Loaded weights for layer: {layer.name}", level=3)
                                                 except ValueError:
-                                                    continue  # Layer not found in fusion model (e.g., output layer) - expected
+                                                    continue  # Layer not found in fusion model - expected
                                                 except Exception as e:
                                                     print(f"  [WARNING] Unexpected error loading weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
                                                     continue
@@ -1283,7 +1284,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             temp_model.load_weights(cache_ckpt)
                                             transferred_layers = 0
                                             for layer in temp_model.layers:
-                                                if image_modality in layer.name or layer.name == 'output':
+                                                if image_modality in layer.name:
                                                     try:
                                                         fusion_layer = model.get_layer(layer.name)
                                                         fusion_layer.set_weights(layer.get_weights())
@@ -1335,17 +1336,22 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         # Create standalone image-only model
                                         pretrain_model = create_multimodal_model(input_shapes, [image_modality], None)
 
-                                        # Use same loss configuration as fusion
+                                        # Pre-training uses EQUAL alpha weights to prevent degenerate predictions.
+                                        # The fusion alpha weights (e.g. [0.6, 0.3, 2.1]) heavily bias toward
+                                        # minority class R, causing the image-only model to predict all-R
+                                        # (val_kappa=0.0000). After resampling, classes are balanced, so
+                                        # equal weights are appropriate for pre-training.
                                         pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
                                         pretrain_gamma = config.get('gamma', 2.0)
-                                        pretrain_alpha = config.get('alpha', alpha_value)
+                                        pretrain_alpha = [1.0, 1.0, 1.0]  # Equal weights for pre-training
                                         pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
                                                                                gamma=pretrain_gamma, alpha=pretrain_alpha)
                                         pretrain_macro_f1 = MacroF1Score(num_classes=3)
 
-                                        # Compile pre-training model
+                                        # Compile pre-training model with lower LR (1e-5) to reduce overfitting
+                                        # on small datasets (EfficientNet has ~12M params vs ~500 samples)
                                         pretrain_model.compile(
-                                            optimizer=Adam(learning_rate=1e-4, clipnorm=1.0),
+                                            optimizer=Adam(learning_rate=1e-5, clipnorm=1.0),
                                             loss=pretrain_loss,
                                             metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
                                         )
@@ -1364,12 +1370,15 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                         pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
 
-                                        # Pre-training callbacks
+                                        # Pre-training callbacks - use val_cohen_kappa as monitor
+                                        # val_weighted_f1_score can be misleadingly high when model
+                                        # predicts all-one-class (due to alpha weighting), but
+                                        # val_cohen_kappa is 0 for degenerate predictions
                                         pretrain_callbacks = [
                                             EarlyStopping(
                                                 patience=EARLY_STOP_PATIENCE,
                                                 restore_best_weights=True,
-                                                monitor='val_weighted_f1_score',
+                                                monitor='val_cohen_kappa',
                                                 min_delta=0.001,
                                                 mode='max',
                                                 verbose=1
@@ -1377,14 +1386,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             ReduceLROnPlateau(
                                                 factor=0.50,
                                                 patience=REDUCE_LR_PATIENCE,
-                                                monitor='val_weighted_f1_score',
+                                                monitor='val_cohen_kappa',
                                                 min_delta=0.0005,
-                                                min_lr=1e-10,
+                                                min_lr=1e-8,
                                                 mode='max',
                                             ),
                                             tf.keras.callbacks.ModelCheckpoint(
                                                 image_only_checkpoint,  # Save to same path fusion will load from
-                                                monitor='val_weighted_f1_score',
+                                                monitor='val_cohen_kappa',
                                                 save_best_only=True,
                                                 mode='max',
                                                 save_weights_only=True
@@ -1426,10 +1435,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
 
                                         # Now load the pre-trained weights into fusion model
+                                        # Only transfer image feature layers (not 'output' which has different
+                                        # architecture in fusion model vs standalone model)
                                         vprint(f"  Transferring {image_modality} pre-trained weights to fusion model...", level=2)
                                         transferred_layers = 0
                                         for layer in pretrain_model.layers:
-                                            if image_modality in layer.name or layer.name == 'output':
+                                            if image_modality in layer.name:
                                                 try:
                                                     fusion_layer = model.get_layer(layer.name)
                                                     fusion_layer.set_weights(layer.get_weights())
@@ -1481,7 +1492,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 vprint(f"    Frozen layer: {layer.name}", level=3)
 
                                     vprint(f"  Successfully frozen {len(all_frozen_layers)} layers across {len(pretrained_modalities)} modalities!", level=2)
-                                    vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-6)", level=2)
+                                    vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR=1e-5)", level=2)
 
                                     # Update fusion flag: True if we pre-trained at least one modality
                                     fusion_use_pretrained = True
@@ -1695,13 +1706,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                 vprint(f"  Successfully unfrozen {unfrozen_count} layers across {len(image_modalities)} modalities", level=2)
 
-                                # Recompile with VERY low learning rate
+                                # Recompile with reduced learning rate for fine-tuning
+                                # 1e-5 is 10x lower than Stage 1, balancing between:
+                                # - Too low (1e-6): insufficient gradient updates, no improvement
+                                # - Too high (1e-4): destroys pre-trained features
                                 model.compile(
-                                    optimizer=Adam(learning_rate=1e-6, clipnorm=1.0),  # 100x lower than Stage 1
+                                    optimizer=Adam(learning_rate=1e-5, clipnorm=1.0),  # 10x lower than Stage 1
                                     loss=loss,
                                     metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
                                 )
-                                vprint(f"  Model recompiled with LR=1e-6", level=2)
+                                vprint(f"  Model recompiled with LR=1e-5", level=2)
 
                                 # Stage 2: Fine-tune with aggressive early stopping
                                 stage2_epochs = 100  # Allow more epochs but will likely stop early

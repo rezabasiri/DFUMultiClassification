@@ -743,12 +743,19 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             for class_idx in [0, 1, 2]:  # Explicit ordering
                 print(f"Class {class_idx}: {counts[class_idx]}")
         # Calculate alpha values from original distribution
-        # Use inverse of frequency (uncapped) normalized to sum to 3
+        # Use inverse of frequency with MAX_RATIO cap to prevent degenerate predictions.
+        # Without capping, extreme class imbalance (e.g. R=45 vs P=302) creates alpha_R/alpha_P > 7x,
+        # causing the focal loss to over-penalize missing minority class, leading to all-minority predictions.
+        MAX_ALPHA_RATIO = 3.0  # Maximum ratio between largest and smallest alpha
         total_samples = sum(counts.values())
         class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
 
-        # Inverse frequency for each class (no capping)
+        # Inverse frequency for each class
         alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+        # Cap the ratio between max and min alpha values
+        min_alpha = min(alpha_values)
+        alpha_values = [min(a, min_alpha * MAX_ALPHA_RATIO) for a in alpha_values]
 
         # Normalize to sum=3.0 (as recommended)
         alpha_sum = sum(alpha_values)
@@ -778,12 +785,17 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     print(f"Class {class_idx}: {counts[class_idx]}")
 
             # Calculate alpha values from original distribution
-            # Use inverse of frequency (uncapped) normalized to sum to 3
+            # Use inverse of frequency with MAX_RATIO cap (same as above)
+            MAX_ALPHA_RATIO = 3.0
             total_samples = sum(counts.values())
             class_frequencies = {cls: count/total_samples for cls, count in counts.items()}
 
-            # Inverse frequency for each class (no capping)
+            # Inverse frequency for each class
             alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
+
+            # Cap the ratio between max and min alpha values
+            min_alpha = min(alpha_values)
+            alpha_values = [min(a, min_alpha * MAX_ALPHA_RATIO) for a in alpha_values]
 
             # Normalize to sum=3.0 (as recommended)
             alpha_sum = sum(alpha_values)

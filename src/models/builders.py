@@ -22,6 +22,43 @@ directory, result_dir, root = get_project_paths()
 # Import IMAGE_SIZE and backbone configs from production config
 from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE
 
+
+class LearnableFusionWeights(Layer):
+    """Learnable fusion weights for combining RF and image predictions.
+
+    Initializes with rf_init bias (default 0.70 RF / 0.30 Image) but allows
+    the model to learn optimal balance during training. Uses sigmoid to
+    constrain the RF weight to [0, 1], with image_weight = 1 - rf_weight.
+    """
+    def __init__(self, rf_init=0.70, **kwargs):
+        super(LearnableFusionWeights, self).__init__(**kwargs)
+        self.rf_init = rf_init
+
+    def build(self, input_shape):
+        # Initialize logit so that sigmoid(logit) ≈ rf_init
+        # sigmoid(0.847) ≈ 0.70
+        import math
+        init_logit = math.log(self.rf_init / (1.0 - self.rf_init))
+        self.fusion_logit = self.add_weight(
+            name='fusion_logit',
+            shape=(1,),
+            initializer=tf.keras.initializers.Constant(init_logit),
+            trainable=True,
+            dtype='float32'
+        )
+        super(LearnableFusionWeights, self).build(input_shape)
+
+    def call(self, inputs):
+        rf_probs, image_probs = inputs
+        rf_weight = tf.nn.sigmoid(self.fusion_logit)
+        image_weight = 1.0 - rf_weight
+        return rf_weight * rf_probs + image_weight * image_probs
+
+    def get_config(self):
+        config = super(LearnableFusionWeights, self).get_config()
+        config.update({'rf_init': self.rf_init})
+        return config
+
 def create_simple_cnn_rgb(image_input, modality):
     """Simple CNN for RGB images (4 conv layers)"""
     x = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', name=f'{modality}_Conv2D_0')(image_input)
@@ -394,22 +431,14 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 image_classifier = Dense(3, activation='softmax', name='image_classifier')
                 image_probs = image_classifier(image_features)
 
-                # FIXED WEIGHTED AVERAGE FUSION
-                # Use FIXED α = 0.70: output = 0.70*RF + 0.30*Image
-                # This GUARANTEES RF quality dominates while allowing image contribution
-
-                # Create fixed weights as constants (not trainable)
-                rf_weight = 0.70  # RF contributes 70% (since RF has Kappa 0.254)
-                image_weight = 0.30  # Image contributes 30%
-
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-
-                # Compute weighted average with FIXED weights
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-
-                # Sum weighted predictions (always sums to 1.0)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                # LEARNABLE WEIGHTED AVERAGE FUSION
+                # Initialized at 0.70 RF / 0.30 Image but learnable during training.
+                # Fixed weights prevented the model from improving because:
+                # 1. Gradient to image branch was scaled by fixed 0.30
+                # 2. Even a perfect image branch could only contribute 30%
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                output = fusion_layer([rf_probs, image_probs])
             else:
                 # Two image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -434,13 +463,9 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # FIXED weighted average fusion
-                rf_weight = 0.70
-                image_weight = 0.30
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                output = fusion_layer([rf_probs, image_probs])
             else:
                 # Three image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -471,13 +496,9 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # FIXED weighted average fusion
-                rf_weight = 0.70
-                image_weight = 0.30
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                output = fusion_layer([rf_probs, image_probs])
             else:
                 # Four image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -514,13 +535,9 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = tf.keras.layers.Dropout(0.10, name='image_dropout_3')(x)
                 image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
 
-                # FIXED weighted average fusion
-                rf_weight = 0.70
-                image_weight = 0.30
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                vprint(f"  Fusion weights: LEARNABLE (initialized RF=0.70, Image=0.30)", level=2)
+                fusion_layer = LearnableFusionWeights(rf_init=0.70, name='output')
+                output = fusion_layer([rf_probs, image_probs])
             else:
                 # Five image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
