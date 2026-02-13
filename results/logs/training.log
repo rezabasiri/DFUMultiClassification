@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
-[LOG] Started at: 2026-02-13 19:36:44
+[LOG] Started at: 2026-02-13 21:30:45
 
 
 ================================================================================
@@ -9,9 +9,18 @@ Running preliminary training to identify low-confidence samples...
   Filtering: per-class percentiles [I:17%, P:23%, R:15%] using max_prob metric
 
 ======================================================================
+CONFIDENCE-BASED FILTERING (Preliminary Training Phase)
+======================================================================
+Running preliminary training to identify low-confidence samples...
+  Per-class percentiles: I=17%, P=23%, R=15%
+  Mode: per_class
+  Metric: max_prob
+  CV Folds: 3
+
+======================================================================
 CONFIDENCE-BASED FILTERING PIPELINE
 ======================================================================
-Started: 2026-02-13 19:36:44
+Started: 2026-02-13 21:30:45
 
 ======================================================================
 CONFIDENCE-BASED FILTERING: TRAINING PHASE
@@ -24,93 +33,6 @@ Configuration:
   CV Folds: 3
   Data Percentage: 100.0%
 
-Running: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100.0 --verbosity 0 --resume_mode fresh
+Running: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100.0 --verbosity 2 --resume_mode fresh
 
 ----------------------------------------------------------------------
-
-✅ Training completed successfully
-
-======================================================================
-COLLECTING PREDICTIONS FROM ALL FOLDS
-======================================================================
-Found 3 fold prediction files
-  Loaded 1184 predictions from pred_run1_metadata+depth_rgb_valid.npy
-  Loaded 960 predictions from pred_run2_metadata+depth_rgb_valid.npy
-  Loaded 928 predictions from pred_run3_metadata+depth_rgb_valid.npy
-
-✅ Collected confidence scores for 643 unique samples
-   (Aggregated from 3 fold files)
-
-======================================================================
-IDENTIFYING LOW-CONFIDENCE SAMPLES
-======================================================================
-
-Total samples: 643
-Confidence metric: max_prob
-Filtering mode: per_class
-Per-class percentiles: I=17%, P=23%, R=15%
-
-Per-class confidence thresholds:
-  I: percentile=17%, threshold=0.3977, samples=201, flagged=34 (16.9%)
-  P: percentile=23%, threshold=0.4124, samples=367, flagged=84 (22.9%)
-  R: percentile=15%, threshold=0.3974, samples=75, flagged=11 (14.7%)
-
-----------------------------------------------------------------------
-LOW-CONFIDENCE SAMPLES IDENTIFIED
-----------------------------------------------------------------------
-Total flagged: 129 (20.1%)
-
-Per-class breakdown:
-  I: 34/201 flagged (16.9%)
-  P: 84/367 flagged (22.9%)
-  R: 11/75 flagged (14.7%)
-
-======================================================================
-SAVING RESULTS
-======================================================================
-✅ Saved results to: /workspace/DFUMultiClassification/results/confidence_filter_results.json
-✅ Saved low-confidence samples to: /workspace/DFUMultiClassification/results/confidence_low_samples.csv
-✅ Saved all confidence scores to: /workspace/DFUMultiClassification/results/confidence_all_samples.csv
-
-======================================================================
-✅ CONFIDENCE-BASED FILTERING COMPLETE
-======================================================================
-Finished: 2026-02-13 20:16:51
-
-Summary:
-  Total samples analyzed: 643
-  Low-confidence samples: 129
-  Results saved to: /workspace/DFUMultiClassification/results
-
-💡 To retrain with filtered dataset, run with --retrain flag
-✓ Identified 129 low-confidence samples to exclude
-================================================================================
-
-
-================================================================================
-SUBPROCESS ISOLATION: Running 3 folds in separate processes
-  (Prevents TF/CUDA resource accumulation across folds)
-================================================================================
-
-
-================================================================================
-FOLD 1/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 1 --fold 1 --resume_mode fresh
-================================================================================
-
-
-Fold 1/3 completed successfully.
-
-================================================================================
-FOLD 2/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 1 --fold 2 --resume_mode auto
-================================================================================
-
-
-Fold 2/3 completed successfully.
-
-================================================================================
-FOLD 3/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 1 --fold 3 --resume_mode auto
-================================================================================
-

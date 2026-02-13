@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/confidence.log
-[LOG] Started at: 2026-02-13 19:36:51
+[LOG] Started at: 2026-02-13 21:30:52
 
 
 ================================================================================
@@ -10,26 +10,6 @@ SUBPROCESS ISOLATION: Running 3 folds in separate processes
 
 ================================================================================
 FOLD 1/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100.0 --verbosity 0 --fold 1 --resume_mode fresh
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100.0 --verbosity 2 --fold 1 --resume_mode fresh
 ================================================================================
 
-
-Fold 1/3 completed successfully.
-
-================================================================================
-FOLD 2/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100.0 --verbosity 0 --fold 2 --resume_mode auto
-================================================================================
-
-
-Fold 2/3 completed successfully.
-
-================================================================================
-FOLD 3/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100.0 --verbosity 0 --fold 3 --resume_mode auto
-================================================================================
-
-
-Fold 3/3 completed successfully.
-
-All 3 folds completed successfully.

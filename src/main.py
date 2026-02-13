@@ -2675,7 +2675,7 @@ Configuration:
                     cv_folds=args.cv_folds,  # Use same number of folds as main training
                     data_percentage=args.data_percentage,
                     force_recompute=False,
-                    verbosity=0  # Suppress verbose output from confidence filtering script
+                    verbosity=args.verbosity
                 )
 
                 if success:

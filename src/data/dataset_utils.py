@@ -19,7 +19,7 @@ from imblearn.under_sampling import RandomUnderSampler
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
 
-from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION
+from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION, RGB_BACKBONE, MAP_BACKBONE
 from src.data.image_processing import load_and_preprocess_image
 
 # Conditionally import generative augmentation module based on version
@@ -325,15 +325,33 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
         padded_img = tf.pad(resized_img, [[pad_top, pad_bottom], [pad_left, pad_right], [0, 0]], constant_values=0)
 
-        # Normalize based on modality
+        # Normalize based on modality and backbone.
+        # EfficientNet variants (B0-B3) have a built-in Rescaling(1/255) layer that
+        # expects raw [0, 255] float input. Dividing by 255 here would cause double
+        # normalization, squishing all pixel values to [0, 0.004] — destroying features.
+        # SimpleCNN has NO built-in normalization, so it needs [0, 1] input.
+        _rgb_has_builtin_rescaling = RGB_BACKBONE.startswith('EfficientNet')
+        _map_has_builtin_rescaling = MAP_BACKBONE.startswith('EfficientNet')
+
+        def _normalize_rgb(img):
+            if _rgb_has_builtin_rescaling:
+                return img  # Keep [0, 255] — EfficientNet normalizes internally
+            return img / 255.0
+
+        def _normalize_map(img):
+            if _map_has_builtin_rescaling:
+                return img  # Keep [0, 255] — EfficientNet normalizes internally
+            # SimpleCNN: normalize to [0, 1] using per-image max
+            return tf.cond(tf.reduce_max(img) != 0,
+                           lambda: img / tf.reduce_max(img),
+                           lambda: img / 255.0)
+
         normalized_img = tf.case([
             (tf.logical_or(tf.equal(modality_name, 'depth_rgb'), tf.equal(modality_name, 'thermal_rgb')),
-             lambda: padded_img / 255.0),
+             lambda: _normalize_rgb(padded_img)),
             (tf.logical_or(tf.equal(modality_name, 'depth_map'), tf.equal(modality_name, 'thermal_map')),
-             lambda: tf.cond(tf.reduce_max(padded_img) != 0,
-                           lambda: padded_img / tf.reduce_max(padded_img),
-                           lambda: padded_img / 255.0)),
-        ], default=lambda: padded_img / 255.0)
+             lambda: _normalize_map(padded_img)),
+        ], default=lambda: _normalize_rgb(padded_img))
 
         # Ensure shape
         normalized_img = tf.reshape(normalized_img, (image_size, image_size, 3))
@@ -1474,7 +1492,155 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         image_size=image_size,
         fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
     
+    # Save diagnostic samples (1 per class) for manual inspection
+    if not for_shape_inference:
+        _save_diagnostic_samples(pre_aug_dataset, train_data, selected_modalities, run,
+                                 data1, image_size)
+
     return train_dataset, pre_aug_dataset, valid_dataset, steps_per_epoch, validation_steps, alpha_values
+
+
+def _save_diagnostic_samples(pre_aug_dataset, train_df, selected_modalities, fold,
+                             original_df, image_size):
+    """Save 1 training sample per class to results/visualizations for manual inspection.
+
+    Produces a composite PNG showing all image modalities side-by-side plus a
+    companion .txt file with the sample identifiers, target label, RF probabilities,
+    and raw metadata from the original CSV.
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    vis_dir = output_paths['visualizations']
+    diag_dir = os.path.join(vis_dir, 'diagnostic_samples')
+    os.makedirs(diag_dir, exist_ok=True)
+
+    class_names = {0: 'I', 1: 'P', 2: 'R'}
+    image_modalities = [m for m in selected_modalities if m != 'metadata']
+    found = {}  # class_idx -> (features_dict, label_array)
+
+    try:
+        for batch_features, batch_labels in pre_aug_dataset:
+            batch_size_actual = batch_labels.shape[0]
+            for i in range(batch_size_actual):
+                cls = int(tf.argmax(batch_labels[i]).numpy())
+                if cls not in found:
+                    found[cls] = {k: v[i].numpy() for k, v in batch_features.items()}, batch_labels[i].numpy()
+                if len(found) == 3:
+                    break
+            if len(found) == 3:
+                break
+
+        if not found:
+            print("  [diagnostic] No samples found in pre_aug_dataset, skipping diagnostic save.")
+            return
+
+        for cls_idx in sorted(found.keys()):
+            feats, label_onehot = found[cls_idx]
+            cls_name = class_names.get(cls_idx, str(cls_idx))
+            sample_id = feats.get('sample_id', None)
+
+            # Extract patient identifiers
+            if sample_id is not None:
+                patient = int(sample_id[0])
+                appt = int(sample_id[1])
+                dfu = int(sample_id[2])
+                id_str = f"P{patient:03d}_A{appt:02d}_D{dfu}"
+            else:
+                patient = appt = dfu = None
+                id_str = "unknown"
+
+            tag = f"fold{fold+1}_class{cls_name}_{id_str}"
+
+            # --- Save composite image ---
+            n_imgs = max(len(image_modalities), 1)
+            fig, axes = plt.subplots(1, n_imgs, figsize=(4 * n_imgs, 4))
+            if n_imgs == 1:
+                axes = [axes]
+
+            for ax_idx, mod in enumerate(image_modalities):
+                key = f'{mod}_input'
+                if key in feats:
+                    img = feats[key]
+                    # For display: if values are in [0,255] (EfficientNet path), scale to [0,1]
+                    if img.max() > 1.5:
+                        img = img / 255.0
+                    img = np.clip(img, 0, 1)
+                    axes[ax_idx].imshow(img)
+                    axes[ax_idx].set_title(mod, fontsize=10)
+                else:
+                    axes[ax_idx].text(0.5, 0.5, f'{mod}\n(not in data)',
+                                      ha='center', va='center', transform=axes[ax_idx].transAxes)
+                axes[ax_idx].axis('off')
+
+            fig.suptitle(f"Class {cls_name} ({id_str}) — fold {fold+1}", fontsize=12)
+            plt.tight_layout()
+            img_path = os.path.join(diag_dir, f'{tag}.png')
+            fig.savefig(img_path, dpi=150, bbox_inches='tight')
+            plt.close(fig)
+
+            # --- Write metadata text file ---
+            txt_path = os.path.join(diag_dir, f'{tag}.txt')
+            with open(txt_path, 'w') as f:
+                f.write(f"=== DIAGNOSTIC SAMPLE: {tag} ===\n\n")
+                f.write(f"Target label: {cls_name} (one-hot: {label_onehot})\n")
+                f.write(f"Patient#: {patient}, Appt#: {appt}, DFU#: {dfu}\n\n")
+
+                # RF probabilities
+                if 'metadata_input' in feats:
+                    md = feats['metadata_input']
+                    f.write(f"RF probabilities fed to model: I={md[0]:.4f}, P={md[1]:.4f}, R={md[2]:.4f}\n\n")
+
+                # Image tensor stats
+                for mod in image_modalities:
+                    key = f'{mod}_input'
+                    if key in feats:
+                        t = feats[key]
+                        f.write(f"{mod} tensor: shape={t.shape}, "
+                                f"min={t.min():.4f}, max={t.max():.4f}, mean={t.mean():.4f}\n")
+                f.write("\n")
+
+                # Image filenames from train_df
+                if patient is not None:
+                    match = train_df[
+                        (train_df['Patient#'] == patient) &
+                        (train_df['Appt#'] == appt) &
+                        (train_df['DFU#'] == dfu)
+                    ]
+                    if not match.empty:
+                        row = match.iloc[0]
+                        for mod in image_modalities:
+                            if mod in row.index:
+                                f.write(f"{mod} filename: {row[mod]}\n")
+                        f.write("\n")
+
+                # Raw metadata from original (un-preprocessed) DataFrame
+                if patient is not None and original_df is not None:
+                    orig_match = original_df[
+                        (original_df['Patient#'] == patient) &
+                        (original_df['Appt#'] == appt) &
+                        (original_df['DFU#'] == dfu)
+                    ]
+                    if not orig_match.empty:
+                        f.write("--- Raw metadata (from original CSV) ---\n")
+                        orig_row = orig_match.iloc[0]
+                        for col in orig_row.index:
+                            # Skip image/BB columns (already shown above)
+                            if col in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                                       'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                                       'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']:
+                                continue
+                            f.write(f"  {col}: {orig_row[col]}\n")
+
+            vprint(f"  [diagnostic] Saved class {cls_name} sample: {img_path}", level=1)
+
+        print(f"  Diagnostic samples saved to {diag_dir}/ ({len(found)} classes)")
+
+    except Exception as e:
+        print(f"  [diagnostic] Warning: Could not save diagnostic samples: {e}")
+
+
 class BatchVisualizationCallback(tf.keras.callbacks.Callback):
     def __init__(self, dataset, modalities, freq=5, max_samples=5, run=1, save_dir='batch_visualizations'):
         """

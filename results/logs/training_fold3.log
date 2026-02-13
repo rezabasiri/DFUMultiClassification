@@ -139,3 +139,63 @@ AUTOMATIC PRE-TRAINING: 1 modality(ies) need training
 ================================================================================
 PRE-TRAINING 1/1: depth_rgb
 ================================================================================
+Epoch 49: early stopping
+Restoring model weights from the end of the best epoch: 29.
+  depth_rgb pre-training completed! Best val kappa: 0.1047
+================================================================================
+FREEZING ALL IMAGE BRANCHES FOR STAGE 1
+  Pre-trained modalities to freeze: ['depth_rgb']
+================================================================================
+================================================================================
+No existing pretrained weights found
+Epoch 15: early stopping
+Restoring model weights from the end of the best epoch: 5.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+
+Run 3 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.37      0.56      0.44       279
+           P       0.59      0.45      0.51       487
+           R       0.45      0.34      0.39        98
+
+    accuracy                           0.47       864
+   macro avg       0.47      0.45      0.45       864
+weighted avg       0.50      0.47      0.47       864
+
+Cohen's Kappa: 0.2154
+
+Training gating network for run 3...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 3:
+Accuracy: 0.4699
+F1 Macro: 0.4459
+Kappa: 0.2154
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_valid.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_valid.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run3_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run3_valid.npy
+Results for metadata, depth_rgb appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb
+  Accuracy: 0.5020 ± 0.0567
+  F1 Macro: 0.4400
+  Kappa: 0.2573
+
+Total combinations tested: 1
+================================================================================
+
