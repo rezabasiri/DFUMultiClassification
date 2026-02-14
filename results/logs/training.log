@@ -1,0 +1,38 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
+[LOG] Started at: 2026-02-14 06:11:19
+
+
+================================================================================
+CONFIDENCE-BASED FILTERING
+================================================================================
+Running preliminary training to identify low-confidence samples...
+  Filtering: per-class percentiles [I:17%, P:23%, R:15%] using max_prob metric
+
+======================================================================
+CONFIDENCE-BASED FILTERING (Preliminary Training Phase)
+======================================================================
+Running preliminary training to identify low-confidence samples...
+  Per-class percentiles: I=17%, P=23%, R=15%
+  Mode: per_class
+  Metric: max_prob
+  CV Folds: 3
+
+======================================================================
+CONFIDENCE-BASED FILTERING PIPELINE
+======================================================================
+Started: 2026-02-14 06:11:19
+
+======================================================================
+CONFIDENCE-BASED FILTERING: TRAINING PHASE
+======================================================================
+
+Configuration:
+  Per-class percentiles: I=17%, P=23%, R=15%
+  Mode: per_class
+  Metric: max_prob
+  CV Folds: 3
+  Data Percentage: 100.0%
+
+Running: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100.0 --verbosity 2 --resume_mode fresh
+
+----------------------------------------------------------------------

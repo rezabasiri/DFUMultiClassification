@@ -1246,7 +1246,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         # Transfer image branch weights to fusion model
                                         # Match layers by name (image layers have modality prefix)
-                                        # Don't transfer 'output' - fusion model has different output architecture
                                         transferred_layers = 0
                                         for layer in temp_model.layers:
                                             if image_modality in layer.name:
@@ -1260,6 +1259,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 except Exception as e:
                                                     print(f"  [WARNING] Unexpected error loading weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
                                                     continue
+
+                                        # Transfer pre-trained classifier weights to fusion's image_classifier
+                                        # The standalone model's 'output' Dense(3) learned to map frozen features → classes.
+                                        # Without this, image_classifier starts random and produces garbage during Stage 1.
+                                        try:
+                                            pretrain_output = temp_model.get_layer('output')
+                                            fusion_img_cls = model.get_layer('image_classifier')
+                                            if pretrain_output.get_weights()[0].shape == fusion_img_cls.get_weights()[0].shape:
+                                                fusion_img_cls.set_weights(pretrain_output.get_weights())
+                                                transferred_layers += 1
+                                                vprint(f"    Transferred pre-trained classifier → image_classifier", level=2)
+                                        except (ValueError, IndexError):
+                                            pass  # Layer not found or shape mismatch - skip
 
                                         del temp_model  # Free memory
                                         modality_loaded = True
@@ -1295,6 +1307,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                     except Exception as e:
                                                         print(f"  [WARNING] Unexpected error loading cached weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
                                                         continue
+                                            # Transfer pre-trained classifier → image_classifier
+                                            try:
+                                                pretrain_output = temp_model.get_layer('output')
+                                                fusion_img_cls = model.get_layer('image_classifier')
+                                                if pretrain_output.get_weights()[0].shape == fusion_img_cls.get_weights()[0].shape:
+                                                    fusion_img_cls.set_weights(pretrain_output.get_weights())
+                                                    transferred_layers += 1
+                                                    vprint(f"    Transferred pre-trained classifier → image_classifier", level=2)
+                                            except (ValueError, IndexError):
+                                                pass
                                             del temp_model
                                             modality_loaded = True
                                             pretrained_modalities.append(image_modality)
@@ -1431,8 +1453,6 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
 
                                         # Now load the pre-trained weights into fusion model
-                                        # Only transfer image feature layers (not 'output' which has different
-                                        # architecture in fusion model vs standalone model)
                                         vprint(f"  Transferring {image_modality} pre-trained weights to fusion model...", level=2)
                                         transferred_layers = 0
                                         for layer in pretrain_model.layers:
@@ -1447,6 +1467,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 except Exception as e:
                                                     print(f"  [WARNING] Unexpected error transferring pre-trained weights for layer '{layer.name}': {type(e).__name__}: {e}", flush=True)
                                                     continue
+
+                                        # Transfer pre-trained classifier weights to fusion's image_classifier
+                                        # The standalone 'output' Dense(3) learned to map features → classes (Kappa 0.15+).
+                                        # Without this, image_classifier starts random → garbage probs → degrades fusion.
+                                        try:
+                                            pretrain_output = pretrain_model.get_layer('output')
+                                            fusion_img_cls = model.get_layer('image_classifier')
+                                            if pretrain_output.get_weights()[0].shape == fusion_img_cls.get_weights()[0].shape:
+                                                fusion_img_cls.set_weights(pretrain_output.get_weights())
+                                                transferred_layers += 1
+                                                vprint(f"    Transferred pre-trained classifier → image_classifier", level=2)
+                                        except (ValueError, IndexError):
+                                            pass  # Layer not found or shape mismatch - skip
 
                                         vprint(f"  Successfully transferred {transferred_layers} layers for {image_modality}!", level=2)
 
@@ -1469,48 +1502,22 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         import traceback
                                         traceback.print_exc()
 
-                                # After pre-training all missing modalities, freeze ALL image branches
+                                # After pre-training, all image branches have pre-trained weights
+                                # but remain UNFROZEN for end-to-end fusion training
                                 if pretrained_modalities:
-                                    vprint("=" * 80, level=1)
-                                    vprint(f"FREEZING ALL IMAGE BRANCHES FOR STAGE 1", level=1)
-                                    vprint(f"  Pre-trained modalities to freeze: {pretrained_modalities}", level=1)
-                                    vprint("=" * 80, level=1)
-
-                                    all_frozen_layers = []
-                                    for image_modality in pretrained_modalities:
-                                        for layer in model.layers:
-                                            # Freeze image feature extraction layers, but NOT image_classifier
-                                            # image_classifier is the fusion model's classification head that learns
-                                            # to classify based on frozen image features - it must remain trainable!
-                                            if image_modality in layer.name and 'image_classifier' not in layer.name:
-                                                layer.trainable = False
-                                                all_frozen_layers.append(layer.name)
-                                                vprint(f"    Frozen layer: {layer.name}", level=3)
-
-                                    vprint(f"  Successfully frozen {len(all_frozen_layers)} layers across {len(pretrained_modalities)} modalities!", level=2)
-                                    vprint(f"  Two-stage training: Stage 1 (frozen, {STAGE1_EPOCHS} epochs) → Stage 2 (fine-tune, LR={STAGE2_LR})", level=2)
-
-                                    # Update fusion flag: True if we pre-trained at least one modality
                                     fusion_use_pretrained = True
-
-                                    # DEBUG: Show trainable weights breakdown
-                                    vprint("  DEBUG: Trainable weights breakdown after freezing:", level=2)
-                                    trainable_layers = []
-                                    for layer in model.layers:
-                                        if layer.trainable_weights:
-                                            trainable_layers.append(f"{layer.name}: {len(layer.trainable_weights)} weights")
-                                            vprint(f"    {layer.name}: {len(layer.trainable_weights)} trainable weights", level=2)
-                                    total_trainable = sum([len(l.trainable_weights) for l in model.layers])
-                                    vprint(f"  Total trainable parameters across all layers: {total_trainable}", level=2)
-                                    if total_trainable == 0:
-                                        vprint("  WARNING: 0 trainable parameters! This will prevent learning!", level=0)
+                                    vprint("=" * 80, level=1)
+                                    vprint(f"PRE-TRAINED WEIGHTS LOADED: {pretrained_modalities}", level=1)
+                                    vprint(f"  All layers remain trainable for end-to-end fusion training", level=1)
+                                    vprint(f"  Fusion LR={STAGE1_LR} (lower than pre-training to preserve features)", level=1)
+                                    vprint("=" * 80, level=1)
 
                                     # DEBUG: Check RF predictions from metadata input
                                     vprint("  DEBUG: Checking RF metadata predictions...", level=2)
                                     for batch in train_dataset.take(1):
                                         inputs, labels = batch
                                         if 'metadata_input' in inputs:
-                                            rf_preds = inputs['metadata_input'].numpy()[:5]  # First 5 samples
+                                            rf_preds = inputs['metadata_input'].numpy()[:5]
                                             vprint(f"    Sample RF predictions (first 5): {rf_preds}", level=2)
                                             vprint(f"    RF predictions sum to 1.0: {[np.sum(p) for p in rf_preds[:3]]}", level=2)
                                         labels_sample = labels.numpy()[:5]
@@ -1640,118 +1647,33 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             else:
                                 fit_verbose = 0  # Silent
 
-                            # TWO-STAGE TRAINING for fusion with pre-trained weights
+                            # FUSION TRAINING with pre-trained image weights
                             if is_fusion and fusion_use_pretrained:
+                                # Pre-trained weights are already loaded into the model.
+                                # Unfreeze everything and train end-to-end.
+                                # The two-stage approach (frozen Stage 1 → low-LR Stage 2) was harmful:
+                                # Stage 1 had only ~196 trainable params (image_classifier + fusion_logit),
+                                # too few to learn meaningful cross-modal interaction, and the constrained
+                                # training actively degraded performance vs either modality alone.
                                 vprint("=" * 80, level=2)
-                                vprint(f"STAGE 1: Training with FROZEN image branch ({STAGE1_EPOCHS} epochs)", level=2)
-                                vprint("  Goal: Stabilize fusion layer before fine-tuning image", level=2)
+                                vprint(f"FUSION TRAINING: End-to-end with pre-trained image initialization", level=2)
+                                vprint(f"  Pre-trained modalities: {pretrained_modalities}", level=2)
+                                vprint(f"  All layers trainable, LR={STAGE1_LR} (lower than pre-training to preserve features)", level=2)
                                 vprint("=" * 80, level=2)
 
-                                # Stage 1: Train with frozen image branch
-                                stage1_epochs = STAGE1_EPOCHS
-                                stage1_callbacks = [
-                                    EarlyStopping(
-                                        patience=10,  # More patient for stage 1
-                                        restore_best_weights=True,
-                                        monitor='val_weighted_f1_score',
-                                        min_delta=0.001,
-                                        mode='max',
-                                        verbose=1
-                                    ),
-                                    tf.keras.callbacks.ModelCheckpoint(
-                                        checkpoint_path.replace('.weights.h5', '_stage1.weights.h5'),
-                                        monitor='val_weighted_f1_score',
-                                        save_best_only=True,
-                                        mode='max',
-                                        save_weights_only=True
-                                    ),
-                                ]
-                                history_stage1 = model.fit(
+                                # Use the standard callbacks (includes LR scheduling, all monitors, etc.)
+                                history = model.fit(
                                     train_dataset_dis,
-                                    epochs=stage1_epochs,
+                                    epochs=max_epochs,
                                     steps_per_epoch=steps_per_epoch,
                                     validation_data=valid_dataset_dis,
                                     validation_steps=validation_steps,
-                                    callbacks=stage1_callbacks,
+                                    callbacks=callbacks,
                                     verbose=fit_verbose
                                 )
-
-                                # Load best Stage 1 weights
-                                stage1_path = checkpoint_path.replace('.weights.h5', '_stage1.weights.h5')
-                                stage1_load_path, _ = find_checkpoint_for_loading(stage1_path)
-                                model.load_weights(stage1_load_path)
-                                stage1_best_kappa = max(history_stage1.history.get('val_cohen_kappa', [0]))
-                                vprint(f"  Stage 1 completed. Best val kappa: {stage1_best_kappa:.4f}", level=2)
-
-                                # STAGE 2: Unfreeze ALL image branches and fine-tune with VERY low LR
-                                vprint("=" * 80, level=2)
-                                vprint(f"STAGE 2: Fine-tuning with UNFROZEN image branches ({len(image_modalities)} modalities)", level=2)
-                                vprint(f"  Image modalities to unfreeze: {image_modalities}", level=2)
-                                vprint("  Learning rate: 1e-6 (very low to prevent overfitting)", level=2)
-                                vprint("  Unfreezing image layers...", level=2)
-                                vprint("=" * 80, level=2)
-
-                                # Unfreeze ALL image branches
-                                unfrozen_count = 0
-                                for image_modality in image_modalities:
-                                    for layer in model.layers:
-                                        if image_modality in layer.name or 'image_classifier' in layer.name:
-                                            layer.trainable = True
-                                            unfrozen_count += 1
-                                            vprint(f"    Unfrozen: {layer.name}", level=3)
-
-                                vprint(f"  Successfully unfrozen {unfrozen_count} layers across {len(image_modalities)} modalities", level=2)
-
-                                # Recompile with reduced learning rate for fine-tuning
-                                model.compile(
-                                    optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
-                                    loss=loss,
-                                    metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
-                                )
-                                vprint(f"  Model recompiled with LR={STAGE2_LR}", level=2)
-
-                                # Stage 2: Fine-tune with aggressive early stopping
-                                stage2_epochs = 100  # Allow more epochs but will likely stop early
-                                stage2_callbacks = [
-                                    EarlyStopping(
-                                        patience=10,  # Aggressive - stop if no improvement
-                                        restore_best_weights=True,
-                                        monitor='val_weighted_f1_score',
-                                        min_delta=0.0005,  # Tiny improvements ok
-                                        mode='max',
-                                        verbose=1
-                                    ),
-                                    tf.keras.callbacks.ModelCheckpoint(
-                                        checkpoint_path,  # Final checkpoint
-                                        monitor='val_weighted_f1_score',
-                                        save_best_only=True,
-                                        mode='max',
-                                        save_weights_only=True
-                                    ),
-                                ]
-                                history_stage2 = model.fit(
-                                    train_dataset_dis,
-                                    epochs=stage2_epochs,
-                                    steps_per_epoch=steps_per_epoch,
-                                    validation_data=valid_dataset_dis,
-                                    validation_steps=validation_steps,
-                                    callbacks=stage2_callbacks,
-                                    verbose=fit_verbose
-                                )
-
-                                stage2_best_kappa = max(history_stage2.history.get('val_cohen_kappa', [stage1_best_kappa]))
-                                vprint("=" * 80, level=2)
-                                vprint(f"Two-stage training completed!", level=2)
-                                vprint(f"  Stage 1 (frozen):    Kappa {stage1_best_kappa:.4f}", level=2)
-                                vprint(f"  Stage 2 (fine-tune): Kappa {stage2_best_kappa:.4f}", level=2)
-                                if stage2_best_kappa > stage1_best_kappa:
-                                    vprint(f"  Improvement: +{stage2_best_kappa - stage1_best_kappa:.4f} ✓", level=2)
-                                else:
-                                    vprint(f"  No improvement from fine-tuning (kept Stage 1 weights)", level=2)
-                                vprint("=" * 80, level=2)
 
                             else:
-                                # Standard single-stage training
+                                # Standard single-stage training (no pre-trained weights)
                                 history = model.fit(
                                     train_dataset_dis,
                                     epochs=max_epochs,

@@ -86,6 +86,10 @@ SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion per
 USE_FREQUENCY_BASED_WEIGHTS = False  # Disabled: after 'combined' resampling classes are balanced, extra weighting causes degenerate predictions
 FREQUENCY_WEIGHT_NORMALIZATION = 3.0  # Weights are normalized to sum to this value (default: 3.0 for 3 classes)
 
+# Metadata feature selection (Mutual Information)
+RF_FEATURE_SELECTION = True  # Enable/disable MI-based feature selection before RF training
+RF_FEATURE_SELECTION_K = 40  # Number of top features to keep (only used if RF_FEATURE_SELECTION=True)
+
 # Early stopping and learning rate
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
 REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for longer training)
@@ -385,7 +389,8 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb'),  # Temporarily reduced for faster debugging
+    ('metadata',),
+    # ('metadata', 'depth_rgb'),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming

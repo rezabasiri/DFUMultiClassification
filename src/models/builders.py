@@ -244,7 +244,7 @@ def create_metadata_branch(input_shape, index):
     """
     Metadata branch - minimal processing to preserve RF quality.
 
-    CRITICAL: RF produces calibrated probabilities (Kappa ~0.20).
+    CRITICAL: RF produces calibrated probabilities.
     BatchNormalization was destroying probability structure (negative values, wrong scale).
     Just cast to float32 - that's it!
     """
@@ -405,11 +405,12 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
 
         if len(selected_modalities) == 1:
             if has_metadata:
-                # METADATA-ONLY: Use RF probabilities directly
-                # NO Dense layer - RF already provides optimal predictions
+                # METADATA-ONLY: Use RF probabilities directly (already sum to 1.0)
+                # NO Dense layer, NO softmax — RF probabilities are pre-normalized.
+                # Softmax on valid probabilities distorts them (sharpens peaks, dampens tails).
                 from src.utils.verbosity import vprint
                 vprint("Model: Metadata-only - using RF predictions directly (no Dense layer)", level=2)
-                output = Activation('softmax', name='output')(branches[0])
+                output = Lambda(lambda x: tf.identity(x), name='output')(branches[0])
             else:
                 # Single image modality - train classifier
                 output = Dense(3, activation='softmax', name='output')(branches[0])

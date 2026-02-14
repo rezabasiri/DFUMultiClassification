@@ -1152,8 +1152,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 features_to_drop = [
                     'ID', 'Location', 'Healing Phase', 'Phase Confidence (%)', 'DFU#', 'Appt#',
                     'Appt Days', 'Type of Pain2', 'Type of Pain_Grouped2', 'Type of Pain', 
-                    'Peri-Ulcer Temperature (°C)', 'Wound Centre Temperature (°C)', 'Dressing',
-                    'Dressing Grouped', "No Offloading", "Offloading: Therapeutic Footwear", 
+                    'Dressing', 
+                    "No Offloading", "Offloading: Therapeutic Footwear", 
                     "Offloading: Scotcast Boot or RCW", "Offloading: Half Shoes or Sandals", 
                     "Offloading: Total Contact Cast", "Offloading: Crutches, Walkers or Wheelchairs", 
                     "Offloading Score"
@@ -1180,7 +1180,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 
                 # numeric_columns = split_data.select_dtypes(include=[np.number]).columns
                 # Use k=3 for better performance (validated: Kappa 0.201 vs 0.176 with k=5)
-                imputer = KNNImputer(n_neighbors=3)
+                imputer = KNNImputer(n_neighbors=5)
                 source_df[columns_to_impute] = imputer.fit_transform(source_df[columns_to_impute])
                 metadata_df[columns_to_impute] = imputer.transform(metadata_df[columns_to_impute])
                 
@@ -1196,194 +1196,125 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 source_df[columns_to_impute] = scaler.fit_transform(source_df[columns_to_impute])
                 metadata_df[columns_to_impute] = scaler.transform(metadata_df[columns_to_impute])
 
-                # Feature selection: Select top k features using Mutual Information (validated: k=40)
-                # This is done on TRAINING data only to avoid data leakage
-                if is_training:
-                    from sklearn.feature_selection import mutual_info_classif
+                # Feature selection: Select top k features using Mutual Information
+                # Controlled by RF_FEATURE_SELECTION in production_config.py
+                from src.utils.production_config import RF_FEATURE_SELECTION, RF_FEATURE_SELECTION_K
+                if RF_FEATURE_SELECTION:
+                    if is_training:
+                        from sklearn.feature_selection import mutual_info_classif
 
-                    # CRITICAL: Exclude identifiers before feature selection (prevent data leakage)
-                    # These columns are needed for tracking but should NOT be used as ML features
-                    exclude_from_selection = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
-                    feature_candidates = [col for col in columns_to_impute if col not in exclude_from_selection]
+                        exclude_from_selection = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                        feature_candidates = [col for col in columns_to_impute if col not in exclude_from_selection]
 
-                    # Compute MI on training data (using only valid feature candidates)
-                    X_train_fs = source_df[feature_candidates].values
+                        X_train_fs = source_df[feature_candidates].values
+                        y_train_raw = source_df['Healing Phase Abs']
 
-                    # Handle labels: might be strings ('I', 'P', 'R') or numeric (0, 1, 2) after oversampling
-                    y_train_raw = source_df['Healing Phase Abs']
+                        if y_train_raw.dtype in ['object', 'str'] or pd.api.types.is_string_dtype(y_train_raw):
+                            y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
+                        else:
+                            y_train_fs = y_train_raw.values
 
-                    # Convert to numeric if needed
-                    # Use is_string_dtype() for robust detection (catches 'object', 'string', StringDtype, etc.)
-                    if y_train_raw.dtype in ['object', 'str'] or pd.api.types.is_string_dtype(y_train_raw):
-                        # String labels: map to numeric
-                        y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
+                        if np.isnan(y_train_fs).any():
+                            nan_count = np.isnan(y_train_fs).sum()
+                            unique_vals = source_df['Healing Phase Abs'].unique()
+                            raise ValueError(
+                                f"Feature selection failed: {nan_count} NaN values in labels!\n"
+                                f"Unique label values: {unique_vals}\n"
+                                f"Label dtype: {source_df['Healing Phase Abs'].dtype}\n"
+                                f"This indicates a data preprocessing bug that must be fixed."
+                            )
+
+                        mi_scores = mutual_info_classif(X_train_fs, y_train_fs, random_state=42)
+
+                        k_features = RF_FEATURE_SELECTION_K
+                        top_k_indices = np.argsort(mi_scores)[-k_features:]
+                        selected_features = [feature_candidates[i] for i in top_k_indices]
+
+                        vprint(f"Feature selection: {len(feature_candidates)} → {k_features} features", level=2)
+                        vprint(f"Top 5 features: {[feature_candidates[i] for i in np.argsort(mi_scores)[-5:][::-1]]}", level=2)
+
+                        _selected_features_cache[run] = selected_features
                     else:
-                        # Already numeric
-                        y_train_fs = y_train_raw.values
+                        selected_features = _selected_features_cache[run]
+                        vprint(f"Using {len(selected_features)} features from training selection", level=2)
 
-                    # CRITICAL: Validate no NaN - crash if found (don't hide errors!)
-                    if np.isnan(y_train_fs).any():
-                        nan_count = np.isnan(y_train_fs).sum()
-                        unique_vals = source_df['Healing Phase Abs'].unique()
-                        raise ValueError(
-                            f"Feature selection failed: {nan_count} NaN values in labels!\n"
-                            f"Unique label values: {unique_vals}\n"
-                            f"Label dtype: {source_df['Healing Phase Abs'].dtype}\n"
-                            f"This indicates a data preprocessing bug that must be fixed."
-                        )
-
-                    mi_scores = mutual_info_classif(X_train_fs, y_train_fs, random_state=42)
-
-                    # Select top 40 features (validated in Phase 2)
-                    k_features = 40
-                    top_k_indices = np.argsort(mi_scores)[-k_features:]
-                    selected_features = [feature_candidates[i] for i in top_k_indices]
-
-                    vprint(f"Feature selection: {len(feature_candidates)} → {k_features} features", level=2)
-                    vprint(f"Top 5 features: {[feature_candidates[i] for i in np.argsort(mi_scores)[-5:][::-1]]}", level=2)
-
-                    # Store selected features in module-level cache for validation split
-                    _selected_features_cache[run] = selected_features
+                    keep_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                    available_keep_cols = [col for col in keep_cols if col in source_df.columns]
+                    source_df = source_df[available_keep_cols + selected_features]
+                    metadata_df = metadata_df[available_keep_cols + selected_features]
+                    columns_to_impute = selected_features
                 else:
-                    # Use same features selected from training
-                    selected_features = _selected_features_cache[run]
-                    vprint(f"Using {len(selected_features)} features from training selection", level=2)
+                    vprint("Feature selection: DISABLED (using all features)", level=2)
 
-                # Apply feature selection to both source and metadata dataframes
-                # Keep Patient#, Appt#, DFU#, Healing Phase Abs for processing (if they exist)
-                keep_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
-                # Only keep columns that actually exist (Appt# and DFU# may have been dropped in features_to_drop)
-                available_keep_cols = [col for col in keep_cols if col in source_df.columns]
-                source_df = source_df[available_keep_cols + selected_features]
-                metadata_df = metadata_df[available_keep_cols + selected_features]
-                columns_to_impute = selected_features  # Update for subsequent processing
+                # Random Forest processing (sklearn RandomForestClassifier)
+                from sklearn.ensemble import RandomForestClassifier
 
-                # Random Forest processing
-                if is_training:
-                    try:
-                        import tensorflow_decision_forests as tfdf
-                        vprint("Using TensorFlow Decision Forests", level=2)
-                        
-                        # Create models with Bayesian-optimized hyperparameters (validated Kappa=0.205)
-                        # Optimized via end-to-end 3-class Kappa maximization
-                        rf_model1 = tfdf.keras.RandomForestModel(
-                            num_trees=646,      # Optimized from 500 (Bayesian search)
-                            max_depth=14,       # Optimized from 10 (deeper trees capture patterns)
-                            min_examples=19,    # Optimized from 10 (more conservative splitting)
-                            task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42 + run * (run + 3),
-                            verbose=0
-                        )
-                        rf_model2 = tfdf.keras.RandomForestModel(
-                            num_trees=646,
-                            max_depth=14,
-                            min_examples=19,
-                            task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42 + run * (run + 3),
-                            verbose=0
-                        )
-                        
-                        # Prepare features for RF
-                        train_df = metadata_df.copy()
-                        
-                        # Create binary labels and verify their values
-                        train_df['label_bin1'] = (train_df['Healing Phase Abs'] > 0).astype(int)
-                        train_df['label_bin2'] = (train_df['Healing Phase Abs'] > 1).astype(int)
-                        
-                        # # Print value counts to verify
-                        # print("\nLabel binary 1 distribution:", train_df['label_bin1'].value_counts())
-                        # print("Label binary 2 distribution:", train_df['label_bin2'].value_counts())
-                        # print("\nClass weights 1:", class_weight_dict_binary1)
-                        # print("Class weights 2:", class_weight_dict_binary2)
-                        
-                        # Add weights with explicit mapping
-                        train_df['weight1'] = train_df['label_bin1'].apply(lambda x: class_weight_dict_binary1[x])
-                        train_df['weight2'] = train_df['label_bin2'].apply(lambda x: class_weight_dict_binary2[x])
-                        
-                        # # Print weight distribution to verify
-                        # print("\nWeight1 unique values:", train_df['weight1'].unique())
-                        # print("Weight2 unique values:", train_df['weight2'].unique())
-                        
-                        # Remove identifiers and labels (keep for tracking but don't train on them)
-                        cols_to_drop = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                # Prepare features
+                X = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
+                y = metadata_df['Healing Phase Abs']
+                y_bin1 = (y > 0).astype(int)
+                y_bin2 = (y > 1).astype(int)
 
-                        # Create datasets
-                        dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                            train_df.drop(columns=cols_to_drop + ['label_bin2', 'weight2'], errors='ignore'),
-                            label='label_bin1',
-                            weight='weight1'
-                        )
-
-                        dataset2 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                            train_df.drop(columns=cols_to_drop + ['label_bin1', 'weight1'], errors='ignore'),
-                            label='label_bin2',
-                            weight='weight2'
-                        )
-                        
-                        # Train models
-                        rf_model1.fit(dataset1)
-                        rf_model2.fit(dataset2)
-                    except ImportError:
-                        vprint("Using Scikit-learn RandomForestClassifier")
-                        from sklearn.ensemble import RandomForestClassifier
-                        # Bayesian-optimized hyperparameters (validated Kappa=0.205 ± 0.057)
-                        # Optimized via end-to-end 3-class Kappa maximization
-                        rf_model1 = RandomForestClassifier(
-                            n_estimators=646,       # Optimized from 500 (Bayesian search)
-                            max_depth=14,           # Optimized from 10 (deeper trees capture patterns)
-                            min_samples_split=19,   # Optimized from 10 (more conservative splitting)
-                            min_samples_leaf=2,     # Optimized (prevents overfitting on leaves)
-                            max_features='log2',    # Optimized from 'sqrt' (better feature diversity)
-                            random_state=42 + run * (run + 3),
-                            class_weight=class_weight_dict_binary1,
-                            n_jobs=-1
-                        )
-                        rf_model2 = RandomForestClassifier(
-                            n_estimators=646,
-                            max_depth=14,
-                            min_samples_split=19,
-                            min_samples_leaf=2,
-                            max_features='log2',
-                            random_state=42 + run * (run + 3),
-                            class_weight=class_weight_dict_binary2,
-                            n_jobs=-1
-                        )
-                        # Prepare features for RF (drop identifiers - keep for tracking but don't train on them)
-                        X = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
-                        # y = split_data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
-                        y = metadata_df['Healing Phase Abs']
-                        y_bin1 = (y > 0).astype(int)
-                        y_bin2 = (y > 1).astype(int)
-                        # Train RF models
-                        rf_model1.fit(X, y_bin1)
-                        rf_model2.fit(X, y_bin2)
-                try:
-                    import tensorflow_decision_forests as tfdf
-                    dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                        metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore'),
-                        label=None  # No label needed for prediction
+                def _make_rf(class_weight_dict):
+                    """Create RF matching original validated configuration."""
+                    return RandomForestClassifier(
+                        n_estimators=300,
+                        random_state=42 + run * (run + 3),
+                        class_weight=class_weight_dict,
+                        n_jobs=-1,
                     )
 
-                    # Get predictions
-                    with tf.device('/CPU:0'):
-                        pred1 = rf_model1.predict(dataset1)
-                        pred2 = rf_model2.predict(dataset1)
-                    # with tf.device('/CPU:0'):
-                    #     prob1 = rf_predict_function(rf_model1, dataset1)
-                    #     prob2 = rf_predict_function(rf_model2, dataset1)
-                        # # Get probabilities for positive class (class 1)
-                        prob1 = np.squeeze(pred1)
-                        prob2 = np.squeeze(pred2)
-                except ImportError:
-                    dataset = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
-                    # dataset_pd = tf_to_pd(dataset)
-                    prob1 = rf_model1.predict_proba(dataset)[:, 1]
-                    prob2 = rf_model2.predict_proba(dataset)[:, 1]
+                if is_training:
+                    # OUT-OF-FOLD RF predictions for training data.
+                    # Without this, RF predicts on its own training data → 96% train acc
+                    # vs 40% val acc, causing the NN to over-rely on RF during fusion.
+                    from sklearn.model_selection import KFold as SKFold
+
+                    n_internal_folds = 5
+                    kf = SKFold(n_splits=n_internal_folds, shuffle=True,
+                                random_state=42 + run * (run + 3))
+
+                    prob1_oof = np.zeros(len(X))
+                    prob2_oof = np.zeros(len(X))
+                    X_np = X.values
+
+                    vprint(f"RF out-of-fold predictions ({n_internal_folds}-fold internal CV)", level=2)
+                    for fold_idx, (tr_idx, oof_idx) in enumerate(kf.split(X_np)):
+                        rf1_fold = _make_rf(class_weight_dict_binary1)
+                        rf2_fold = _make_rf(class_weight_dict_binary2)
+                        rf1_fold.fit(X_np[tr_idx], y_bin1.values[tr_idx])
+                        rf2_fold.fit(X_np[tr_idx], y_bin2.values[tr_idx])
+                        prob1_oof[oof_idx] = rf1_fold.predict_proba(X_np[oof_idx])[:, 1]
+                        prob2_oof[oof_idx] = rf2_fold.predict_proba(X_np[oof_idx])[:, 1]
+
+                    prob1 = prob1_oof
+                    prob2 = prob2_oof
+
+                    # Train final RF on ALL training data (used for validation predictions)
+                    rf_model1 = _make_rf(class_weight_dict_binary1)
+                    rf_model2 = _make_rf(class_weight_dict_binary2)
+                    rf_model1.fit(X, y_bin1)
+                    rf_model2.fit(X, y_bin2)
+                else:
+                    # Validation: predict with the final RF models (true out-of-sample)
+                    prob1 = rf_model1.predict_proba(X)[:, 1]
+                    prob2 = rf_model2.predict_proba(X)[:, 1]
                 
                 # Calculate final probabilities (unnormalized)
                 prob_I_unnorm = 1 - prob1
                 prob_P_unnorm = prob1 * (1 - prob2)
                 prob_R_unnorm = prob2
+
+                # --- Pure RF standalone metrics (before any normalization/fusion) ---
+                rf_preds = np.argmax(np.column_stack([prob_I_unnorm, prob_P_unnorm, prob_R_unnorm]), axis=1)
+                rf_true = y.values if hasattr(y, 'values') else y
+                from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score
+                rf_acc = accuracy_score(rf_true, rf_preds)
+                rf_f1 = f1_score(rf_true, rf_preds, average='macro')
+                rf_kappa = cohen_kappa_score(rf_true, rf_preds)
+                split_label = "TRAIN (out-of-fold)" if is_training else "VALIDATION"
+                vprint(f"\n  RF standalone metrics ({split_label}):", level=2)
+                vprint(f"    Accuracy: {rf_acc:.4f}  |  F1-macro: {rf_f1:.4f}  |  Kappa: {rf_kappa:.4f}", level=2)
 
                 # CRITICAL FIX: Normalize probabilities to sum to 1.0
                 # Bug: prob_I + prob_P + prob_R = 1 + prob2(1 - prob1) != 1.0

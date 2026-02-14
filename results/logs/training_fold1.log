@@ -1,5 +1,5 @@
-[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/confidence_fold1.log
-[LOG] Started at: 2026-02-14 06:11:33
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
+[LOG] Started at: 2026-02-13 23:12:40
 
 
 ================================================================================
@@ -41,7 +41,7 @@ Batch size: 32
   Per-GPU batch: 16 (32 / 2 GPUs)
 Max epochs: 200 (with early stopping)
 Modality search mode: custom
-Will test 1 custom combinations
+Will test 2 custom combinations
 ================================================================================
 
 
@@ -49,7 +49,10 @@ Will test 1 custom combinations
 ================================================================================
 
 Cleanup Statistics:
-  Csv Results: 1 files deleted
+  Models: 2 files deleted
+  Predictions: 12 files deleted
+  Csv Results: 7 files deleted
+  Tf Cache: 4 files deleted
 ================================================================================
 
 
@@ -57,16 +60,16 @@ Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
 Outlier removal disabled
-Confidence filtering disabled (DISABLE_CONFIDENCE_FILTERING=1)
+Confidence filtering skipped (running specific fold subprocess)
 
 ================================================================================
-MODALITY SEARCH MODE: CUSTOM (1 combinations)
+MODALITY SEARCH MODE: CUSTOM (2 combinations)
 ================================================================================
 Testing only specified combinations from production_config.py
-Total combinations to test: 1
+Total combinations to test: 2
 Cross-validation mode: 3-fold CV
 Iterations per combination: 3
-Total training sessions: 3
+Total training sessions: 6
 Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 ================================================================================
 
@@ -152,16 +155,10 @@ Class 2: 728
 
 Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
 (Should be close to [1, 1, 1] since data is balanced)
-Feature selection: 57 → 40 features
-Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Peri-Ulcer Temperature (°C)']
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
 RF out-of-fold predictions (5-fold internal CV)
-
-  RF standalone metrics (TRAIN (out-of-fold)):
-    Accuracy: 0.9899  |  F1-macro: 0.9899  |  Kappa: 0.9849
 Using 40 features from training selection
-
-  RF standalone metrics (VALIDATION):
-    Accuracy: 0.5430  |  F1-macro: 0.3908  |  Kappa: 0.0327
 Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2184,)
 Healing Phase Abs type: <class 'numpy.ndarray'> shape: (628,)
   Validation batch size adjusted: 1 → 2 (n_samples=628, num_gpus=2)
@@ -211,16 +208,10 @@ Class 2: 599
 
 Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
 (Should be close to [1, 1, 1] since data is balanced)
-Feature selection: 57 → 40 features
-Top 5 features: ['Wound Centre Temperature Normalized (°C)', 'Peri-Ulcer Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Peri-Ulcer Temperature (°C)']
+Feature selection: 54 → 40 features
+Top 5 features: ['Wound Centre Temperature Normalized (°C)', 'Peri-Ulcer Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
 RF out-of-fold predictions (5-fold internal CV)
-
-  RF standalone metrics (TRAIN (out-of-fold)):
-    Accuracy: 0.9866  |  F1-macro: 0.9866  |  Kappa: 0.9800
 Using 40 features from training selection
-
-  RF standalone metrics (VALIDATION):
-    Accuracy: 0.5636  |  F1-macro: 0.3984  |  Kappa: 0.1047
 Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1797,)
 Healing Phase Abs type: <class 'numpy.ndarray'> shape: (1187,)
   Validation batch size adjusted: 32 → 32 (n_samples=1187, num_gpus=2)
@@ -240,3 +231,138 @@ Total model trainable weights: 0
 Metadata-only: Minimal training on final layer
 /venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py:86: UserWarning: The model does not have any trainable weights.
   warnings.warn("The model does not have any trainable weights.")
+Epoch 1/200 - 4.8s - loss: 0.0852 - val_loss: 0.5595 - acc: 0.9106 - val_acc: 0.4071 - macro_f1: 0.9078 - val_macro_f1: 0.3633 - kappa: 0.8659 - val_kappa: 0.0525
+Epoch 20/200 - 1.1s - loss: 0.0818 - val_loss: 0.5595 - acc: 0.9178 - val_acc: 0.4071 - macro_f1: 0.9155 - val_macro_f1: 0.3633 - kappa: 0.8767 - val_kappa: 0.0525
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+
+Run 1 Results for metadata:
+Cohen's Kappa: 0.1852
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:  176   91   24
+Actual Prolif:  371  270   75
+Actual Remodl:   42   99   36
+
+Training gating network for run 1...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (1797, 3)
+Shape of true labels: (1797,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 1:
+Accuracy: 0.4071
+F1 Macro: 0.3633
+Kappa: 0.1852
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_fold0_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_metadata_fold0_seed42.index
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_fold0_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_metadata_fold0_seed42.index
+
+Fold 2/3
+Using pre-computed fold 2 patient split
+
+Fold 2/3 skipped (target_fold=1). Loading saved results...
+  Warning: No saved metrics found for Fold 2/3
+
+Fold 3/3
+Using pre-computed fold 3 patient split
+
+Fold 3/3 skipped (target_fold=1). Loading saved results...
+  Warning: No saved metrics found for Fold 3/3
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_valid.npy
+Results for metadata appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, depth_rgb
+DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = None
+DEBUG CONF-FILTER: File exists = N/A
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  metadata: 3108
+Using 100.0% of the data: 3108 samples
+Using strategy from main: MirroredStrategy
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 32 (per-GPU: 16)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 3-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 87 patients
+Class 1: 115 patients
+Class 2: 31 patients
+================================================================================
+
+Fold 1/3: 154 train patients, 79 valid patients
+  Train dist: {0: 0.312, 1: 0.606, 2: 0.082}
+  Valid dist: {0: 0.248, 1: 0.603, 2: 0.149}
+Fold 2/3: 156 train patients, 77 valid patients
+  Train dist: {0: 0.258, 1: 0.613, 2: 0.129}
+  Valid dist: {0: 0.350, 1: 0.587, 2: 0.063}
+Fold 3/3: 156 train patients, 77 valid patients
+  Train dist: {0: 0.294, 1: 0.596, 2: 0.110}
+  Valid dist: {0: 0.272, 1: 0.626, 2: 0.103}
+Generated 3 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/3
+Using pre-computed fold 1 patient split
+Processing metadata shape...
+
+Unique cases: 518 (before oversampling)
+
+True binary label distributions (unique cases):
+Binary1: label_bin1
+1    352
+0    166
+Name: count, dtype: int64
+Binary2: label_bin2
+0    457
+1     61
+Name: count, dtype: int64
+Original class distribution (ordered):
+Class 0: 728
+Class 1: 1485
+Class 2: 267
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.711, 0.349, 1.94]
+Original class distribution (ordered):
+Class 0: 728
+Class 1: 1485
+Class 2: 267
+Using combined sampling (under + over)...
+
+After undersampling (ordered):
+Class 0: 728
+Class 1: 728
+Class 2: 267
+
+After oversampling (ordered):
+Class 0: 728
+Class 1: 728
+Class 2: 728
+
+Alpha values after oversampling [I, P, R]: [1.0, 1.0, 1.0]
+(Should be close to [1, 1, 1] since data is balanced)
+Feature selection: 54 → 40 features
+Top 5 features: ['Peri-Ulcer Temperature Normalized (°C)', 'Wound Centre Temperature Normalized (°C)', 'Onset (Days)', 'BMI', 'Weight (Kg)']
+RF out-of-fold predictions (5-fold internal CV)
