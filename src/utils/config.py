@@ -171,14 +171,18 @@ def cleanup_for_resume_mode(resume_mode='auto', result_dir=None):
         ], 'predictions')
 
         # Delete CSV results (but keep best_matching.csv - it's static patient-to-image mapping)
-        delete_files([
+        csv_patterns = [
             os.path.join(output_paths['csv'], '*.csv'),
             # Also delete CSVs created by main_original.py in results/ root
             os.path.join(result_dir, 'frequent_misclassifications_*.csv'),
             os.path.join(result_dir, 'modality_results_*.csv'),
             os.path.join(result_dir, 'gating_network_*.csv'),
-            # NOTE: best_matching.csv is preserved - it's static patient-to-image mapping
-        ], 'csv_results')
+        ]
+        # Skip misclassification cleanup when auto_polish is accumulating counts across runs
+        if os.environ.get('PRESERVE_MISCLASS_DATA') != '1':
+            csv_patterns.append(os.path.join(output_paths['misclassifications'], '*.csv'))
+        # NOTE: best_matching.csv is preserved - it's static patient-to-image mapping
+        delete_files(csv_patterns, 'csv_results')
 
         # Delete patient splits
         delete_files([

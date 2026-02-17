@@ -1,5 +1,5 @@
-[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
-[LOG] Started at: 2026-02-17 19:16:59
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold2.log
+[LOG] Started at: 2026-02-17 18:18:36
 
 
 ================================================================================
@@ -22,13 +22,13 @@ Using MirroredStrategy (2 GPUs) with NCCL
 ================================================================================
 
 
-Batch size per replica: 8 (global batch size: 16, replicas: 2)
+Batch size per replica: 9 (global batch size: 18, replicas: 2)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
 ================================================================================
 Mode: search
-Resume mode: fresh
+Resume mode: auto
 Data percentage: 100.0%
 Verbosity: 0 (MINIMAL)
 Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
@@ -37,50 +37,79 @@ Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
 Image size: 256x256
-Batch size: 16
-  Per-GPU batch: 8 (16 / 2 GPUs)
+Batch size: 18
+  Per-GPU batch: 9 (18 / 2 GPUs)
 Max epochs: 200 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
 ================================================================================
 
 
-🧹 FRESH START MODE: Deleting all checkpoints...
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
 ================================================================================
-
-Cleanup Statistics:
-  Csv Results: 1 files deleted
-  Tf Cache: 4 files deleted
-================================================================================
-
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
   Core data mode: False
-  Thresholds: I=11, P=23, R=28
+  Thresholds: I=8, P=20, R=28
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=11, P=23, R=28
+Thresholds: I=8, P=20, R=28
 
 Excluded samples per class:
-  Class I: 104 samples
-  Class P: 61 samples
+  Class I: 122 samples
+  Class P: 108 samples
   Class R: 0 samples
 
-Total unique samples to exclude: 165
+Total unique samples to exclude: 230
 
-Dataset size (rows): 3108 -> 2339 (75.3%)
-Unique samples: 648 -> 483 (removed 165)
+Dataset size (rows): 3108 -> 2037 (65.5%)
+Unique samples: 648 -> 418 (removed 230)
 
 Class distribution after filtering:
-  Class I: 428 rows
-  Class P: 1576 rows
+  Class I: 349 rows
+  Class P: 1353 rows
   Class R: 335 rows
 ============================================================
 
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-Epoch 41: early stopping
-Restoring model weights from the end of the best epoch: 21.
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 6.
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
+Epoch 38: early stopping
+Restoring model weights from the end of the best epoch: 18.
+
+Run 2 Results for metadata+depth_rgb+depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.70      0.78      0.74       164
+           P       0.87      0.61      0.72       428
+           R       0.36      0.78      0.49        92
+
+    accuracy                           0.68       684
+   macro avg       0.64      0.73      0.65       684
+weighted avg       0.76      0.68      0.69       684
+
+Cohen's Kappa: 0.5713
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb+depth_map+thermal_map
+  Accuracy: 0.6278 ± 0.0477
+  F1 Macro: 0.6078
+  Kappa: 0.5057
+
+Total combinations tested: 1
+================================================================================
+

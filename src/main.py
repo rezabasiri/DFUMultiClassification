@@ -2567,7 +2567,29 @@ Configuration:
         (default: None - run all folds in a single process)"""
     )
 
+    # Misclassification filtering args (used by auto_polish_dataset_v2.py)
+    parser.add_argument("--threshold_I", type=int, default=None,
+        help="Misclassification threshold for Inflammatory class (overrides production_config)")
+    parser.add_argument("--threshold_P", type=int, default=None,
+        help="Misclassification threshold for Proliferative class (overrides production_config)")
+    parser.add_argument("--threshold_R", type=int, default=None,
+        help="Misclassification threshold for Remodeling class (overrides production_config)")
+    parser.add_argument("--track-misclass", type=str, choices=['both', 'valid', 'train', 'none'], default=None,
+        dest='track_misclass_override',
+        help="Misclassification tracking mode (overrides production_config TRACK_MISCLASS)")
+
     args = parser.parse_args()
+
+    # Override production_config values from CLI args (used by auto_polish_dataset_v2.py)
+    global THRESHOLD_I, THRESHOLD_P, THRESHOLD_R, TRACK_MISCLASS
+    if args.threshold_I is not None:
+        THRESHOLD_I = args.threshold_I
+    if args.threshold_P is not None:
+        THRESHOLD_P = args.threshold_P
+    if args.threshold_R is not None:
+        THRESHOLD_R = args.threshold_R
+    if args.track_misclass_override is not None:
+        TRACK_MISCLASS = args.track_misclass_override
 
     # Set up logging to file
     from datetime import datetime

@@ -347,30 +347,13 @@ class ProcessedDataManager:
 
     def process_all_modalities(self):
         """Process all modalities and store their shapes."""
-        # Get metadata shape after preprocessing
-        vprint("Processing metadata shape...", level=2)
-        temp_data = self.data.copy()
-        temp_train, _, _, _, _, _ = prepare_cached_datasets(
-            temp_data,
-            ['metadata'],
-            train_patient_percentage=0.8,
-            batch_size=1,
-            run=0,
-            for_shape_inference=True
-        )
-        for batch in temp_train.take(1):
-            self.all_modality_shapes['metadata'] = batch[0]['metadata_input'].shape[1:]
-            break
+        # Metadata shape is always (3,): RF outputs [prob_I, prob_P, prob_R]
+        self.all_modality_shapes['metadata'] = (3,)
 
         # Set image shapes using instance's image_size
         vprint(f"Setting image shapes to {self.image_size}x{self.image_size}...", level=2)
         for modality in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']:
             self.all_modality_shapes[modality] = (self.image_size, self.image_size, 3)
-        
-        del temp_train, temp_data
-        gc.collect()
-        clear_gpu_memory()
-        clear_cache_files()
         
         
     def get_shapes_for_modalities(self, selected_modalities):
@@ -408,17 +391,24 @@ class CohenKappa(tf.keras.metrics.Metric):
         self.confusion_matrix.assign_add(confusion)
         
     def result(self):
-        # Calculate observed agreement
+        # Quadratic weighted Cohen's Kappa (matches sklearn weights='quadratic')
         n = tf.reduce_sum(self.confusion_matrix)
-        observed = tf.reduce_sum(tf.linalg.diag_part(self.confusion_matrix)) / n
-        
-        # Calculate expected agreement
+        k = self.num_classes
+
+        # Quadratic weight matrix: w_ij = (i - j)^2 / (k - 1)^2
+        indices = tf.cast(tf.range(k), tf.float32)
+        w = tf.square(tf.expand_dims(indices, 1) - tf.expand_dims(indices, 0))
+        w = w / tf.cast(tf.square(k - 1), tf.float32)
+
+        # Observed and expected weighted agreement
         row_sums = tf.reduce_sum(self.confusion_matrix, axis=1)
         col_sums = tf.reduce_sum(self.confusion_matrix, axis=0)
-        expected = tf.reduce_sum((row_sums * col_sums) / (n * n))
-        
-        # Calculate kappa
-        kappa = (observed - expected) / (1.0 - expected + tf.keras.backend.epsilon())
+        expected_matrix = tf.einsum('i,j->ij', row_sums, col_sums) / n
+
+        observed_weighted = tf.reduce_sum(w * self.confusion_matrix) / n
+        expected_weighted = tf.reduce_sum(w * expected_matrix) / n
+
+        kappa = 1.0 - observed_weighted / (expected_weighted + tf.keras.backend.epsilon())
         return kappa
         
     def reset_state(self):
@@ -1183,25 +1173,24 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         
                     steps_per_epoch = master_steps_per_epoch
                     validation_steps = master_validation_steps
-                    # Default values (used when config_name doesn't end with 1, 2, or 3)
-                    alpha_value = master_alpha_value  # Proportional class weights
-                    class_weights_dict = {i: 1 for i in range(3)}
-                    class_weights = [1, 1, 1]
-                    if config_name.endswith('1'):
-                        alpha_value = master_alpha_value # Proportional class weights (When no mixed_sampling is used)
+
+                    # Alpha values for weighted F1 metric
+                    alpha_value = master_alpha_value
+
+                    # Class weights for model.fit(class_weight=...) — controlled by config
+                    from src.utils.production_config import TRAINING_CLASS_WEIGHT_MODE
+                    if TRAINING_CLASS_WEIGHT_MODE == 'balanced':
+                        class_weights_dict = master_class_weights_dict
+                        class_weights = list(master_class_weights)
+                    elif TRAINING_CLASS_WEIGHT_MODE == 'frequency':
+                        class_weights = list(master_alpha_value)
+                        class_weights_dict = {i: w for i, w in enumerate(class_weights)}
+                    else:  # 'uniform' or default
                         class_weights_dict = {i: 1 for i in range(3)}
                         class_weights = [1, 1, 1]
-                    elif config_name.endswith('2'):
-                        alpha_value = [1, 1, 1]
-                        class_weights_dict = master_class_weights_dict
-                        class_weights = master_class_weights
-                    elif config_name.endswith('3'):
-                        alpha_value = [4, 1, 4]
-                        class_weights_dict = {0: 4, 1: 1, 2: 4}
-                        class_weights = [4, 1, 4]
-                    # alpha_value = [4, 1, 4]  # Equal class weights
+
                     vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_value]}", level=2)
-                    vprint(f"Class weights: {class_weights_dict} or {class_weights}", level=2)
+                    vprint(f"Class weights ({TRAINING_CLASS_WEIGHT_MODE}): {class_weights_dict} or {[round(w, 3) for w in class_weights]}", level=2)
                     
                     # Create and train model
                     with strategy.scope():

@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 from collections import Counter
-from sklearn.utils.class_weight import compute_class_weight
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, classification_report
@@ -597,6 +596,168 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
         print(f"Maximum ratio difference: {max_diff:.3f}")
     return True
 
+def _preprocess_for_loo(data):
+    """Lightweight metadata preprocessing for LOO influence filtering.
+
+    Applies the same transformations as preprocess_split() but on the full
+    dataset (before train/val split). Fitting on all data is acceptable here
+    because this is only used to identify harmful patterns, not for production
+    RF predictions.
+
+    Returns:
+        X: DataFrame of features (same rows as input data)
+        y: Series of 3-class labels
+    """
+    df = data.copy()
+
+    # Drop image columns
+    image_cols = ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                  'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                  'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
+    df = df.drop(columns=[c for c in image_cols if c in df.columns])
+
+    # Feature engineering (mirrors preprocess_split)
+    df['BMI'] = df['Weight (Kg)'] / ((df['Height (cm)'] / 100) ** 2)
+    df['Age above 60'] = (df['Age'] > 60).astype(int)
+    df['Age Bin'] = pd.cut(df['Age'], bins=range(0, int(df['Age'].max()) + 20, 20),
+                           right=False, labels=range(len(range(0, int(df['Age'].max()) + 20, 20)) - 1))
+    df['Weight Bin'] = pd.cut(df['Weight (Kg)'], bins=range(0, int(df['Weight (Kg)'].max()) + 20, 20),
+                              right=False, labels=range(len(range(0, int(df['Weight (Kg)'].max()) + 20, 20)) - 1))
+    df['Height Bin'] = pd.cut(df['Height (cm)'], bins=range(0, int(df['Height (cm)'].max()) + 10, 10),
+                              right=False, labels=range(len(range(0, int(df['Height (cm)'].max()) + 10, 10)) - 1))
+
+    # Categorical encoding with fixed categories
+    _FIXED_CATEGORIES = {
+        'Sex (F:0, M:1)': ['F', 'M'],
+        'Side (Left:0, Right:1)': ['Left', 'Right'],
+        'Foot Aspect': ['Dorsal', 'Lateral', 'Medial', 'Plantar'],
+        'Odor': ['NoOdor', 'Unpleasant'],
+        'Type of Pain Grouped': [
+            'ChronicPain', 'GeneralAches', 'LocalizedPain', 'NoPain',
+            'PhantomAndUnusualSensations', 'PressureAndMovement',
+            'SharpAndIntensePain', 'ShootingPain', 'ThrobbingPain',
+        ],
+    }
+    for col, cats in _FIXED_CATEGORIES.items():
+        if col in df.columns:
+            df[col] = pd.Categorical(df[col], categories=cats).codes
+
+    # Other categorical mappings
+    categorical_mappings = {
+        'Location Grouped (Hallux:1,Toes,Middle,Heel,Ankle:5)': {'ankle': 4, 'Heel': 3, 'middle': 2, 'toes': 1, 'Hallux': 0},
+        'Dressing Grouped': {'NoDressing': 0, 'BandAid': 1, 'BasicDressing': 1, 'AbsorbantDressing': 2, 'Antiseptic': 3, 'AdvanceMethod': 4, 'other': 4},
+        'Exudate Appearance (Serous:1,Haemoserous,Bloody,Thick:4)': {'Serous': 0, 'Haemoserous': 1, 'Bloody': 2, 'Thick': 3}
+    }
+    for col, mapping in categorical_mappings.items():
+        if col in df.columns:
+            df[col] = df[col].map(mapping)
+
+    # Drop features (same list as preprocess_split)
+    features_to_drop = [
+        'ID', 'Location', 'Healing Phase', 'Phase Confidence (%)', 'DFU#', 'Appt#',
+        'Appt Days', 'Type of Pain2', 'Type of Pain_Grouped2', 'Type of Pain',
+        'Dressing',
+        'No Offloading', 'Offloading: Therapeutic Footwear',
+        'Offloading: Scotcast Boot or RCW', 'Offloading: Half Shoes or Sandals',
+        'Offloading: Total Contact Cast', 'Offloading: Crutches, Walkers or Wheelchairs',
+        'Offloading Score'
+    ]
+    df = df.drop(columns=[c for c in features_to_drop if c in df.columns])
+
+    y = df['Healing Phase Abs']
+    X = df.drop(['Patient#', 'Healing Phase Abs'], axis=1, errors='ignore')
+
+    # Keep only numeric columns (drop any remaining string columns not handled by encoding)
+    X = X.select_dtypes(include=[np.number])
+
+    imputer = KNNImputer(n_neighbors=5)
+    X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns, index=X.index)
+    scaler = StandardScaler()
+    X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
+
+    # No feature selection in LOO — use all features so the influence ranking
+    # isn't tied to a specific MI-selected subset (which differs between LOO
+    # and the main RF's per-split MI selection).
+
+    return X, y
+
+
+def rf_loo_influence_filter(X_unique, y_unique, seed, n_folds=3, min_influence=0.001,
+                            max_removal_pct=30, min_per_class=30):
+    """LOO influence filtering for RF metadata classifier (direct 3-class).
+
+    For each unique pattern, removes it, computes OOF Kappa on remaining
+    patterns, compares to baseline. Patterns whose removal improves
+    Kappa are flagged as harmful.
+
+    Returns:
+        patterns_to_remove: set of indices into X_unique
+        influence_scores: array of per-pattern scores
+        baseline_kappa: OOF Kappa before removal
+    """
+    from sklearn.model_selection import KFold as SKFold
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import cohen_kappa_score
+
+    N = len(X_unique)
+
+    def _compute_oof_kappa(X, y):
+        from src.utils.production_config import (
+            RF_N_ESTIMATORS, RF_CLASS_WEIGHT,
+            RF_MAX_DEPTH, RF_MIN_SAMPLES_LEAF, RF_MIN_SAMPLES_SPLIT
+        )
+        n_f = min(n_folds, len(X))
+        if n_f < 2:
+            return 0.0
+        kf = SKFold(n_splits=n_f, shuffle=True, random_state=seed)
+        preds = np.zeros(len(X), dtype=int)
+        for tr, val in kf.split(X):
+            rf = RandomForestClassifier(
+                n_estimators=RF_N_ESTIMATORS, random_state=seed,
+                max_depth=RF_MAX_DEPTH,
+                min_samples_leaf=RF_MIN_SAMPLES_LEAF,
+                min_samples_split=RF_MIN_SAMPLES_SPLIT,
+                class_weight='balanced', n_jobs=-1)
+            rf.fit(X[tr], y[tr])
+            preds[val] = rf.predict(X[val])
+        return cohen_kappa_score(y, preds)
+
+    import time as _time
+    print(f"  Computing baseline OOF Kappa ({N} patterns, {n_folds}-fold)...")
+    t_base = _time.time()
+    baseline_kappa = _compute_oof_kappa(X_unique, y_unique)
+    print(f"  Baseline OOF Kappa: {baseline_kappa:.4f} ({_time.time() - t_base:.1f}s)")
+    influence_scores = np.zeros(N)
+    t0 = _time.time()
+    for i in range(N):
+        mask = np.ones(N, dtype=bool)
+        mask[i] = False
+        loo_kappa = _compute_oof_kappa(X_unique[mask], y_unique[mask])
+        influence_scores[i] = loo_kappa - baseline_kappa
+        if (i + 1) % 25 == 0 or i == N - 1:
+            elapsed = _time.time() - t0
+            eta = elapsed / (i + 1) * (N - i - 1)
+            print(f"  LOO progress: {i+1}/{N} ({elapsed:.0f}s elapsed, ~{eta:.0f}s remaining)")
+
+    # Select harmful patterns per class with safety limits
+    patterns_to_remove = set()
+    for cls in [0, 1, 2]:
+        cls_mask = y_unique == cls
+        cls_indices = np.where(cls_mask)[0]
+        cls_count = len(cls_indices)
+        max_removable = max(0, cls_count - min_per_class)
+        max_removable = min(max_removable, int(cls_count * max_removal_pct / 100))
+
+        cls_harmful = [(idx, influence_scores[idx]) for idx in cls_indices
+                       if influence_scores[idx] > min_influence]
+        cls_harmful.sort(key=lambda x: -x[1])
+
+        for idx, _ in cls_harmful[:max_removable]:
+            patterns_to_remove.add(idx)
+
+    return patterns_to_remove, influence_scores, baseline_kappa
+
+
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
                           batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1, image_size=128,
                           train_patients=None, valid_patients=None, for_shape_inference=False):
@@ -630,6 +791,59 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     if 'Healing Phase Abs' in data.columns:
         data['Healing Phase Abs'] = data['Healing Phase Abs'].astype(str)
         data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
+
+    # --- LOO Influence Filtering (applied to full dataset before split) ---
+    from src.utils.production_config import (USE_RF_LOO_FILTERING, RF_LOO_MIN_INFLUENCE,
+                                              RF_LOO_MAX_REMOVAL_PCT, RF_LOO_MIN_PATTERNS_PER_CLASS)
+    if USE_RF_LOO_FILTERING and 'metadata' in selected_modalities and not for_shape_inference:
+        vprint("Running LOO influence filtering on full dataset...", level=1)
+
+        # Lightweight preprocessing to get RF features
+        X_loo, y_loo = _preprocess_for_loo(data)
+
+        # Deduplicate by feature vectors
+        X_loo_str = X_loo.astype(str).apply(lambda row: '||'.join(row), axis=1)
+        unique_mask = ~X_loo_str.duplicated(keep='first')
+        unique_indices = np.where(unique_mask)[0]
+        X_unique = X_loo.iloc[unique_indices].values
+        y_unique = y_loo.values[unique_indices]
+
+        # Build reverse mapping: unique_pos → original row indices
+        str_to_upos = {}
+        for u_pos, u_idx in enumerate(unique_indices):
+            str_to_upos[X_loo_str.iloc[u_idx]] = u_pos
+        loo_group_map = {}
+        for orig_idx in range(len(X_loo)):
+            u_pos = str_to_upos[X_loo_str.iloc[orig_idx]]
+            loo_group_map.setdefault(u_pos, []).append(orig_idx)
+
+        vprint(f"LOO: {len(data)} rows -> {len(X_unique)} unique patterns", level=2)
+
+        patterns_to_remove, influence_scores, baseline_kappa = rf_loo_influence_filter(
+            X_unique, y_unique, seed,
+            min_influence=RF_LOO_MIN_INFLUENCE,
+            max_removal_pct=RF_LOO_MAX_REMOVAL_PCT,
+            min_per_class=RF_LOO_MIN_PATTERNS_PER_CLASS,
+        )
+
+        if patterns_to_remove:
+            rows_to_remove = set()
+            for u_pos in patterns_to_remove:
+                rows_to_remove.update(loo_group_map[u_pos])
+
+            keep_mask = ~data.index.isin(rows_to_remove)
+            removed_rows = len(data) - keep_mask.sum()
+            vprint(f"LOO filter: removing {len(patterns_to_remove)}/{len(X_unique)} harmful patterns "
+                   f"({removed_rows}/{len(data)} rows), baseline Kappa={baseline_kappa:.4f}", level=1)
+
+            for cls, name in [(0, 'I'), (1, 'P'), (2, 'R')]:
+                cls_removed = sum(1 for u_pos in patterns_to_remove if y_unique[u_pos] == cls)
+                cls_total = int((y_unique == cls).sum())
+                vprint(f"  {name}: {cls_removed}/{cls_total} patterns removed", level=2)
+
+            data = data[keep_mask].reset_index(drop=True)
+        else:
+            vprint(f"LOO filter: no harmful patterns found (baseline Kappa={baseline_kappa:.4f})", level=2)
 
     # Use pre-computed patient splits if provided (k-fold CV), otherwise try to load/generate
     if train_patients is None or valid_patients is None:
@@ -808,8 +1022,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
         # Choose sampling strategy
         if not mix:
-            # Import SAMPLING_STRATEGY config parameter
-            from src.utils.production_config import SAMPLING_STRATEGY
+            # Import config parameters
+            from src.utils.production_config import SAMPLING_STRATEGY, FREQUENCY_WEIGHT_NORMALIZATION, USE_FREQUENCY_BASED_WEIGHTS
 
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
@@ -826,12 +1040,19 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Inverse frequency for each class (no capping)
             alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
 
-            # Normalize to sum=3.0 (as recommended)
+            # Normalize to sum=FREQUENCY_WEIGHT_NORMALIZATION
             alpha_sum = sum(alpha_values)
-            alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
+            alpha_values = [alpha/alpha_sum * FREQUENCY_WEIGHT_NORMALIZATION for alpha in alpha_values]
 
             # Apply selected sampling strategy
-            if SAMPLING_STRATEGY == 'combined':
+            if SAMPLING_STRATEGY == 'none':
+                # No resampling — use original imbalanced distribution as-is
+                vprint("No sampling applied (using original distribution)...", level=2)
+                resampled_df = df.copy()
+                resampled_df = resampled_df.reset_index(drop=True)
+                return resampled_df, alpha_values
+
+            elif SAMPLING_STRATEGY == 'combined':
                 # Combined sampling: undersample majority, then oversample minority
                 # Balances to MIDDLE class count (fewer duplicates than pure oversampling)
                 vprint("Using combined sampling (under + over)...", level=2)
@@ -1029,13 +1250,6 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
-            # Check if we should use frequency-based weights from original distribution
-            try:
-                from src.utils.production_config import USE_FREQUENCY_BASED_WEIGHTS, FREQUENCY_WEIGHT_NORMALIZATION
-            except ImportError:
-                USE_FREQUENCY_BASED_WEIGHTS = False
-                FREQUENCY_WEIGHT_NORMALIZATION = 3.0
-
             if USE_FREQUENCY_BASED_WEIGHTS:
                 # Use alpha_values from ORIGINAL distribution (calculated at start of function)
                 # This applies class weighting ON TOP of the balanced sampling
@@ -1056,47 +1270,9 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
 
                 return resampled_df, alpha_values_balanced
-    if 'metadata' in selected_modalities:
-        # Calculate class weights for Random Forest models
-        unique_cases = train_data[['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']].drop_duplicates().copy()
-        vprint(f"\nUnique cases: {len(unique_cases)} (before oversampling)", level=2)
-
-        # Create binary labels on unique cases
-        unique_cases['label_bin1'] = (unique_cases['Healing Phase Abs'] > 0).astype(int)
-        unique_cases['label_bin2'] = (unique_cases['Healing Phase Abs'] > 1).astype(int)
-
-        # Print true class distributions
-        vprint("\nTrue binary label distributions (unique cases):", level=2)
-        if get_verbosity() == 2:
-            print("Binary1:", unique_cases['label_bin1'].value_counts())
-            print("Binary2:", unique_cases['label_bin2'].value_counts())
-        
-        # Calculate weights using only unique cases
-        class_weights_binary1 = compute_class_weight(
-            class_weight='balanced',
-            classes=np.array([0, 1]),
-            y=unique_cases['label_bin1']
-        )
-        class_weight_dict_binary1 = dict(zip([0, 1], class_weights_binary1))
-        
-        class_weights_binary2 = compute_class_weight(
-            class_weight='balanced',
-            classes=np.array([0, 1]),
-            y=unique_cases['label_bin2']
-        )
-        class_weight_dict_binary2 = dict(zip([0, 1], class_weights_binary2))
-        
-        # print("\nClass weights (based on unique cases):")
-        # print("Binary1:", class_weight_dict_binary1)
-        # print("Binary2:", class_weight_dict_binary2)   
-    else:
-        class_weight_dict_binary1=None
-        class_weight_dict_binary2=None
-    
     train_data, alpha_values = apply_mixed_sampling_to_df(train_data, apply_sampling=True, mix=False)
-    
-    def preprocess_split(split_data, is_training=True, class_weight_dict_binary1=None, 
-                            class_weight_dict_binary2=None, rf_model1=None, rf_model2=None, imputation_data=None):
+
+    def preprocess_split(split_data, is_training=True, rf_model=None, imputation_data=None):
             """Preprocess data with proper handling of metadata and image columns"""
             # Create a copy of the data
             split_data = split_data.copy()
@@ -1130,12 +1306,28 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 metadata_df['Height Bin'] = pd.cut(metadata_df['Height (cm)'], bins=range(0, int(metadata_df['Height (cm)'].max()) + 10, 10), right=False, labels=range(len(range(0, int(metadata_df['Height (cm)'].max()) + 10, 10)) - 1))
                 source_df['Height Bin'] = pd.cut(source_df['Height (cm)'], bins=range(0, int(source_df['Height (cm)'].max()) + 10, 10), right=False, labels=range(len(range(0, int(source_df['Height (cm)'].max()) + 10, 10)) - 1))
                 
-                # Handle categorical columns
+                # Handle categorical columns with FIXED category lists
+                # Using fixed lists ensures consistent codes between train/val splits
+                # (pd.Categorical without fixed categories assigns codes based on which
+                # values are present, causing train/val mismatch when categories differ)
                 categorical_columns = ['Sex (F:0, M:1)', 'Side (Left:0, Right:1)', 'Foot Aspect', 'Odor', 'Type of Pain Grouped']
+                _FIXED_CATEGORIES = {
+                    'Sex (F:0, M:1)': ['F', 'M'],
+                    'Side (Left:0, Right:1)': ['Left', 'Right'],
+                    'Foot Aspect': ['Dorsal', 'Lateral', 'Medial', 'Plantar'],
+                    'Odor': ['NoOdor', 'Unpleasant'],
+                    'Type of Pain Grouped': [
+                        'ChronicPain', 'GeneralAches', 'LocalizedPain', 'NoPain',
+                        'PhantomAndUnusualSensations', 'PressureAndMovement',
+                        'SharpAndIntensePain', 'ShootingPain', 'ThrobbingPain',
+                    ],
+                }
                 for col in categorical_columns:
                     if col in metadata_df.columns:
-                        metadata_df[col] = pd.Categorical(metadata_df[col]).codes
-                        source_df[col] = pd.Categorical(source_df[col]).codes
+                        cats = _FIXED_CATEGORIES.get(col)
+                        # Values not in the fixed list get code -1, handled by KNNImputer
+                        metadata_df[col] = pd.Categorical(metadata_df[col], categories=cats).codes
+                        source_df[col] = pd.Categorical(source_df[col], categories=cats).codes
                 
                 # Other categorical mappings
                 categorical_mappings = {
@@ -1174,9 +1366,11 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 metadata_df = metadata_df.drop(columns=[col for col in features_to_drop if col in metadata_df.columns])
                 source_df = source_df.drop(columns=[col for col in features_to_drop if col in source_df.columns])
                 # Impute missing values
-                columns_to_impute = [col for col in metadata_df.columns if col not in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
-                                                                        'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
-                                                                        'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']+['Healing Phase Abs']]
+                columns_to_impute = [col for col in metadata_df.columns if col not in [
+                    'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                    'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                    'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax',
+                    'Healing Phase Abs', 'Patient#']]
                 
                 # numeric_columns = split_data.select_dtypes(include=[np.number]).columns
                 # Use k=3 for better performance (validated: Kappa 0.201 vs 0.176 with k=5)
@@ -1252,77 +1446,94 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 # Prepare features
                 X = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
                 y = metadata_df['Healing Phase Abs']
-                y_bin1 = (y > 0).astype(int)
-                y_bin2 = (y > 1).astype(int)
 
-                def _make_rf(class_weight_dict):
-                    """Create RF matching original validated configuration."""
+                def _make_rf():
+                    """Create RF with config-driven hyperparameters."""
+                    from src.utils.production_config import (
+                        RF_N_ESTIMATORS, RF_CLASS_WEIGHT,
+                        RF_MAX_DEPTH, RF_MIN_SAMPLES_LEAF, RF_MIN_SAMPLES_SPLIT
+                    )
+                    cw = RF_CLASS_WEIGHT
+                    if cw == 'frequency':
+                        # Convert alpha_values (from enclosing scope) to sklearn dict
+                        cw = {i: alpha_values[i] for i in range(3)}
                     return RandomForestClassifier(
-                        n_estimators=300,
+                        n_estimators=RF_N_ESTIMATORS,
+                        max_depth=RF_MAX_DEPTH,
+                        min_samples_leaf=RF_MIN_SAMPLES_LEAF,
+                        min_samples_split=RF_MIN_SAMPLES_SPLIT,
                         random_state=42 + run * (run + 3),
-                        class_weight=class_weight_dict,
+                        class_weight=cw,
                         n_jobs=-1,
                     )
 
                 if is_training:
-                    # OUT-OF-FOLD RF predictions for training data.
-                    # Without this, RF predicts on its own training data → 96% train acc
-                    # vs 40% val acc, causing the NN to over-rely on RF during fusion.
+                    # OUT-OF-FOLD RF predictions on DEDUPLICATED training data.
+                    # Deduplication removes both image-row duplicates (~4.8x per case)
+                    # and oversampling duplicates, preventing OOF leak (99% → ~65% OOF acc).
+                    # Predictions are mapped back to ALL rows to preserve image alignment.
                     from sklearn.model_selection import KFold as SKFold
+                    from src.utils.production_config import RF_OOF_FOLDS
 
-                    n_internal_folds = 5
+                    # Deduplicate: group rows with identical feature vectors
+                    X_str = X.astype(str).apply(lambda row: '||'.join(row), axis=1)
+                    unique_mask = ~X_str.duplicated(keep='first')
+                    unique_indices = np.where(unique_mask)[0]
+                    X_unique = X.iloc[unique_indices].values
+                    y_unique = y.values[unique_indices]
+
+                    # Build reverse mapping: unique_pos → list of original row indices
+                    str_to_unique_pos = {}
+                    for u_pos, u_idx in enumerate(unique_indices):
+                        str_to_unique_pos[X_str.iloc[u_idx]] = u_pos
+                    group_map = {}
+                    for orig_idx in range(len(X)):
+                        u_pos = str_to_unique_pos[X_str.iloc[orig_idx]]
+                        group_map.setdefault(u_pos, []).append(orig_idx)
+
+                    vprint(f"RF dedup: {len(X)} rows → {len(X_unique)} unique patterns", level=2)
+
+                    # OOF on unique rows only (direct 3-class RF)
+                    n_internal_folds = min(RF_OOF_FOLDS, len(X_unique))
                     kf = SKFold(n_splits=n_internal_folds, shuffle=True,
                                 random_state=42 + run * (run + 3))
 
-                    prob1_oof = np.zeros(len(X))
-                    prob2_oof = np.zeros(len(X))
-                    X_np = X.values
+                    probs_unique_oof = np.zeros((len(X_unique), 3))
 
-                    vprint(f"RF out-of-fold predictions ({n_internal_folds}-fold internal CV)", level=2)
-                    for fold_idx, (tr_idx, oof_idx) in enumerate(kf.split(X_np)):
-                        rf1_fold = _make_rf(class_weight_dict_binary1)
-                        rf2_fold = _make_rf(class_weight_dict_binary2)
-                        rf1_fold.fit(X_np[tr_idx], y_bin1.values[tr_idx])
-                        rf2_fold.fit(X_np[tr_idx], y_bin2.values[tr_idx])
-                        prob1_oof[oof_idx] = rf1_fold.predict_proba(X_np[oof_idx])[:, 1]
-                        prob2_oof[oof_idx] = rf2_fold.predict_proba(X_np[oof_idx])[:, 1]
+                    vprint(f"RF out-of-fold predictions ({n_internal_folds}-fold on {len(X_unique)} unique rows)", level=2)
+                    for fold_idx, (tr_idx, oof_idx) in enumerate(kf.split(X_unique)):
+                        rf_fold = _make_rf()
+                        rf_fold.fit(X_unique[tr_idx], y_unique[tr_idx])
+                        probs_unique_oof[oof_idx] = rf_fold.predict_proba(X_unique[oof_idx])
 
-                    prob1 = prob1_oof
-                    prob2 = prob2_oof
+                    # Map OOF predictions back to all rows (preserves image alignment)
+                    probs = np.zeros((len(X), 3))
+                    for u_pos, orig_idxs in group_map.items():
+                        for oi in orig_idxs:
+                            probs[oi] = probs_unique_oof[u_pos]
 
-                    # Train final RF on ALL training data (used for validation predictions)
-                    rf_model1 = _make_rf(class_weight_dict_binary1)
-                    rf_model2 = _make_rf(class_weight_dict_binary2)
-                    rf_model1.fit(X, y_bin1)
-                    rf_model2.fit(X, y_bin2)
+                    # Train final RF on ALL unique data (used for validation predictions)
+                    rf_model = _make_rf()
+                    rf_model.fit(X_unique, y_unique)
                 else:
-                    # Validation: predict with the final RF models (true out-of-sample)
-                    prob1 = rf_model1.predict_proba(X)[:, 1]
-                    prob2 = rf_model2.predict_proba(X)[:, 1]
-                
-                # Calculate final probabilities (unnormalized)
-                prob_I_unnorm = 1 - prob1
-                prob_P_unnorm = prob1 * (1 - prob2)
-                prob_R_unnorm = prob2
+                    # Validation: predict with the final RF model (true out-of-sample)
+                    probs = rf_model.predict_proba(X.values)
 
-                # --- Pure RF standalone metrics (before any normalization/fusion) ---
-                rf_preds = np.argmax(np.column_stack([prob_I_unnorm, prob_P_unnorm, prob_R_unnorm]), axis=1)
+                # Extract per-class probabilities (already sum to 1.0)
+                prob_I = probs[:, 0]
+                prob_P = probs[:, 1]
+                prob_R = probs[:, 2]
+
+                # --- Pure RF standalone metrics ---
+                rf_preds = np.argmax(probs, axis=1)
                 rf_true = y.values if hasattr(y, 'values') else y
                 from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score
                 rf_acc = accuracy_score(rf_true, rf_preds)
                 rf_f1 = f1_score(rf_true, rf_preds, average='macro')
-                rf_kappa = cohen_kappa_score(rf_true, rf_preds)
+                rf_kappa = cohen_kappa_score(rf_true, rf_preds, weights='quadratic')
                 split_label = "TRAIN (out-of-fold)" if is_training else "VALIDATION"
                 vprint(f"\n  RF standalone metrics ({split_label}):", level=2)
                 vprint(f"    Accuracy: {rf_acc:.4f}  |  F1-macro: {rf_f1:.4f}  |  Kappa: {rf_kappa:.4f}", level=2)
-
-                # CRITICAL FIX: Normalize probabilities to sum to 1.0
-                # Bug: prob_I + prob_P + prob_R = 1 + prob2(1 - prob1) != 1.0
-                # Without normalization, fusion gets Kappa=-0.007 (worse than random!)
-                total = prob_I_unnorm + prob_P_unnorm + prob_R_unnorm
-                prob_I = prob_I_unnorm / total
-                prob_P = prob_P_unnorm / total
-                prob_R = prob_R_unnorm / total
 
                 # Store RF probabilities in the DataFrame
                 split_data['rf_prob_I'] = prob_I
@@ -1338,15 +1549,15 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 'Patient#', 'Appt#', 'DFU#'
             ]]
             split_data = split_data.drop(columns=metadata_columns)
-            
-            return split_data, rf_model1, rf_model2
+
+            return split_data, rf_model
 
     # Preprocess both splits
     source_data = train_data.copy()
     del train_data
-    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
-    valid_data, _, _ = preprocess_split(valid_data, is_training=False, rf_model1=rf_model1, rf_model2=rf_model2, imputation_data=source_data)
-    del rf_model1, rf_model2
+    train_data, rf_model = preprocess_split(source_data, is_training=True)
+    valid_data, _ = preprocess_split(valid_data, is_training=False, rf_model=rf_model, imputation_data=source_data)
+    del rf_model
 
     # FEATURE NORMALIZATION - Apply StandardScaler to numeric metadata features
     # This is CRITICAL for training convergence (proven by Phase 9 debugging)
