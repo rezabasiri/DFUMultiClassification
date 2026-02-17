@@ -139,7 +139,8 @@ class BayesianDatasetPolisher:
                  min_f1_threshold=0.25,
                  min_samples_per_class=30,
                  max_class_imbalance_ratio=5.0,
-                 min_minority_retention=0.90,
+                 min_minority_retention=0.85,
+                 min_total_retention=0.60,
                  device_mode='single',
                  custom_gpus=None,
                  min_gpu_memory=8.0,
@@ -164,9 +165,12 @@ class BayesianDatasetPolisher:
             min_f1_threshold: Hard constraint - reject if any class F1 < this (default: 0.25)
             min_samples_per_class: Hard constraint - reject if any class < this many samples (default: 30)
             max_class_imbalance_ratio: Hard constraint - reject if largest/smallest class ratio > this (default: 5.0)
-            min_minority_retention: Target retention for the minority (rarest) class (default: 0.90).
+            min_minority_retention: Target retention for the minority (rarest) class (default: 0.85).
                                     Other classes are adjusted to achieve a balanced dataset.
                                     Optimization skipped if this cannot be achieved.
+            min_total_retention: Minimum combined dataset retention at search space lower bounds (default: 0.60).
+                                If per-class balance bounds would result in <65% total retention, non-rarest
+                                class bounds are raised proportionally to meet this floor.
             device_mode: GPU mode - 'cpu', 'single', 'multi', or 'custom' (default: 'single')
             custom_gpus: List of GPU IDs for 'custom' mode (e.g., [0, 1])
             min_gpu_memory: Minimum GPU memory in GB (default: 8.0)
@@ -188,6 +192,7 @@ class BayesianDatasetPolisher:
         self.min_samples_per_class = min_samples_per_class
         self.max_class_imbalance_ratio = max_class_imbalance_ratio
         self.min_minority_retention = min_minority_retention
+        self.min_total_retention = min_total_retention
 
         # GPU configuration
         self.device_mode = device_mode
@@ -366,19 +371,17 @@ class BayesianDatasetPolisher:
         """
         Calculate appropriate batch size for Phase 2 based on weighted image modalities.
 
-        Phase 1 tests ONE modality at a time with GLOBAL_BATCH_SIZE.
-        Phase 2 tests MULTIPLE modalities simultaneously, requiring proportional reduction.
-
-        Modality weights (based on memory usage):
-        - depth_rgb: 1.0 (full RGB image)
-        - depth_map: 0.6 (single channel)
-        - thermal_map: 0.6 (single channel)
-        - thermal_rgb: 1.0 (full RGB image)
+        Controlled by PHASE2_BATCH_SIZE_ADJUSTMENT in production_config.py.
+        When disabled, uses GLOBAL_BATCH_SIZE as-is.
 
         Returns:
-            int: Adjusted batch size for Phase 2
+            int: Batch size for Phase 2
         """
-        from src.utils.production_config import GLOBAL_BATCH_SIZE
+        from src.utils.production_config import GLOBAL_BATCH_SIZE, PHASE2_BATCH_SIZE_ADJUSTMENT
+
+        if not PHASE2_BATCH_SIZE_ADJUSTMENT:
+            print(f"\n  Phase 2 batch size: {GLOBAL_BATCH_SIZE} (PHASE2_BATCH_SIZE_ADJUSTMENT = False)")
+            return GLOBAL_BATCH_SIZE
 
         # Define memory weights for each modality type
         MODALITY_WEIGHTS = {
@@ -389,15 +392,12 @@ class BayesianDatasetPolisher:
             'metadata': 0.0       # Negligible memory (exclude from calculation)
         }
 
-        # Calculate total weighted units
         image_modalities = [m for m in self.modalities if m != 'metadata']
         total_weight = sum(MODALITY_WEIGHTS.get(m, 1.0) for m in image_modalities)
 
         if total_weight == 0:
-            # Metadata only - use full batch size
             return GLOBAL_BATCH_SIZE
 
-        # Divide batch size by total weighted units to maintain similar memory usage
         adjusted_batch_size = max(16, int(GLOBAL_BATCH_SIZE / total_weight))
 
         print(f"\n{'='*80}")
@@ -411,7 +411,6 @@ class BayesianDatasetPolisher:
             print(f"    - {m}: {weight} units")
         print(f"  Total weight: {total_weight:.1f} units")
         print(f"  Adjusted batch size: {GLOBAL_BATCH_SIZE} / {total_weight:.1f} = {adjusted_batch_size}")
-        print(f"  Memory reduction: ~{total_weight:.1f}x less per batch")
         print(f"{'='*80}\n")
 
         return adjusted_batch_size
@@ -437,25 +436,24 @@ class BayesianDatasetPolisher:
 
         return None
 
-    def calculate_min_thresholds_for_retention(self, target_retention=0.90):
+    def calculate_min_thresholds_for_retention(self, target_retention=0.85):
         """
-        Calculate minimum thresholds for balanced dataset after filtering.
+        Calculate minimum thresholds using grid search over per-class retention constraints.
 
-        The target_retention is applied to the RAREST class (typically R).
-        Other classes get lower retention rates calculated to achieve perfect balance.
+        Uses a fast grid search (no training, just sample counting) to find the exact
+        valid region where:
+        - Rarest class keeps >= target_retention (default 85%)
+        - Other classes keep >= 50%
+        - Total dataset retention >= min_total_retention (default 60%)
 
-        Example with original counts I=203, P=368, R=76 and target_retention=0.90:
-        - R (rarest): keeps 90% → 68 samples (target for balance)
-        - I: needs to keep 68/203 = 33.5% to match R
-        - P: needs to keep 68/368 = 18.5% to match R
-
-        This ensures the filtered dataset is perfectly balanced.
+        The search space bounds are set to the min/max of the valid region,
+        and a pre-training retention check handles the few invalid corner cases.
 
         Args:
             target_retention: Fraction of samples to retain for the RAREST class (0.0-1.0)
 
         Returns:
-            dict: Minimum thresholds like {'I': 52, 'P': 55, 'R': 48} or None if impossible
+            dict: Minimum thresholds like {'I': 12, 'P': 14, 'R': 26} or None if impossible
             dict: Retention info with stats for each class
         """
         misclass_file = self._find_misclass_file()
@@ -479,91 +477,124 @@ class BayesianDatasetPolisher:
             'D' + best_matching['DFU#'].astype(str)
         )
         original_counts = best_matching.groupby('Healing Phase Abs')['Sample_ID'].nunique().to_dict()
-        # Also get total image counts per class (for display purposes)
         image_counts = best_matching.groupby('Healing Phase Abs').size().to_dict()
+        total_original = sum(original_counts.get(phase, 0) for phase in ['I', 'P', 'R'])
 
         # Get max misclass count per sample (handling duplicates)
         max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
 
-        # Find the rarest class and calculate balanced target counts
         rarest_class = min(original_counts, key=original_counts.get)
         rarest_count = original_counts[rarest_class]
-        target_count_balanced = int(np.ceil(rarest_count * target_retention))
 
-        print(f"\n  📊 Balancing Strategy:")
+        # Per-class minimum retention: rarest gets target_retention, others get 50%
+        min_class_retention = {}
+        for phase in ['I', 'P', 'R']:
+            if phase == rarest_class:
+                min_class_retention[phase] = target_retention
+            else:
+                min_class_retention[phase] = 0.50
+
+        print(f"\n  📊 Grid Search Strategy:")
         print(f"     Rarest class: {rarest_class} ({rarest_count} samples)")
-        print(f"     Target after {target_retention*100:.0f}% retention: {target_count_balanced} samples per class")
-
-        # Calculate target retention for each class to achieve balance
-        target_retentions = {}
+        print(f"     Per-class retention floors:")
         for phase in ['I', 'P', 'R']:
             orig = original_counts.get(phase, 0)
-            if orig > 0:
-                # How much of this class do we need to keep to match target_count_balanced?
-                target_retentions[phase] = min(1.0, target_count_balanced / orig)
-            else:
-                target_retentions[phase] = 1.0
+            min_keep = int(np.ceil(orig * min_class_retention[phase]))
+            print(f"       {phase}: >={min_class_retention[phase]*100:.0f}% ({min_keep}/{orig} samples)")
+        print(f"     Total retention floor: >={self.min_total_retention*100:.0f}% ({int(np.ceil(total_original * self.min_total_retention))}/{total_original} samples)")
 
-        print(f"     Calculated retention rates for balance:")
+        # Build per-class retention lookup tables (threshold -> retained count)
+        retention_tables = {}
+        per_class_bounds = {}
         for phase in ['I', 'P', 'R']:
-            print(f"       {phase}: {target_retentions[phase]*100:.1f}% of {original_counts.get(phase, 0)} → ~{int(original_counts.get(phase, 0) * target_retentions[phase])} samples")
+            orig = original_counts.get(phase, 0)
+            counts = max_misclass[max_misclass['True_Label'] == phase]['Misclass_Count'].values
+            not_in_misclass = orig - len(counts)
 
-        min_thresholds = {}
+            table = {}
+            max_t = int(counts.max()) + 1 if len(counts) > 0 else 2
+            for t in range(1, max_t + 1):
+                table[t] = int(np.sum(counts < t)) + not_in_misclass
+            retention_tables[phase] = table
+
+            # Find per-class threshold range (satisfying per-class retention floor)
+            min_keep = int(np.ceil(orig * min_class_retention[phase]))
+            low = None
+            for t in range(1, max_t + 1):
+                if table[t] >= min_keep:
+                    low = t
+                    break
+            if low is None:
+                low = max_t
+            per_class_bounds[phase] = (low, max_t)
+
+        upper_bound = max(b[1] for b in per_class_bounds.values())
+
+        # Grid search: find all combinations meeting total retention floor
+        target_total_samples = int(np.ceil(total_original * self.min_total_retention))
+        valid_combos = []
+        grid_size = 1
+        for phase in ['I', 'P', 'R']:
+            grid_size *= (per_class_bounds[phase][1] - per_class_bounds[phase][0] + 1)
+
+        for t_I in range(per_class_bounds['I'][0], per_class_bounds['I'][1] + 1):
+            for t_P in range(per_class_bounds['P'][0], per_class_bounds['P'][1] + 1):
+                for t_R in range(per_class_bounds['R'][0], per_class_bounds['R'][1] + 1):
+                    total_ret = (retention_tables['I'].get(t_I, 0) +
+                                 retention_tables['P'].get(t_P, 0) +
+                                 retention_tables['R'].get(t_R, 0))
+                    if total_ret >= target_total_samples:
+                        valid_combos.append((t_I, t_P, t_R, total_ret))
+
+        print(f"\n  Grid search: {grid_size} combinations tested")
+        print(f"  Valid (>={self.min_total_retention*100:.0f}% total retention): {len(valid_combos)}")
+
+        if not valid_combos:
+            print(f"\n  ❌ No valid threshold combinations found!")
+            return None, None
+
+        # Extract actual valid ranges from grid search results
+        min_thresholds = {
+            'I': min(v[0] for v in valid_combos),
+            'P': min(v[1] for v in valid_combos),
+            'R': min(v[2] for v in valid_combos),
+        }
+
+        box_total = 1
+        for phase in ['I', 'P', 'R']:
+            box_total *= (upper_bound - min_thresholds[phase] + 1)
+        invalid_in_box = box_total - len(valid_combos)
+
+        print(f"  Valid ranges: I=[{min_thresholds['I']},{upper_bound}], "
+              f"P=[{min_thresholds['P']},{upper_bound}], "
+              f"R=[{min_thresholds['R']},{upper_bound}]")
+        if invalid_in_box > 0:
+            print(f"  Invalid corner cases in box: {invalid_in_box}/{box_total} ({invalid_in_box/box_total*100:.1f}%)")
+            print(f"  (Pre-training retention check will skip these)")
+
+        lowest = min(valid_combos, key=lambda v: v[3])
+        print(f"  Lowest valid retention: I={lowest[0]}, P={lowest[1]}, R={lowest[2]} "
+              f"-> {lowest[3]}/{total_original} ({lowest[3]/total_original*100:.1f}%)")
+
+        # Build retention_info for display
         retention_info = {}
-
         for phase in ['I', 'P', 'R']:
-            phase_data = max_misclass[max_misclass['True_Label'] == phase]
-            original_count = original_counts.get(phase, 0)
-            phase_target_retention = target_retentions[phase]
+            orig = original_counts.get(phase, 0)
+            counts = max_misclass[max_misclass['True_Label'] == phase]['Misclass_Count'].values
+            t = min_thresholds[phase]
+            not_in_misclass = orig - len(counts)
+            retained = int(np.sum(counts < t)) + not_in_misclass
+            retention_pct = retained / orig * 100 if orig > 0 else 0
 
-            if original_count == 0 or len(phase_data) == 0:
-                min_thresholds[phase] = 1  # Default to 1 if no data
-                retention_info[phase] = {
-                    'original': 0,
-                    'min_threshold': 1,
-                    'retained': 0,
-                    'retention_pct': 0.0,
-                    'target_retention': phase_target_retention
-                }
-                continue
-
-            counts = phase_data['Misclass_Count'].values
-            min_to_keep = int(np.ceil(original_count * phase_target_retention))
-
-            # Find the minimum threshold that keeps at least min_to_keep samples
-            # Threshold T keeps samples where count < T, so we need: original - (count >= T) >= min_to_keep
-            # Equivalently: (count >= T) <= original - min_to_keep = max_to_exclude
-            max_to_exclude = original_count - min_to_keep
-
-            # Sort counts descending - the first max_to_exclude samples can be excluded
-            sorted_counts = np.sort(counts)[::-1]
-
-            if max_to_exclude <= 0:
-                # Cannot exclude any samples - need threshold higher than max count
-                min_threshold = int(counts.max()) + 1
-            elif max_to_exclude >= len(sorted_counts):
-                # Can exclude all samples - threshold of 1 would work but let's be reasonable
-                min_threshold = int(counts.min())
-            else:
-                # The threshold should be: sorted_counts[max_to_exclude - 1] + 1
-                # This excludes exactly max_to_exclude samples (those with highest counts)
-                # But we want AT LEAST target_retention, so threshold >= that value
-                min_threshold = int(sorted_counts[max_to_exclude - 1]) + 1
-
-            # Calculate actual retention at this threshold
-            retained = np.sum(counts < min_threshold)
-            retention_pct = retained / original_count * 100 if original_count > 0 else 0
-
-            min_thresholds[phase] = min_threshold
             retention_info[phase] = {
-                'original': original_count,
+                'original': orig,
                 'original_images': image_counts.get(phase, 0),
-                'min_threshold': min_threshold,
+                'min_threshold': t,
                 'retained': retained,
                 'retention_pct': retention_pct,
-                'target_retention': phase_target_retention,
-                'count_range': (int(counts.min()), int(counts.max())),
-                'count_median': float(np.median(counts))
+                'target_retention': min_class_retention[phase],
+                'count_range': (int(counts.min()), int(counts.max())) if len(counts) > 0 else (0, 0),
+                'count_median': float(np.median(counts)) if len(counts) > 0 else 0.0
             }
 
         return min_thresholds, retention_info
@@ -1785,7 +1816,7 @@ class BayesianDatasetPolisher:
             return True, None
 
         # Define search space with automatic minimum bounds
-        # Minimum = threshold to keep 90% retention
+        # Minimum = threshold ensuring ≥85% rarest-class retention AND ≥65% total retention
         # Maximum = max observed misclass count + 1 (no filtering at upper bound)
         max_count_overall = max(info['count_range'][1] for info in retention_info.values())
         upper_bound = max_count_overall + 1
@@ -1797,12 +1828,16 @@ class BayesianDatasetPolisher:
         ]
 
         print(f"\n{'='*70}")
-        print(f"SEARCH SPACE (auto-calculated for balanced dataset)")
+        print(f"SEARCH SPACE (auto-calculated, {self.min_total_retention*100:.0f}% total retention floor)")
         print(f"{'='*70}")
         for phase in ['P', 'I', 'R']:
             info = retention_info[phase]
             class_target = info.get('target_retention', target_retention)
             print(f"  {phase}: {min_thresholds[phase]}-{upper_bound} (min threshold for {class_target*100:.1f}% retention)")
+        # Show combined retention at lower bounds
+        total_orig = sum(retention_info[p]['original'] for p in ['I', 'P', 'R'])
+        total_at_lower = sum(retention_info[p]['retained'] for p in ['I', 'P', 'R'])
+        print(f"  Combined retention at lower bounds: {total_at_lower}/{total_orig} ({total_at_lower/total_orig*100:.1f}%)")
 
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
@@ -1844,8 +1879,26 @@ class BayesianDatasetPolisher:
             print(f"Dataset after filtering: {filtered_size}/{self.original_dataset_size} samples " +
                   f"({filtered_size/self.original_dataset_size*100:.1f}%)")
 
-            # No hard rejection - let penalty guide the optimizer
-            # Train and evaluate (even if below min_size, penalty will handle it)
+            # Pre-training retention check: skip expensive training if below total retention floor
+            retention_ratio = filtered_size / self.original_dataset_size if self.original_dataset_size else 1.0
+            if retention_ratio < self.min_total_retention:
+                print(f"⏭️  Skipping training: {retention_ratio*100:.1f}% retention "
+                      f"< {self.min_total_retention*100:.0f}% floor")
+                # Smooth penalty proportional to how far below the floor (GP can learn from this)
+                shortfall = self.min_total_retention - retention_ratio
+                penalty_score = -5.0 * (1.0 + shortfall * 10)
+                self.optimization_history.append({
+                    'evaluation': eval_num,
+                    'thresholds': threshold_dict,
+                    'score': penalty_score,
+                    'filtered_size': filtered_size,
+                    'rejected': True,
+                    'rejection_reason': f'Below {self.min_total_retention*100:.0f}% retention floor'
+                })
+                self._save_checkpoint()
+                return -penalty_score
+
+            # Train and evaluate
             metrics = self.train_with_thresholds(threshold_dict, eval_num=eval_num)
 
             if metrics is None:
@@ -1968,14 +2021,28 @@ class BayesianDatasetPolisher:
                 self.best_score = checkpoint['best_score']
 
             # Build x0, y0 for warm-starting gp_minimize
-            # search_space order is [P, I, R]
+            # search_space order is [P, I, R] — must match search_space dimensions
+            # Filter out points outside current search space bounds (bounds may have changed)
             x0 = []
             y0 = []
+            skipped = 0
             for entry in history:
                 if not entry.get('rejected') and not entry.get('failed'):
                     t = entry['thresholds']
-                    x0.append([t['P'], t['I'], t['R']])
-                    y0.append(-entry['score'])  # negate: gp_minimize minimizes
+                    point = [t['P'], t['I'], t['R']]
+                    # Check if point is within current search space bounds
+                    in_bounds = all(
+                        dim.low <= val <= dim.high
+                        for val, dim in zip(point, search_space)
+                    )
+                    if in_bounds:
+                        x0.append(point)
+                        y0.append(-entry['score'])
+                    else:
+                        skipped += 1
+
+            if skipped > 0:
+                print(f"   Filtered out {skipped} prior evaluations (outside new search space bounds)")
 
             if not x0:
                 x0, y0 = None, None
@@ -2016,6 +2083,7 @@ class BayesianDatasetPolisher:
         if x0 and y0:
             gp_kwargs['x0'] = x0
             gp_kwargs['y0'] = y0
+            gp_kwargs['n_initial_points'] = 0  # Skip random phase — prior points seed the GP
 
         result = gp_minimize(**gp_kwargs)
 
@@ -2521,12 +2589,15 @@ GPU Configuration:
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
 
-    parser.add_argument('--min-minority-retention', type=float, default=0.90,
-                        help='Target retention for the MINORITY (rarest) class (default: 0.90). '
+    parser.add_argument('--min-minority-retention', type=float, default=0.85,
+                        help='Target retention for the MINORITY (rarest) class (default: 0.85). '
                              'Other classes get lower retention rates calculated to achieve '
-                             'a perfectly balanced dataset. For example, with I=203, P=368, R=76 '
-                             'and 90%% retention: R keeps 68 samples, I keeps 68/203=33.5%%, '
-                             'P keeps 68/368=18.5%%. Optimization is skipped if this cannot be achieved.')
+                             'a balanced dataset. Optimization is skipped if this cannot be achieved.')
+
+    parser.add_argument('--min-total-retention', type=float, default=0.60,
+                        help='Minimum combined dataset retention at search space lower bounds (default: 0.60). '
+                             'If per-class balance bounds would result in less total retention, non-rarest '
+                             'class bounds are raised proportionally to meet this floor.')
 
     # GPU configuration flags
     parser.add_argument('--device-mode', type=str, choices=['cpu', 'single', 'multi', 'custom'],
@@ -2564,6 +2635,7 @@ GPU Configuration:
         phase2_data_percentage=args.phase2_data_percentage,
         min_dataset_fraction=args.min_dataset_fraction,
         min_minority_retention=args.min_minority_retention,
+        min_total_retention=args.min_total_retention,
         device_mode=args.device_mode,
         custom_gpus=args.custom_gpus,
         min_gpu_memory=args.min_gpu_memory,

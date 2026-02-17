@@ -19,5 +19,5 @@
   },
   "phase1_baseline_modality": "metadata+depth_rgb+thermal_rgb+thermal_map",
   "command": "python src/main.py --mode search --cv_folds 5 --threshold_I 14 --threshold_P 15 --threshold_R 27 --device-mode multi",
-  "timestamp": "2026-02-17T18:51:39.150989"
+  "timestamp": "2026-02-17T22:31:05.283503"
 }

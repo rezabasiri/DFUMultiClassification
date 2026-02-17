@@ -26,7 +26,8 @@ Categories:
 
 # Core training hyperparameters
 IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 16  # Total batch size across all GPU replicas (16 per GPU; reduced from 600 to get ~17 steps/epoch with ~516 training samples instead of 1)
+GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas (16 per GPU; reduced from 600 to get ~17 steps/epoch with ~516 training samples instead of 1)
+PHASE2_BATCH_SIZE_ADJUSTMENT = False  # Auto-adjust batch size in Phase 2 based on modality count/weight (can reduce batch size too aggressively)
 N_EPOCHS = 200  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
