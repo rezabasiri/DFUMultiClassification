@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold2.log
-[LOG] Started at: 2026-02-17 21:56:20
+[LOG] Started at: 2026-02-19 06:24:28
 
 
 ================================================================================
@@ -22,7 +22,7 @@ Using MirroredStrategy (2 GPUs) with NCCL
 ================================================================================
 
 
-Batch size per replica: 8 (global batch size: 16, replicas: 2)
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
@@ -37,8 +37,8 @@ Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
 Image size: 256x256
-Batch size: 16
-  Per-GPU batch: 8 (16 / 2 GPUs)
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
 Max epochs: 200 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
@@ -52,51 +52,51 @@ Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
   Core data mode: False
-  Thresholds: I=7, P=4, R=27
+  Thresholds: I=19, P=21, R=26
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=7, P=4, R=27
+Thresholds: I=19, P=21, R=26
 
 Excluded samples per class:
-  Class I: 128 samples
-  Class P: 295 samples
-  Class R: 4 samples
+  Class I: 61 samples
+  Class P: 91 samples
+  Class R: 8 samples
 
-Total unique samples to exclude: 427
+Total unique samples to exclude: 160
 
-Dataset size (rows): 3108 -> 1036 (33.3%)
-Unique samples: 648 -> 221 (removed 427)
+Dataset size (rows): 3108 -> 2331 (75.0%)
+Unique samples: 648 -> 488 (removed 160)
 
 Class distribution after filtering:
-  Class I: 321 rows
-  Class P: 401 rows
-  Class R: 314 rows
+  Class I: 607 rows
+  Class P: 1428 rows
+  Class R: 296 rows
 ============================================================
 
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-Epoch 43: early stopping
-Restoring model weights from the end of the best epoch: 23.
-Epoch 29: early stopping
-Restoring model weights from the end of the best epoch: 9.
-Epoch 43: early stopping
-Restoring model weights from the end of the best epoch: 23.
-Epoch 31: early stopping
-Restoring model weights from the end of the best epoch: 11.
+Epoch 47: early stopping
+Restoring model weights from the end of the best epoch: 27.
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 10.
+Epoch 40: early stopping
+Restoring model weights from the end of the best epoch: 20.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
 
 Run 2 Results for metadata+depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.84      0.91      0.87       106
-           P       0.92      0.74      0.82        96
-           R       0.74      0.82      0.78       102
+           I       0.59      0.67      0.63       186
+           P       0.78      0.77      0.78       430
+           R       0.75      0.60      0.67        88
 
-    accuracy                           0.83       304
-   macro avg       0.84      0.82      0.82       304
-weighted avg       0.83      0.83      0.83       304
+    accuracy                           0.72       704
+   macro avg       0.71      0.68      0.69       704
+weighted avg       0.73      0.72      0.72       704
 
-Cohen's Kappa: 0.7264
+Cohen's Kappa: 0.5875
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
@@ -106,9 +106,9 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: metadata+depth_rgb+depth_map+thermal_map
-  Accuracy: 0.8103 ± 0.0153
-  F1 Macro: 0.8102
-  Kappa: 0.7318
+  Accuracy: 0.6878 ± 0.0352
+  F1 Macro: 0.6558
+  Kappa: 0.5380
 
 Total combinations tested: 1
 ================================================================================

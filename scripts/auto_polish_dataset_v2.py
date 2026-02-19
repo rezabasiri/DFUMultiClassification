@@ -229,31 +229,18 @@ class BayesianDatasetPolisher:
         """Save current optimization state to checkpoint file after each evaluation."""
         checkpoint_path = self._get_checkpoint_path()
 
-        def convert_to_native(obj):
-            """Recursively convert numpy types to native Python types."""
-            if isinstance(obj, dict):
-                return {k: convert_to_native(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_to_native(item) for item in obj]
-            elif isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            else:
-                return obj
+        convert = self._convert_to_native
 
         checkpoint = {
             'timestamp': datetime.now().isoformat(),
             'completed_evaluations': len(self.optimization_history),
             'total_planned_evaluations': self.phase2_n_evaluations,
-            'best_thresholds': convert_to_native(self.best_thresholds),
+            'best_thresholds': convert(self.best_thresholds),
             'best_score': float(self.best_score) if self.best_score != -np.inf else None,
             'best_metrics': None,
-            'phase1_baseline': convert_to_native(self.phase1_baseline) if self.phase1_baseline else None,
+            'phase1_baseline': convert(self.phase1_baseline) if self.phase1_baseline else None,
             'original_dataset_size': int(self.original_dataset_size) if self.original_dataset_size else None,
-            'optimization_history': convert_to_native(self.optimization_history),
+            'optimization_history': convert(self.optimization_history),
             'log_file': str(self.phase2_log_file) if hasattr(self, 'phase2_log_file') else None
         }
 
@@ -261,7 +248,7 @@ class BayesianDatasetPolisher:
         if self.best_thresholds:
             for entry in reversed(self.optimization_history):
                 if entry.get('thresholds') == self.best_thresholds and 'metrics' in entry:
-                    checkpoint['best_metrics'] = convert_to_native(entry['metrics'])
+                    checkpoint['best_metrics'] = convert(entry['metrics'])
                     break
 
         # Write atomically (write to temp, then rename)
@@ -273,6 +260,22 @@ class BayesianDatasetPolisher:
         # Also update best_thresholds.json when we have a best
         if self.best_thresholds:
             self._save_best_thresholds(checkpoint.get('best_metrics'))
+
+    @classmethod
+    def _convert_to_native(cls, obj):
+        """Recursively convert numpy types to native Python types for JSON serialization."""
+        if isinstance(obj, dict):
+            return {k: cls._convert_to_native(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [cls._convert_to_native(item) for item in obj]
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return obj
 
     def _save_best_thresholds(self, best_metrics=None):
         """Save current best thresholds to a simple JSON file."""
@@ -292,6 +295,8 @@ class BayesianDatasetPolisher:
             ),
             'timestamp': datetime.now().isoformat()
         }
+
+        best_file = self._convert_to_native(best_file)
 
         tmp_path = best_path.with_suffix('.tmp')
         with open(tmp_path, 'w') as f:
@@ -2461,30 +2466,16 @@ class BayesianDatasetPolisher:
         output_paths = get_output_paths(self.result_dir)
         results_file = os.path.join(output_paths['misclassifications'], 'bayesian_optimization_results.json')
 
-        # Convert numpy types to native Python types for JSON serialization
-        def convert_to_native(obj):
-            """Recursively convert numpy types to native Python types."""
-            if isinstance(obj, dict):
-                return {k: convert_to_native(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_to_native(item) for item in obj]
-            elif isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            else:
-                return obj
+        convert = self._convert_to_native
 
         results = {
             'timestamp': datetime.now().isoformat(),
             'phase1_n_runs': self.phase1_n_runs,
             'phase2_n_evaluations': self.phase2_n_evaluations,
-            'best_thresholds': convert_to_native(self.best_thresholds),
+            'best_thresholds': convert(self.best_thresholds),
             'best_score': float(self.best_score),
-            'phase1_baseline': convert_to_native(self.phase1_baseline) if self.phase1_baseline else None,
-            'optimization_history': convert_to_native(self.optimization_history),
+            'phase1_baseline': convert(self.phase1_baseline) if self.phase1_baseline else None,
+            'optimization_history': convert(self.optimization_history),
             'original_dataset_size': int(self.original_dataset_size) if self.original_dataset_size else None
         }
 
@@ -2503,7 +2494,7 @@ class BayesianDatasetPolisher:
             best_metrics = None
             for entry in reversed(self.optimization_history):
                 if entry.get('thresholds') == self.best_thresholds and 'metrics' in entry:
-                    best_metrics = convert_to_native(entry['metrics'])
+                    best_metrics = convert(entry['metrics'])
                     break
             self._save_best_thresholds(best_metrics)
 

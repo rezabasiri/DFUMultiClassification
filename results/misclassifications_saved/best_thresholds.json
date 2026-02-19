@@ -1,23 +1,22 @@
 {
   "thresholds": {
-    "I": 14,
-    "P": 15,
-    "R": 27
+    "P": 16,
+    "I": 18,
+    "R": 26
   },
-  "score": 0.17026196607362712,
+  "score": 0.23913207533435837,
   "metrics": {
-    "accuracy": 0.6728666666666667,
-    "macro_f1": 0.6421333333333333,
-    "weighted_f1": 0.6766666666666666,
-    "kappa": 0.518,
     "f1_per_class": {
-      "I": 0.6533333333333333,
-      "P": 0.6999999999999998,
-      "R": 0.5533333333333333
+      "I": 0.7524188663416935,
+      "P": 0.7613996746334273,
+      "R": 0.5932052353104985
     },
-    "min_f1": 0.5533333333333333
+    "macro_f1": 0.702341258761873,
+    "weighted_f1": 0.7430150183343033,
+    "kappa": 0.64344182450247,
+    "accuracy": 0.7394255050505051
   },
   "phase1_baseline_modality": "metadata+depth_rgb+thermal_rgb+thermal_map",
-  "command": "python src/main.py --mode search --cv_folds 5 --threshold_I 14 --threshold_P 15 --threshold_R 27 --device-mode multi",
-  "timestamp": "2026-02-17T22:31:05.283503"
+  "command": "python src/main.py --mode search --cv_folds 5 --threshold_I 18 --threshold_P 16 --threshold_R 26 --device-mode multi",
+  "timestamp": "2026-02-19T07:17:00.856989"
 }

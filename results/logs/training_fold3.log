@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold3.log
-[LOG] Started at: 2026-02-17 22:15:32
+[LOG] Started at: 2026-02-19 06:49:57
 
 
 ================================================================================
@@ -22,7 +22,7 @@ Using MirroredStrategy (2 GPUs) with NCCL
 ================================================================================
 
 
-Batch size per replica: 8 (global batch size: 16, replicas: 2)
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
 
 ================================================================================
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
@@ -37,8 +37,8 @@ Cross-validation: 3-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
 Image size: 256x256
-Batch size: 16
-  Per-GPU batch: 8 (16 / 2 GPUs)
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
 Max epochs: 200 (with early stopping)
 Modality search mode: custom
 Will test 1 custom combinations
@@ -52,51 +52,51 @@ Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
   Core data mode: False
-  Thresholds: I=7, P=4, R=27
+  Thresholds: I=19, P=21, R=26
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=7, P=4, R=27
+Thresholds: I=19, P=21, R=26
 
 Excluded samples per class:
-  Class I: 128 samples
-  Class P: 295 samples
-  Class R: 4 samples
+  Class I: 61 samples
+  Class P: 91 samples
+  Class R: 8 samples
 
-Total unique samples to exclude: 427
+Total unique samples to exclude: 160
 
-Dataset size (rows): 3108 -> 1036 (33.3%)
-Unique samples: 648 -> 221 (removed 427)
+Dataset size (rows): 3108 -> 2331 (75.0%)
+Unique samples: 648 -> 488 (removed 160)
 
 Class distribution after filtering:
-  Class I: 321 rows
-  Class P: 401 rows
-  Class R: 314 rows
+  Class I: 607 rows
+  Class P: 1428 rows
+  Class R: 296 rows
 ============================================================
 
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-Epoch 24: early stopping
-Restoring model weights from the end of the best epoch: 4.
-Epoch 33: early stopping
-Restoring model weights from the end of the best epoch: 13.
-Epoch 29: early stopping
-Restoring model weights from the end of the best epoch: 9.
+Epoch 50: early stopping
+Restoring model weights from the end of the best epoch: 30.
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 21.
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 24.
 Epoch 21: early stopping
 Restoring model weights from the end of the best epoch: 1.
 
 Run 3 Results for metadata+depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.63      0.96      0.76        75
-           P       0.87      0.65      0.74       140
-           R       0.78      0.74      0.76        89
+           I       0.69      0.89      0.78       183
+           P       0.86      0.73      0.79       486
+           R       0.44      0.52      0.47        99
 
-    accuracy                           0.75       304
-   macro avg       0.76      0.78      0.75       304
-weighted avg       0.78      0.75      0.75       304
+    accuracy                           0.74       768
+   macro avg       0.66      0.71      0.68       768
+weighted avg       0.76      0.74      0.75       768
 
-Cohen's Kappa: 0.6964
+Cohen's Kappa: 0.6303
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
@@ -106,9 +106,9 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: metadata+depth_rgb+depth_map+thermal_map
-  Accuracy: 0.7913 ± 0.0297
-  F1 Macro: 0.7916
-  Kappa: 0.7200
+  Accuracy: 0.7059 ± 0.0385
+  F1 Macro: 0.6640
+  Kappa: 0.5687
 
 Total combinations tested: 1
 ================================================================================
