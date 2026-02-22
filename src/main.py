@@ -2468,6 +2468,8 @@ Configuration:
         help="""Number of cross-validation folds with patient-level splitting.
         Each fold uses a different subset as validation.
         All data is validated exactly once across all folds.
+        When > 1, each fold runs in a separate subprocess automatically
+        (prevents TF/CUDA memory leaks). Do NOT add --fold manually.
         Set to 0 or 1 for single train/val split (no cross-validation).
         Examples: 0 (single split), 3 (3-fold CV), 5 (5-fold CV)
         (default: 3)"""
@@ -2567,12 +2569,16 @@ Configuration:
         "--fold",
         type=int,
         default=None,
-        help="""Run only the specified fold (1-indexed). When set, only the
-        specified fold is trained; other folds' results are loaded from disk.
-        This enables subprocess isolation per fold to prevent resource
-        accumulation (thread/memory leaks in TF/CUDA across folds).
-        Example: --fold 1 (run only fold 1), --fold 3 (run only fold 3)
-        (default: None - run all folds in a single process)"""
+        help="""FOR INTERNAL/SUBPROCESS USE. Run only the specified fold (1-indexed).
+        DO NOT set this manually for normal training runs.
+
+        When --fold is NOT set (default) and cv_folds > 1, the orchestrator
+        automatically spawns each fold as a separate subprocess with --fold N.
+        This prevents TF/CUDA resource accumulation across folds.
+
+        Normal usage: just set --cv_folds 3 (orchestrator handles the rest)
+        Manual single fold (advanced): --fold 2 --cv_folds 3 --resume_mode auto
+        (default: None - orchestrator auto-spawns subprocesses per fold)"""
     )
 
     # Misclassification filtering args (used by auto_polish_dataset_v2.py)
