@@ -1874,9 +1874,17 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities, filtered_df=filtered_df)
         # Apply misclassification filtering if configured (from production_config)
         if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
-            thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
-            from src.evaluation.metrics import filter_frequent_misclassifications
-            data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
+            if any(t is None for t in [THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
+                print("\n" + "!" * 80)
+                print("!!!  WARNING: USE_CORE_DATA is enabled but thresholds are not fully set!")
+                print(f"!!!  Current: I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}")
+                print("!!!  Set all thresholds in production_config.py or via --threshold_I/P/R")
+                print("!!!  CONTINUING WITH UNFILTERED DATASET...")
+                print("!" * 80 + "\n")
+            else:
+                thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
+                from src.evaluation.metrics import filter_frequent_misclassifications
+                data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
         if data_percentage < 100:
             data = data.sample(frac=data_percentage / 100, random_state=789).reset_index(drop=True)  # Phase 7a: seed 789
         vprint(f"Using {data_percentage}% of the data: {len(data)} samples")

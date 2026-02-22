@@ -193,12 +193,15 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 # Misclassification filtering thresholds (for core-data mode)
 # Lower threshold = exclude more misclassified samples
 # Set to None to use auto-optimized values from bayesian_optimization_results.json
-THRESHOLD_I = None  # Inflammatory class threshold
-THRESHOLD_P = None  # Proliferative class threshold
-THRESHOLD_R = None  # Remodeling class threshold (typically higher to protect minority)
+THRESHOLD_I = 18  # Inflammatory class threshold (Bayesian-optimized)
+THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
+THRESHOLD_R = 26  # Remodeling class threshold (higher to protect minority class)
 
 # Core dataset mode (uses optimized thresholds from auto_polish_dataset_v2.py)
-USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
+# When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
+# Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
+# If CSV missing: prints warning and continues with unfiltered data
+USE_CORE_DATA = True  # Use Bayesian-optimized core dataset with misclassification filtering
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)
@@ -407,17 +410,26 @@ PROGRESS_RETRY_DELAY = 0.4  # Delay between retries (seconds)
 # =============================================================================
 
 # All available modalities
-ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+# ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
 
 # Search mode: 'all' tests all 31 combinations, 'custom' uses INCLUDED_COMBINATIONS
-MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
+MODALITY_SEARCH_MODE = 'all'  # Options: 'all', 'custom'
 
 # Combinations to exclude (list of tuples)
 EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),  # Temporary: Phase 2 evaluation
+    ('metadata',),
+    ('depth_rgb',),
+    ('depth_map',),
+    ('thermal_map',),
+    ('depth_rgb', 'depth_map', 'thermal_map',),
+    ('metadata', 'depth_rgb',),
+    ('metadata', 'thermal_map',),
+    ('metadata', 'depth_map',),
+    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
