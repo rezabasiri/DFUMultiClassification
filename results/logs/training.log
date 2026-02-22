@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
-[LOG] Started at: 2026-02-19 05:57:43
+[LOG] Started at: 2026-02-22 01:35:24
 
 
 ================================================================================
@@ -10,7 +10,7 @@ SUBPROCESS ISOLATION: Running 3 folds in separate processes
 
 ================================================================================
 FOLD 1/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100 --verbosity 0 --threshold_I 19 --threshold_P 21 --threshold_R 26 --device-mode multi --min-gpu-memory 8.0 --fold 1 --resume_mode fresh
+Command: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 2 --cv_folds 3 --fold 1 --resume_mode fresh
 ================================================================================
 
 
@@ -18,7 +18,7 @@ Fold 1/3 completed successfully.
 
 ================================================================================
 FOLD 2/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100 --verbosity 0 --threshold_I 19 --threshold_P 21 --threshold_R 26 --device-mode multi --min-gpu-memory 8.0 --fold 2 --resume_mode auto
+Command: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 2 --cv_folds 3 --fold 2 --resume_mode auto
 ================================================================================
 
 
@@ -26,7 +26,7 @@ Fold 2/3 completed successfully.
 
 ================================================================================
 FOLD 3/3 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 3 --data_percentage 100 --verbosity 0 --threshold_I 19 --threshold_P 21 --threshold_R 26 --device-mode multi --min-gpu-memory 8.0 --fold 3 --resume_mode auto
+Command: /venv/multimodal/bin/python src/main.py --data_percentage 100 --device-mode multi --verbosity 2 --cv_folds 3 --fold 3 --resume_mode auto
 ================================================================================
 
 
