@@ -81,9 +81,10 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
 
     Keras 3 Compatibility Note:
     - In Keras 3, model/layer names must be globally unique within a Model graph
-    - When using the same backbone for multiple modalities, we must create separate instances
-    - Solution: Wrap each backbone model call in a Lambda layer with modality-specific name
-      This prevents the sub-model name from being registered in the parent model's namespace
+    - When using the same backbone for multiple modalities, we create separate instances
+      with modality-specific names to avoid conflicts
+    - CRITICAL: The backbone is called directly (not wrapped in Lambda) so its weights
+      are visible to the parent model's optimizer and actually train
     """
     # Cache to store loaded base models (shared weights, separate instances per modality)
     if not hasattr(create_efficientnet_branch, '_model_cache'):
@@ -104,25 +105,37 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
     cache_key = f"{modality}_{backbone_name}"
 
     if cache_key not in create_efficientnet_branch._model_cache:
+        # Use modality-specific name to avoid Keras 3 name conflicts
+        model_name = f'{modality}_{backbone_name.lower()}'
+
         # Try to load local weights, fall back to ImageNet
         local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
         if os.path.exists(local_weights_path):
             vprint(f"Loading {backbone_name} from local weights", level=2)
-            # Create model WITHOUT input_tensor - creates standalone model
             base_model = EfficientNetClass(
                 weights=None,
                 include_top=False,
-                pooling='avg'
+                pooling='avg',
+                name=model_name
             )
             base_model.load_weights(local_weights_path)
         else:
             vprint(f"Loading {backbone_name} from ImageNet", level=2)
-            # Create model WITHOUT input_tensor - creates standalone model
-            base_model = EfficientNetClass(
+            # Load with default name first (Keras uses model name in weights download URL)
+            # then create a new instance with modality-specific name and transfer weights
+            _temp_model = EfficientNetClass(
                 weights='imagenet',
                 include_top=False,
                 pooling='avg'
             )
+            base_model = EfficientNetClass(
+                weights=None,
+                include_top=False,
+                pooling='avg',
+                name=model_name
+            )
+            base_model.set_weights(_temp_model.get_weights())
+            del _temp_model
 
         # Cache this model instance for this modality
         create_efficientnet_branch._model_cache[cache_key] = base_model
@@ -131,13 +144,9 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
 
     base_model.trainable = True
 
-    # Wrap the model call in a Lambda layer with unique name
-    # This prevents the sub-model's name from conflicting in the parent model
-    # The Lambda layer acts as a named wrapper that applies the model
-    x = Lambda(
-        lambda img: base_model(img),
-        name=f'{modality}_{backbone_name.lower()}_wrapper'
-    )(image_input)
+    # Call backbone directly — exposes all backbone weights to the parent model's optimizer
+    # (Lambda wrapping hid backbone weights, causing only projection head to train)
+    x = base_model(image_input)
 
     vprint(f"{modality} using {backbone_name}: {len(base_model.trainable_weights)} trainable weights", level=2)
 

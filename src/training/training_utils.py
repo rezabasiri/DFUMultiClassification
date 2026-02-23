@@ -825,7 +825,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                     'modalities': modality_list,
                     'batch_size': GLOBAL_BATCH_SIZE,
                     'max_epochs': N_EPOCHS,
-                    'image_size': IMAGE_SIZE
+                    'image_size': IMAGE_SIZE,
+                    'ordinal_weight': FOCAL_ORDINAL_WEIGHT,
                 }
             }
     else:
@@ -1197,7 +1198,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                     vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_value]}", level=2)
                     vprint(f"Class weights ({TRAINING_CLASS_WEIGHT_MODE}): {class_weights_dict} or {[round(w, 3) for w in class_weights]}", level=2)
-                    
+
+                    # Bake class weights into sample_weight on the dataset BEFORE distribution
+                    # (class_weight= in model.fit() is incompatible with DistributedDataset)
+                    class_weights_tensor = tf.constant(class_weights, dtype=tf.float32)
+                    def add_sample_weights(features, labels):
+                        sample_weights = tf.gather(class_weights_tensor, tf.argmax(labels, axis=1))
+                        return features, labels, sample_weights
+
+                    train_dataset = train_dataset.map(add_sample_weights, num_parallel_calls=tf.data.AUTOTUNE)
+
                     # Create and train model
                     with strategy.scope():
                         weighted_acc = WeightedAccuracy(alpha_values=class_weights)
@@ -1379,6 +1389,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
                                         pretrain_valid_dataset = pretrain_valid_dataset.map(
                                             remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
+
+                                        # Add sample weights before distribution
+                                        pretrain_train_dataset = pretrain_train_dataset.map(
+                                            add_sample_weights, num_parallel_calls=tf.data.AUTOTUNE)
 
                                         pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                         pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)

@@ -172,4 +172,8 @@ Use this file to record findings as you work through the AUDIT_PLAN.md checklist
 
 | Finding # | Fix Applied | Verified | Date |
 |-----------|------------|----------|------|
-| | | | |
+| 3.1.5 | `generative_augmentation_v3.py`: Changed `tf.clip_by_value(image + noise, 0.0, 1.0)` → `tf.clip_by_value(image + noise, 0.0, 255.0)` and scaled stddev by `* 255.0` in both `apply_pixel_augmentation_rgb` (line 341) and `apply_pixel_augmentation_map` (line 388) | Pending run | 2026-02-23 |
+| 3.1.5b | `generative_augmentation_v3.py`: Scaled `max_delta` by `* 255.0` for brightness ops in both RGB and map functions; added `tf.clip_by_value(image, 0.0, 255.0)` after each brightness, contrast, and saturation op in both functions | Pending run | 2026-02-23 |
+| 7.3.4 | `builders.py`: Replaced `Lambda(lambda img: base_model(img), ...)` with direct `x = base_model(image_input)` call. Added `name=model_name` parameter to EfficientNet constructor (using `f'{modality}_{backbone_name.lower()}'`) for Keras 3 name uniqueness. All 338 backbone weights now visible to optimizer. | Pending run | 2026-02-23 |
+| 5.3.5 / 7.3.8 | `training_utils.py`: Added `'ordinal_weight': FOCAL_ORDINAL_WEIGHT` to the single-config dict (line ~826), so `config.get('ordinal_weight', 0.05)` now returns 0.5 instead of falling back to 0.05 | Pending run | 2026-02-23 |
+| 5.4.4 | `training_utils.py`: Added `class_weight=class_weights_dict` to all 3 `model.fit()` calls (pre-training, fusion training, standard training). Uses `TRAINING_CLASS_WEIGHT_MODE` from production_config (currently 'frequency' → alpha values). | Pending run | 2026-02-23 |

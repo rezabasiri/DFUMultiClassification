@@ -306,11 +306,13 @@ def apply_pixel_augmentation_rgb(image, seed, settings):
     if tf.random.uniform([], seed=seed) < settings['prob']:
         if tf.random.uniform([], seed=seed) < 0.6:
             if settings['brightness']['enabled']:
+                # Scale max_delta from [0,1] range to [0,255] range (images are float32 in [0,255])
                 image = tf.image.random_brightness(
                     image,
-                    settings['brightness']['max_delta'],
+                    settings['brightness']['max_delta'] * 255.0,
                     seed=seed
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.6:
             if settings['contrast']['enabled']:
@@ -320,6 +322,7 @@ def apply_pixel_augmentation_rgb(image, seed, settings):
                     settings['contrast']['range'][1],
                     seed=seed+1
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.4:
             if settings['saturation']['enabled']:
@@ -329,16 +332,18 @@ def apply_pixel_augmentation_rgb(image, seed, settings):
                     settings['saturation']['range'][1],
                     seed=seed+2
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.3:
             if settings['gaussian_noise']['enabled']:
+                # Scale stddev from [0,1] range to [0,255] range (images are float32 in [0,255])
                 noise = tf.random.normal(
                     shape=tf.shape(image),
                     mean=0.0,
-                    stddev=settings['gaussian_noise']['stddev'],
+                    stddev=settings['gaussian_noise']['stddev'] * 255.0,
                     seed=seed+3
                 )
-                image = tf.clip_by_value(image + noise, 0.0, 1.0)
+                image = tf.clip_by_value(image + noise, 0.0, 255.0)
 
     return image
 
@@ -352,11 +357,13 @@ def apply_pixel_augmentation_map(image, seed, settings):
     if tf.random.uniform([], seed=seed) < settings['prob']:
         if tf.random.uniform([], seed=seed) < 0.6:
             if settings['brightness']['enabled']:
+                # Scale max_delta from [0,1] range to [0,255] range (images are float32 in [0,255])
                 image = tf.image.random_brightness(
                     image,
-                    settings['brightness']['max_delta'],
+                    settings['brightness']['max_delta'] * 255.0,
                     seed=seed
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.4:
             if settings['contrast']['enabled']:
@@ -366,6 +373,7 @@ def apply_pixel_augmentation_map(image, seed, settings):
                     settings['contrast']['range'][1],
                     seed=seed+1
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.3:
             # Note: Saturation is typically disabled for map images in your config
@@ -376,16 +384,18 @@ def apply_pixel_augmentation_map(image, seed, settings):
                     settings['saturation']['range'][1],
                     seed=seed+2
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.5:
             if settings['gaussian_noise']['enabled']:
+                # Scale stddev from [0,1] range to [0,255] range (images are float32 in [0,255])
                 noise = tf.random.normal(
                     shape=tf.shape(image),
                     mean=0.0,
-                    stddev=settings['gaussian_noise']['stddev'] * 0.5,  # Reduced intensity
+                    stddev=settings['gaussian_noise']['stddev'] * 0.5 * 255.0,  # Reduced intensity, scaled to [0,255]
                     seed=seed+3
                 )
-                image = tf.clip_by_value(image + noise, 0.0, 1.0)
+                image = tf.clip_by_value(image + noise, 0.0, 255.0)
 
     return image
 
