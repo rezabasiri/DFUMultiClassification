@@ -1708,7 +1708,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                     stage1_callbacks = [
                                         EarlyStopping(
-                                            patience=STAGE1_EPOCHS,  # Don't early-stop stage 1
+                                            patience=15,  # Allow convergence but stop if plateaued
                                             restore_best_weights=True,
                                             monitor='val_cohen_kappa',
                                             min_delta=0.001,
@@ -1717,7 +1717,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         ),
                                         ReduceLROnPlateau(
                                             factor=0.50,
-                                            patience=max(5, STAGE1_EPOCHS // 3),
+                                            patience=7,
                                             monitor='val_cohen_kappa',
                                             min_delta=0.001,
                                             min_lr=1e-6,

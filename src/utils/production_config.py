@@ -63,11 +63,11 @@ RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_r
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
 # Fusion-specific training parameters
-PRETRAIN_LR = 1e-3  # Learning rate for image-only pre-training (trains projection+classifier layers on top of ImageNet features; higher than fusion stages because pre-training starts from random head weights)
+PRETRAIN_LR = 1e-3  # Learning rate for Stage 1 head-only training (frozen backbone)
 STAGE1_LR = 1e-4  # Learning rate for Stage 1 fusion training (frozen image branch)
-STAGE2_LR = 1e-5  # Learning rate for Stage 2 fine-tuning (unfrozen image branch, lower to preserve pre-trained features)
+STAGE2_LR = 1e-6  # Learning rate for Stage 2 fine-tuning (1e-5 was too high — caused immediate overfitting)
 FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
-STAGE1_EPOCHS = 20  # Stage 1 fusion training epochs (frozen image branch)
+STAGE1_EPOCHS = 50  # Stage 1 head-only training epochs (was 20; head needs more epochs to converge)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
