@@ -1806,7 +1806,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         all_sample_ids_t = []
 
                         # No strategy.scope() needed for prediction - model already knows its distribution
-                        for batch in pre_aug_train_dataset.take(steps_per_epoch):
+                        # pre_aug_train_dataset is finite (no .repeat()), iterate all batches
+                        for batch in pre_aug_train_dataset:
                             batch_inputs, batch_labels = batch
                             # Extract sample_id before filtering for model.predict()
                             sample_ids_batch = batch_inputs['sample_id'].numpy()
@@ -1839,12 +1840,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         probabilities_v = []
                         all_sample_ids_v = []
 
-                        # Note: valid_dataset used here is from the FILTERED version (line 1004)
-                        # We need to re-filter to get sample_id back for tracking
+                        # Re-filter from master to get sample_id back for tracking
                         valid_dataset_with_ids = filter_dataset_modalities(master_valid_dataset, selected_modalities)
 
                         # No strategy.scope() needed for prediction - model already knows its distribution
-                        for batch in valid_dataset_with_ids.take(validation_steps):
+                        # Iterate ALL batches (dataset is finite, no .take() needed)
+                        for batch in valid_dataset_with_ids:
                             batch_inputs, batch_labels = batch
                             # Extract sample_id before filtering for model.predict()
                             sample_ids_batch = batch_inputs['sample_id'].numpy()
@@ -1870,6 +1871,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         # Track misclassifications from validation set (if requested)
                         if track_misclass in ['both', 'valid']:
                             track_misclassifications(np.array(y_true_v), np.array(y_pred_v), sample_ids_v, selected_modalities, misclass_path)
+
+                        # Verify all validation samples were evaluated
+                        n_eval = len(y_true_v)
+                        vprint(f"Post-training eval: {n_eval} validation samples evaluated", level=2)
 
                         # Calculate metrics
                         accuracy = accuracy_score(y_true_v, y_pred_v)
