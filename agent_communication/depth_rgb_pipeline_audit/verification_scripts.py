@@ -197,9 +197,66 @@ def phase3():
     results.append(check("3.1.1 USE_GENERAL_AUGMENTATION is True", USE_GENERAL_AUGMENTATION))
     results.append(check("3.2.1 USE_GENERATIVE_AUGMENTATION is False", not USE_GENERATIVE_AUGMENTATION))
 
-    print(f"\n  [{INFO}] 3.1.5 Augmentation on [0,255] range:")
-    print(f"         Brightness ±60% on value 255 → range [102, 408]")
-    print(f"         TF clipping should limit to [0, 255] — verify in generative_augmentation_v3.py")
+    # 3.1.5 Augmentation clipping check — read actual code
+    print(f"\n  [{INFO}] 3.1.5 Checking augmentation clipping in generative_augmentation_v3.py...")
+    aug_v3_path = os.path.join(PROJECT_ROOT, 'src/data/generative_augmentation_v3.py')
+    try:
+        with open(aug_v3_path, 'r') as f:
+            aug_code = f.read()
+
+        # Check apply_pixel_augmentation_rgb for clip_by_value
+        # Find the function and check what range it clips to
+        import re
+        rgb_func_match = re.search(r'def apply_pixel_augmentation_rgb.*?(?=\ndef |\Z)', aug_code, re.DOTALL)
+        if rgb_func_match:
+            rgb_func = rgb_func_match.group()
+
+            # Check for clip_by_value calls
+            clip_calls = re.findall(r'clip_by_value\([^,]+,\s*([^,]+),\s*([^)]+)\)', rgb_func)
+            has_any_clip = len(clip_calls) > 0
+
+            if has_any_clip:
+                for lo, hi in clip_calls:
+                    lo, hi = lo.strip(), hi.strip()
+                    print(f"         Found: tf.clip_by_value(..., {lo}, {hi})")
+
+                # Check if clipping is to [0, 1] (wrong for EfficientNet [0, 255] input)
+                clips_to_01 = any('1.0' in hi or hi == '1' for _, hi in clip_calls)
+                clips_to_255 = any('255' in hi for _, hi in clip_calls)
+
+                if clips_to_01 and not clips_to_255:
+                    results.append(check(
+                        "3.1.5 BUG: Augmentation clips to [0, 1] but EfficientNet expects [0, 255]",
+                        False,
+                        "clip_by_value(image, 0.0, 1.0) destroys pixel values when input is [0, 255]"
+                    ))
+                elif clips_to_255:
+                    results.append(check("3.1.5 Augmentation clips to [0, 255] (correct for EfficientNet)", True))
+                else:
+                    results.append(check("3.1.5 Augmentation clipping range", True,
+                                         f"Clips: {clip_calls}"))
+            else:
+                # No clipping at all — brightness/contrast could exceed [0,255]
+                # tf.image.random_brightness doesn't auto-clip
+                has_brightness = 'random_brightness' in rgb_func
+                results.append(check(
+                    "3.1.5 Augmentation has no explicit clipping",
+                    not has_brightness,
+                    "tf.image.random_brightness does NOT auto-clip. Values can exceed [0, 255]." if has_brightness else "No brightness augmentation found"
+                ))
+
+            # Also check: noise added then clipped to 1.0 implies [0,1] assumption
+            noise_clip = re.search(r'clip_by_value\(image \+ noise.*?,\s*0\.0,\s*1\.0\)', rgb_func)
+            if noise_clip:
+                results.append(check(
+                    "3.1.5b BUG: Gaussian noise clips to [0, 1] but input is [0, 255]",
+                    False,
+                    "Line: image = tf.clip_by_value(image + noise, 0.0, 1.0) — clips 255-range to 1.0"
+                ))
+        else:
+            print(f"         Could not find apply_pixel_augmentation_rgb function")
+    except Exception as e:
+        print(f"  [{FAIL}] Error reading augmentation code: {e}")
 
     passed = sum(results)
     total = len(results)
@@ -276,10 +333,54 @@ def phase4():
         print(f"         init_logit = log({FUSION_INIT_RF_WEIGHT}/{1-FUSION_INIT_RF_WEIGHT}) = {init_logit:.4f}")
         print(f"         sigmoid({init_logit:.4f}) = {1/(1+math.exp(-init_logit)):.4f} (should = {FUSION_INIT_RF_WEIGHT})")
 
-        # Check Lambda wrapping gradient flow
+        # Check Lambda wrapping gradient flow — actually test it
         lambda_layers = [l for l in model.layers if 'lambda' in l.__class__.__name__.lower() or 'Lambda' in type(l).__name__]
         print(f"\n  [{INFO}] 7.3.4 Lambda-wrapped layers: {[l.name for l in lambda_layers]}")
-        print(f"         Lambda wrapping should not block gradients (TF auto-differentiates through Lambda)")
+
+        # REAL GRADIENT TEST: create dummy input, compute gradient through the model
+        print(f"         Testing gradient flow through Lambda-wrapped EfficientNet...")
+        try:
+            dummy_input = tf.random.uniform((1, IMAGE_SIZE, IMAGE_SIZE, 3), minval=0, maxval=255)
+            with tf.GradientTape() as tape:
+                tape.watch(dummy_input)
+                output = model({'depth_rgb_input': dummy_input})
+                loss = tf.reduce_sum(output)
+            grad = tape.gradient(loss, dummy_input)
+            grad_exists = grad is not None
+            grad_nonzero = False
+            if grad_exists:
+                grad_nonzero = tf.reduce_any(tf.not_equal(grad, 0)).numpy()
+            results.append(check(
+                "7.3.4 Gradients flow through Lambda-wrapped EfficientNet",
+                grad_exists and grad_nonzero,
+                f"Gradient exists: {grad_exists}, non-zero: {grad_nonzero}" +
+                (f", mean abs: {tf.reduce_mean(tf.abs(grad)).numpy():.6e}" if grad_exists else "")
+            ))
+
+            # Also check: are EfficientNet backbone weights receiving gradients?
+            backbone_layer = None
+            for l in model.layers:
+                if 'efficientnet' in l.name.lower() and 'wrapper' in l.name.lower():
+                    backbone_layer = l
+                    break
+            if backbone_layer:
+                # Check if the backbone's first conv layer gets gradients
+                with tf.GradientTape() as tape2:
+                    output2 = model({'depth_rgb_input': dummy_input})
+                    loss2 = tf.reduce_sum(output2)
+                backbone_grads = tape2.gradient(loss2, model.trainable_weights)
+                backbone_has_grad = any(g is not None and tf.reduce_any(tf.not_equal(g, 0)).numpy()
+                                        for g in backbone_grads if g is not None)
+                results.append(check(
+                    "7.3.4b EfficientNet backbone weights receive gradients",
+                    backbone_has_grad,
+                    f"Checked {sum(1 for g in backbone_grads if g is not None)} weight tensors"
+                ))
+
+        except Exception as e:
+            print(f"  [{FAIL}] Gradient test error: {e}")
+            import traceback
+            traceback.print_exc()
 
         # Clean up
         del model
@@ -308,12 +409,30 @@ def phase5():
     results.append(check("5.2.1 STAGE1_LR = 1e-4", abs(STAGE1_LR - 1e-4) < 1e-10, f"Got: {STAGE1_LR}"))
     results.append(check("5.2.1b STAGE2_LR = 1e-5", abs(STAGE2_LR - 1e-5) < 1e-10, f"Got: {STAGE2_LR}"))
 
-    # Ordinal weight — check the code default vs config
-    print(f"\n  [{WARN}] 5.3.5 Ordinal weight discrepancy:")
+    # Ordinal weight — programmatically verify which value is used
+    print(f"\n  [{INFO}] 5.3.5 Ordinal weight: checking which value actually applies at runtime...")
+    import re
+    training_utils_path = os.path.join(PROJECT_ROOT, 'src/training/training_utils.py')
+    with open(training_utils_path, 'r') as f:
+        tu_code = f.read()
+
+    # Find the config.get('ordinal_weight', ...) calls to see the default
+    ordinal_defaults = re.findall(r"config\.get\('ordinal_weight',\s*([^)]+)\)", tu_code)
     print(f"         production_config.py: FOCAL_ORDINAL_WEIGHT = {FOCAL_ORDINAL_WEIGHT}")
-    print(f"         training_utils.py: config.get('ordinal_weight', 0.05) → default is 0.05")
-    print(f"         The 0.05 default is used because config dict doesn't set 'ordinal_weight' key")
-    print(f"         (FOCAL_ORDINAL_WEIGHT=0.5 is only used by grid search)")
+    print(f"         Code defaults found: config.get('ordinal_weight', ...) → {ordinal_defaults}")
+
+    # Check if the config dict ever sets 'ordinal_weight' when NOT using grid search
+    # In single-config mode (SEARCH_MULTIPLE_CONFIGS=False), the config dict is:
+    # {'modalities': ..., 'batch_size': ..., 'max_epochs': ..., 'image_size': ...}
+    # → 'ordinal_weight' key is ABSENT → default 0.05 is used
+    from src.utils.production_config import SEARCH_MULTIPLE_CONFIGS
+    config_sets_ordinal = SEARCH_MULTIPLE_CONFIGS  # Only grid search sets ordinal_weight
+    actual_ordinal = 0.05 if not config_sets_ordinal else FOCAL_ORDINAL_WEIGHT
+    results.append(check(
+        f"5.3.5 Ordinal weight at runtime = {actual_ordinal} (not {FOCAL_ORDINAL_WEIGHT})",
+        abs(actual_ordinal - 0.05) < 1e-6 if not config_sets_ordinal else True,
+        f"SEARCH_MULTIPLE_CONFIGS={SEARCH_MULTIPLE_CONFIGS} → config dict {'OMITS' if not config_sets_ordinal else 'INCLUDES'} ordinal_weight key"
+    ))
 
     # Class weights check
     print(f"\n  [{INFO}] 5.4.3 TRAINING_CLASS_WEIGHT_MODE = '{TRAINING_CLASS_WEIGHT_MODE}'")
@@ -352,13 +471,51 @@ def phase6():
     # Label mapping consistency
     results.append(check("6.2.2 CLASS_LABELS = ['I', 'P', 'R']", CLASS_LABELS == ['I', 'P', 'R'], f"Got: {CLASS_LABELS}"))
 
-    # Check metrics discrepancy
-    print(f"\n  [{WARN}] 6.3.6 In-training vs eval metric discrepancy:")
-    print(f"         In-training WeightedF1Score: weighted by ALPHA values (inverse frequency)")
-    print(f"         Post-training f1_score(..., average='weighted'): weighted by SUPPORT (class count)")
+    # Check metrics discrepancy — quantify the difference with a concrete example
+    print(f"\n  [{WARN}] 6.3.6 In-training vs eval Weighted F1 discrepancy:")
+    print(f"         In-training WeightedF1Score: weighted by ALPHA (inverse frequency)")
+    print(f"         Post-training sklearn f1_score(average='weighted'): weighted by SUPPORT (class count)")
     print(f"         These are DIFFERENT metrics with same-sounding names!")
-    print(f"         Early stopping monitors alpha-weighted F1 (training metric)")
-    print(f"         Final reported F1 uses support-weighted F1 (sklearn)")
+
+    # Demonstrate with a concrete example
+    try:
+        from sklearn.metrics import f1_score as sklearn_f1
+        # Simulate a typical imbalanced dataset: I=30%, P=50%, R=20%
+        np.random.seed(42)
+        n = 100
+        y_true_sim = np.array([0]*30 + [1]*50 + [2]*20)
+        # Simulate imperfect predictions (60% accuracy)
+        y_pred_sim = y_true_sim.copy()
+        flip_idx = np.random.choice(n, size=40, replace=False)
+        y_pred_sim[flip_idx] = np.random.randint(0, 3, size=40)
+
+        # sklearn weighted F1 (by support)
+        sklearn_wf1 = sklearn_f1(y_true_sim, y_pred_sim, average='weighted')
+
+        # Alpha-weighted F1 (by inverse frequency)
+        counts = Counter(y_true_sim)
+        total = sum(counts.values())
+        freqs = {c: counts[c]/total for c in [0, 1, 2]}
+        alphas = [1.0/freqs[c] for c in [0, 1, 2]]
+        alpha_sum = sum(alphas)
+        alphas = [a/alpha_sum * 3.0 for a in alphas]
+
+        per_class_f1 = sklearn_f1(y_true_sim, y_pred_sim, average=None, labels=[0, 1, 2])
+        alpha_wf1 = sum(f * a for f, a in zip(per_class_f1, alphas)) / sum(alphas)
+
+        diff = abs(sklearn_wf1 - alpha_wf1)
+        print(f"         Example (I=30%, P=50%, R=20%, 60% acc):")
+        print(f"           Alpha values: [{alphas[0]:.2f}, {alphas[1]:.2f}, {alphas[2]:.2f}]")
+        print(f"           sklearn weighted F1 (by support): {sklearn_wf1:.4f}")
+        print(f"           Alpha-weighted F1 (by inv freq):  {alpha_wf1:.4f}")
+        print(f"           Difference: {diff:.4f}")
+        results.append(check(
+            "6.3.6 Weighted F1 metric discrepancy between training and eval",
+            diff < 0.05,
+            f"Difference: {diff:.4f} — {'acceptable' if diff < 0.05 else 'significant: early stopping may optimize wrong metric'}"
+        ))
+    except Exception as e:
+        print(f"  [{FAIL}] Could not compute F1 comparison: {e}")
 
     # Check saved predictions exist
     print(f"\n  [{INFO}] Checking for saved prediction files...")

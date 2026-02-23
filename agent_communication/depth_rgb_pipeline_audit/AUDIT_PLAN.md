@@ -84,7 +84,8 @@
 | 3.1.2 | Augmentation applied ONLY to training data, NOT validation | [ ] | Check `is_training` flag at `dataset_utils.py:533-539` |
 | 3.1.3 | For `depth_rgb`, augmentation settings: brightness ±60%, contrast 0.6-1.4x, saturation 0.6-1.4x, noise σ=0.15 | [ ] | Check in generative_augmentation_v3.py modality_settings |
 | 3.1.4 | Augmentation probability = 60% (not applied to every sample) | [ ] | |
-| 3.1.5 | Augmentation values make sense for [0, 255] range images (not [0, 1]) | [ ] | If brightness ±60% on 255-scale, max = 408 → clipping needed? |
+| 3.1.5 | **BUG FOUND:** `apply_pixel_augmentation_rgb()` clips gaussian noise to `[0.0, 1.0]` at `generative_augmentation_v3.py:341` but EfficientNet input is `[0, 255]` — this destroys ALL pixel values above 1.0 | [ ] | `tf.clip_by_value(image + noise, 0.0, 1.0)` — should be `0.0, 255.0` |
+| 3.1.5b | Brightness/contrast augmentations (`tf.image.random_brightness`, `random_contrast`) do NOT auto-clip — values can exceed [0, 255] after augmentation | [ ] | No explicit clipping after brightness/contrast ops in the function |
 
 ### 3.2 Generative Augmentation
 
@@ -296,11 +297,11 @@ python agent_communication/depth_rgb_pipeline_audit/verification_scripts.py --ph
 
 These items have the highest risk of being incorrect and should be verified first:
 
-1. **2.4.1** — Normalization: EfficientNet expects [0,255], SimpleCNN expects [0,1]. Verify the correct path is taken.
-2. **3.1.5** — Augmentation operates on [0,255] range images. Brightness ±60% could push values to 408. Check clipping.
-3. **5.3.5** — Ordinal weight: `FOCAL_ORDINAL_WEIGHT=0.5` vs code default `0.05`. Which is used?
-4. **5.4.4** — `class_weight` parameter may NOT be passed to `model.fit()`. Check all .fit() calls.
-5. **6.3.6** — In-training weighted F1 (alpha-weighted) differs from eval weighted F1 (support-weighted). Monitor choices may be misleading.
-6. **7.3.1** — Two different `IMAGE_SIZE` values (128 vs 256). Confirm 256 is used everywhere.
-7. **7.3.4** — Lambda-wrapped EfficientNet gradient flow. May silently fail to train backbone.
-8. **2.2.1** — depth_rgb uses depth bounding box AS-IS. depth_map gets FOV adjustment. Investigate if depth_rgb also needs adjustment.
+1. **3.1.5 CONFIRMED BUG** — Gaussian noise augmentation clips to `[0.0, 1.0]` at `generative_augmentation_v3.py:341` but input images are `[0, 255]` (EfficientNet range). This destroys ALL pixel values >1.0 for ~30% of training samples (noise is applied with 30% probability). **Fix: change `clip_by_value(image + noise, 0.0, 1.0)` to `clip_by_value(image + noise, 0.0, 255.0)`.**
+2. **3.1.5b** — Brightness/contrast augmentations have NO clipping at all. Values can exceed [0, 255]. **Fix: add `tf.clip_by_value(image, 0.0, 255.0)` at end of augmentation function.**
+3. **2.4.1** — Normalization: EfficientNet expects [0,255], SimpleCNN expects [0,1]. Verify the correct path is taken.
+4. **5.3.5** — Ordinal weight: `FOCAL_ORDINAL_WEIGHT=0.5` (config) vs `0.05` (code default). Code default wins because config dict doesn't include the key.
+5. **5.4.4 RESOLVED** — `class_weight` not passed to `model.fit()`. Not a bug — alpha weighting in focal loss is equivalent and already handles this.
+6. **6.3.6** — In-training weighted F1 (alpha-weighted) differs from eval weighted F1 (support-weighted). Monitor may optimize for wrong metric.
+7. **7.3.1** — Two different `IMAGE_SIZE` values (128 vs 256). Confirm 256 is used everywhere.
+8. **7.3.4** — Lambda-wrapped EfficientNet gradient flow. Automated test verifies gradients pass through.
