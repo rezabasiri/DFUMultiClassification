@@ -1727,7 +1727,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         NaNMonitorCallback()
                                     ]
 
-                                    model.fit(
+                                    stage1_history = model.fit(
                                         train_dataset_dis,
                                         epochs=STAGE1_EPOCHS,
                                         steps_per_epoch=steps_per_epoch,
@@ -1736,6 +1736,19 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         callbacks=stage1_callbacks,
                                         verbose=fit_verbose
                                     )
+
+                                    # Print best Stage 1 metrics (weights already restored by EarlyStopping)
+                                    s1h = stage1_history.history
+                                    if 'val_cohen_kappa' in s1h and s1h['val_cohen_kappa']:
+                                        best_epoch = int(np.argmax(s1h['val_cohen_kappa']))
+                                        vprint("=" * 80, level=2)
+                                        vprint(f"STAGE 1 COMPLETE — best epoch: {best_epoch + 1}/{len(s1h['val_cohen_kappa'])}", level=2)
+                                        vprint(f"  val_kappa:  {s1h['val_cohen_kappa'][best_epoch]:.4f}", level=2)
+                                        vprint(f"  val_acc:    {s1h['val_accuracy'][best_epoch]:.4f}" if 'val_accuracy' in s1h else "", level=2)
+                                        vprint(f"  val_loss:   {s1h['val_loss'][best_epoch]:.4f}" if 'val_loss' in s1h else "", level=2)
+                                        vprint(f"  val_f1:     {s1h['val_macro_f1_score'][best_epoch]:.4f}" if 'val_macro_f1_score' in s1h else "", level=2)
+                                        vprint(f"  train_loss: {s1h['loss'][best_epoch]:.4f}  train_acc: {s1h['accuracy'][best_epoch]:.4f}", level=2)
+                                        vprint("=" * 80, level=2)
 
                                     # --- STAGE 2: Unfreeze backbone, fine-tune with low LR ---
                                     for layer in model.layers:
