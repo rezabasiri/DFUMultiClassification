@@ -1361,6 +1361,13 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         # Create standalone image-only model
                                         pretrain_model = create_multimodal_model(input_shapes, [image_modality], None)
 
+                                        # --- FROZEN-BACKBONE PRE-TRAINING ---
+                                        # Freeze EfficientNet backbone, train only projection head + classifier
+                                        # (unfrozen training with 12M params on ~2K images overfits immediately)
+                                        for layer in pretrain_model.layers:
+                                            if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                                                layer.trainable = False
+
                                         # Use same loss configuration as fusion
                                         pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
                                         pretrain_gamma = config.get('gamma', 2.0)
@@ -1375,6 +1382,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             loss=pretrain_loss,
                                             metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
                                         )
+
+                                        pretrain_trainable = len(pretrain_model.trainable_weights)
+                                        vprint(f"  Pre-training {image_modality} with frozen backbone ({pretrain_trainable} trainable weight tensors)", level=2)
 
                                         # Create filtered dataset for pre-training (only this image modality, not metadata)
                                         # Must filter from master datasets to get only the image modality input
@@ -1653,16 +1663,27 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                             # FUSION TRAINING with pre-trained image weights
                             if is_fusion and fusion_use_pretrained:
-                                # Pre-trained weights are already loaded into the model.
-                                # Unfreeze everything and train end-to-end.
-                                # The two-stage approach (frozen Stage 1 → low-LR Stage 2) was harmful:
-                                # Stage 1 had only ~196 trainable params (image_classifier + fusion_logit),
-                                # too few to learn meaningful cross-modal interaction, and the constrained
-                                # training actively degraded performance vs either modality alone.
+                                # Pre-trained weights loaded. Keep backbone FROZEN during fusion.
+                                # Unfreezing causes BatchNorm stat disruption + overfitting with ~2K images.
+                                # Only train: projection head, image_classifier, fusion weights, metadata path.
+                                for layer in model.layers:
+                                    if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                                        layer.trainable = False
+
+                                # Recompile with frozen backbone
+                                fusion_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                                fusion_macro_f1 = MacroF1Score(num_classes=3)
+                                model.compile(
+                                    optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0),
+                                    loss=fusion_loss,
+                                    metrics=['accuracy', weighted_f1, weighted_acc, fusion_macro_f1, CohenKappa(num_classes=3)]
+                                )
+
+                                fusion_trainable = len(model.trainable_weights)
                                 vprint("=" * 80, level=2)
-                                vprint(f"FUSION TRAINING: End-to-end with pre-trained image initialization", level=2)
+                                vprint(f"FUSION TRAINING: Frozen backbone, training fusion layers ({fusion_trainable} weight tensors)", level=2)
                                 vprint(f"  Pre-trained modalities: {pretrained_modalities}", level=2)
-                                vprint(f"  All layers trainable, LR={STAGE1_LR} (lower than pre-training to preserve features)", level=2)
+                                vprint(f"  LR={STAGE1_LR}", level=2)
                                 vprint("=" * 80, level=2)
 
                                 # Use the standard callbacks (includes LR scheduling, all monitors, etc.)
