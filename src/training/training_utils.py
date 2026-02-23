@@ -1548,22 +1548,22 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             EarlyStopping(
                                 patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
-                                monitor='val_weighted_f1_score',  # Use weighted F1 for early stopping
-                                min_delta=0.001,  # Require 0.1% improvement (was 0.01, too strict)
-                                mode='max',  # Maximize weighted F1
+                                monitor='val_cohen_kappa',  # Kappa = 0 for degenerate predictions (better than weighted F1)
+                                min_delta=0.001,
+                                mode='max',
                                 verbose=1
                             ),
                             ReduceLROnPlateau(
                                 factor=0.50,
                                 patience=REDUCE_LR_PATIENCE,
-                                monitor='val_weighted_f1_score',  # Use weighted F1 for LR reduction
-                                min_delta=0.0005,  # Reduced from 0.005 to allow smaller improvements
-                                min_lr=1e-10,
-                                mode='max',  # Maximize weighted F1
+                                monitor='val_cohen_kappa',
+                                min_delta=0.0005,
+                                min_lr=1e-8,
+                                mode='max',
                             ),
                             tf.keras.callbacks.ModelCheckpoint(
                                 create_checkpoint_filename(selected_modalities, run+1, config_name),
-                                monitor='val_weighted_f1_score',  # Use weighted F1 for best model
+                                monitor='val_cohen_kappa',
                                 save_best_only=True,
                                 mode='max',
                                 save_weights_only=True
@@ -1677,16 +1677,105 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 )
 
                             else:
-                                # Standard single-stage training (no pre-trained weights)
-                                history = model.fit(
-                                    train_dataset_dis,
-                                    epochs=max_epochs,
-                                    steps_per_epoch=steps_per_epoch,
-                                    validation_data=valid_dataset_dis,
-                                    validation_steps=validation_steps,
-                                    callbacks=callbacks,
-                                    verbose=fit_verbose
-                                )
+                                # 2-STAGE TRAINING for image modalities (prevents overfitting with pretrained backbones)
+                                # Stage 1: Freeze backbone, train only projection head + classifier
+                                # Stage 2: Unfreeze backbone, fine-tune everything with low LR
+                                has_backbone = any(m in selected_modalities for m in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'])
+
+                                if has_backbone and not is_fusion:
+                                    # --- STAGE 1: Frozen backbone, train head ---
+                                    # Freeze EfficientNet backbone layers
+                                    backbone_layers_frozen = 0
+                                    for layer in model.layers:
+                                        if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                                            layer.trainable = False
+                                            backbone_layers_frozen += len(layer.weights)
+
+                                    # Recompile with higher LR for head training
+                                    stage1_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                                    stage1_macro_f1 = MacroF1Score(num_classes=3)
+                                    model.compile(
+                                        optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
+                                        loss=stage1_loss,
+                                        metrics=['accuracy', weighted_f1, weighted_acc, stage1_macro_f1, CohenKappa(num_classes=3)]
+                                    )
+
+                                    trainable_count = len(model.trainable_weights)
+                                    vprint("=" * 80, level=2)
+                                    vprint(f"STAGE 1: Frozen backbone, training head only ({trainable_count} weight tensors)", level=2)
+                                    vprint(f"  LR={PRETRAIN_LR}, epochs={STAGE1_EPOCHS}", level=2)
+                                    vprint("=" * 80, level=2)
+
+                                    stage1_callbacks = [
+                                        EarlyStopping(
+                                            patience=STAGE1_EPOCHS,  # Don't early-stop stage 1
+                                            restore_best_weights=True,
+                                            monitor='val_cohen_kappa',
+                                            min_delta=0.001,
+                                            mode='max',
+                                            verbose=1
+                                        ),
+                                        ReduceLROnPlateau(
+                                            factor=0.50,
+                                            patience=max(5, STAGE1_EPOCHS // 3),
+                                            monitor='val_cohen_kappa',
+                                            min_delta=0.001,
+                                            min_lr=1e-6,
+                                            mode='max',
+                                        ),
+                                        EpochMemoryCallback(strategy),
+                                        NaNMonitorCallback()
+                                    ]
+
+                                    model.fit(
+                                        train_dataset_dis,
+                                        epochs=STAGE1_EPOCHS,
+                                        steps_per_epoch=steps_per_epoch,
+                                        validation_data=valid_dataset_dis,
+                                        validation_steps=validation_steps,
+                                        callbacks=stage1_callbacks,
+                                        verbose=fit_verbose
+                                    )
+
+                                    # --- STAGE 2: Unfreeze backbone, fine-tune with low LR ---
+                                    for layer in model.layers:
+                                        if hasattr(layer, 'layers'):
+                                            layer.trainable = True
+
+                                    stage2_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                                    stage2_macro_f1 = MacroF1Score(num_classes=3)
+                                    model.compile(
+                                        optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
+                                        loss=stage2_loss,
+                                        metrics=['accuracy', weighted_f1, weighted_acc, stage2_macro_f1, CohenKappa(num_classes=3)]
+                                    )
+
+                                    trainable_count = len(model.trainable_weights)
+                                    vprint("=" * 80, level=2)
+                                    vprint(f"STAGE 2: Full fine-tuning ({trainable_count} weight tensors)", level=2)
+                                    vprint(f"  LR={STAGE2_LR}, epochs={max_epochs}", level=2)
+                                    vprint("=" * 80, level=2)
+
+                                    history = model.fit(
+                                        train_dataset_dis,
+                                        epochs=max_epochs,
+                                        steps_per_epoch=steps_per_epoch,
+                                        validation_data=valid_dataset_dis,
+                                        validation_steps=validation_steps,
+                                        callbacks=callbacks,
+                                        verbose=fit_verbose
+                                    )
+                                else:
+                                    # Metadata-only or other non-backbone training
+                                    history = model.fit(
+                                        train_dataset_dis,
+                                        epochs=max_epochs,
+                                        steps_per_epoch=steps_per_epoch,
+                                        validation_data=valid_dataset_dis,
+                                        validation_steps=validation_steps,
+                                        callbacks=callbacks,
+                                        verbose=fit_verbose
+                                    )
 
                         # Load best weights (must be in strategy scope for distributed training)
                         best_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
