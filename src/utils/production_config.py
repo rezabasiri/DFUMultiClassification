@@ -420,12 +420,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata',),
-    ('metadata', 'depth_rgb', 'thermal_map',),
-    ('depth_rgb', 'depth_map', 'thermal_map',),
-    ('metadata', 'depth_rgb',),
-    ('metadata', 'thermal_map',),
-    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
+    ('depth_rgb',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
