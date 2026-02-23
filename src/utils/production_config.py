@@ -59,8 +59,8 @@ N_EPOCHS = 200  # Full training epochs
 
 # Image backbone selection
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
-RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_rgb)
-MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
+RGB_BACKBONE = 'EfficientNetB0'  # Backbone for RGB images (B0=4M params vs B3=12M — less overfitting on ~2K samples)
+MAP_BACKBONE = 'EfficientNetB0'  # Backbone for map images (B0 for consistency; B1 offered no benefit)
 
 # Fusion-specific training parameters
 PRETRAIN_LR = 1e-3  # Learning rate for Stage 1 head-only training (frozen backbone)
@@ -357,7 +357,7 @@ ENTROPY_LOSS_WEIGHT = 0.2  # Base weight for entropy in total loss
 # =============================================================================
 
 # Focal ordinal loss defaults (when not specified)
-FOCAL_ORDINAL_WEIGHT = 0.05  # Ordinal penalty weight (0.05 = light penalty; 0.5 was far too aggressive with alpha-weighted focal loss)
+FOCAL_ORDINAL_WEIGHT = 0.0  # Ordinal penalty disabled — argmax-based distance is non-differentiable, adds complexity with no benefit. Pure focal loss with alpha is sufficient.
 # Note: HIERARCHICAL_FOCAL_GAMMA and HIERARCHICAL_FOCAL_ALPHA are used for hierarchical gating
 
 # =============================================================================

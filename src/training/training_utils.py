@@ -553,9 +553,7 @@ class ModalityContributionCallback(tf.keras.callbacks.Callback):
             outputs = []
             for layer in self.model.layers:
                 # Look for any layer with final outputs from each modality branch
-                # if any(mod in layer.name for mod in ['metadata_BN', 'depth_rgb_projection3', 'depth_map_projection3', 'thermal_map_projection3']):
-                if any(mod in layer.name for mod in ['metadata_BN', 'depth_rgb_BN_proj3', 'depth_map_BN_proj3', 'thermal_map_BN_proj3']):
-                # if any(mod in layer.name for mod in ['metadata_attention', 'depth_rgb_modular_attention', 'depth_map_modular_attention', 'thermal_map_modular_attention']):
+                if any(mod in layer.name for mod in ['metadata_BN', 'depth_rgb_BN_proj', 'depth_map_BN_proj', 'thermal_map_BN_proj', 'thermal_rgb_BN_proj']):
                     modality_name = layer.name.split('_')[0] + "_" + layer.name.split('_')[1]
                     if "metadata" in modality_name:
                         modality_name = "metadata"
@@ -1369,7 +1367,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                                 layer.trainable = False
 
                                         # Use same loss configuration as fusion
-                                        pretrain_ordinal_weight = config.get('ordinal_weight', 0.05)
+                                        pretrain_ordinal_weight = config.get('ordinal_weight', 0.0)
                                         pretrain_gamma = config.get('gamma', 2.0)
                                         pretrain_alpha = config.get('alpha', alpha_value)
                                         pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
@@ -1543,7 +1541,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     fusion_use_pretrained = False
 
                         # Use loss parameters from config if available, otherwise use defaults
-                        ordinal_weight = config.get('ordinal_weight', 0.05)
+                        ordinal_weight = config.get('ordinal_weight', 0.0)
                         gamma = config.get('gamma', 2.0)
                         alpha = config.get('alpha', alpha_value)  # Use alpha_value for consistency
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)

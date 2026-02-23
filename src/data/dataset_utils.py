@@ -38,7 +38,11 @@ _selected_features_cache = {}
 
 def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     """
-    Create k-fold cross-validation splits at patient level with class balance.
+    Create k-fold cross-validation splits at patient level with class stratification.
+
+    Uses sklearn's StratifiedGroupKFold to ensure:
+    - No patient appears in both train and validation (group constraint)
+    - Class distribution is preserved across folds (stratification constraint)
 
     Args:
         data: DataFrame with 'Patient#' and 'Healing Phase Abs' columns
@@ -50,6 +54,7 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         List of tuples (train_patients, valid_patients) for each fold
     """
     import os
+    from sklearn.model_selection import StratifiedGroupKFold
 
     # Allow override via environment variable (used by auto_polish for multiple runs with different folds)
     if 'CV_FOLD_SEED' in os.environ:
@@ -58,95 +63,48 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         except ValueError:
             print(f"  [WARNING] Invalid CV_FOLD_SEED env var value: '{os.environ['CV_FOLD_SEED']}', using default seed={random_state}", flush=True)
 
-    np.random.seed(random_state)
-    random.seed(random_state)
-
     # Convert labels if needed
     data = data.copy()
     if 'Healing Phase Abs' in data.columns:
-        # Check if column contains string values (handles both 'object' and 'str' dtypes)
         if data['Healing Phase Abs'].dtype in ['object', 'str'] or pd.api.types.is_string_dtype(data['Healing Phase Abs']):
             data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
 
-    # Group patients by their majority class
-    patient_classes = {}
+    labels = data['Healing Phase Abs'].values
+    groups = data['Patient#'].values
+
+    # Print class distribution per patient for diagnostics
     unique_patients = data['Patient#'].unique()
-
+    patient_classes = {}
     for patient in unique_patients:
-        patient_data = data[data['Patient#'] == patient]
-        # Assign patient to their majority class
-        majority_class = patient_data['Healing Phase Abs'].mode()[0]
-        patient_classes[patient] = majority_class
+        majority_class = data[data['Patient#'] == patient]['Healing Phase Abs'].mode()[0]
+        patient_classes[majority_class] = patient_classes.get(majority_class, 0) + 1
 
-    # Stratify patients by class
-    class_patients = {0: [], 1: [], 2: []}
-    for patient, cls in patient_classes.items():
-        class_patients[cls].append(patient)
-
-    # Check if stratification is feasible
     vprint("\n" + "=" * 80, level=1)
     vprint("STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK", level=1)
     vprint("=" * 80, level=1)
-    for cls, patients in class_patients.items():
-        vprint(f"Class {cls}: {len(patients)} patients", level=1)
-        if len(patients) < n_folds:
-            vprint(f"  ⚠ WARNING: Class {cls} has fewer patients ({len(patients)}) than folds ({n_folds})", level=1)
-            vprint(f"  Some folds will have 0 patients from this class in validation set", level=1)
+    for cls in [0, 1, 2]:
+        vprint(f"Class {cls}: {patient_classes.get(cls, 0)} patients", level=1)
     vprint("=" * 80 + "\n", level=1)
 
-    # Shuffle patients within each class
-    for cls in class_patients:
-        np.random.shuffle(class_patients[cls])
+    sgkf = StratifiedGroupKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
 
-    # Create folds
-    folds = [[] for _ in range(n_folds)]
-
-    # Distribute patients from each class across folds
-    for cls, patients in class_patients.items():
-        patients_per_fold = len(patients) // n_folds
-        remainder = len(patients) % n_folds
-
-        start_idx = 0
-        for fold_idx in range(n_folds):
-            # Add one extra patient to some folds if there's remainder
-            fold_size = patients_per_fold + (1 if fold_idx < remainder else 0)
-            end_idx = start_idx + fold_size
-            folds[fold_idx].extend(patients[start_idx:end_idx])
-            start_idx = end_idx
-
-    # Create train/valid splits for each fold
     fold_splits = []
-    for fold_idx in range(n_folds):
-        valid_patients = np.array(folds[fold_idx])
-        train_patients = np.array([p for i, fold in enumerate(folds) if i != fold_idx for p in fold])
+    for fold_idx, (train_idx, valid_idx) in enumerate(sgkf.split(data, labels, groups)):
+        train_patients = np.unique(groups[train_idx])
+        valid_patients = np.unique(groups[valid_idx])
 
         # Validate the split
-        train_data = data[data['Patient#'].isin(train_patients)]
-        valid_data = data[data['Patient#'].isin(valid_patients)]
+        train_data = data.iloc[train_idx]
+        valid_data = data.iloc[valid_idx]
 
-        # Check class balance
         train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
         valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
 
-        # Calculate max distribution difference
+        # Check class balance
         max_diff = max(abs(train_dist.get(cls, 0) - valid_dist.get(cls, 0)) for cls in [0, 1, 2])
 
-        # Check all classes present
-        train_classes = set(train_data['Healing Phase Abs'].unique())
-        valid_classes = set(valid_data['Healing Phase Abs'].unique())
-        all_classes = {0, 1, 2}
-
-        if len(train_classes) < 3 or len(valid_classes) < 3:
-            missing_train = all_classes - train_classes
-            missing_valid = all_classes - valid_classes
-            vprint(f"⚠ WARNING: Fold {fold_idx + 1} missing classes:", level=1)
-            if missing_train:
-                vprint(f"  Train set missing: {missing_train} (may cause training issues)", level=1)
-            if missing_valid:
-                vprint(f"  Valid set missing: {missing_valid} (may affect validation metrics)", level=1)
-            vprint(f"  Cause: Insufficient patients in minority class for {n_folds}-fold CV", level=1)
-        elif max_diff > max_imbalance:
-            vprint(f"⚠ Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
+        if max_diff > max_imbalance:
+            vprint(f"  Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
 
         fold_splits.append((train_patients, valid_patients))
 

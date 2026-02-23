@@ -20,44 +20,7 @@ from src.utils.verbosity import vprint
 directory, result_dir, root = get_project_paths()
 
 # Import IMAGE_SIZE and backbone configs from production config
-from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE, FUSION_INIT_RF_WEIGHT
-
-
-class LearnableFusionWeights(Layer):
-    """Learnable fusion weights for combining RF and image predictions.
-
-    Initializes with rf_init bias (default 0.70 RF / 0.30 Image) but allows
-    the model to learn optimal balance during training. Uses sigmoid to
-    constrain the RF weight to [0, 1], with image_weight = 1 - rf_weight.
-    """
-    def __init__(self, rf_init=0.70, **kwargs):
-        super(LearnableFusionWeights, self).__init__(**kwargs)
-        self.rf_init = rf_init
-
-    def build(self, input_shape):
-        # Initialize logit so that sigmoid(logit) ≈ rf_init
-        # sigmoid(0.847) ≈ 0.70
-        import math
-        init_logit = math.log(self.rf_init / (1.0 - self.rf_init))
-        self.fusion_logit = self.add_weight(
-            name='fusion_logit',
-            shape=(1,),
-            initializer=tf.keras.initializers.Constant(init_logit),
-            trainable=True,
-            dtype='float32'
-        )
-        super(LearnableFusionWeights, self).build(input_shape)
-
-    def call(self, inputs):
-        rf_probs, image_probs = inputs
-        rf_weight = tf.nn.sigmoid(self.fusion_logit)
-        image_weight = 1.0 - rf_weight
-        return rf_weight * rf_probs + image_weight * image_probs
-
-    def get_config(self):
-        config = super(LearnableFusionWeights, self).get_config()
-        config.update({'rf_init': self.rf_init})
-        return config
+from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE
 
 def create_simple_cnn_rgb(image_input, modality):
     """Simple CNN for RGB images (4 conv layers)"""
@@ -179,29 +142,13 @@ def create_image_branch(input_shape, modality):
     else:
         raise ValueError(f"Unknown backbone: {backbone}")
 
-    # x = Dense(64, activation='relu', name=f'{modality}_projection3')(x)
-        
-    # # Projection layer to ensure consistent dimensionality across modalities
-    x = Dense(512, activation='relu',  kernel_regularizer=tf.keras.regularizers.l2(0.001),  kernel_initializer='he_normal', name=f'{modality}_projection512')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj512')(x)
-    x = tf.keras.layers.Dropout(0.15, name=f'{modality}_dropout_512')(x)
-    x = Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001),  kernel_initializer='he_normal', name=f'{modality}_projection1')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj1')(x)
-    x = tf.keras.layers.Dropout(0.10, name=f'{modality}_dropout_1')(x)
-    x = Dense(128, activation='relu',  kernel_initializer='he_normal', name=f'{modality}_projection2')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj2')(x)
-    # x = tf.keras.layers.Dropout(0.10, name=f'{modality}_dropout_2')(x)
-    x = Dense(64, activation='relu',  kernel_initializer='he_normal', name=f'{modality}_projection3')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj3')(x)
-    # x = tf.keras.layers.Dropout(0.10, name=f'{modality}_DP_proj3')(x)
-    
-    # Apply modular attention
-    modular_attention = OptimizedModularAttention(name=f'{modality}_modular_attention')
-    attention_output = modular_attention(x)
-    
-    
-    return image_input, attention_output
-    # return image_input, x
+    # Single projection layer: backbone_dim (1280 for B0) -> 128
+    # Deeper heads (512->256->128->64) had ~900K params and overfit on ~2K samples
+    x = Dense(128, activation='relu', kernel_initializer='he_normal', name=f'{modality}_projection')(x)
+    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj')(x)
+    x = tf.keras.layers.Dropout(0.3, name=f'{modality}_dropout')(x)
+
+    return image_input, x
 
 class ConfidenceBasedMetadataAttention(Layer):
     """Attention mechanism that scales based on metadata confidence"""
@@ -427,30 +374,20 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
         elif len(selected_modalities) == 2:
             if has_metadata:
                 # MULTI-MODAL (2): Metadata + 1 Image
-                # CRITICAL: Image branch MUST use pre-trained weights from standalone training!
-                # Training image branch in fusion mode causes catastrophic overfitting
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image", level=2)
+                vprint("Model: Metadata + 1 image - concat fusion", level=2)
 
-                # Get RF probabilities (already optimal - Kappa 0.254, proper probabilities)
                 rf_probs = branches[metadata_idx]
-
-                # Get image features and classify
-                image_idx = 1 - metadata_idx  # The other branch
+                image_idx = 1 - metadata_idx
                 image_features = branches[image_idx]
-                image_classifier = Dense(3, activation='softmax', name='image_classifier')
-                image_probs = image_classifier(image_features)
+                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_features)
 
-                # LEARNABLE WEIGHTED AVERAGE FUSION
-                # Initialized at 0.70 RF / 0.30 Image but learnable during training.
-                # Fixed weights prevented the model from improving because:
-                # 1. Gradient to image branch was scaled by fixed 0.30
-                # 2. Even a perfect image branch could only contribute 30%
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
-                output = fusion_layer([rf_probs, image_probs])
+                # Concat RF probs (3) + image probs (3) → Dense(3)
+                # 21 params — learns per-class weighting (e.g. trust RF for class R, images for class I)
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output')(fused)
             else:
-                # Two image modalities - original architecture
+                # Two image modalities
                 merged = concatenate(branches, name='concat_branches')
                 output = Dense(3, activation='softmax', name='output')(merged)
 
@@ -458,57 +395,33 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
             if has_metadata:
                 # MULTI-MODAL (3): Metadata + 2 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 2 images - constrained weighted fusion preserving RF quality", level=2)
+                vprint("Model: Metadata + 2 images - concat fusion", level=2)
 
-                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
-
-                # Get image branches and fuse them
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
+                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_merged)
 
-                # Image processing
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense')(image_merged)
-                x = tf.keras.layers.BatchNormalization(name='image_BN')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout')(x)
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
-
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
-                output = fusion_layer([rf_probs, image_probs])
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output')(fused)
             else:
-                # Three image modalities - original architecture
+                # Three image modalities
                 merged = concatenate(branches, name='concat_branches')
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(merged)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
-                output = Dense(3, activation='softmax', name='output')(x)
+                output = Dense(3, activation='softmax', name='output')(merged)
 
         elif len(selected_modalities) == 4:
             if has_metadata:
                 # MULTI-MODAL (4): Metadata + 3 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 3 images - constrained weighted fusion preserving RF quality", level=2)
+                vprint("Model: Metadata + 3 images - concat fusion", level=2)
 
-                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
-
-                # Get image branches and fuse them
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
+                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_merged)
 
-                # Image processing
-                x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_1')(image_merged)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_1')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_1')(x)
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_2')(x)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_2')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
-
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
-                output = fusion_layer([rf_probs, image_probs])
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output')(fused)
             else:
                 # Four image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -524,43 +437,19 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
             if has_metadata:
                 # MULTI-MODAL (5): Metadata + 4 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 4 images - constrained weighted fusion preserving RF quality", level=2)
+                vprint("Model: Metadata + 4 images - concat fusion", level=2)
 
-                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
-
-                # Get image branches and fuse them
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
+                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_merged)
 
-                # Image processing
-                x = Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_1')(image_merged)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_1')(x)
-                x = tf.keras.layers.Dropout(0.25, name='image_dropout_1')(x)
-                x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_2')(x)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_2')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_3')(x)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_3')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_3')(x)
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
-
-                vprint(f"  Fusion weights: LEARNABLE (initialized RF={FUSION_INIT_RF_WEIGHT:.2f}, Image={1-FUSION_INIT_RF_WEIGHT:.2f})", level=2)
-                fusion_layer = LearnableFusionWeights(rf_init=FUSION_INIT_RF_WEIGHT, name='output')
-                output = fusion_layer([rf_probs, image_probs])
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output')(fused)
             else:
-                # Five image modalities - original architecture
+                # Five image modalities
                 merged = concatenate(branches, name='concat_branches')
-                x = Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_2')(merged)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_2')(x)
-                x = tf.keras.layers.Dropout(0.25, name='final_dropout_2')(x)
-                x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_3')(x)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_3')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_3')(x)
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(x)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
-                output = Dense(3, activation='softmax', name='output')(x)
+                output = Dense(3, activation='softmax', name='output')(merged)
 
         model = Model(inputs=inputs, outputs=output)
 
