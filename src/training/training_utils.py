@@ -1750,34 +1750,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint(f"  train_loss: {s1h['loss'][best_epoch]:.4f}  train_acc: {s1h['accuracy'][best_epoch]:.4f}", level=2)
                                         vprint("=" * 80, level=2)
 
-                                    # --- STAGE 2: Unfreeze backbone, fine-tune with low LR ---
-                                    for layer in model.layers:
-                                        if hasattr(layer, 'layers'):
-                                            layer.trainable = True
+                                    # Save Stage 1 checkpoint (best weights already restored by EarlyStopping)
+                                    # so the post-training checkpoint load works
+                                    stage1_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
+                                    model.save_weights(stage1_ckpt_path)
+                                    vprint(f"Saved Stage 1 best weights to {stage1_ckpt_path}", level=2)
 
-                                    stage2_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
-                                    stage2_macro_f1 = MacroF1Score(num_classes=3)
-                                    model.compile(
-                                        optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
-                                        loss=stage2_loss,
-                                        metrics=['accuracy', weighted_f1, weighted_acc, stage2_macro_f1, CohenKappa(num_classes=3)]
-                                    )
-
-                                    trainable_count = len(model.trainable_weights)
-                                    vprint("=" * 80, level=2)
-                                    vprint(f"STAGE 2: Full fine-tuning ({trainable_count} weight tensors)", level=2)
-                                    vprint(f"  LR={STAGE2_LR}, epochs={max_epochs}", level=2)
-                                    vprint("=" * 80, level=2)
-
-                                    history = model.fit(
-                                        train_dataset_dis,
-                                        epochs=max_epochs,
-                                        steps_per_epoch=steps_per_epoch,
-                                        validation_data=valid_dataset_dis,
-                                        validation_steps=validation_steps,
-                                        callbacks=callbacks,
-                                        verbose=fit_verbose
-                                    )
+                                    # Stage 2 (backbone fine-tuning) is SKIPPED for standalone image training.
+                                    # With ~2K images, unfreezing EfficientNet's 12M params is harmful:
+                                    # - BatchNorm switches from running stats to batch stats → immediate kappa drop
+                                    # - Even LR=1e-6 degrades val_kappa over epochs
+                                    # ImageNet features are more valuable than anything fine-tuning learns here.
+                                    history = stage1_history
                                 else:
                                     # Metadata-only or other non-backbone training
                                     history = model.fit(
