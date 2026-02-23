@@ -173,11 +173,14 @@ class AugmentationConfig:
             'depth_rgb': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.6},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
-                    'saturation': {'enabled': True, 'range': (0.6, 1.4)},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.15},
+                    'prob': 0.5,
+                    # max_delta is multiplied by 255 in apply_pixel_augmentation_rgb
+                    # 0.1 * 255 = ±25.5 pixel values = ±10% brightness shift (suitable for medical images)
+                    'brightness': {'enabled': True, 'max_delta': 0.1},
+                    'contrast': {'enabled': True, 'range': (0.8, 1.2)},
+                    'saturation': {'enabled': True, 'range': (0.8, 1.2)},
+                    # stddev is multiplied by 255: 0.03 * 255 = 7.65 pixel noise (light noise)
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.03},
                 },
                 'generative_augmentations': {
                     'enabled': USE_GENERATIVE_AUGMENTATION  # Master switch from production_config
@@ -186,11 +189,11 @@ class AugmentationConfig:
             'thermal_rgb': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.6},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
-                    'saturation': {'enabled': True, 'range': (0.6, 1.4)},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.15},
+                    'prob': 0.5,
+                    'brightness': {'enabled': True, 'max_delta': 0.1},
+                    'contrast': {'enabled': True, 'range': (0.8, 1.2)},
+                    'saturation': {'enabled': True, 'range': (0.8, 1.2)},
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.03},
                 },
                 'generative_augmentations': {
                     'enabled': False  # Controlled by depth_rgb setting
@@ -199,11 +202,11 @@ class AugmentationConfig:
             'thermal_map': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.4},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
+                    'prob': 0.5,
+                    'brightness': {'enabled': True, 'max_delta': 0.08},
+                    'contrast': {'enabled': True, 'range': (0.85, 1.15)},
                     'saturation': {'enabled': False},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.1},
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.02},
                 },
                 'generative_augmentations': {
                     'enabled': False  # Map modalities not using generative aug
@@ -212,11 +215,11 @@ class AugmentationConfig:
             'depth_map': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.4},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
+                    'prob': 0.5,
+                    'brightness': {'enabled': True, 'max_delta': 0.08},
+                    'contrast': {'enabled': True, 'range': (0.85, 1.15)},
                     'saturation': {'enabled': False},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.1},
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.02},
                 },
                 'generative_augmentations': {
                     'enabled': False  # Map modalities not using generative aug

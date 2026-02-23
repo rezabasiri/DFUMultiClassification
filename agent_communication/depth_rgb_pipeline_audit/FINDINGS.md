@@ -172,8 +172,28 @@ Use this file to record findings as you work through the AUDIT_PLAN.md checklist
 
 | Finding # | Fix Applied | Verified | Date |
 |-----------|------------|----------|------|
-| 3.1.5 | `generative_augmentation_v3.py`: Changed `tf.clip_by_value(image + noise, 0.0, 1.0)` → `tf.clip_by_value(image + noise, 0.0, 255.0)` and scaled stddev by `* 255.0` in both `apply_pixel_augmentation_rgb` (line 341) and `apply_pixel_augmentation_map` (line 388) | Pending run | 2026-02-23 |
-| 3.1.5b | `generative_augmentation_v3.py`: Scaled `max_delta` by `* 255.0` for brightness ops in both RGB and map functions; added `tf.clip_by_value(image, 0.0, 255.0)` after each brightness, contrast, and saturation op in both functions | Pending run | 2026-02-23 |
-| 7.3.4 | `builders.py`: Replaced `Lambda(lambda img: base_model(img), ...)` with direct `x = base_model(image_input)` call. Added `name=model_name` parameter to EfficientNet constructor (using `f'{modality}_{backbone_name.lower()}'`) for Keras 3 name uniqueness. All 338 backbone weights now visible to optimizer. | Pending run | 2026-02-23 |
-| 5.3.5 / 7.3.8 | `training_utils.py`: Added `'ordinal_weight': FOCAL_ORDINAL_WEIGHT` to the single-config dict (line ~826), so `config.get('ordinal_weight', 0.05)` now returns 0.5 instead of falling back to 0.05 | Pending run | 2026-02-23 |
-| 5.4.4 | `training_utils.py`: Added `class_weight=class_weights_dict` to all 3 `model.fit()` calls (pre-training, fusion training, standard training). Uses `TRAINING_CLASS_WEIGHT_MODE` from production_config (currently 'frequency' → alpha values). | Pending run | 2026-02-23 |
+| 3.1.5 | `generative_augmentation_v3.py`: Changed `tf.clip_by_value(image + noise, 0.0, 1.0)` to `(image + noise, 0.0, 255.0)` and scaled stddev by `* 255.0` | Pending run | 2026-02-23 |
+| 3.1.5b | `generative_augmentation_v3.py`: Added `tf.clip_by_value(image, 0.0, 255.0)` after brightness/contrast/saturation ops, scaled max_delta by `* 255.0` | Pending run | 2026-02-23 |
+| 7.3.4 | `builders.py`: Replaced Lambda wrapping with direct `x = base_model(image_input)` call. 338 backbone weights now visible to optimizer. | Verified: training log shows 357 trainable weights | 2026-02-23 |
+| 5.3.5 / 7.3.8 | `production_config.py`: **REVERTED to 0.05** — ordinal_weight=0.5 was too aggressive with focal loss alpha. Config dict injection kept so the `.get()` fallback is no longer needed. | Fix v2 | 2026-02-24 |
+| 5.4.4 | **REVERTED** — `class_weight`/`sample_weight` removed. Focal loss alpha ALREADY handles class weighting; adding sample_weight on top caused **triple weighting** (alpha in focal × sample_weight × ordinal penalty). This was the root cause of loss=7.0 at epoch 1. | Fix v2 | 2026-02-24 |
+
+### Post-run diagnostic: Why depth_rgb wasn't learning (kappa=0.03)
+
+**Root cause: TRIPLE class weighting**
+
+Three independent mechanisms were all applying class weights simultaneously:
+1. **Focal loss alpha** = [3.459, 1.345, 5.196] (sum=10) — inside `losses.py:130`
+2. **Sample weights** = [3.459, 1.345, 5.196] — baked into dataset via `add_sample_weights()`
+3. **Ordinal penalty** = 0.5 × (class_distance)² — added on top
+
+For class R (rarest): effective multiplier = 5.196 × 5.196 = **27x** instead of intended 5.2x.
+This produced loss=7.0 at epoch 1 (should be ~1.1 for random 3-class CE).
+
+**Fixes applied:**
+1. Removed `add_sample_weights()` from both main training and pre-training datasets
+2. Reduced `FREQUENCY_WEIGHT_NORMALIZATION` from 10.0 to 3.0 (alpha now sums to 3)
+3. Reverted `FOCAL_ORDINAL_WEIGHT` from 0.5 to 0.05
+4. Reduced augmentation intensity (brightness ±60% to ±10%, noise stddev 0.15 to 0.03)
+
+**Expected effect:** Loss should start ~1.1-1.5 (not 7.0), model should converge to val_kappa > 0.3.

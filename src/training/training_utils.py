@@ -1199,14 +1199,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                     vprint(f"Alpha values (ordered) [I, P, R]: {[round(a, 3) for a in alpha_value]}", level=2)
                     vprint(f"Class weights ({TRAINING_CLASS_WEIGHT_MODE}): {class_weights_dict} or {[round(w, 3) for w in class_weights]}", level=2)
 
-                    # Bake class weights into sample_weight on the dataset BEFORE distribution
-                    # (class_weight= in model.fit() is incompatible with DistributedDataset)
-                    class_weights_tensor = tf.constant(class_weights, dtype=tf.float32)
-                    def add_sample_weights(features, labels):
-                        sample_weights = tf.gather(class_weights_tensor, tf.argmax(labels, axis=1))
-                        return features, labels, sample_weights
-
-                    train_dataset = train_dataset.map(add_sample_weights, num_parallel_calls=tf.data.AUTOTUNE)
+                    # NOTE: Class weighting is already handled by the alpha parameter in focal_ordinal_loss
+                    # (losses.py:130 — alpha * (1-p)^gamma * CE). Adding sample_weight on TOP of
+                    # focal-alpha creates DOUBLE weighting (e.g., class R gets 5.2 * 5.2 = 27x instead of 5.2x).
+                    # This was the root cause of loss starting at 7.0 instead of ~1.1.
+                    # DO NOT add sample weights when using alpha-weighted focal loss.
 
                     # Create and train model
                     with strategy.scope():
@@ -1390,9 +1387,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_valid_dataset = pretrain_valid_dataset.map(
                                             remove_sample_id_for_training, num_parallel_calls=tf.data.AUTOTUNE)
 
-                                        # Add sample weights before distribution
-                                        pretrain_train_dataset = pretrain_train_dataset.map(
-                                            add_sample_weights, num_parallel_calls=tf.data.AUTOTUNE)
+                                        # NOTE: No sample_weight needed — focal loss alpha already handles class weighting
 
                                         pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                         pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)

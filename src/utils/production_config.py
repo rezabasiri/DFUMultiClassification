@@ -84,7 +84,7 @@ SAMPLING_STRATEGY = 'none'  # PRODUCTION: Use 'combined' for best fusion perform
 # --- Alpha values: inverse class frequency weights from ORIGINAL (pre-resampling) distribution ---
 # Controls: WeightedF1Score metric, focal loss alpha, and optionally RF/training class weights below
 USE_FREQUENCY_BASED_WEIGHTS = True   # Compute alpha values from original class distribution
-FREQUENCY_WEIGHT_NORMALIZATION = 10.0  # Alpha values normalized to sum to this value
+FREQUENCY_WEIGHT_NORMALIZATION = 3.0  # Alpha values normalized to sum to this value (3.0 = standard; 10.0 was too aggressive)
 
 # --- Neural network loss weighting (independent of RF) ---
 # Controls: focal loss per-sample weighting via model.fit(class_weight=...)
@@ -357,7 +357,7 @@ ENTROPY_LOSS_WEIGHT = 0.2  # Base weight for entropy in total loss
 # =============================================================================
 
 # Focal ordinal loss defaults (when not specified)
-FOCAL_ORDINAL_WEIGHT = 0.5  # Default ordinal penalty weight
+FOCAL_ORDINAL_WEIGHT = 0.05  # Ordinal penalty weight (0.05 = light penalty; 0.5 was far too aggressive with alpha-weighted focal loss)
 # Note: HIERARCHICAL_FOCAL_GAMMA and HIERARCHICAL_FOCAL_ALPHA are used for hierarchical gating
 
 # =============================================================================
