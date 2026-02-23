@@ -844,6 +844,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
     batch_size = first_config['batch_size']
     max_epochs = first_config['max_epochs']
     image_size = first_config['image_size']
+    # Ensure modality_name is set for cross-fold metric filtering
+    # (already set when configs was passed as a list; extract from config for dict case)
+    try:
+        modality_name
+    except NameError:
+        modality_name = '+'.join(first_config.get('modalities', []))
 
     # Get GPU info
     gpus = tf.config.list_physical_devices('GPU')
@@ -926,7 +932,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         # Load their results from disk instead of re-running
         if target_fold is not None and (iteration_idx + 1) != target_fold:
             vprint(f"\n{iteration_name} skipped (target_fold={target_fold}). Loading saved results...", level=1)
-            loaded_metrics = load_run_metrics(run + 1, result_dir)
+            loaded_metrics = load_run_metrics(run + 1, result_dir, modality_filter=modality_name)
             if loaded_metrics:
                 all_runs_metrics.extend(loaded_metrics)
                 vprint(f"  Loaded {len(loaded_metrics)} saved metric(s) for {iteration_name}", level=1)
@@ -937,7 +943,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         # Check if this iteration is already complete
         if is_run_complete(run + 1, ck_path):
             vprint(f"\n{iteration_name} is already complete. Loading saved results...", level=1)
-            loaded_metrics = load_run_metrics(run + 1, result_dir)
+            loaded_metrics = load_run_metrics(run + 1, result_dir, modality_filter=modality_name)
             if loaded_metrics:
                 all_runs_metrics.extend(loaded_metrics)
                 vprint(f"  Loaded {len(loaded_metrics)} saved metric(s) for {iteration_name}", level=1)
@@ -2048,8 +2054,15 @@ def save_run_metrics(run_metrics, run_number, result_dir):
                 writer.writeheader()
                 writer.writerows(formatted_results)
 
-def load_run_metrics(run_number, result_dir):
+def load_run_metrics(run_number, result_dir, modality_filter=None):
     """Load saved per-fold metrics from disk (for subprocess isolation across folds).
+
+    Args:
+        run_number: The fold/run number to load.
+        result_dir: Results directory path.
+        modality_filter: If set, only load metrics matching this modality combo name
+                        (e.g. 'metadata+depth_rgb'). Prevents cross-contamination when
+                        multiple combos share the same per-fold CSV file.
 
     Returns a list of metric dicts, or None if file not found.
     """
@@ -2061,6 +2074,9 @@ def load_run_metrics(run_number, result_dir):
         with open(csv_filename, 'r', newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
+                # Filter by modality combo to avoid cross-contamination
+                if modality_filter and row.get('modalities', '') != modality_filter:
+                    continue
                 metrics_list.append({
                     'config': row.get('config', ''),
                     'modalities': row.get('modalities', '').split('+'),

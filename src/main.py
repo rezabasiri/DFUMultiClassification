@@ -787,7 +787,7 @@ def ImprovedGatingNetwork(num_models=16, num_classes=3):
     
     # Final residual block and prediction
     final_residual = ResidualBlock(num_classes)(dual_attention_output)
-    predictions = tf.nn.softmax(final_residual)  # Direct softmax since dimensions already match
+    predictions = tf.keras.layers.Activation('softmax')(final_residual)
     
     return tf.keras.Model(inputs=input_layer, outputs=predictions)
 def train_model_combination(train_data, val_data, train_labels, val_labels):
@@ -1943,12 +1943,30 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
             "Cohen's Kappa (Std)": std_kappa
         }
 
-        # Append the result to the CSV file
-        with open(csv_filename, 'a', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow(result)
+        # Update or append the result to the CSV file
+        # Read existing rows, update if modality already exists, otherwise append
+        existing_rows = []
+        if os.path.exists(csv_filename):
+            with open(csv_filename, 'r', newline='') as csvfile:
+                reader = csv.DictReader(csvfile)
+                existing_rows = list(reader)
 
-        vprint(f"Results for {', '.join(selected_modalities)} appended to {csv_filename}")
+        updated = False
+        for i, row in enumerate(existing_rows):
+            if row.get('Modalities') == result['Modalities']:
+                existing_rows[i] = result
+                updated = True
+                break
+
+        if not updated:
+            existing_rows.append(result)
+
+        with open(csv_filename, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(existing_rows)
+
+        vprint(f"Results for {', '.join(selected_modalities)} {'updated in' if updated else 'appended to'} {csv_filename}")
 
         # Update progress bar with current combination info
         status = f"{'+'.join(selected_modalities)} | Acc: {avg_accuracy:.3f} | F1: {avg_f1_macro:.3f}"

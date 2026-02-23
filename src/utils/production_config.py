@@ -57,9 +57,8 @@ N_EPOCHS = 200  # Full training epochs
 #   2. Stage 1: 0-20 epochs (frozen image, train fusion)
 #   3. Stage 2: 20-200 epochs (fine-tune everything)
 
-# Image backbone selection (for backbone comparison experiments)
+# Image backbone selection
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
-# Best combination from 20-test comparison: B3+B1 (Kappa=0.3295, 79.7% improvement over baseline)
 RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_rgb)
 MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
 
@@ -422,13 +421,10 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
     ('metadata',),
-    ('depth_rgb',),
-    ('depth_map',),
-    ('thermal_map',),
+    ('metadata', 'depth_rgb', 'thermal_map',),
     ('depth_rgb', 'depth_map', 'thermal_map',),
     ('metadata', 'depth_rgb',),
     ('metadata', 'thermal_map',),
-    ('metadata', 'depth_map',),
     ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
