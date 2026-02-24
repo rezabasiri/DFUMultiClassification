@@ -4,10 +4,10 @@ Depth RGB Hyperparameter Search — Standalone Script
 
 Systematically tests architecture and training configurations for depth_rgb
 standalone to maximize val_cohen_kappa. Uses sequential elimination:
-  Round 1: Backbone + freeze strategy  (9 configs)
-  Round 2: Head architecture            (4 configs)
-  Round 3: Loss + regularization        (6 configs)
-  Round 4: Training dynamics            (4 configs)
+  Round 1: Backbone + freeze strategy  (12 configs — B0, B2, DenseNet121, ResNet50V2, MobileNetV3, SimpleCNN)
+  Round 2: Head architecture            (5 configs)
+  Round 3: Loss + regularization        (8 configs — focal, CCE, label smoothing, L2, mixup)
+  Round 4: Training dynamics            (6 configs — LR, batch, cosine annealing, warmup)
   Round 5: Augmentation + image size    (4 configs)
 
 Usage:
@@ -62,8 +62,10 @@ class SearchConfig:
     """Single experiment configuration."""
     name: str = "baseline"
 
-    # Backbone
-    backbone: str = "EfficientNetB0"  # SimpleCNN, EfficientNetB0, EfficientNetB2
+    # Backbone — expanded with medical imaging favorites
+    backbone: str = "EfficientNetB0"
+    # Options: SimpleCNN, EfficientNetB0, EfficientNetB2,
+    #          DenseNet121, ResNet50V2, MobileNetV3Large
 
     # Freeze strategy
     freeze: str = "frozen"  # frozen, partial_unfreeze, full_unfreeze
@@ -72,6 +74,7 @@ class SearchConfig:
     head_units: List[int] = field(default_factory=lambda: [128])
     head_dropout: float = 0.3
     head_use_bn: bool = True
+    head_l2: float = 0.0  # L2 regularization on head Dense layers
 
     # Training
     learning_rate: float = 1e-3
@@ -79,6 +82,8 @@ class SearchConfig:
     early_stop_patience: int = 15
     reduce_lr_patience: int = 7
     batch_size: int = 64
+    lr_schedule: str = "plateau"  # plateau, cosine
+    warmup_epochs: int = 0  # Linear warmup before main schedule
 
     # Loss
     loss_type: str = "focal"  # focal, cce
@@ -88,6 +93,8 @@ class SearchConfig:
 
     # Augmentation
     use_augmentation: bool = True
+    use_mixup: bool = False  # Mixup augmentation (blends image pairs)
+    mixup_alpha: float = 0.2  # Beta distribution parameter for mixup
 
     # Image
     image_size: int = 256
@@ -118,19 +125,54 @@ def build_simple_cnn(input_shape):
     return inp, x
 
 
-def build_efficientnet(input_shape, variant='EfficientNetB0'):
-    """EfficientNet backbone with ImageNet weights."""
+def build_pretrained_backbone(input_shape, backbone_name):
+    """Build any pretrained backbone with ImageNet weights.
+
+    Handles input normalization: the data pipeline delivers [0,255] for
+    EfficientNet-based backbones and [0,1] for all others (based on
+    RGB_BACKBONE in production_config). We add a preprocessing layer
+    inside the model to correctly normalize for each backbone type.
+    """
+    from tensorflow.keras.layers import Lambda
+
     inp = Input(shape=input_shape, name='depth_rgb_input')
 
     backbone_map = {
         'EfficientNetB0': tf.keras.applications.EfficientNetB0,
         'EfficientNetB2': tf.keras.applications.EfficientNetB2,
+        'DenseNet121': tf.keras.applications.DenseNet121,
+        'ResNet50V2': tf.keras.applications.ResNet50V2,
+        'MobileNetV3Large': tf.keras.applications.MobileNetV3Large,
     }
-    ENetClass = backbone_map[variant]
 
-    # Load with ImageNet weights
-    base_model = ENetClass(weights='imagenet', include_top=False, pooling='avg')
-    x = base_model(inp)
+    # Each backbone's preprocess_input function
+    preprocess_map = {
+        'EfficientNetB0': None,  # Has built-in Rescaling layer
+        'EfficientNetB2': None,  # Has built-in Rescaling layer
+        'DenseNet121': tf.keras.applications.densenet.preprocess_input,
+        'ResNet50V2': tf.keras.applications.resnet_v2.preprocess_input,
+        'MobileNetV3Large': tf.keras.applications.mobilenet_v3.preprocess_input,
+    }
+
+    BackboneClass = backbone_map[backbone_name]
+    preprocess_fn = preprocess_map[backbone_name]
+
+    kwargs = {'weights': 'imagenet', 'include_top': False, 'pooling': 'avg'}
+    if backbone_name == 'MobileNetV3Large':
+        kwargs['minimalistic'] = False
+
+    base_model = BackboneClass(**kwargs)
+
+    # Apply backbone-specific preprocessing.
+    # Data pipeline delivers [0, 255] for all pretrained backbones (we force this
+    # by overriding RGB_BACKBONE to 'EfficientNetB0' in prepare_datasets).
+    # - EfficientNet: has built-in Rescaling(1/255), expects [0, 255] — no preprocess needed.
+    # - DenseNet/ResNet/MobileNet: preprocess_input expects [0, 255] and normalizes internally.
+    if preprocess_fn is not None:
+        x = Lambda(lambda img: preprocess_fn(img), name='backbone_preprocess')(inp)
+        x = base_model(x)
+    else:
+        x = base_model(inp)
 
     return inp, x, base_model
 
@@ -143,12 +185,14 @@ def build_model(cfg: SearchConfig):
     if cfg.backbone == 'SimpleCNN':
         inp, features = build_simple_cnn(input_shape)
     else:
-        inp, features, base_model = build_efficientnet(input_shape, cfg.backbone)
+        inp, features, base_model = build_pretrained_backbone(input_shape, cfg.backbone)
 
-    # Head
+    # Head — with optional L2 regularization
     x = features
+    regularizer = tf.keras.regularizers.l2(cfg.head_l2) if cfg.head_l2 > 0 else None
     for i, units in enumerate(cfg.head_units):
         x = Dense(units, activation='relu', kernel_initializer='he_normal',
+                  kernel_regularizer=regularizer,
                   name=f'head_dense_{i}')(x)
         if cfg.head_use_bn:
             x = BatchNormalization(name=f'head_bn_{i}')(x)
@@ -249,6 +293,62 @@ class CohenKappaMetric(tf.keras.metrics.Metric):
 
 
 # ─────────────────────────────────────────────────────────────────────
+# LR schedules & augmentation callbacks
+# ─────────────────────────────────────────────────────────────────────
+
+class CosineAnnealingSchedule(tf.keras.callbacks.Callback):
+    """Cosine annealing LR with optional warmup."""
+    def __init__(self, initial_lr, total_epochs, warmup_epochs=0, min_lr=1e-7):
+        super().__init__()
+        self.initial_lr = initial_lr
+        self.total_epochs = total_epochs
+        self.warmup_epochs = warmup_epochs
+        self.min_lr = min_lr
+
+    def on_epoch_begin(self, epoch, logs=None):
+        if epoch < self.warmup_epochs:
+            # Linear warmup
+            lr = self.initial_lr * (epoch + 1) / max(self.warmup_epochs, 1)
+        else:
+            # Cosine annealing
+            progress = (epoch - self.warmup_epochs) / max(self.total_epochs - self.warmup_epochs, 1)
+            lr = self.min_lr + 0.5 * (self.initial_lr - self.min_lr) * (1 + math.cos(math.pi * progress))
+        tf.keras.backend.set_value(self.model.optimizer.learning_rate, lr)
+
+
+def apply_mixup(features, labels, alpha=0.2):
+    """Mixup augmentation — blends pairs of samples for better generalization.
+
+    Creates virtual training examples by linearly interpolating between
+    random pairs, which smooths the decision boundary and acts as a
+    strong regularizer for small datasets.
+    """
+    batch_size = tf.shape(list(features.values())[0])[0]
+    # Sample mixing coefficient from Beta(alpha, alpha)
+    lam = tf.random.uniform([], 0.0, 1.0)  # Simplified: uniform instead of beta for TF compat
+    if alpha > 0:
+        # Approximate Beta distribution: use the mean of two uniform draws
+        u1 = tf.random.uniform([], 0.0, 1.0)
+        u2 = tf.random.uniform([], 0.0, 1.0)
+        lam = tf.maximum(u1, u2) if alpha <= 0.3 else (u1 + u2) / 2.0
+
+    # Random permutation indices
+    indices = tf.random.shuffle(tf.range(batch_size))
+
+    # Mix features
+    mixed_features = {}
+    for key, val in features.items():
+        shuffled = tf.gather(val, indices)
+        mixed_features[key] = lam * val + (1.0 - lam) * shuffled
+
+    # Mix labels
+    shuffled_labels = tf.gather(labels, indices)
+    mixed_labels = lam * labels + (1.0 - lam) * shuffled_labels
+
+    return mixed_features, mixed_labels
+
+
+# ─────────────────────────────────────────────────────────────────────
 # Data pipeline — reuses project's existing data loading
 # ─────────────────────────────────────────────────────────────────────
 
@@ -309,19 +409,36 @@ def prepare_datasets(data, cfg: SearchConfig, fold_idx=0):
 
     selected_modalities = ['depth_rgb']
 
-    # Temporarily override USE_GENERAL_AUGMENTATION if this config disables augmentation
+    # Temporarily override globals that affect the data pipeline
     import src.utils.production_config as _pcfg
     import src.data.dataset_utils as _ds_utils
     original_aug = _pcfg.USE_GENERAL_AUGMENTATION
+    original_rgb_backbone = _pcfg.RGB_BACKBONE
+
     if not cfg.use_augmentation:
         _pcfg.USE_GENERAL_AUGMENTATION = False
         _ds_utils.USE_GENERAL_AUGMENTATION = False
 
-    # Use a unique cache dir for this search to avoid collisions with main training
+    # IMPORTANT: Keep data pipeline delivering [0, 255] for ALL pretrained backbones.
+    # We apply correct per-backbone normalization inside the model via a Lambda layer.
+    # Only SimpleCNN needs [0, 1] (data pipeline does /255 when backbone != EfficientNet*).
+    if cfg.backbone == 'SimpleCNN':
+        _pcfg.RGB_BACKBONE = 'SimpleCNN'
+        _ds_utils.RGB_BACKBONE = 'SimpleCNN'
+    else:
+        # Force EfficientNet-style normalization (keep [0, 255]) for all pretrained backbones
+        _pcfg.RGB_BACKBONE = 'EfficientNetB0'
+        _ds_utils.RGB_BACKBONE = 'EfficientNetB0'
+
+    # Use a unique cache dir for this search to avoid collisions with main training.
+    # Cache key: image_size + normalization type (pretrained=[0,255] vs simplecnn=[0,1]) + augmentation.
+    # All pretrained backbones share the same [0,255] cached data.
     from src.utils.config import get_project_paths, get_output_paths
     _, search_result_dir, _ = get_project_paths()
     aug_suffix = 'aug' if cfg.use_augmentation else 'noaug'
-    search_cache_dir = os.path.join(search_result_dir, f'tf_records_search_{cfg.image_size}_{aug_suffix}')
+    norm_key = 'simplecnn' if cfg.backbone == 'SimpleCNN' else 'pretrained'
+    search_cache_dir = os.path.join(search_result_dir,
+        f'tf_records_search_{cfg.image_size}_{norm_key}_{aug_suffix}')
 
     train_ds, pre_aug_ds, valid_ds, steps_per_epoch, val_steps, alpha_values = prepare_cached_datasets(
         data,
@@ -336,10 +453,11 @@ def prepare_datasets(data, cfg: SearchConfig, fold_idx=0):
         cache_dir=search_cache_dir,
     )
 
-    # Restore augmentation setting
+    # Restore overridden globals
     _pcfg.USE_GENERAL_AUGMENTATION = original_aug
-    if hasattr(_ds_utils, 'USE_GENERAL_AUGMENTATION'):
-        _ds_utils.USE_GENERAL_AUGMENTATION = original_aug
+    _pcfg.RGB_BACKBONE = original_rgb_backbone
+    _ds_utils.USE_GENERAL_AUGMENTATION = original_aug
+    _ds_utils.RGB_BACKBONE = original_rgb_backbone
 
     # Remove sample_id from datasets for model.fit()
     def remove_sample_id(features, labels):
@@ -380,11 +498,12 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     print(f"\n{'='*80}")
     print(f"CONFIG: {cfg.name}")
     print(f"  backbone={cfg.backbone}, freeze={cfg.freeze}")
-    print(f"  head={cfg.head_units}, dropout={cfg.head_dropout}, bn={cfg.head_use_bn}")
+    print(f"  head={cfg.head_units}, dropout={cfg.head_dropout}, bn={cfg.head_use_bn}, l2={cfg.head_l2}")
     print(f"  loss={cfg.loss_type}, gamma={cfg.focal_gamma}, alpha_sum={cfg.alpha_sum}")
     print(f"  lr={cfg.learning_rate}, epochs={cfg.stage1_epochs}, batch={cfg.batch_size}")
-    print(f"  augmentation={cfg.use_augmentation}, label_smooth={cfg.label_smoothing}")
-    print(f"  image_size={cfg.image_size}, fold={fold_idx}")
+    print(f"  lr_schedule={cfg.lr_schedule}, warmup={cfg.warmup_epochs}")
+    print(f"  augmentation={cfg.use_augmentation}, mixup={cfg.use_mixup}({cfg.mixup_alpha})")
+    print(f"  label_smooth={cfg.label_smoothing}, image_size={cfg.image_size}, fold={fold_idx}")
     print(f"{'='*80}")
 
     start_time = time.time()
@@ -435,6 +554,14 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
             metrics=['accuracy', CohenKappaMetric(num_classes=3)]
         )
 
+    # Apply mixup if enabled
+    if cfg.use_mixup:
+        mixup_alpha = cfg.mixup_alpha
+        train_ds = train_ds.map(
+            lambda f, l: apply_mixup(f, l, alpha=mixup_alpha),
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+
     # Distribute datasets
     train_ds_dis = strategy.experimental_distribute_dataset(train_ds)
     valid_ds_dis = strategy.experimental_distribute_dataset(valid_ds)
@@ -449,15 +576,25 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
             mode='max',
             verbose=1
         ),
-        ReduceLROnPlateau(
+    ]
+
+    # LR schedule: cosine annealing or reduce-on-plateau
+    if cfg.lr_schedule == 'cosine':
+        callbacks.append(CosineAnnealingSchedule(
+            initial_lr=lr,
+            total_epochs=cfg.stage1_epochs,
+            warmup_epochs=cfg.warmup_epochs,
+            min_lr=1e-7
+        ))
+    else:
+        callbacks.append(ReduceLROnPlateau(
             factor=0.50,
             patience=cfg.reduce_lr_patience,
             monitor='val_cohen_kappa',
             min_delta=0.001,
             min_lr=1e-7,
             mode='max',
-        ),
-    ]
+        ))
 
     # Train Stage 1 (head only, or full model if SimpleCNN/full_unfreeze)
     history = model.fit(
@@ -565,13 +702,18 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         'head_units': str(cfg.head_units),
         'head_dropout': cfg.head_dropout,
         'head_use_bn': cfg.head_use_bn,
+        'head_l2': cfg.head_l2,
         'loss_type': cfg.loss_type,
         'focal_gamma': cfg.focal_gamma,
         'alpha_sum': cfg.alpha_sum,
         'label_smoothing': cfg.label_smoothing,
         'learning_rate': cfg.learning_rate,
+        'lr_schedule': cfg.lr_schedule,
+        'warmup_epochs': cfg.warmup_epochs,
         'batch_size': cfg.batch_size,
         'use_augmentation': cfg.use_augmentation,
+        'use_mixup': cfg.use_mixup,
+        'mixup_alpha': cfg.mixup_alpha,
         'image_size': cfg.image_size,
         'stage1_epochs': cfg.stage1_epochs,
         'finetune_epochs': cfg.finetune_epochs if ran_stage2 else 0,
@@ -601,17 +743,24 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
 # ─────────────────────────────────────────────────────────────────────
 
 def round1_backbone_freeze():
-    """Round 1: Test backbone x freeze strategy combinations."""
+    """Round 1: Test backbone x freeze strategy combinations.
+
+    Includes:
+    - SimpleCNN: scratch baseline (no pretrained weights)
+    - EfficientNetB0: current default (4M params, good transfer)
+    - EfficientNetB2: larger EfficientNet (9M params)
+    - DenseNet121: medical imaging standard (dense connections, 8M params)
+    - ResNet50V2: classic backbone with pre-activation (25M params)
+    - MobileNetV3Large: lightweight (5M params, less overfitting risk)
+    """
     configs = []
-    backbones = ['SimpleCNN', 'EfficientNetB0', 'EfficientNetB2']
-    freezes = ['frozen', 'partial_unfreeze', 'full_unfreeze']
-
-    for bb in backbones:
-        for fr in freezes:
-            # SimpleCNN has no pretrained weights — freeze is meaningless
-            if bb == 'SimpleCNN' and fr != 'full_unfreeze':
-                continue
-
+    # Pretrained backbones: test frozen + partial_unfreeze
+    pretrained_backbones = [
+        'EfficientNetB0', 'EfficientNetB2',
+        'DenseNet121', 'ResNet50V2', 'MobileNetV3Large'
+    ]
+    for bb in pretrained_backbones:
+        for fr in ['frozen', 'partial_unfreeze']:
             name = f"R1_{bb}_{fr}"
             cfg = SearchConfig(
                 name=name,
@@ -620,10 +769,23 @@ def round1_backbone_freeze():
                 head_units=[128],
                 head_dropout=0.3,
                 learning_rate=1e-3,
-                finetune_epochs=30 if fr == 'frozen' else 0,  # Only frozen gets Stage 2
+                finetune_epochs=30 if fr == 'frozen' else 0,
                 finetune_lr=1e-5,
             )
             configs.append(cfg)
+
+    # SimpleCNN: train from scratch
+    configs.append(SearchConfig(
+        name="R1_SimpleCNN_scratch",
+        backbone='SimpleCNN',
+        freeze='full_unfreeze',
+        head_units=[128],
+        head_dropout=0.3,
+        learning_rate=1e-3,
+        finetune_epochs=0,
+        stage1_epochs=80,  # More epochs since training from scratch
+        early_stop_patience=20,
+    ))
 
     return configs
 
@@ -632,6 +794,7 @@ def round2_head(best_r1: SearchConfig):
     """Round 2: Test head architectures with best backbone/freeze from R1."""
     configs = []
     heads = {
+        'tiny':      {'units': [32], 'dropout': 0.3, 'bn': True},
         'small':     {'units': [64], 'dropout': 0.3, 'bn': True},
         'medium':    {'units': [128], 'dropout': 0.3, 'bn': True},
         'large':     {'units': [256], 'dropout': 0.3, 'bn': True},
@@ -650,19 +813,25 @@ def round2_head(best_r1: SearchConfig):
 
 
 def round3_loss_regularization(best_r2: SearchConfig):
-    """Round 3: Test loss function + regularization combos."""
+    """Round 3: Test loss function + regularization combos.
+
+    Tests: focal gamma, CCE, label smoothing, L2 on head, mixup augmentation.
+    """
     configs = []
 
+    # (name, loss, gamma, dropout, label_smooth, alpha_sum, l2, mixup, mixup_alpha)
     variants = [
-        ('focal_g2_d03', 'focal', 2.0, 0.3, 0.0, 3.0),
-        ('focal_g3_d03', 'focal', 3.0, 0.3, 0.0, 3.0),
-        ('cce_d03',       'cce',   0.0, 0.3, 0.0, 3.0),
-        ('focal_g2_d05', 'focal', 2.0, 0.5, 0.0, 3.0),
-        ('focal_g2_d02', 'focal', 2.0, 0.2, 0.0, 3.0),
-        ('focal_g2_ls01','focal', 2.0, 0.3, 0.1, 3.0),
+        ('focal_g2_d03',     'focal', 2.0, 0.3, 0.0, 3.0, 0.0,   False, 0.0),
+        ('focal_g3_d03',     'focal', 3.0, 0.3, 0.0, 3.0, 0.0,   False, 0.0),
+        ('cce_d03',          'cce',   0.0, 0.3, 0.0, 3.0, 0.0,   False, 0.0),
+        ('focal_g2_d05',     'focal', 2.0, 0.5, 0.0, 3.0, 0.0,   False, 0.0),
+        ('focal_g2_d02',     'focal', 2.0, 0.2, 0.0, 3.0, 0.0,   False, 0.0),
+        ('focal_g2_ls01',    'focal', 2.0, 0.3, 0.1, 3.0, 0.0,   False, 0.0),
+        ('focal_g2_l2_1e3',  'focal', 2.0, 0.3, 0.0, 3.0, 1e-3,  False, 0.0),
+        ('focal_g2_mixup02', 'focal', 2.0, 0.3, 0.0, 3.0, 0.0,   True,  0.2),
     ]
 
-    for name, loss, gamma, drop, ls, alpha_sum in variants:
+    for name, loss, gamma, drop, ls, alpha_sum, l2, mixup, mixup_a in variants:
         cfg = deepcopy(best_r2)
         cfg.name = f"R3_{name}"
         cfg.loss_type = loss
@@ -670,29 +839,36 @@ def round3_loss_regularization(best_r2: SearchConfig):
         cfg.head_dropout = drop
         cfg.label_smoothing = ls
         cfg.alpha_sum = alpha_sum
+        cfg.head_l2 = l2
+        cfg.use_mixup = mixup
+        cfg.mixup_alpha = mixup_a
         configs.append(cfg)
 
     return configs
 
 
 def round4_training_dynamics(best_r3: SearchConfig):
-    """Round 4: Test learning rate, batch size, training length."""
+    """Round 4: Test learning rate, batch size, LR schedule, warmup."""
     configs = []
 
+    # (name, lr, batch, epochs, lr_schedule, warmup)
     variants = [
-        ('lr5e4_b64_e50',  5e-4, 64, 50),
-        ('lr1e3_b64_e50',  1e-3, 64, 50),   # Current default
-        ('lr3e3_b64_e50',  3e-3, 64, 50),
-        ('lr1e3_b32_e50',  1e-3, 32, 50),
-        ('lr1e3_b64_e100', 1e-3, 64, 100),
+        ('lr5e4_b64_plateau',    5e-4, 64, 50,  'plateau', 0),
+        ('lr1e3_b64_plateau',    1e-3, 64, 50,  'plateau', 0),   # Current default
+        ('lr3e3_b64_plateau',    3e-3, 64, 50,  'plateau', 0),
+        ('lr1e3_b32_plateau',    1e-3, 32, 50,  'plateau', 0),
+        ('lr1e3_b64_cosine',     1e-3, 64, 60,  'cosine',  5),   # Cosine + 5-epoch warmup
+        ('lr1e3_b64_e100',       1e-3, 64, 100, 'plateau', 0),
     ]
 
-    for name, lr, bs, epochs in variants:
+    for name, lr, bs, epochs, schedule, warmup in variants:
         cfg = deepcopy(best_r3)
         cfg.name = f"R4_{name}"
         cfg.learning_rate = lr
         cfg.batch_size = bs
         cfg.stage1_epochs = epochs
+        cfg.lr_schedule = schedule
+        cfg.warmup_epochs = warmup
         if epochs > 50:
             cfg.early_stop_patience = 20
             cfg.reduce_lr_patience = 10
@@ -747,23 +923,33 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Sear
           f"(kappa={best['post_eval_kappa']:.4f}, s1_kappa={best['best_s1_kappa']:.4f})")
 
     # Reconstruct config from result
+    # Handle string values that may come back from CSV
+    head_units = best['head_units']
+    if isinstance(head_units, str):
+        head_units = eval(head_units)
+
     cfg = SearchConfig(
         name=best['name'],
         backbone=best['backbone'],
         freeze=best['freeze'],
-        head_units=eval(best['head_units']),  # stored as string repr of list
-        head_dropout=best['head_dropout'],
+        head_units=head_units,
+        head_dropout=float(best['head_dropout']),
         head_use_bn=best['head_use_bn'],
+        head_l2=float(best.get('head_l2', 0.0)),
         loss_type=best['loss_type'],
-        focal_gamma=best['focal_gamma'],
-        alpha_sum=best['alpha_sum'],
-        label_smoothing=best['label_smoothing'],
-        learning_rate=best['learning_rate'],
-        batch_size=best['batch_size'],
+        focal_gamma=float(best['focal_gamma']),
+        alpha_sum=float(best['alpha_sum']),
+        label_smoothing=float(best['label_smoothing']),
+        learning_rate=float(best['learning_rate']),
+        lr_schedule=best.get('lr_schedule', 'plateau'),
+        warmup_epochs=int(best.get('warmup_epochs', 0)),
+        batch_size=int(best['batch_size']),
         use_augmentation=best['use_augmentation'],
-        image_size=best['image_size'],
-        stage1_epochs=best['stage1_epochs'],
-        finetune_epochs=best.get('finetune_epochs', 0),
+        use_mixup=best.get('use_mixup', False),
+        mixup_alpha=float(best.get('mixup_alpha', 0.0)),
+        image_size=int(best['image_size']),
+        stage1_epochs=int(best['stage1_epochs']),
+        finetune_epochs=int(best.get('finetune_epochs', 0)),
     )
 
     return best, cfg
@@ -898,10 +1084,10 @@ def main():
     # Final 3-fold results
     print(f"\nFINAL BEST CONFIG: {best_r5_cfg.name}")
     print(f"  backbone={best_r5_cfg.backbone}, freeze={best_r5_cfg.freeze}")
-    print(f"  head={best_r5_cfg.head_units}, dropout={best_r5_cfg.head_dropout}")
+    print(f"  head={best_r5_cfg.head_units}, dropout={best_r5_cfg.head_dropout}, l2={best_r5_cfg.head_l2}")
     print(f"  loss={best_r5_cfg.loss_type}, gamma={best_r5_cfg.focal_gamma}")
-    print(f"  lr={best_r5_cfg.learning_rate}, batch={best_r5_cfg.batch_size}")
-    print(f"  aug={best_r5_cfg.use_augmentation}, img_size={best_r5_cfg.image_size}")
+    print(f"  lr={best_r5_cfg.learning_rate}, schedule={best_r5_cfg.lr_schedule}, batch={best_r5_cfg.batch_size}")
+    print(f"  aug={best_r5_cfg.use_augmentation}, mixup={best_r5_cfg.use_mixup}, img_size={best_r5_cfg.image_size}")
 
     fold_kappas = [r['post_eval_kappa'] for r in final_results]
     print(f"\n  3-fold kappas: {[round(k, 4) for k in fold_kappas]}")
