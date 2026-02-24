@@ -88,9 +88,14 @@ data/cleaned/*
 .git.backup/
 results/.xla_cache/
 
-# tf records
+# tf records (search cache — all modalities)
+results/search_cache/
 results/tf_records_search_224_pretrained_aug
 results/tf_records_search_224_pretrained_noaug
 results/tf_records_search_256_pretrained_aug
 results/tf_records_search_256_pretrained_noaug
 results/tf_records_search_256_simplecnn_aug
+
+# Map pipeline audit logs (large, regenerated on each run)
+agent_communication/depth_map_pipeline_audit/logs/
+agent_communication/thermal_map_pipeline_audit/logs/
