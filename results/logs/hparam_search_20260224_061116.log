@@ -1,0 +1,319 @@
+Logging to: /workspace/DFUMultiClassification/results/logs/hparam_search_20260224_061116.log
+================================================================================
+DEPTH RGB HYPERPARAMETER SEARCH
+================================================================================
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=18, P=16, R=26
+
+Excluded samples per class:
+  Class I: 65 samples
+  Class P: 143 samples
+  Class R: 8 samples
+
+Total unique samples to exclude: 216
+
+Dataset size (rows): 3108 -> 2072 (66.7%)
+Unique samples: 648 -> 432 (removed 216)
+
+Class distribution after filtering:
+  Class I: 595 rows
+  Class P: 1181 rows
+  Class R: 296 rows
+============================================================
+
+Loaded 2072 samples
+RESUME MODE — found 37 completed configs: ['R1_EfficientNetB0_frozen', 'R1_EfficientNetB0_partial_unfreeze', 'R1_EfficientNetB2_frozen', 'R1_EfficientNetB2_partial_unfreeze', 'R1_DenseNet121_frozen', 'R1_DenseNet121_partial_unfreeze', 'R1_ResNet50V2_frozen', 'R1_ResNet50V2_partial_unfreeze', 'R1_MobileNetV3Large_frozen', 'R1_MobileNetV3Large_partial_unfreeze', 'R1_SimpleCNN_scratch', 'R2_tiny', 'R2_small', 'R2_medium', 'R2_large', 'R2_two_layer', 'R3_focal_g2_d03', 'R3_focal_g3_d03', 'R3_cce_d03', 'R3_focal_g2_d05', 'R3_focal_g2_d02', 'R3_focal_g2_ls01', 'R3_focal_g2_l2_1e3', 'R3_focal_g2_mixup02', 'R4_lr5e4_b64_plateau', 'R4_lr1e3_b64_plateau', 'R4_lr3e3_b64_plateau', 'R4_lr1e3_b32_plateau', 'R4_lr1e3_b64_cosine', 'R4_lr1e3_b64_e100', 'R5_aug_on_256', 'R5_aug_off_256', 'R5_aug_on_224', 'R5_aug_off_224', 'FINAL_fold1', 'FINAL_fold2', 'FINAL_fold3']
+
+################################################################################
+ROUND 1: BACKBONE + FREEZE STRATEGY
+################################################################################
+
+  SKIP (cached): R1_EfficientNetB0_frozen → kappa=0.3717
+
+  SKIP (cached): R1_EfficientNetB0_partial_unfreeze → kappa=0.3023
+
+  SKIP (cached): R1_EfficientNetB2_frozen → kappa=0.3611
+
+  SKIP (cached): R1_EfficientNetB2_partial_unfreeze → kappa=0.3643
+
+  SKIP (cached): R1_DenseNet121_frozen → kappa=0.3748
+
+  SKIP (cached): R1_DenseNet121_partial_unfreeze → kappa=0.3294
+
+  SKIP (cached): R1_ResNet50V2_frozen → kappa=0.3180
+
+  SKIP (cached): R1_ResNet50V2_partial_unfreeze → kappa=0.3359
+
+  SKIP (cached): R1_MobileNetV3Large_frozen → kappa=0.3603
+
+  SKIP (cached): R1_MobileNetV3Large_partial_unfreeze → kappa=0.1012
+
+  SKIP (cached): R1_SimpleCNN_scratch → kappa=0.1303
+
+  BEST from this round: R1_DenseNet121_frozen (kappa=0.3748, s1_kappa=0.3898)
+
+################################################################################
+ROUND 2: HEAD ARCHITECTURE
+################################################################################
+
+  SKIP (cached): R2_tiny → kappa=0.3611
+
+  SKIP (cached): R2_small → kappa=0.3606
+
+  SKIP (cached): R2_medium → kappa=0.3623
+
+  SKIP (cached): R2_large → kappa=0.3546
+
+  SKIP (cached): R2_two_layer → kappa=0.3546
+
+  BEST from this round: R2_medium (kappa=0.3623, s1_kappa=0.3816)
+
+################################################################################
+ROUND 3: LOSS + REGULARIZATION
+################################################################################
+
+  SKIP (cached): R3_focal_g2_d03 → kappa=0.3751
+
+  SKIP (cached): R3_focal_g3_d03 → kappa=0.3869
+
+  SKIP (cached): R3_cce_d03 → kappa=0.3675
+
+  SKIP (cached): R3_focal_g2_d05 → kappa=0.3773
+
+  SKIP (cached): R3_focal_g2_d02 → kappa=0.3507
+
+  SKIP (cached): R3_focal_g2_ls01 → kappa=0.3795
+
+  SKIP (cached): R3_focal_g2_l2_1e3 → kappa=0.3665
+
+  SKIP (cached): R3_focal_g2_mixup02 → kappa=0.3668
+
+  BEST from this round: R3_focal_g3_d03 (kappa=0.3869, s1_kappa=0.4006)
+
+################################################################################
+ROUND 4: TRAINING DYNAMICS
+################################################################################
+
+  SKIP (cached): R4_lr5e4_b64_plateau → kappa=0.3901
+
+  SKIP (cached): R4_lr1e3_b64_plateau → kappa=0.3776
+
+  SKIP (cached): R4_lr3e3_b64_plateau → kappa=0.3596
+
+  SKIP (cached): R4_lr1e3_b32_plateau → kappa=0.3856
+
+  SKIP (cached): R4_lr1e3_b64_cosine → kappa=0.3518
+
+  SKIP (cached): R4_lr1e3_b64_e100 → kappa=0.3910
+
+  BEST from this round: R4_lr1e3_b64_e100 (kappa=0.3910, s1_kappa=0.3725)
+
+################################################################################
+ROUND 5: AUGMENTATION + IMAGE SIZE
+################################################################################
+
+  SKIP (cached): R5_aug_on_256 → kappa=0.3717
+
+  SKIP (cached): R5_aug_off_256 → kappa=0.3823
+
+  SKIP (cached): R5_aug_on_224 → kappa=0.3233
+
+  SKIP (cached): R5_aug_off_224 → kappa=0.3384
+
+  BEST from this round: R5_aug_off_256 (kappa=0.3823, s1_kappa=0.3638)
+
+################################################################################
+FINAL: BEST CONFIG ON ALL 3 FOLDS
+################################################################################
+
+  SKIP (cached): FINAL_fold1 → kappa=0.3823
+
+  SKIP (cached): FINAL_fold2 → kappa=0.4369
+
+  SKIP (cached): FINAL_fold3 → kappa=0.2413
+
+################################################################################
+BASELINE: EfficientNetB0 FROZEN ON ALL 3 FOLDS
+################################################################################
+
+================================================================================
+CONFIG: BASELINE_fold1
+  backbone=EfficientNetB0, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/320
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 1 best: val_kappa=0.3270 at epoch 1/16
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
+  Stage 2 best: val_kappa=0.3075 at epoch 4/14
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3039, acc=0.3855, f1=0.3899
+  Confusion matrix:
+[[104  52  43]
+ [118  89 187]
+ [ 14  10  73]]
+  Time: 140s
+
+================================================================================
+CONFIG: BASELINE_fold2
+  backbone=EfficientNetB0, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=1
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.856, 0.431, 1.713]
+  Trainable weights: 6/320
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 26.
+  Stage 1 best: val_kappa=0.3924 at epoch 26/41
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3588 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3588, acc=0.5094, f1=0.4903
+  Confusion matrix:
+[[126  48  25]
+ [138 174  82]
+ [ 11  35  52]]
+  Time: 215s
+
+================================================================================
+CONFIG: BASELINE_fold3
+  backbone=EfficientNetB0, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=2
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.846, 0.427, 1.727]
+  Trainable weights: 6/320
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 12.
+  Stage 1 best: val_kappa=0.2870 at epoch 12/27
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2537 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.2537, acc=0.5311, f1=0.4571
+  Confusion matrix:
+[[ 93  95   9]
+ [106 248  39]
+ [ 20  55  26]]
+  Time: 166s
+
+================================================================================
+SEARCH COMPLETE — SUMMARY
+================================================================================
+  R1: Backbone+Freeze: R1_DenseNet121_frozen → kappa=0.3748
+  R2: Head: R2_medium → kappa=0.3623
+  R3: Loss+Reg: R3_focal_g3_d03 → kappa=0.3869
+  R4: Training: R4_lr1e3_b64_e100 → kappa=0.3910
+  R5: Aug+ImgSize: R5_aug_off_256 → kappa=0.3823
+
+BASELINE (EfficientNetB0 frozen):
+  backbone=EfficientNetB0, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, schedule=plateau, batch=64
+  epochs=50+30ft, warmup=0
+  aug=True, mixup=False(alpha=0.2), img_size=256
+  label_smoothing=0.0
+
+  Fold        Kappa   Accuracy   F1 (macro)
+  ----------------------------------------
+  Fold 1     0.3039     0.3855       0.3899
+  Fold 2     0.3588     0.5094       0.4903
+  Fold 3     0.2537     0.5311       0.4571
+  ----------------------------------------
+  Mean       0.3055     0.4753       0.4458
+  Std        0.0429     0.0641       0.0418
+
+BEST CONFIG (R5_aug_off_256):
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=3.0, alpha_sum=3.0
+  lr=0.001, schedule=plateau, batch=64
+  epochs=100+30ft, warmup=0
+  aug=False, mixup=False(alpha=0.0), img_size=256
+  label_smoothing=0.0
+
+  Fold        Kappa   Accuracy   F1 (macro)
+  ----------------------------------------
+  Fold 1     0.3823     0.4812       0.4736
+  Fold 2     0.4369     0.5991       0.5564
+  Fold 3     0.2413     0.4660       0.4343
+  ----------------------------------------
+  Mean       0.3535     0.5154       0.4881
+  Std        0.0824     0.0595       0.0509
+
+────────────────────────────────────────────────────────────
+STATISTICAL COMPARISON (Best vs Baseline)
+────────────────────────────────────────────────────────────
+  Mean Kappa diff:    +0.0480  (0.3055 → 0.3535)
+  Mean Accuracy diff: +0.0401  (0.4753 → 0.5154)
+  Mean F1 diff:       +0.0423  (0.4458 → 0.4881)
+
+  Paired t-test on kappa (n=3 folds):
+    t-statistic = 1.5893
+    p-value     = 0.2529
+    → NOT statistically significant (p >= 0.05)
+    Note: With only 3 folds, statistical power is low.
+    A paired t-test with 2 df requires very large effect sizes to reach significance.
+
+Results saved to: /workspace/DFUMultiClassification/results/depth_rgb_search_results.csv
+Best config saved to: /workspace/DFUMultiClassification/results/depth_rgb_best_config.json

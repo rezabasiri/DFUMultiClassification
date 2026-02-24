@@ -317,7 +317,7 @@ class CosineAnnealingSchedule(tf.keras.callbacks.Callback):
             # Cosine annealing
             progress = (epoch - self.warmup_epochs) / max(self.total_epochs - self.warmup_epochs, 1)
             lr = self.min_lr + 0.5 * (self.initial_lr - self.min_lr) * (1 + math.cos(math.pi * progress))
-        tf.keras.backend.set_value(self.model.optimizer.learning_rate, lr)
+        self.model.optimizer.learning_rate.assign(lr)
 
 
 def apply_mixup(features, labels, alpha=0.2):
@@ -1115,6 +1115,27 @@ def main(fresh: bool = False):
     final_results = run_round("FINAL", final_configs, data, results_csv, completed)
     all_results.extend(final_results)
 
+    # ─── Baseline: Run EfficientNetB0 frozen on all 3 folds ───
+    print(f"\n{'#'*80}")
+    print("BASELINE: EfficientNetB0 FROZEN ON ALL 3 FOLDS")
+    print(f"{'#'*80}")
+
+    baseline_cfg = SearchConfig(
+        name="BASELINE",
+        backbone='EfficientNetB0',
+        freeze='frozen',
+        finetune_epochs=30,
+        finetune_lr=1e-5,
+    )
+    baseline_configs = []
+    for fold_idx in range(3):
+        cfg = deepcopy(baseline_cfg)
+        cfg.name = f"BASELINE_fold{fold_idx+1}"
+        cfg.fold = fold_idx
+        baseline_configs.append(cfg)
+    baseline_results = run_round("BASELINE", baseline_configs, data, results_csv, completed)
+    all_results.extend(baseline_results)
+
     # ─── Summary ───
     print(f"\n{'='*80}")
     print("SEARCH COMPLETE — SUMMARY")
@@ -1131,25 +1152,65 @@ def main(fresh: bool = False):
         best = max(round_results, key=lambda r: r['post_eval_kappa'])
         print(f"  {round_name}: {best['name']} → kappa={best['post_eval_kappa']:.4f}")
 
-    # Final 3-fold results
-    print(f"\nFINAL BEST CONFIG: {best_r5_cfg.name}")
-    print(f"  backbone={best_r5_cfg.backbone}, freeze={best_r5_cfg.freeze}")
-    print(f"  head={best_r5_cfg.head_units}, dropout={best_r5_cfg.head_dropout}, l2={best_r5_cfg.head_l2}")
-    print(f"  loss={best_r5_cfg.loss_type}, gamma={best_r5_cfg.focal_gamma}")
-    print(f"  lr={best_r5_cfg.learning_rate}, schedule={best_r5_cfg.lr_schedule}, batch={best_r5_cfg.batch_size}")
-    print(f"  aug={best_r5_cfg.use_augmentation}, mixup={best_r5_cfg.use_mixup}, img_size={best_r5_cfg.image_size}")
+    # Helper to print config + 3-fold metrics
+    def print_config_summary(label, cfg, fold_results):
+        print(f"\n{label}:")
+        print(f"  backbone={cfg.backbone}, freeze={cfg.freeze}")
+        print(f"  head={cfg.head_units}, dropout={cfg.head_dropout}, bn={cfg.head_use_bn}, l2={cfg.head_l2}")
+        print(f"  loss={cfg.loss_type}, gamma={cfg.focal_gamma}, alpha_sum={cfg.alpha_sum}")
+        print(f"  lr={cfg.learning_rate}, schedule={cfg.lr_schedule}, batch={cfg.batch_size}")
+        print(f"  epochs={cfg.stage1_epochs}+{cfg.finetune_epochs}ft, warmup={cfg.warmup_epochs}")
+        print(f"  aug={cfg.use_augmentation}, mixup={cfg.use_mixup}(alpha={cfg.mixup_alpha}), img_size={cfg.image_size}")
+        print(f"  label_smoothing={cfg.label_smoothing}")
 
-    fold_kappas = [r['post_eval_kappa'] for r in final_results]
-    print(f"\n  3-fold kappas: {[round(k, 4) for k in fold_kappas]}")
-    print(f"  Mean kappa:    {np.mean(fold_kappas):.4f} +/- {np.std(fold_kappas):.4f}")
+        fold_kappas = [r['post_eval_kappa'] for r in fold_results]
+        fold_accs = [r['post_eval_acc'] for r in fold_results]
+        fold_f1s = [r['post_eval_f1'] for r in fold_results]
 
-    # Compare to baseline
-    baseline_r1 = [r for r in r1_results if 'EfficientNetB0_frozen' in r['name']]
-    if baseline_r1:
-        baseline_kappa = baseline_r1[0]['post_eval_kappa']
-        improvement = np.mean(fold_kappas) - baseline_kappa
-        print(f"\n  Baseline kappa (B0 frozen, fold 0): {baseline_kappa:.4f}")
-        print(f"  Improvement: {improvement:+.4f}")
+        print(f"\n  {'Fold':<8} {'Kappa':>8} {'Accuracy':>10} {'F1 (macro)':>12}")
+        print(f"  {'-'*40}")
+        for i, r in enumerate(fold_results):
+            print(f"  Fold {i+1:<3} {r['post_eval_kappa']:>8.4f} {r['post_eval_acc']:>10.4f} {r['post_eval_f1']:>12.4f}")
+        print(f"  {'-'*40}")
+        print(f"  {'Mean':<8} {np.mean(fold_kappas):>8.4f} {np.mean(fold_accs):>10.4f} {np.mean(fold_f1s):>12.4f}")
+        print(f"  {'Std':<8} {np.std(fold_kappas):>8.4f} {np.std(fold_accs):>10.4f} {np.std(fold_f1s):>12.4f}")
+
+        return fold_kappas, fold_accs, fold_f1s
+
+    # Print baseline
+    bl_kappas, bl_accs, bl_f1s = print_config_summary(
+        "BASELINE (EfficientNetB0 frozen)", baseline_cfg, baseline_results)
+
+    # Print best config
+    best_kappas, best_accs, best_f1s = print_config_summary(
+        f"BEST CONFIG ({best_r5_cfg.name})", best_r5_cfg, final_results)
+
+    # ─── Statistical comparison ───
+    print(f"\n{'─'*60}")
+    print("STATISTICAL COMPARISON (Best vs Baseline)")
+    print(f"{'─'*60}")
+
+    kappa_diff = np.mean(best_kappas) - np.mean(bl_kappas)
+    acc_diff = np.mean(best_accs) - np.mean(bl_accs)
+    f1_diff = np.mean(best_f1s) - np.mean(bl_f1s)
+    print(f"  Mean Kappa diff:    {kappa_diff:+.4f}  ({np.mean(bl_kappas):.4f} → {np.mean(best_kappas):.4f})")
+    print(f"  Mean Accuracy diff: {acc_diff:+.4f}  ({np.mean(bl_accs):.4f} → {np.mean(best_accs):.4f})")
+    print(f"  Mean F1 diff:       {f1_diff:+.4f}  ({np.mean(bl_f1s):.4f} → {np.mean(best_f1s):.4f})")
+
+    # Paired t-test (3 folds = 2 degrees of freedom)
+    from scipy import stats
+    if len(best_kappas) == len(bl_kappas) and len(best_kappas) >= 2:
+        t_stat, p_value = stats.ttest_rel(best_kappas, bl_kappas)
+        print(f"\n  Paired t-test on kappa (n={len(best_kappas)} folds):")
+        print(f"    t-statistic = {t_stat:.4f}")
+        print(f"    p-value     = {p_value:.4f}")
+        if p_value < 0.05:
+            winner = "BEST" if kappa_diff > 0 else "BASELINE"
+            print(f"    → Statistically significant (p < 0.05): {winner} is better")
+        else:
+            print(f"    → NOT statistically significant (p >= 0.05)")
+        print(f"    Note: With only {len(best_kappas)} folds, statistical power is low.")
+        print(f"    A paired t-test with 2 df requires very large effect sizes to reach significance.")
 
     print(f"\nResults saved to: {results_csv}")
 

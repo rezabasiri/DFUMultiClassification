@@ -1,0 +1,1149 @@
+Logging to: /workspace/DFUMultiClassification/results/logs/hparam_search_20260224_002521.log
+================================================================================
+DEPTH RGB HYPERPARAMETER SEARCH
+================================================================================
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=18, P=16, R=26
+
+Excluded samples per class:
+  Class I: 65 samples
+  Class P: 143 samples
+  Class R: 8 samples
+
+Total unique samples to exclude: 216
+
+Dataset size (rows): 3108 -> 2072 (66.7%)
+Unique samples: 648 -> 432 (removed 216)
+
+Class distribution after filtering:
+  Class I: 595 rows
+  Class P: 1181 rows
+  Class R: 296 rows
+============================================================
+
+Loaded 2072 samples
+RESUME MODE — no previous results found, starting from scratch
+
+################################################################################
+ROUND 1: BACKBONE + FREEZE STRATEGY
+################################################################################
+
+================================================================================
+CONFIG: R1_EfficientNetB0_frozen
+  backbone=EfficientNetB0, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/320
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 43: early stopping
+Restoring model weights from the end of the best epoch: 28.
+  Stage 1 best: val_kappa=0.3566 at epoch 28/43
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3717 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3717, acc=0.5377, f1=0.4903
+  Confusion matrix:
+[[100  87  12]
+ [ 87 231  76]
+ [  7  50  40]]
+  Time: 230s
+
+================================================================================
+CONFIG: R1_EfficientNetB0_partial_unfreeze
+  backbone=EfficientNetB0, freeze=partial_unfreeze
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 48/320
+  Using partial-unfreeze LR=0.0001
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 20.
+  Stage 1 best: val_kappa=0.3023 at epoch 20/35
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3023, acc=0.4884, f1=0.4524
+  Confusion matrix:
+[[114  65  20]
+ [117 185  92]
+ [ 17  42  38]]
+  Time: 145s
+
+================================================================================
+CONFIG: R1_EfficientNetB2_frozen
+  backbone=EfficientNetB2, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+Downloading data from https://storage.googleapis.com/keras-applications/efficientnetb2_notop.h5
+[1m       0/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m0s[0m 0s/step[1m   16384/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m2:39[0m 5us/step[1m   49152/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m2:05[0m 4us/step[1m   81920/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:58[0m 4us/step[1m  131072/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:27[0m 3us/step[1m  180224/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:14[0m 2us/step[1m  245760/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:01[0m 2us/step[1m  360448/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m46s[0m 1us/step [1m  475136/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m38s[0m 1us/step[1m  688128/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m28s[0m 1us/step[1m  966656/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m21s[0m 1us/step[1m 1359872/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m16s[0m 1us/step[1m 1949696/31790344[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m12s[0m 0us/step[1m 2777088/31790344[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m8s[0m 0us/step [1m 3940352/31790344[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m6s[0m 0us/step[1m 5652480/31790344[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m4s[0m 0us/step[1m 8044544/31790344[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m10010624/31790344[0m [32m━━━━━━[0m[37m━━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m12353536/31790344[0m [32m━━━━━━━[0m[37m━━━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m14499840/31790344[0m [32m━━━━━━━━━[0m[37m━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m16646144/31790344[0m [32m━━━━━━━━━━[0m[37m━━━━━━━━━━[0m [1m1s[0m 0us/step[1m18792448/31790344[0m [32m━━━━━━━━━━━[0m[37m━━━━━━━━━[0m [1m0s[0m 0us/step[1m20905984/31790344[0m [32m━━━━━━━━━━━━━[0m[37m━━━━━━━[0m [1m0s[0m 0us/step[1m23470080/31790344[0m [32m━━━━━━━━━━━━━━[0m[37m━━━━━━[0m [1m0s[0m 0us/step[1m25591808/31790344[0m [32m━━━━━━━━━━━━━━━━[0m[37m━━━━[0m [1m0s[0m 0us/step[1m27721728/31790344[0m [32m━━━━━━━━━━━━━━━━━[0m[37m━━━[0m [1m0s[0m 0us/step[1m29851648/31790344[0m [32m━━━━━━━━━━━━━━━━━━[0m[37m━━[0m [1m0s[0m 0us/step[1m31790344/31790344[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m2s[0m 0us/step
+  Trainable weights: 6/448
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 24: early stopping
+Restoring model weights from the end of the best epoch: 9.
+  Stage 1 best: val_kappa=0.3811 at epoch 9/24
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3611 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3611, acc=0.5304, f1=0.4864
+  Confusion matrix:
+[[120  72   7]
+ [113 210  71]
+ [ 17  44  36]]
+  Time: 170s
+
+================================================================================
+CONFIG: R1_EfficientNetB2_partial_unfreeze
+  backbone=EfficientNetB2, freeze=partial_unfreeze
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 68/448
+  Using partial-unfreeze LR=0.0001
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 20.
+  Stage 1 best: val_kappa=0.3637 at epoch 20/35
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3643, acc=0.5203, f1=0.4836
+  Confusion matrix:
+[[112  79   8]
+ [107 206  81]
+ [ 15  41  41]]
+  Time: 165s
+
+================================================================================
+CONFIG: R1_DenseNet121_frozen
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+Downloading data from https://storage.googleapis.com/tensorflow/keras-applications/densenet/densenet121_weights_tf_dim_ordering_tf_kernels_notop.h5
+[1m       0/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m0s[0m 0s/step[1m   16384/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m2:27[0m 5us/step[1m   49152/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:54[0m 4us/step[1m   81920/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:47[0m 4us/step[1m  131072/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:19[0m 3us/step[1m  180224/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:07[0m 2us/step[1m  245760/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m55s[0m 2us/step [1m  360448/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m42s[0m 1us/step[1m  475136/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m34s[0m 1us/step[1m  688128/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m26s[0m 1us/step[1m  966656/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m19s[0m 1us/step[1m 1359872/29084464[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m14s[0m 1us/step[1m 1949696/29084464[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m10s[0m 0us/step[1m 2793472/29084464[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m7s[0m 0us/step [1m 3973120/29084464[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m5s[0m 0us/step[1m 5701632/29084464[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m 8044544/29084464[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m 9961472/29084464[0m [32m━━━━━━[0m[37m━━━━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m12353536/29084464[0m [32m━━━━━━━━[0m[37m━━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m14499840/29084464[0m [32m━━━━━━━━━[0m[37m━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m16646144/29084464[0m [32m━━━━━━━━━━━[0m[37m━━━━━━━━━[0m [1m0s[0m 0us/step[1m18980864/29084464[0m [32m━━━━━━━━━━━━━[0m[37m━━━━━━━[0m [1m0s[0m 0us/step[1m20905984/29084464[0m [32m━━━━━━━━━━━━━━[0m[37m━━━━━━[0m [1m0s[0m 0us/step[1m23470080/29084464[0m [32m━━━━━━━━━━━━━━━━[0m[37m━━━━[0m [1m0s[0m 0us/step[1m25591808/29084464[0m [32m━━━━━━━━━━━━━━━━━[0m[37m━━━[0m [1m0s[0m 0us/step[1m27721728/29084464[0m [32m━━━━━━━━━━━━━━━━━━━[0m[37m━[0m [1m0s[0m 0us/step[1m29084464/29084464[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m2s[0m 0us/step
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 34: early stopping
+Restoring model weights from the end of the best epoch: 19.
+  Stage 1 best: val_kappa=0.3898 at epoch 19/34
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3748 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3748, acc=0.4826, f1=0.4711
+  Confusion matrix:
+[[124  48  27]
+ [113 151 130]
+ [ 10  29  58]]
+  Time: 226s
+
+================================================================================
+CONFIG: R1_DenseNet121_partial_unfreeze
+  backbone=DenseNet121, freeze=partial_unfreeze
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 78/612
+  Using partial-unfreeze LR=0.0001
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 22: early stopping
+Restoring model weights from the end of the best epoch: 7.
+  Stage 1 best: val_kappa=0.3294 at epoch 7/22
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3294, acc=0.5812, f1=0.4968
+  Confusion matrix:
+[[ 97  92  10]
+ [ 79 277  38]
+ [ 11  59  27]]
+  Time: 127s
+
+================================================================================
+CONFIG: R1_ResNet50V2_frozen
+  backbone=ResNet50V2, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+Downloading data from https://storage.googleapis.com/tensorflow/keras-applications/resnet/resnet50v2_weights_tf_dim_ordering_tf_kernels_notop.h5
+[1m       0/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m0s[0m 0s/step[1m   16384/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m7:59[0m 5us/step[1m   49152/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m6:15[0m 4us/step[1m   81920/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m5:53[0m 4us/step[1m  131072/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m4:20[0m 3us/step[1m  180224/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m3:42[0m 2us/step[1m  245760/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m3:03[0m 2us/step[1m  360448/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m2:19[0m 1us/step[1m  483328/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:53[0m 1us/step[1m  688128/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:26[0m 1us/step[1m  966656/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:06[0m 1us/step[1m 1359872/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m50s[0m 1us/step [1m 1982464/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m36s[0m 0us/step[1m 2818048/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m27s[0m 0us/step[1m 4022272/94668760[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m20s[0m 0us/step[1m 5783552/94668760[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m14s[0m 0us/step[1m 8044544/94668760[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m10s[0m 0us/step[1m 9584640/94668760[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m9s[0m 0us/step [1m12288000/94668760[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m7s[0m 0us/step[1m14499840/94668760[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m6s[0m 0us/step[1m16629760/94668760[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m5s[0m 0us/step[1m18915328/94668760[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m5s[0m 0us/step[1m20791296/94668760[0m [32m━━━━[0m[37m━━━━━━━━━━━━━━━━[0m [1m4s[0m 0us/step[1m23453696/94668760[0m [32m━━━━[0m[37m━━━━━━━━━━━━━━━━[0m [1m4s[0m 0us/step[1m25485312/94668760[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m27705344/94668760[0m [32m━━━━━[0m[37m━━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m29851648/94668760[0m [32m━━━━━━[0m[37m━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m31981568/94668760[0m [32m━━━━━━[0m[37m━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m33767424/94668760[0m [32m━━━━━━━[0m[37m━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m36110336/94668760[0m [32m━━━━━━━[0m[37m━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m38821888/94668760[0m [32m━━━━━━━━[0m[37m━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m40951808/94668760[0m [32m━━━━━━━━[0m[37m━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m43106304/94668760[0m [32m━━━━━━━━━[0m[37m━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m45096960/94668760[0m [32m━━━━━━━━━[0m[37m━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m47472640/94668760[0m [32m━━━━━━━━━━[0m[37m━━━━━━━━━━[0m [1m1s[0m 0us/step[1m49307648/94668760[0m [32m━━━━━━━━━━[0m[37m━━━━━━━━━━[0m [1m1s[0m 0us/step[1m51339264/94668760[0m [32m━━━━━━━━━━[0m[37m━━━━━━━━━━[0m [1m1s[0m 0us/step[1m54173696/94668760[0m [32m━━━━━━━━━━━[0m[37m━━━━━━━━━[0m [1m1s[0m 0us/step[1m56008704/94668760[0m [32m━━━━━━━━━━━[0m[37m━━━━━━━━━[0m [1m1s[0m 0us/step[1m58433536/94668760[0m [32m━━━━━━━━━━━━[0m[37m━━━━━━━━[0m [1m1s[0m 0us/step[1m60284928/94668760[0m [32m━━━━━━━━━━━━[0m[37m━━━━━━━━[0m [1m1s[0m 0us/step[1m62513152/94668760[0m [32m━━━━━━━━━━━━━[0m[37m━━━━━━━[0m [1m1s[0m 0us/step[1m64536576/94668760[0m [32m━━━━━━━━━━━━━[0m[37m━━━━━━━[0m [1m1s[0m 0us/step[1m66772992/94668760[0m [32m━━━━━━━━━━━━━━[0m[37m━━━━━━[0m [1m1s[0m 0us/step[1m69525504/94668760[0m [32m━━━━━━━━━━━━━━[0m[37m━━━━━━[0m [1m0s[0m 0us/step[1m71393280/94668760[0m [32m━━━━━━━━━━━━━━━[0m[37m━━━━━[0m [1m0s[0m 0us/step[1m71958528/94668760[0m [32m━━━━━━━━━━━━━━━[0m[37m━━━━━[0m [1m1s[0m 0us/step[1m73973760/94668760[0m [32m━━━━━━━━━━━━━━━[0m[37m━━━━━[0m [1m1s[0m 0us/step[1m76226560/94668760[0m [32m━━━━━━━━━━━━━━━━[0m[37m━━━━[0m [1m1s[0m 0us/step[1m81592320/94668760[0m [32m━━━━━━━━━━━━━━━━━[0m[37m━━━[0m [1m0s[0m 0us/step[1m83132416/94668760[0m [32m━━━━━━━━━━━━━━━━━[0m[37m━━━[0m [1m0s[0m 0us/step[1m86573056/94668760[0m [32m━━━━━━━━━━━━━━━━━━[0m[37m━━[0m [1m0s[0m 0us/step[1m87719936/94668760[0m [32m━━━━━━━━━━━━━━━━━━[0m[37m━━[0m [1m0s[0m 0us/step[1m90832896/94668760[0m [32m━━━━━━━━━━━━━━━━━━━[0m[37m━[0m [1m0s[0m 0us/step[1m94044160/94668760[0m [32m━━━━━━━━━━━━━━━━━━━[0m[37m━[0m [1m0s[0m 0us/step[1m94668760/94668760[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m5s[0m 0us/step
+  Trainable weights: 6/278
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 18.
+  Stage 1 best: val_kappa=0.3362 at epoch 18/33
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3180 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3180, acc=0.5159, f1=0.4511
+  Confusion matrix:
+[[128  67   4]
+ [139 206  49]
+ [ 20  55  22]]
+  Time: 186s
+
+================================================================================
+CONFIG: R1_ResNet50V2_partial_unfreeze
+  backbone=ResNet50V2, freeze=partial_unfreeze
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 42/278
+  Using partial-unfreeze LR=0.0001
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 37: early stopping
+Restoring model weights from the end of the best epoch: 22.
+  Stage 1 best: val_kappa=0.3359 at epoch 22/37
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3359, acc=0.5261, f1=0.4590
+  Confusion matrix:
+[[101  91   7]
+ [108 236  50]
+ [  7  64  26]]
+  Time: 150s
+
+================================================================================
+CONFIG: R1_MobileNetV3Large_frozen
+  backbone=MobileNetV3Large, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/mobilenet_v3.py:519: UserWarning: `input_shape` is undefined or non-square, or `rows` is not 224. Weights for input shape (224, 224) will be loaded as the default.
+  return MobileNetV3(
+  Trainable weights: 6/270
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 1 best: val_kappa=0.3209 at epoch 1/16
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.3641 at epoch 2/12
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3603, acc=0.3754, f1=0.3734
+  Confusion matrix:
+[[141  18  40]
+ [114  44 236]
+ [ 17   6  74]]
+  Time: 120s
+
+================================================================================
+CONFIG: R1_MobileNetV3Large_partial_unfreeze
+  backbone=MobileNetV3Large, freeze=partial_unfreeze
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+/venv/multimodal/lib/python3.11/site-packages/keras/src/applications/mobilenet_v3.py:519: UserWarning: `input_shape` is undefined or non-square, or `rows` is not 224. Weights for input shape (224, 224) will be loaded as the default.
+  return MobileNetV3(
+  Trainable weights: 38/270
+  Using partial-unfreeze LR=0.0001
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 18: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Stage 1 best: val_kappa=0.0971 at epoch 3/18
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.1012, acc=0.3609, f1=0.3239
+  Confusion matrix:
+[[122  41  36]
+ [173 108 113]
+ [ 42  36  19]]
+  Time: 79s
+
+================================================================================
+CONFIG: R1_SimpleCNN_scratch
+  backbone=SimpleCNN, freeze=full_unfreeze
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=80, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 14/16
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 24: early stopping
+Restoring model weights from the end of the best epoch: 4.
+  Stage 1 best: val_kappa=0.1303 at epoch 4/24
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.1303, acc=0.2420, f1=0.2298
+  Confusion matrix:
+[[ 89   0 110]
+ [135   0 259]
+ [ 19   0  78]]
+  Time: 94s
+
+  BEST from this round: R1_DenseNet121_frozen (kappa=0.3748, s1_kappa=0.3898)
+
+################################################################################
+ROUND 2: HEAD ARCHITECTURE
+################################################################################
+
+================================================================================
+CONFIG: R2_tiny
+  backbone=DenseNet121, freeze=frozen
+  head=[32], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 18.
+  Stage 1 best: val_kappa=0.3616 at epoch 18/33
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3611 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3611, acc=0.4696, f1=0.4613
+  Confusion matrix:
+[[119  51  29]
+ [114 144 136]
+ [ 11  25  61]]
+  Time: 219s
+
+================================================================================
+CONFIG: R2_small
+  backbone=DenseNet121, freeze=frozen
+  head=[64], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 34: early stopping
+Restoring model weights from the end of the best epoch: 19.
+  Stage 1 best: val_kappa=0.3547 at epoch 19/34
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3606 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3606, acc=0.4739, f1=0.4629
+  Confusion matrix:
+[[111  58  30]
+ [ 95 157 142]
+ [  8  30  59]]
+  Time: 224s
+
+================================================================================
+CONFIG: R2_medium
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 15.
+  Stage 1 best: val_kappa=0.3816 at epoch 15/30
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.3623 at epoch 2/12
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3623, acc=0.4565, f1=0.4494
+  Confusion matrix:
+[[126  48  25]
+ [125 130 139]
+ [ 14  24  59]]
+  Time: 213s
+
+================================================================================
+CONFIG: R2_large
+  backbone=DenseNet121, freeze=frozen
+  head=[256], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 34: early stopping
+Restoring model weights from the end of the best epoch: 19.
+  Stage 1 best: val_kappa=0.3645 at epoch 19/34
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.3546 at epoch 2/12
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3546, acc=0.4797, f1=0.4620
+  Confusion matrix:
+[[ 99  73  27]
+ [ 85 176 133]
+ [  6  35  56]]
+  Time: 228s
+
+================================================================================
+CONFIG: R2_two_layer
+  backbone=DenseNet121, freeze=frozen
+  head=[256, 64], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 10/618
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+  Stage 1 best: val_kappa=0.3388 at epoch 21/32
+Epoch 17: early stopping
+Restoring model weights from the end of the best epoch: 7.
+  Stage 2 best: val_kappa=0.3546 at epoch 7/17
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3546, acc=0.4652, f1=0.4581
+  Confusion matrix:
+[[124  58  17]
+ [160 143  91]
+ [ 14  29  54]]
+  Time: 245s
+
+  BEST from this round: R2_medium (kappa=0.3623, s1_kappa=0.3816)
+
+################################################################################
+ROUND 3: LOSS + REGULARIZATION
+################################################################################
+
+================================================================================
+CONFIG: R3_focal_g2_d03
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Stage 1 best: val_kappa=0.3721 at epoch 11/26
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3751 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3751, acc=0.4812, f1=0.4718
+  Confusion matrix:
+[[131  43  25]
+ [138 142 114]
+ [ 12  26  59]]
+  Time: 193s
+
+================================================================================
+CONFIG: R3_focal_g3_d03
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=3.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+  Stage 1 best: val_kappa=0.4006 at epoch 17/32
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.3869 at epoch 2/12
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3869, acc=0.4348, f1=0.4351
+  Confusion matrix:
+[[135  32  32]
+ [139  91 164]
+ [ 11  12  74]]
+  Time: 221s
+
+================================================================================
+CONFIG: R3_cce_d03
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=cce, gamma=0.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Stage 1 best: val_kappa=0.3672 at epoch 11/26
+Epoch 13: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Stage 2 best: val_kappa=0.3714 at epoch 3/13
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3675, acc=0.4391, f1=0.4373
+  Confusion matrix:
+[[126  46  27]
+ [130 112 152]
+ [ 13  19  65]]
+  Time: 201s
+
+================================================================================
+CONFIG: R3_focal_g2_d05
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.5, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 15.
+  Stage 1 best: val_kappa=0.3934 at epoch 15/30
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
+  Stage 2 best: val_kappa=0.3773 at epoch 4/14
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3773, acc=0.4217, f1=0.4223
+  Confusion matrix:
+[[130  39  30]
+ [132  93 169]
+ [ 10  19  68]]
+  Time: 222s
+
+================================================================================
+CONFIG: R3_focal_g2_d02
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.2, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Stage 1 best: val_kappa=0.3880 at epoch 11/26
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.3507 at epoch 2/12
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3507, acc=0.4043, f1=0.4088
+  Confusion matrix:
+[[118  43  38]
+ [108  91 195]
+ [ 10  17  70]]
+  Time: 197s
+
+================================================================================
+CONFIG: R3_focal_g2_ls01
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.1, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 34: early stopping
+Restoring model weights from the end of the best epoch: 19.
+  Stage 1 best: val_kappa=0.3827 at epoch 19/34
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3795 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3795, acc=0.4420, f1=0.4421
+  Confusion matrix:
+[[121  48  30]
+ [118 116 160]
+ [  8  21  68]]
+  Time: 224s
+
+================================================================================
+CONFIG: R3_focal_g2_l2_1e3
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.001
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 10.
+  Stage 1 best: val_kappa=0.3664 at epoch 10/25
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3665 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3665, acc=0.4449, f1=0.4385
+  Confusion matrix:
+[[131  45  23]
+ [146 119 129]
+ [ 12  28  57]]
+  Time: 189s
+
+================================================================================
+CONFIG: R3_focal_g2_mixup02
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=True(0.2)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 34: early stopping
+Restoring model weights from the end of the best epoch: 19.
+  Stage 1 best: val_kappa=0.3957 at epoch 19/34
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3668 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3668, acc=0.4348, f1=0.4321
+  Confusion matrix:
+[[130  38  31]
+ [132 107 155]
+ [ 10  24  63]]
+  Time: 225s
+
+  BEST from this round: R3_focal_g3_d03 (kappa=0.3869, s1_kappa=0.4006)
+
+################################################################################
+ROUND 4: TRAINING DYNAMICS
+################################################################################
+
+================================================================================
+CONFIG: R4_lr5e4_b64_plateau
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=3.0, alpha_sum=3.0
+  lr=0.0005, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 20.
+  Stage 1 best: val_kappa=0.3774 at epoch 20/35
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.3892 at epoch 2/12
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3901, acc=0.4348, f1=0.4351
+  Confusion matrix:
+[[132  39  28]
+ [124  99 171]
+ [ 11  17  69]]
+  Time: 233s
+
+================================================================================
+CONFIG: R4_lr1e3_b64_plateau
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=3.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 18.
+  Stage 1 best: val_kappa=0.3658 at epoch 18/33
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3776 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3776, acc=0.4507, f1=0.4436
+  Confusion matrix:
+[[138  37  24]
+ [147 115 132]
+ [ 12  27  58]]
+  Time: 220s
+
+================================================================================
+CONFIG: R4_lr3e3_b64_plateau
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=3.0, alpha_sum=3.0
+  lr=0.003, epochs=50, batch=64
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(64, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+  Stage 1 best: val_kappa=0.3935 at epoch 17/32
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3596 at epoch 1/11
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+
+  POST-EVAL: kappa=0.3596, acc=0.4942, f1=0.4791
+  Confusion matrix:
+[[116  52  31]
+ [110 167 117]
+ [  8  31  58]]
+  Time: 217s
+
+================================================================================
+CONFIG: R4_lr1e3_b32_plateau
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=3.0, alpha_sum=3.0
+  lr=0.001, epochs=50, batch=32
+  lr_schedule=plateau, warmup=0
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(32, 256, 256, 3))']
+  warnings.warn(msg)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py:241: UserWarning: The structure of `inputs` doesn't match the expected structure.
+Expected: depth_rgb_input
+Received: inputs=['Tensor(shape=(None, 256, 256, 3))']
+  warnings.warn(msg)
+Epoch 24: early stopping
+Restoring model weights from the end of the best epoch: 9.
+  Stage 1 best: val_kappa=0.3968 at epoch 9/24
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3856 at epoch 1/11
+
+  POST-EVAL: kappa=0.3856, acc=0.4101, f1=0.4125
+  Confusion matrix:
+[[131  39  29]
+ [124  81 189]
+ [ 11  15  71]]
+  Time: 206s
+
+================================================================================
+CONFIG: R4_lr1e3_b64_cosine
+  backbone=DenseNet121, freeze=frozen
+  head=[128], dropout=0.3, bn=True, l2=0.0
+  loss=focal, gamma=3.0, alpha_sum=3.0
+  lr=0.001, epochs=60, batch=64
+  lr_schedule=cosine, warmup=5
+  augmentation=True, mixup=False(0.0)
+  label_smooth=0.0, image_size=256, fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.859, 0.432, 1.709]
+  Trainable weights: 6/612
