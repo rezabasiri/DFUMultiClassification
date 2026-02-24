@@ -112,8 +112,9 @@ class SearchConfig:
     finetune_epochs: int = 30
     unfreeze_pct: float = 0.2  # Fraction of backbone to unfreeze in stage 2 (0.2=top 20%)
 
-    # Which fold to run (0-indexed)
-    fold: int = 0
+    # Cross-validation
+    n_folds: int = 3  # Number of CV folds (3 for screening rounds, 5 for final validation)
+    fold: int = 0  # Which fold to run (0-indexed)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -406,7 +407,7 @@ def prepare_datasets(data, cfg: SearchConfig, fold_idx=0):
     # Note: core data filtering already applied in load_data()
 
     # Get patient folds
-    patient_folds = create_patient_folds(data, n_folds=3, random_state=42)
+    patient_folds = create_patient_folds(data, n_folds=cfg.n_folds, random_state=42)
     train_patients, valid_patients = patient_folds[fold_idx]
 
     # Augmentation
@@ -1189,23 +1190,71 @@ def main(fresh: bool = False):
 
     best_r6_result, best_r6_cfg = pick_best(r6_results)
 
-    # ─── Final: Run best config on all 3 folds ───
+    # ─── Top 5 Selection: Pick top 5 configs from all rounds ───
     print(f"\n{'#'*80}")
-    print("FINAL: BEST CONFIG ON ALL 3 FOLDS")
+    print("TOP 5 SELECTION: 5-FOLD VALIDATION OF BEST CONFIGS")
     print(f"{'#'*80}")
 
-    final_configs = []
-    for fold_idx in range(3):
-        cfg = deepcopy(best_r6_cfg)
-        cfg.name = f"FINAL_fold{fold_idx+1}"
-        cfg.fold = fold_idx
-        final_configs.append(cfg)
-    final_results = run_round("FINAL", final_configs, data, results_csv, completed)
-    all_results.extend(final_results)
+    # Collect all single-fold results from rounds 1-6, sort by kappa
+    search_results = []
+    for r in all_results:
+        search_results.append(r)
+    search_results.sort(key=lambda r: r['post_eval_kappa'], reverse=True)
 
-    # ─── Baseline: Run EfficientNetB0 frozen on all 3 folds ───
+    # De-duplicate by config identity (same backbone+freeze+head+loss+lr combo can appear
+    # in multiple rounds if it won and was carried forward)
+    seen_configs = set()
+    top5_results = []
+    for r in search_results:
+        # Build a config fingerprint from the training-relevant fields
+        fingerprint = (
+            r['backbone'], r['freeze'], str(r['head_units']), float(r['head_dropout']),
+            r['head_use_bn'], float(r.get('head_l2', 0)), r['loss_type'],
+            float(r['focal_gamma']), float(r['alpha_sum']), float(r['label_smoothing']),
+            float(r['learning_rate']), r.get('lr_schedule', 'plateau'),
+            int(r.get('warmup_epochs', 0)), int(r['batch_size']),
+            r.get('optimizer', 'adam'), float(r.get('weight_decay', 0)),
+            r['use_augmentation'], r.get('use_mixup', False),
+            float(r.get('mixup_alpha', 0)), int(r['image_size']),
+            int(r['stage1_epochs']), int(r.get('finetune_epochs', 0)),
+            float(r.get('unfreeze_pct', 0.2)),
+        )
+        if fingerprint not in seen_configs:
+            seen_configs.add(fingerprint)
+            top5_results.append(r)
+        if len(top5_results) == 5:
+            break
+
+    print(f"\nTop 5 configs by fold-0 kappa:")
+    for i, r in enumerate(top5_results):
+        print(f"  {i+1}. {r['name']} → kappa={r['post_eval_kappa']:.4f}")
+
+    # Run each top-5 config on all 5 folds (independent 5-fold CV for robust comparison)
+    N_FINAL_FOLDS = 5
+    top5_fold_results = {}  # name → {cfg, fold_results}
+    for rank, r in enumerate(top5_results):
+        _, base_cfg = pick_best([r])  # Reconstruct SearchConfig from result dict
+        base_cfg.n_folds = N_FINAL_FOLDS
+        tag = f"TOP5_{rank+1}"
+        fold_configs = []
+        for fold_idx in range(N_FINAL_FOLDS):
+            cfg = deepcopy(base_cfg)
+            cfg.name = f"{tag}_fold{fold_idx+1}"
+            cfg.fold = fold_idx
+            fold_configs.append(cfg)
+        fold_results = run_round(tag, fold_configs, data, results_csv, completed)
+        all_results.extend(fold_results)
+        top5_fold_results[tag] = {
+            'cfg': base_cfg,
+            'orig_name': r['name'],
+            'fold0_kappa': r['post_eval_kappa'],
+            'fold_results': fold_results,
+            'mean_kappa': np.mean([fr['post_eval_kappa'] for fr in fold_results]),
+        }
+
+    # ─── Baseline: Run EfficientNetB0 frozen on all 5 folds ───
     print(f"\n{'#'*80}")
-    print("BASELINE: EfficientNetB0 FROZEN ON ALL 3 FOLDS")
+    print("BASELINE: EfficientNetB0 FROZEN ON ALL 5 FOLDS")
     print(f"{'#'*80}")
 
     baseline_cfg = SearchConfig(
@@ -1214,9 +1263,10 @@ def main(fresh: bool = False):
         freeze='frozen',
         finetune_epochs=30,
         finetune_lr=1e-5,
+        n_folds=N_FINAL_FOLDS,
     )
     baseline_configs = []
-    for fold_idx in range(3):
+    for fold_idx in range(N_FINAL_FOLDS):
         cfg = deepcopy(baseline_cfg)
         cfg.name = f"BASELINE_fold{fold_idx+1}"
         cfg.fold = fold_idx
@@ -1267,18 +1317,51 @@ def main(fresh: bool = False):
 
         return fold_kappas, fold_accs, fold_f1s
 
+    # ─── Top 5 Leaderboard ───
+    print(f"\n{'─'*60}")
+    print("TOP 5 CONFIGS — 5-FOLD RESULTS")
+    print(f"{'─'*60}")
+
+    # Sort top 5 by 3-fold mean kappa
+    sorted_top5 = sorted(top5_fold_results.items(),
+                         key=lambda x: x[1]['mean_kappa'], reverse=True)
+
+    print(f"\n  {'Rank':<6} {'Config':<30} {'Fold0':>7} {'Mean±Std':>14}")
+    print(f"  {'-'*60}")
+    for rank, (tag, info) in enumerate(sorted_top5):
+        fk = [r['post_eval_kappa'] for r in info['fold_results']]
+        print(f"  {rank+1:<6} {info['orig_name']:<30} {info['fold0_kappa']:>7.4f} "
+              f"{np.mean(fk):>6.4f}±{np.std(fk):.4f}")
+
+    # The overall winner is the top-5 config with highest 3-fold mean kappa
+    winner_tag, winner_info = sorted_top5[0]
+    winner_cfg = winner_info['cfg']
+    winner_fold_results = winner_info['fold_results']
+
+    # Print detailed summaries
+    print(f"\n{'─'*60}")
+    print("DETAILED RESULTS")
+    print(f"{'─'*60}")
+
+    # Print each top-5 config
+    for rank, (tag, info) in enumerate(sorted_top5):
+        print_config_summary(
+            f"#{rank+1}: {info['orig_name']} ({tag})",
+            info['cfg'], info['fold_results'])
+
     # Print baseline
+    print(f"\n{'─'*60}")
     bl_kappas, bl_accs, bl_f1s = print_config_summary(
         "BASELINE (EfficientNetB0 frozen)", baseline_cfg, baseline_results)
 
-    # Print best config
-    best_kappas, best_accs, best_f1s = print_config_summary(
-        f"BEST CONFIG ({best_r6_cfg.name})", best_r6_cfg, final_results)
-
-    # ─── Statistical comparison ───
+    # ─── Statistical comparison: Winner vs Baseline ───
     print(f"\n{'─'*60}")
-    print("STATISTICAL COMPARISON (Best vs Baseline)")
+    print(f"STATISTICAL COMPARISON: #{1} {winner_info['orig_name']} vs BASELINE")
     print(f"{'─'*60}")
+
+    best_kappas = [r['post_eval_kappa'] for r in winner_fold_results]
+    best_accs = [r['post_eval_acc'] for r in winner_fold_results]
+    best_f1s = [r['post_eval_f1'] for r in winner_fold_results]
 
     kappa_diff = np.mean(best_kappas) - np.mean(bl_kappas)
     acc_diff = np.mean(best_accs) - np.mean(bl_accs)
@@ -1287,7 +1370,7 @@ def main(fresh: bool = False):
     print(f"  Mean Accuracy diff: {acc_diff:+.4f}  ({np.mean(bl_accs):.4f} → {np.mean(best_accs):.4f})")
     print(f"  Mean F1 diff:       {f1_diff:+.4f}  ({np.mean(bl_f1s):.4f} → {np.mean(best_f1s):.4f})")
 
-    # Paired t-test (3 folds = 2 degrees of freedom)
+    # Paired t-test (5 folds = 4 degrees of freedom)
     from scipy import stats
     if len(best_kappas) == len(bl_kappas) and len(best_kappas) >= 2:
         t_stat, p_value = stats.ttest_rel(best_kappas, bl_kappas)
@@ -1295,18 +1378,18 @@ def main(fresh: bool = False):
         print(f"    t-statistic = {t_stat:.4f}")
         print(f"    p-value     = {p_value:.4f}")
         if p_value < 0.05:
-            winner = "BEST" if kappa_diff > 0 else "BASELINE"
-            print(f"    → Statistically significant (p < 0.05): {winner} is better")
+            winner_label = "WINNER" if kappa_diff > 0 else "BASELINE"
+            print(f"    → Statistically significant (p < 0.05): {winner_label} is better")
         else:
             print(f"    → NOT statistically significant (p >= 0.05)")
-        print(f"    Note: With only {len(best_kappas)} folds, statistical power is low.")
-        print(f"    A paired t-test with 2 df requires very large effect sizes to reach significance.")
+        print(f"    Note: With {len(best_kappas)} folds ({len(best_kappas)-1} df), "
+              f"moderate effect sizes can reach significance.")
 
     print(f"\nResults saved to: {results_csv}")
 
-    # Save best config as JSON
+    # Save best config as JSON (the 5-fold winner)
     best_config_path = os.path.join(result_dir, 'depth_rgb_best_config.json')
-    config_dict = asdict(best_r6_cfg)
+    config_dict = asdict(winner_cfg)
     with open(best_config_path, 'w') as f:
         json.dump(config_dict, f, indent=2)
     print(f"Best config saved to: {best_config_path}")
