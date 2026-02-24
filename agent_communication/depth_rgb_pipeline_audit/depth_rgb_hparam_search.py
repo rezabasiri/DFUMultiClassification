@@ -11,6 +11,10 @@ standalone to maximize val_cohen_kappa. Uses sequential elimination:
   Round 5: Augmentation + image size    (4 configs)
 
 Usage:
+  # Fresh start (backs up old results):
+  /venv/multimodal/bin/python agent_communication/depth_rgb_pipeline_audit/depth_rgb_hparam_search.py --fresh
+
+  # Resume from where it left off (default):
   /venv/multimodal/bin/python agent_communication/depth_rgb_pipeline_audit/depth_rgb_hparam_search.py
 
 Results written to: results/depth_rgb_search_results.csv
@@ -389,12 +393,10 @@ def prepare_datasets(data, cfg: SearchConfig, fold_idx=0):
     from src.data.dataset_utils import create_patient_folds, prepare_cached_datasets
     from src.data.generative_augmentation_v3 import AugmentationConfig
 
-    import pandas as pd
-
-    # Convert labels
+    # Note: Do NOT convert labels here — prepare_cached_datasets and create_patient_folds
+    # both handle string→int conversion internally. Pre-converting causes double conversion
+    # (int→str '0'→NaN when mapped with {'I':0,'P':1,'R':2}).
     data = data.copy()
-    if data['Healing Phase Abs'].dtype in ['object', 'str'] or pd.api.types.is_string_dtype(data['Healing Phase Abs']):
-        data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
 
     # Note: core data filtering already applied in load_data()
 
@@ -955,11 +957,71 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Sear
     return best, cfg
 
 
+def load_completed_results(filepath: str) -> List[Dict]:
+    """Load previously completed results from CSV for resume support."""
+    if not os.path.exists(filepath):
+        return []
+
+    results = []
+    with open(filepath, 'r', newline='') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Convert numeric fields back from strings
+            for key in ['head_dropout', 'head_l2', 'focal_gamma', 'alpha_sum',
+                        'label_smoothing', 'learning_rate', 'mixup_alpha',
+                        'best_s1_kappa', 'best_s2_kappa', 'post_eval_kappa',
+                        'post_eval_acc', 'post_eval_f1', 'elapsed_seconds']:
+                if key in row and row[key]:
+                    row[key] = float(row[key])
+            for key in ['batch_size', 'image_size', 'stage1_epochs', 'finetune_epochs',
+                        'fold', 'trainable_weights', 'total_weights', 'best_s1_epoch',
+                        'warmup_epochs', 'n_val_samples']:
+                if key in row and row[key]:
+                    row[key] = int(row[key])
+            for key in ['head_use_bn', 'use_augmentation', 'use_mixup']:
+                if key in row and row[key]:
+                    row[key] = row[key] in ('True', 'true', '1')
+            results.append(row)
+
+    return results
+
+
+def run_round(round_name: str, configs: List[SearchConfig], data,
+              results_csv: str, completed: List[Dict]) -> List[Dict]:
+    """Run a round of configs, skipping any already completed.
+
+    Args:
+        round_name: Display name for logging
+        configs: List of SearchConfig to run
+        data: DataFrame
+        results_csv: Path to append results
+        completed: List of already-completed result dicts (from CSV)
+
+    Returns:
+        List of result dicts for this round (cached + newly trained)
+    """
+    completed_names = {r['name'] for r in completed}
+    round_results = []
+
+    for cfg in configs:
+        if cfg.name in completed_names:
+            # Reuse cached result
+            cached = [r for r in completed if r['name'] == cfg.name][0]
+            print(f"\n  SKIP (cached): {cfg.name} → kappa={cached['post_eval_kappa']:.4f}")
+            round_results.append(cached)
+        else:
+            result = train_single_config(cfg, data, fold_idx=cfg.fold)
+            round_results.append(result)
+            save_results([result], results_csv)
+
+    return round_results
+
+
 # ─────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────
 
-def main():
+def main(fresh: bool = False):
     print("=" * 80)
     print("DEPTH RGB HYPERPARAMETER SEARCH")
     print("=" * 80)
@@ -968,10 +1030,19 @@ def main():
     data, directory, result_dir = load_data()
     results_csv = os.path.join(result_dir, 'depth_rgb_search_results.csv')
 
-    # Remove old results if starting fresh
-    if os.path.exists(results_csv):
-        os.rename(results_csv, results_csv + '.bak')
-        print(f"Backed up old results to {results_csv}.bak")
+    # Fresh start or resume
+    completed = []
+    if fresh:
+        if os.path.exists(results_csv):
+            os.rename(results_csv, results_csv + '.bak')
+            print(f"FRESH START — backed up old results to {results_csv}.bak")
+    else:
+        completed = load_completed_results(results_csv)
+        if completed:
+            completed_names = [r['name'] for r in completed]
+            print(f"RESUME MODE — found {len(completed)} completed configs: {completed_names}")
+        else:
+            print("RESUME MODE — no previous results found, starting from scratch")
 
     all_results = []
 
@@ -981,11 +1052,7 @@ def main():
     print(f"{'#'*80}")
 
     r1_configs = round1_backbone_freeze()
-    r1_results = []
-    for cfg in r1_configs:
-        result = train_single_config(cfg, data, fold_idx=0)
-        r1_results.append(result)
-        save_results([result], results_csv)
+    r1_results = run_round("R1", r1_configs, data, results_csv, completed)
     all_results.extend(r1_results)
 
     best_r1_result, best_r1_cfg = pick_best(r1_results)
@@ -996,11 +1063,7 @@ def main():
     print(f"{'#'*80}")
 
     r2_configs = round2_head(best_r1_cfg)
-    r2_results = []
-    for cfg in r2_configs:
-        result = train_single_config(cfg, data, fold_idx=0)
-        r2_results.append(result)
-        save_results([result], results_csv)
+    r2_results = run_round("R2", r2_configs, data, results_csv, completed)
     all_results.extend(r2_results)
 
     best_r2_result, best_r2_cfg = pick_best(r2_results)
@@ -1011,11 +1074,7 @@ def main():
     print(f"{'#'*80}")
 
     r3_configs = round3_loss_regularization(best_r2_cfg)
-    r3_results = []
-    for cfg in r3_configs:
-        result = train_single_config(cfg, data, fold_idx=0)
-        r3_results.append(result)
-        save_results([result], results_csv)
+    r3_results = run_round("R3", r3_configs, data, results_csv, completed)
     all_results.extend(r3_results)
 
     best_r3_result, best_r3_cfg = pick_best(r3_results)
@@ -1026,11 +1085,7 @@ def main():
     print(f"{'#'*80}")
 
     r4_configs = round4_training_dynamics(best_r3_cfg)
-    r4_results = []
-    for cfg in r4_configs:
-        result = train_single_config(cfg, data, fold_idx=0)
-        r4_results.append(result)
-        save_results([result], results_csv)
+    r4_results = run_round("R4", r4_configs, data, results_csv, completed)
     all_results.extend(r4_results)
 
     best_r4_result, best_r4_cfg = pick_best(r4_results)
@@ -1041,11 +1096,7 @@ def main():
     print(f"{'#'*80}")
 
     r5_configs = round5_augmentation_imagesize(best_r4_cfg)
-    r5_results = []
-    for cfg in r5_configs:
-        result = train_single_config(cfg, data, fold_idx=0)
-        r5_results.append(result)
-        save_results([result], results_csv)
+    r5_results = run_round("R5", r5_configs, data, results_csv, completed)
     all_results.extend(r5_results)
 
     best_r5_result, best_r5_cfg = pick_best(r5_results)
@@ -1055,14 +1106,13 @@ def main():
     print("FINAL: BEST CONFIG ON ALL 3 FOLDS")
     print(f"{'#'*80}")
 
-    final_results = []
+    final_configs = []
     for fold_idx in range(3):
         cfg = deepcopy(best_r5_cfg)
         cfg.name = f"FINAL_fold{fold_idx+1}"
         cfg.fold = fold_idx
-        result = train_single_config(cfg, data, fold_idx=fold_idx)
-        final_results.append(result)
-        save_results([result], results_csv)
+        final_configs.append(cfg)
+    final_results = run_round("FINAL", final_configs, data, results_csv, completed)
     all_results.extend(final_results)
 
     # ─── Summary ───
@@ -1112,4 +1162,43 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import datetime
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Depth RGB Hyperparameter Search')
+    parser.add_argument('--fresh', action='store_true',
+                        help='Start fresh (back up old results). Default: resume from existing CSV.')
+    args = parser.parse_args()
+
+    # Set up logging: tee all stdout/stderr to a log file
+    log_dir = os.path.join(PROJECT_ROOT, 'results', 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_path = os.path.join(log_dir, f'hparam_search_{timestamp}.log')
+
+    class TeeStream:
+        """Write to both a file and the original stream."""
+        def __init__(self, stream, log_file):
+            self.stream = stream
+            self.log_file = log_file
+        def write(self, data):
+            self.stream.write(data)
+            self.log_file.write(data)
+            self.log_file.flush()
+        def flush(self):
+            self.stream.flush()
+            self.log_file.flush()
+
+    log_file = open(log_path, 'w')
+    sys.stdout = TeeStream(sys.__stdout__, log_file)
+    sys.stderr = TeeStream(sys.__stderr__, log_file)
+
+    print(f"Logging to: {log_path}")
+
+    try:
+        main(fresh=args.fresh)
+    finally:
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        log_file.close()
+        print(f"Log saved to: {log_path}")
