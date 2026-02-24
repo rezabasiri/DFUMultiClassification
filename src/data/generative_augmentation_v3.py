@@ -273,14 +273,17 @@ def augment_image(image, modality, seed, config):
     # NOTE: Removed CPU device placement - all tf.image ops are GPU-compatible
     # If deterministic behavior is required, set TF_DETERMINISTIC_OPS=1 environment variable
     try:
-        settings = config.modality_settings[modality]['regular_augmentations']
         if modality in ['depth_rgb', 'thermal_rgb']:
+            # Spatial augmentations for RGB medical images
+            # (preserves wound color signal: flips, rotation, zoom, cutout)
             augmented = tf.map_fn(
-                lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
+                lambda x: apply_spatial_augmentation_rgb(x, seed_val),
                 image,
                 fn_output_signature=tf.float32
             )
         else:
+            # Pixel augmentations for map images (color is not diagnostic for maps)
+            settings = config.modality_settings[modality]['regular_augmentations']
             augmented = tf.map_fn(
                 lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
                 image,
@@ -348,6 +351,75 @@ def apply_pixel_augmentation_rgb(image, seed, settings):
                 )
                 image = tf.clip_by_value(image + noise, 0.0, 255.0)
 
+    return image
+
+
+@tf.function(reduce_retracing=True)
+def apply_spatial_augmentation_rgb(image, seed):
+    """Apply spatial augmentations for medical wound RGB images.
+
+    DFU wound classification relies on wound COLOR: redness (inflammatory),
+    pink granulation (proliferative), pale scarring (remodeling). Traditional
+    pixel augmentations (brightness, saturation jitter) corrupt this critical
+    color signal. Spatial augmentations create meaningful geometric diversity
+    while preserving the discriminative color information.
+
+    Applied transforms:
+      - Horizontal flip (50%): wounds have no canonical left-right orientation
+      - Vertical flip (30%): wound patches have no canonical up-down
+      - 90-degree rotation (40%): wounds appear at arbitrary angles
+      - Random zoom crop (50%): simulates scale/distance variation
+      - Random cutout (25%): forces model to use full wound area
+    """
+    if len(tf.shape(image)) != 3:
+        return image
+
+    h = tf.shape(image)[0]
+    w = tf.shape(image)[1]
+
+    # 1. Horizontal flip (50%) — wounds have no canonical left-right orientation
+    image = tf.image.random_flip_left_right(image)
+
+    # 2. Vertical flip (30%) — wound patches have no canonical up-down
+    if tf.random.uniform([]) < 0.3:
+        image = tf.image.flip_up_down(image)
+
+    # 3. Random 90-degree rotation (40%) — wounds can appear at any angle
+    if tf.random.uniform([]) < 0.4:
+        k = tf.random.uniform([], minval=1, maxval=4, dtype=tf.int32)
+        image = tf.image.rot90(image, k=k)
+
+    # 4. Random zoom crop (50%) — crop 80-95% then resize back (simulates zoom)
+    if tf.random.uniform([]) < 0.5:
+        crop_frac = tf.random.uniform([], 0.80, 0.95)
+        crop_h = tf.maximum(tf.cast(tf.cast(h, tf.float32) * crop_frac, tf.int32), 1)
+        crop_w = tf.maximum(tf.cast(tf.cast(w, tf.float32) * crop_frac, tf.int32), 1)
+        image = tf.image.random_crop(image, [crop_h, crop_w, 3])
+        image = tf.image.resize(image, [h, w])
+
+    # 5. Random cutout (25%) — erase small patch, forces model to use full wound area
+    if tf.random.uniform([]) < 0.25:
+        erase_frac_h = tf.random.uniform([], 0.05, 0.15)
+        erase_frac_w = tf.random.uniform([], 0.05, 0.15)
+        eh = tf.maximum(tf.cast(tf.cast(h, tf.float32) * erase_frac_h, tf.int32), 1)
+        ew = tf.maximum(tf.cast(tf.cast(w, tf.float32) * erase_frac_w, tf.int32), 1)
+        top = tf.random.uniform([], 0, tf.maximum(h - eh, 1), dtype=tf.int32)
+        left = tf.random.uniform([], 0, tf.maximum(w - ew, 1), dtype=tf.int32)
+
+        # Build keep mask: True everywhere except the erased rectangle
+        rows = tf.range(h)
+        cols = tf.range(w)
+        row_in = tf.logical_and(rows >= top, rows < top + eh)
+        col_in = tf.logical_and(cols >= left, cols < left + ew)
+        erase_mask = tf.logical_and(
+            tf.expand_dims(row_in, 1),
+            tf.expand_dims(col_in, 0)
+        )
+        keep_mask = tf.cast(tf.logical_not(erase_mask), tf.float32)
+        keep_mask = tf.expand_dims(keep_mask, -1)  # [H, W, 1]
+        image = image * keep_mask
+
+    image = tf.clip_by_value(image, 0.0, 255.0)
     return image
 
 

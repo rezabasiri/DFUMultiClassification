@@ -103,9 +103,14 @@ class SearchConfig:
     # Image
     image_size: int = 256
 
+    # Optimizer
+    optimizer: str = "adam"  # adam, adamw
+    weight_decay: float = 1e-4  # Weight decay for AdamW
+
     # Fine-tuning LR (only used when freeze != 'frozen')
     finetune_lr: float = 1e-5
     finetune_epochs: int = 30
+    unfreeze_pct: float = 0.2  # Fraction of backbone to unfreeze in stage 2 (0.2=top 20%)
 
     # Which fold to run (0-indexed)
     fold: int = 0
@@ -504,8 +509,10 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     print(f"  loss={cfg.loss_type}, gamma={cfg.focal_gamma}, alpha_sum={cfg.alpha_sum}")
     print(f"  lr={cfg.learning_rate}, epochs={cfg.stage1_epochs}, batch={cfg.batch_size}")
     print(f"  lr_schedule={cfg.lr_schedule}, warmup={cfg.warmup_epochs}")
+    print(f"  optimizer={cfg.optimizer}, weight_decay={cfg.weight_decay}")
     print(f"  augmentation={cfg.use_augmentation}, mixup={cfg.use_mixup}({cfg.mixup_alpha})")
     print(f"  label_smooth={cfg.label_smoothing}, image_size={cfg.image_size}, fold={fold_idx}")
+    print(f"  unfreeze_pct={cfg.unfreeze_pct}, finetune_lr={cfg.finetune_lr}, finetune_epochs={cfg.finetune_epochs}")
     print(f"{'='*80}")
 
     start_time = time.time()
@@ -514,11 +521,15 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     train_ds, valid_ds, pre_aug_ds, steps_per_epoch, val_steps, alpha_values = \
         prepare_datasets(data, cfg, fold_idx=fold_idx)
 
-    # Normalize alpha to target sum
-    alpha_arr = np.array(alpha_values)
-    alpha_arr = alpha_arr / alpha_arr.sum() * cfg.alpha_sum
-    alpha_list = alpha_arr.tolist()
-    print(f"  Alpha values (sum={cfg.alpha_sum}): {[round(a, 3) for a in alpha_list]}")
+    # Normalize alpha to target sum (alpha_sum=0 means uniform/no class weighting)
+    if cfg.alpha_sum == 0:
+        alpha_list = [1.0, 1.0, 1.0]
+        print(f"  Alpha values (UNIFORM — no class weighting): {alpha_list}")
+    else:
+        alpha_arr = np.array(alpha_values)
+        alpha_arr = alpha_arr / alpha_arr.sum() * cfg.alpha_sum
+        alpha_list = alpha_arr.tolist()
+        print(f"  Alpha values (sum={cfg.alpha_sum}): {[round(a, 3) for a in alpha_list]}")
 
     # Build model
     strategy = tf.distribute.get_strategy()
@@ -550,8 +561,19 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
             lr = cfg.finetune_lr * 10  # Middle ground LR
             print(f"  Using partial-unfreeze LR={lr}")
 
+        if cfg.optimizer == 'adamw':
+            try:
+                opt = tf.keras.optimizers.AdamW(
+                    learning_rate=lr, weight_decay=cfg.weight_decay, clipnorm=1.0)
+                print(f"  Using AdamW (weight_decay={cfg.weight_decay})")
+            except (AttributeError, TypeError):
+                print("  Warning: AdamW not available, falling back to Adam")
+                opt = Adam(learning_rate=lr, clipnorm=1.0)
+        else:
+            opt = Adam(learning_rate=lr, clipnorm=1.0)
+
         model.compile(
-            optimizer=Adam(learning_rate=lr, clipnorm=1.0),
+            optimizer=opt,
             loss=loss_fn,
             metrics=['accuracy', CohenKappaMetric(num_classes=3)]
         )
@@ -619,16 +641,27 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     best_s2_kappa = 0.0
     ran_stage2 = False
     if cfg.freeze == 'frozen' and base_model is not None and cfg.finetune_epochs > 0:
-        # Try partial unfreeze for Stage 2
+        # Partial unfreeze for Stage 2 — unfreeze top unfreeze_pct of backbone
         base_model.trainable = True
         n_layers = len(base_model.layers)
-        freeze_until = int(n_layers * 0.8)
+        freeze_until = int(n_layers * (1.0 - cfg.unfreeze_pct))
         for layer in base_model.layers[:freeze_until]:
             layer.trainable = False
+        unfrozen_count = n_layers - freeze_until
+        print(f"  Stage 2: unfreezing top {cfg.unfreeze_pct*100:.0f}% ({unfrozen_count}/{n_layers} layers)")
 
         with strategy.scope():
+            if cfg.optimizer == 'adamw':
+                try:
+                    s2_opt = tf.keras.optimizers.AdamW(
+                        learning_rate=cfg.finetune_lr, weight_decay=cfg.weight_decay, clipnorm=1.0)
+                except (AttributeError, TypeError):
+                    s2_opt = Adam(learning_rate=cfg.finetune_lr, clipnorm=1.0)
+            else:
+                s2_opt = Adam(learning_rate=cfg.finetune_lr, clipnorm=1.0)
+
             model.compile(
-                optimizer=Adam(learning_rate=cfg.finetune_lr, clipnorm=1.0),
+                optimizer=s2_opt,
                 loss=loss_fn,
                 metrics=['accuracy', CohenKappaMetric(num_classes=3)]
             )
@@ -713,12 +746,15 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         'lr_schedule': cfg.lr_schedule,
         'warmup_epochs': cfg.warmup_epochs,
         'batch_size': cfg.batch_size,
+        'optimizer': cfg.optimizer,
+        'weight_decay': cfg.weight_decay,
         'use_augmentation': cfg.use_augmentation,
         'use_mixup': cfg.use_mixup,
         'mixup_alpha': cfg.mixup_alpha,
         'image_size': cfg.image_size,
         'stage1_epochs': cfg.stage1_epochs,
         'finetune_epochs': cfg.finetune_epochs if ran_stage2 else 0,
+        'unfreeze_pct': cfg.unfreeze_pct,
         'fold': fold_idx,
         'trainable_weights': trainable_count,
         'total_weights': total_count,
@@ -748,18 +784,20 @@ def round1_backbone_freeze():
     """Round 1: Test backbone x freeze strategy combinations.
 
     Includes:
-    - SimpleCNN: scratch baseline (no pretrained weights)
     - EfficientNetB0: current default (4M params, good transfer)
     - EfficientNetB2: larger EfficientNet (9M params)
     - DenseNet121: medical imaging standard (dense connections, 8M params)
     - ResNet50V2: classic backbone with pre-activation (25M params)
-    - MobileNetV3Large: lightweight (5M params, less overfitting risk)
+
+    Removed (consistently poor in prior search):
+    - SimpleCNN: kappa=0.130 — too simple for wound texture
+    - MobileNetV3Large: kappa=0.101-0.360 — designed for mobile, not medical detail
     """
     configs = []
     # Pretrained backbones: test frozen + partial_unfreeze
     pretrained_backbones = [
         'EfficientNetB0', 'EfficientNetB2',
-        'DenseNet121', 'ResNet50V2', 'MobileNetV3Large'
+        'DenseNet121', 'ResNet50V2',
     ]
     for bb in pretrained_backbones:
         for fr in ['frozen', 'partial_unfreeze']:
@@ -775,19 +813,6 @@ def round1_backbone_freeze():
                 finetune_lr=1e-5,
             )
             configs.append(cfg)
-
-    # SimpleCNN: train from scratch
-    configs.append(SearchConfig(
-        name="R1_SimpleCNN_scratch",
-        backbone='SimpleCNN',
-        freeze='full_unfreeze',
-        head_units=[128],
-        head_dropout=0.3,
-        learning_rate=1e-3,
-        finetune_epochs=0,
-        stage1_epochs=80,  # More epochs since training from scratch
-        early_stop_patience=20,
-    ))
 
     return configs
 
@@ -815,22 +840,33 @@ def round2_head(best_r1: SearchConfig):
 
 
 def round3_loss_regularization(best_r2: SearchConfig):
-    """Round 3: Test loss function + regularization combos.
+    """Round 3: Test loss function + regularization + class weighting.
 
-    Tests: focal gamma, CCE, label smoothing, L2 on head, mixup augmentation.
+    Tests: focal gamma, CCE, label smoothing, L2 on head, mixup augmentation,
+    and alpha_sum sweep (class weighting intensity).
     """
     configs = []
 
     # (name, loss, gamma, dropout, label_smooth, alpha_sum, l2, mixup, mixup_alpha)
     variants = [
+        # --- Loss type and gamma ---
         ('focal_g2_d03',     'focal', 2.0, 0.3, 0.0, 3.0, 0.0,   False, 0.0),
         ('focal_g3_d03',     'focal', 3.0, 0.3, 0.0, 3.0, 0.0,   False, 0.0),
         ('cce_d03',          'cce',   0.0, 0.3, 0.0, 3.0, 0.0,   False, 0.0),
+        # --- Dropout ---
         ('focal_g2_d05',     'focal', 2.0, 0.5, 0.0, 3.0, 0.0,   False, 0.0),
         ('focal_g2_d02',     'focal', 2.0, 0.2, 0.0, 3.0, 0.0,   False, 0.0),
+        # --- Regularization ---
         ('focal_g2_ls01',    'focal', 2.0, 0.3, 0.1, 3.0, 0.0,   False, 0.0),
         ('focal_g2_l2_1e3',  'focal', 2.0, 0.3, 0.0, 3.0, 1e-3,  False, 0.0),
         ('focal_g2_mixup02', 'focal', 2.0, 0.3, 0.0, 3.0, 0.0,   True,  0.2),
+        # --- Alpha sum sweep (class weighting intensity) ---
+        # alpha_sum=0 → uniform [1,1,1], no class weighting
+        # alpha_sum=N → inverse-frequency weights normalized to sum N
+        ('focal_g3_alpha0',  'focal', 3.0, 0.3, 0.0, 0.0, 0.0,   False, 0.0),
+        ('focal_g3_alpha1',  'focal', 3.0, 0.3, 0.0, 1.0, 0.0,   False, 0.0),
+        ('focal_g3_alpha5',  'focal', 3.0, 0.3, 0.0, 5.0, 0.0,   False, 0.0),
+        ('focal_g3_alpha8',  'focal', 3.0, 0.3, 0.0, 8.0, 0.0,   False, 0.0),
     ]
 
     for name, loss, gamma, drop, ls, alpha_sum, l2, mixup, mixup_a in variants:
@@ -850,20 +886,23 @@ def round3_loss_regularization(best_r2: SearchConfig):
 
 
 def round4_training_dynamics(best_r3: SearchConfig):
-    """Round 4: Test learning rate, batch size, LR schedule, warmup."""
+    """Round 4: Test learning rate, batch size, LR schedule, warmup, and optimizer."""
     configs = []
 
-    # (name, lr, batch, epochs, lr_schedule, warmup)
+    # (name, lr, batch, epochs, lr_schedule, warmup, optimizer, weight_decay)
     variants = [
-        ('lr5e4_b64_plateau',    5e-4, 64, 50,  'plateau', 0),
-        ('lr1e3_b64_plateau',    1e-3, 64, 50,  'plateau', 0),   # Current default
-        ('lr3e3_b64_plateau',    3e-3, 64, 50,  'plateau', 0),
-        ('lr1e3_b32_plateau',    1e-3, 32, 50,  'plateau', 0),
-        ('lr1e3_b64_cosine',     1e-3, 64, 60,  'cosine',  5),   # Cosine + 5-epoch warmup
-        ('lr1e3_b64_e100',       1e-3, 64, 100, 'plateau', 0),
+        ('lr5e4_b64_plateau',    5e-4, 64, 50,  'plateau', 0, 'adam',  0.0),
+        ('lr1e3_b64_plateau',    1e-3, 64, 50,  'plateau', 0, 'adam',  0.0),   # Current default
+        ('lr3e3_b64_plateau',    3e-3, 64, 50,  'plateau', 0, 'adam',  0.0),
+        ('lr1e3_b32_plateau',    1e-3, 32, 50,  'plateau', 0, 'adam',  0.0),
+        ('lr1e3_b64_cosine',     1e-3, 64, 60,  'cosine',  5, 'adam',  0.0),   # Cosine + 5-epoch warmup
+        ('lr1e3_b64_e100',       1e-3, 64, 100, 'plateau', 0, 'adam',  0.0),
+        # AdamW: decoupled weight decay — often outperforms Adam for transfer learning
+        ('adamw_wd1e4',          1e-3, 64, 100, 'plateau', 0, 'adamw', 1e-4),
+        ('adamw_wd1e3',          1e-3, 64, 100, 'plateau', 0, 'adamw', 1e-3),
     ]
 
-    for name, lr, bs, epochs, schedule, warmup in variants:
+    for name, lr, bs, epochs, schedule, warmup, opt, wd in variants:
         cfg = deepcopy(best_r3)
         cfg.name = f"R4_{name}"
         cfg.learning_rate = lr
@@ -871,6 +910,8 @@ def round4_training_dynamics(best_r3: SearchConfig):
         cfg.stage1_epochs = epochs
         cfg.lr_schedule = schedule
         cfg.warmup_epochs = warmup
+        cfg.optimizer = opt
+        cfg.weight_decay = wd
         if epochs > 50:
             cfg.early_stop_patience = 20
             cfg.reduce_lr_patience = 10
@@ -880,14 +921,19 @@ def round4_training_dynamics(best_r3: SearchConfig):
 
 
 def round5_augmentation_imagesize(best_r4: SearchConfig):
-    """Round 5: Test augmentation on/off and image size."""
+    """Round 5: Test augmentation on/off and image size.
+
+    Augmentation is now spatial (flips, rotation, zoom, cutout) — preserves
+    wound color signal. 224 removed (consistently worse than 256 in prior search).
+    384 added for more wound detail.
+    """
     configs = []
 
     variants = [
         ('aug_on_256',  True,  256),
         ('aug_off_256', False, 256),
-        ('aug_on_224',  True,  224),
-        ('aug_off_224', False, 224),
+        ('aug_on_384',  True,  384),
+        ('aug_off_384', False, 384),
     ]
 
     for name, aug, img_size in variants:
@@ -895,6 +941,33 @@ def round5_augmentation_imagesize(best_r4: SearchConfig):
         cfg.name = f"R5_{name}"
         cfg.use_augmentation = aug
         cfg.image_size = img_size
+        configs.append(cfg)
+
+    return configs
+
+
+def round6_finetuning(best_r5: SearchConfig):
+    """Round 6: Fine-tuning strategy exploration.
+
+    Tests different stage 2 unfreezing depth, duration, and learning rate.
+    Prior search only used top 20% unfreeze for 30 epochs at 1e-5.
+    """
+    configs = []
+
+    # (name, unfreeze_pct, finetune_epochs, finetune_lr)
+    variants = [
+        ('ft_top20_30ep',     0.2,  30, 1e-5),   # Default (baseline from prior search)
+        ('ft_top40_30ep',     0.4,  30, 1e-5),   # Deeper unfreeze
+        ('ft_top50_50ep',     0.5,  50, 5e-6),   # Deep + more epochs + lower LR
+        ('ft_top20_50ep',     0.2,  50, 5e-6),   # Shallow but longer + lower LR
+    ]
+
+    for name, pct, epochs, lr in variants:
+        cfg = deepcopy(best_r5)
+        cfg.name = f"R6_{name}"
+        cfg.unfreeze_pct = pct
+        cfg.finetune_epochs = epochs
+        cfg.finetune_lr = lr
         configs.append(cfg)
 
     return configs
@@ -946,12 +1019,15 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Sear
         lr_schedule=best.get('lr_schedule', 'plateau'),
         warmup_epochs=int(best.get('warmup_epochs', 0)),
         batch_size=int(best['batch_size']),
+        optimizer=best.get('optimizer', 'adam'),
+        weight_decay=float(best.get('weight_decay', 1e-4)),
         use_augmentation=best['use_augmentation'],
         use_mixup=best.get('use_mixup', False),
         mixup_alpha=float(best.get('mixup_alpha', 0.0)),
         image_size=int(best['image_size']),
         stage1_epochs=int(best['stage1_epochs']),
         finetune_epochs=int(best.get('finetune_epochs', 0)),
+        unfreeze_pct=float(best.get('unfreeze_pct', 0.2)),
     )
 
     return best, cfg
@@ -969,6 +1045,7 @@ def load_completed_results(filepath: str) -> List[Dict]:
             # Convert numeric fields back from strings
             for key in ['head_dropout', 'head_l2', 'focal_gamma', 'alpha_sum',
                         'label_smoothing', 'learning_rate', 'mixup_alpha',
+                        'weight_decay', 'unfreeze_pct',
                         'best_s1_kappa', 'best_s2_kappa', 'post_eval_kappa',
                         'post_eval_acc', 'post_eval_f1', 'elapsed_seconds']:
                 if key in row and row[key]:
@@ -1101,6 +1178,17 @@ def main(fresh: bool = False):
 
     best_r5_result, best_r5_cfg = pick_best(r5_results)
 
+    # ─── Round 6: Fine-tuning Strategy ───
+    print(f"\n{'#'*80}")
+    print("ROUND 6: FINE-TUNING STRATEGY")
+    print(f"{'#'*80}")
+
+    r6_configs = round6_finetuning(best_r5_cfg)
+    r6_results = run_round("R6", r6_configs, data, results_csv, completed)
+    all_results.extend(r6_results)
+
+    best_r6_result, best_r6_cfg = pick_best(r6_results)
+
     # ─── Final: Run best config on all 3 folds ───
     print(f"\n{'#'*80}")
     print("FINAL: BEST CONFIG ON ALL 3 FOLDS")
@@ -1108,7 +1196,7 @@ def main(fresh: bool = False):
 
     final_configs = []
     for fold_idx in range(3):
-        cfg = deepcopy(best_r5_cfg)
+        cfg = deepcopy(best_r6_cfg)
         cfg.name = f"FINAL_fold{fold_idx+1}"
         cfg.fold = fold_idx
         final_configs.append(cfg)
@@ -1145,9 +1233,10 @@ def main(fresh: bool = False):
     for round_name, round_results in [
         ('R1: Backbone+Freeze', r1_results),
         ('R2: Head', r2_results),
-        ('R3: Loss+Reg', r3_results),
-        ('R4: Training', r4_results),
+        ('R3: Loss+Reg+Alpha', r3_results),
+        ('R4: Training+Optim', r4_results),
         ('R5: Aug+ImgSize', r5_results),
+        ('R6: FineTuning', r6_results),
     ]:
         best = max(round_results, key=lambda r: r['post_eval_kappa'])
         print(f"  {round_name}: {best['name']} → kappa={best['post_eval_kappa']:.4f}")
@@ -1159,7 +1248,8 @@ def main(fresh: bool = False):
         print(f"  head={cfg.head_units}, dropout={cfg.head_dropout}, bn={cfg.head_use_bn}, l2={cfg.head_l2}")
         print(f"  loss={cfg.loss_type}, gamma={cfg.focal_gamma}, alpha_sum={cfg.alpha_sum}")
         print(f"  lr={cfg.learning_rate}, schedule={cfg.lr_schedule}, batch={cfg.batch_size}")
-        print(f"  epochs={cfg.stage1_epochs}+{cfg.finetune_epochs}ft, warmup={cfg.warmup_epochs}")
+        print(f"  optimizer={cfg.optimizer}, weight_decay={cfg.weight_decay}")
+        print(f"  epochs={cfg.stage1_epochs}+{cfg.finetune_epochs}ft (unfreeze {cfg.unfreeze_pct*100:.0f}%), warmup={cfg.warmup_epochs}")
         print(f"  aug={cfg.use_augmentation}, mixup={cfg.use_mixup}(alpha={cfg.mixup_alpha}), img_size={cfg.image_size}")
         print(f"  label_smoothing={cfg.label_smoothing}")
 
@@ -1183,7 +1273,7 @@ def main(fresh: bool = False):
 
     # Print best config
     best_kappas, best_accs, best_f1s = print_config_summary(
-        f"BEST CONFIG ({best_r5_cfg.name})", best_r5_cfg, final_results)
+        f"BEST CONFIG ({best_r6_cfg.name})", best_r6_cfg, final_results)
 
     # ─── Statistical comparison ───
     print(f"\n{'─'*60}")
@@ -1216,7 +1306,7 @@ def main(fresh: bool = False):
 
     # Save best config as JSON
     best_config_path = os.path.join(result_dir, 'depth_rgb_best_config.json')
-    config_dict = asdict(best_r5_cfg)
+    config_dict = asdict(best_r6_cfg)
     with open(best_config_path, 'w') as f:
         json.dump(config_dict, f, indent=2)
     print(f"Best config saved to: {best_config_path}")
