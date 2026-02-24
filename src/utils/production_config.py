@@ -65,9 +65,11 @@ MAP_BACKBONE = 'EfficientNetB0'  # Backbone for map images (B0 for consistency; 
 # Fusion-specific training parameters
 PRETRAIN_LR = 1e-3  # Learning rate for Stage 1 head-only training (frozen backbone)
 STAGE1_LR = 1e-4  # Learning rate for Stage 1 fusion training (frozen image branch)
-STAGE2_LR = 1e-6  # Learning rate for Stage 2 fine-tuning (1e-5 was too high — caused immediate overfitting)
+STAGE2_LR = 1e-5  # Learning rate for Stage 2 fine-tuning (validated by depth_rgb hparam search: 1e-5 with 20% unfreeze)
 FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
 STAGE1_EPOCHS = 50  # Stage 1 head-only training epochs (was 20; head needs more epochs to converge)
+STAGE2_FINETUNE_EPOCHS = 50  # Stage 2 fine-tuning epochs (validated by depth_rgb hparam search)
+STAGE2_UNFREEZE_PCT = 0.2  # Fraction of backbone to unfreeze in Stage 2 (0.2 = top 20%, validated by search)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
@@ -358,6 +360,7 @@ ENTROPY_LOSS_WEIGHT = 0.2  # Base weight for entropy in total loss
 
 # Focal ordinal loss defaults (when not specified)
 FOCAL_ORDINAL_WEIGHT = 0.0  # Ordinal penalty disabled — argmax-based distance is non-differentiable, adds complexity with no benefit. Pure focal loss with alpha is sufficient.
+LABEL_SMOOTHING = 0.1  # Label smoothing for focal loss (validated by depth_rgb hparam search: 0.1 optimal)
 # Note: HIERARCHICAL_FOCAL_GAMMA and HIERARCHICAL_FOCAL_ALPHA are used for hierarchical gating
 
 # =============================================================================

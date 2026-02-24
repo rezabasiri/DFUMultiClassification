@@ -142,9 +142,10 @@ def create_image_branch(input_shape, modality):
     else:
         raise ValueError(f"Unknown backbone: {backbone}")
 
-    # Single projection layer: backbone_dim (1280 for B0) -> 128
+    # Single projection layer: backbone_dim (1280 for B0) -> 256
+    # Validated by depth_rgb hparam search: [256] outperformed [128], [64], [32], [256,64]
     # Deeper heads (512->256->128->64) had ~900K params and overfit on ~2K samples
-    x = Dense(128, activation='relu', kernel_initializer='he_normal', name=f'{modality}_projection')(x)
+    x = Dense(256, activation='relu', kernel_initializer='he_normal', name=f'{modality}_projection')(x)
     x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj')(x)
     x = tf.keras.layers.Dropout(0.3, name=f'{modality}_dropout')(x)
 

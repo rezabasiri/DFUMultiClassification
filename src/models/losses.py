@@ -120,11 +120,16 @@ def get_weighted_ordinal_crossentropyF1(num_classes=3, ordinal_weight=0.5, f1_we
         
         return total_loss
     return loss
-def focal_ordinal_loss(y_true, y_pred, num_classes=3, ordinal_weight=0.5, gamma=3.0, alpha=[0.598, 0.315, 1.597]):
+def focal_ordinal_loss(y_true, y_pred, num_classes=3, ordinal_weight=0.5, gamma=3.0, alpha=[0.598, 0.315, 1.597], label_smoothing=0.0):
     # Clip prediction values to prevent log(0)
     epsilon = tf.keras.backend.epsilon()
     y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
-    
+
+    # Apply label smoothing: soft targets reduce overconfidence
+    # y_true: [0, 0, 1] → [0.033, 0.033, 0.933] with smoothing=0.1
+    if label_smoothing > 0:
+        y_true = y_true * (1.0 - label_smoothing) + label_smoothing / tf.cast(num_classes, tf.float32)
+
     # Focal loss
     cross_entropy = -y_true * tf.math.log(y_pred)
     focal_weight = alpha * tf.math.pow(1 - y_pred, gamma)
@@ -142,9 +147,9 @@ def focal_ordinal_loss(y_true, y_pred, num_classes=3, ordinal_weight=0.5, gamma=
     total_loss = focal_loss + ordinal_weight * ordinal_penalty
     return total_loss
 # Wrapper function to set hyperparameters
-def get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.5, gamma=2.0, alpha=0.25):
+def get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.5, gamma=2.0, alpha=0.25, label_smoothing=0.0):
     def loss(y_true, y_pred):
-        return focal_ordinal_loss(y_true, y_pred, num_classes, ordinal_weight, gamma, alpha)
+        return focal_ordinal_loss(y_true, y_pred, num_classes, ordinal_weight, gamma, alpha, label_smoothing)
     return loss
 # def get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.5, gamma=2.0, alpha=[1,1,1]):
 #     return lambda y_true, y_pred: focal_ordinal_loss(y_true, y_pred, num_classes, ordinal_weight, gamma, alpha)

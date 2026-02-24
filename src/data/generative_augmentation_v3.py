@@ -282,10 +282,10 @@ def augment_image(image, modality, seed, config):
                 fn_output_signature=tf.float32
             )
         else:
-            # Pixel augmentations for map images (color is not diagnostic for maps)
-            settings = config.modality_settings[modality]['regular_augmentations']
+            # Spatial + mild pixel augmentations for map images
+            # (maps encode sensor data — spatial diversity + light sensor noise)
             augmented = tf.map_fn(
-                lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
+                lambda x: apply_spatial_augmentation_map(x, seed_val),
                 image,
                 fn_output_signature=tf.float32
             )
@@ -424,8 +424,67 @@ def apply_spatial_augmentation_rgb(image, seed):
 
 
 @tf.function(reduce_retracing=True)
+def apply_spatial_augmentation_map(image, seed):
+    """Apply augmentations for depth/thermal MAP images.
+
+    Maps encode sensor measurements (depth distance, thermal temperature) as
+    pixel intensity. Unlike RGB wounds where color IS the diagnostic signal,
+    map values represent physical quantities — mild intensity jitter simulates
+    sensor calibration differences, while spatial augmentations provide
+    geometric diversity.
+
+    Applied transforms:
+      - Horizontal flip (50%): wound position is arbitrary
+      - Vertical flip (30%): wound patches have no canonical up-down
+      - 90-degree rotation (40%): wounds appear at arbitrary angles
+      - Random zoom crop (40%): simulates distance/scale variation
+      - Mild brightness jitter (30%, ±5%): simulates sensor calibration noise
+      - Light gaussian noise (30%, σ=5px): simulates sensor measurement noise
+    """
+    if len(tf.shape(image)) != 3:
+        return image
+
+    h = tf.shape(image)[0]
+    w = tf.shape(image)[1]
+
+    # 1. Horizontal flip (50%)
+    image = tf.image.random_flip_left_right(image)
+
+    # 2. Vertical flip (30%)
+    if tf.random.uniform([]) < 0.3:
+        image = tf.image.flip_up_down(image)
+
+    # 3. Random 90-degree rotation (40%)
+    if tf.random.uniform([]) < 0.4:
+        k = tf.random.uniform([], minval=1, maxval=4, dtype=tf.int32)
+        image = tf.image.rot90(image, k=k)
+
+    # 4. Random zoom crop (40%) — crop 85-95% then resize back
+    if tf.random.uniform([]) < 0.4:
+        crop_frac = tf.random.uniform([], 0.85, 0.95)
+        crop_h = tf.maximum(tf.cast(tf.cast(h, tf.float32) * crop_frac, tf.int32), 1)
+        crop_w = tf.maximum(tf.cast(tf.cast(w, tf.float32) * crop_frac, tf.int32), 1)
+        image = tf.image.random_crop(image, [crop_h, crop_w, 3])
+        image = tf.image.resize(image, [h, w])
+
+    # 5. Mild brightness jitter (30%) — simulates sensor calibration differences
+    # ±5% = ±12.75 pixel values (conservative for sensor data)
+    if tf.random.uniform([]) < 0.3:
+        delta = tf.random.uniform([], -0.05, 0.05) * 255.0
+        image = image + delta
+
+    # 6. Light gaussian noise (30%) — simulates sensor measurement noise
+    if tf.random.uniform([]) < 0.3:
+        noise = tf.random.normal(shape=tf.shape(image), mean=0.0, stddev=5.0)
+        image = image + noise
+
+    image = tf.clip_by_value(image, 0.0, 255.0)
+    return image
+
+
+@tf.function(reduce_retracing=True)
 def apply_pixel_augmentation_map(image, seed, settings):
-    """Apply map-specific augmentations based on settings"""
+    """Apply map-specific augmentations based on settings (LEGACY — kept for backward compatibility)"""
     if len(tf.shape(image)) != 3:
         return image
 

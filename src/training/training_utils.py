@@ -33,7 +33,8 @@ from src.utils.production_config import (
     GENERATIVE_AUG_MODEL_PATH, GENERATIVE_AUG_VERSION,
     GENERATIVE_AUG_SDXL_MODEL_PATH,
     OUTLIER_CONTAMINATION, GENERATIVE_AUG_PROB,
-    PRETRAIN_LR, STAGE1_LR, STAGE2_LR
+    PRETRAIN_LR, STAGE1_LR, STAGE2_LR,
+    STAGE2_FINETUNE_EPOCHS, STAGE2_UNFREEZE_PCT, LABEL_SMOOTHING
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 
@@ -1371,7 +1372,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_gamma = config.get('gamma', 2.0)
                                         pretrain_alpha = config.get('alpha', alpha_value)
                                         pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
-                                                                               gamma=pretrain_gamma, alpha=pretrain_alpha)
+                                                                               gamma=pretrain_gamma, alpha=pretrain_alpha,
+                                                                               label_smoothing=LABEL_SMOOTHING)
                                         pretrain_macro_f1 = MacroF1Score(num_classes=3)
 
                                         # Compile pre-training model
@@ -1544,7 +1546,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         ordinal_weight = config.get('ordinal_weight', 0.0)
                         gamma = config.get('gamma', 2.0)
                         alpha = config.get('alpha', alpha_value)  # Use alpha_value for consistency
-                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
                         macro_f1 = MacroF1Score(num_classes=3)
                         model.compile(optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0), loss=loss,
                             metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
@@ -1669,7 +1671,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         layer.trainable = False
 
                                 # Recompile with frozen backbone
-                                fusion_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                                fusion_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
                                 fusion_macro_f1 = MacroF1Score(num_classes=3)
                                 model.compile(
                                     optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0),
@@ -1711,7 +1713,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             backbone_layers_frozen += len(layer.weights)
 
                                     # Recompile with higher LR for head training
-                                    stage1_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha)
+                                    stage1_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
                                     stage1_macro_f1 = MacroF1Score(num_classes=3)
                                     model.compile(
                                         optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
@@ -1775,12 +1777,92 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     model.save_weights(stage1_ckpt_path)
                                     vprint(f"Saved Stage 1 best weights to {stage1_ckpt_path}", level=2)
 
-                                    # Stage 2 (backbone fine-tuning) is SKIPPED for standalone image training.
-                                    # With ~2K images, unfreezing EfficientNet's 12M params is harmful:
-                                    # - BatchNorm switches from running stats to batch stats → immediate kappa drop
-                                    # - Even LR=1e-6 degrades val_kappa over epochs
-                                    # ImageNet features are more valuable than anything fine-tuning learns here.
-                                    history = stage1_history
+                                    # --- STAGE 2: Partial backbone fine-tuning ---
+                                    # Validated by depth_rgb hparam search: unfreezing top 20% of backbone
+                                    # with LR=1e-5 for 50 epochs improves kappa over frozen-only training.
+                                    # Key: only unfreeze top layers (not all), use low LR, keep BN frozen.
+                                    if STAGE2_FINETUNE_EPOCHS > 0:
+                                        # Unfreeze top STAGE2_UNFREEZE_PCT of backbone layers
+                                        for layer in model.layers:
+                                            if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                                                layer.trainable = True
+                                                n_backbone_layers = len(layer.layers)
+                                                freeze_until = int(n_backbone_layers * (1.0 - STAGE2_UNFREEZE_PCT))
+                                                for sub_layer in layer.layers[:freeze_until]:
+                                                    sub_layer.trainable = False
+                                                # Keep BatchNorm frozen to prevent stat disruption
+                                                for sub_layer in layer.layers:
+                                                    if isinstance(sub_layer, tf.keras.layers.BatchNormalization):
+                                                        sub_layer.trainable = False
+                                                unfrozen = n_backbone_layers - freeze_until
+                                                vprint(f"  Stage 2: unfreezing top {STAGE2_UNFREEZE_PCT*100:.0f}% "
+                                                       f"({unfrozen}/{n_backbone_layers} layers, BN frozen)", level=2)
+
+                                        stage2_loss = get_focal_ordinal_loss(
+                                            num_classes=3, ordinal_weight=ordinal_weight,
+                                            gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
+                                        stage2_macro_f1 = MacroF1Score(num_classes=3)
+                                        model.compile(
+                                            optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
+                                            loss=stage2_loss,
+                                            metrics=['accuracy', weighted_f1, weighted_acc, stage2_macro_f1, CohenKappa(num_classes=3)]
+                                        )
+
+                                        s2_trainable = len(model.trainable_weights)
+                                        vprint("=" * 80, level=2)
+                                        vprint(f"STAGE 2: Fine-tuning top {STAGE2_UNFREEZE_PCT*100:.0f}% backbone "
+                                               f"({s2_trainable} weight tensors)", level=2)
+                                        vprint(f"  LR={STAGE2_LR}, epochs={STAGE2_FINETUNE_EPOCHS}", level=2)
+                                        vprint("=" * 80, level=2)
+
+                                        stage2_callbacks = [
+                                            EarlyStopping(
+                                                patience=15,
+                                                restore_best_weights=True,
+                                                monitor='val_cohen_kappa',
+                                                min_delta=0.001,
+                                                mode='max',
+                                                verbose=1
+                                            ),
+                                            ReduceLROnPlateau(
+                                                factor=0.50,
+                                                patience=7,
+                                                monitor='val_cohen_kappa',
+                                                min_delta=0.001,
+                                                min_lr=1e-8,
+                                                mode='max',
+                                            ),
+                                            EpochMemoryCallback(strategy),
+                                            NaNMonitorCallback()
+                                        ]
+
+                                        stage2_history = model.fit(
+                                            train_dataset_dis,
+                                            epochs=STAGE2_FINETUNE_EPOCHS,
+                                            steps_per_epoch=steps_per_epoch,
+                                            validation_data=valid_dataset_dis,
+                                            validation_steps=validation_steps,
+                                            callbacks=stage2_callbacks,
+                                            verbose=fit_verbose
+                                        )
+
+                                        # Print Stage 2 results
+                                        s2h = stage2_history.history
+                                        if 'val_cohen_kappa' in s2h and s2h['val_cohen_kappa']:
+                                            best_s2_epoch = int(np.argmax(s2h['val_cohen_kappa']))
+                                            vprint("=" * 80, level=2)
+                                            vprint(f"STAGE 2 COMPLETE — best epoch: {best_s2_epoch + 1}/{len(s2h['val_cohen_kappa'])}", level=2)
+                                            vprint(f"  val_kappa: {s2h['val_cohen_kappa'][best_s2_epoch]:.4f}", level=2)
+                                            vprint("=" * 80, level=2)
+
+                                        # Save Stage 2 checkpoint
+                                        stage2_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
+                                        model.save_weights(stage2_ckpt_path)
+                                        vprint(f"Saved Stage 2 best weights to {stage2_ckpt_path}", level=2)
+
+                                        history = stage2_history
+                                    else:
+                                        history = stage1_history
                                 else:
                                     # Metadata-only or other non-backbone training
                                     history = model.fit(
