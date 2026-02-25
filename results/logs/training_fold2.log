@@ -544,3 +544,28 @@ Total model trainable weights: 367
 STAGE 1: Frozen backbone, training head only (14 weight tensors)
   LR=0.001, epochs=50
 ================================================================================
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 16.
+================================================================================
+STAGE 1 COMPLETE — best epoch: 16/31
+  val_kappa:  0.3557
+  val_acc:    0.4482
+  val_loss:   0.3255
+
+  train_loss: 0.2794  train_acc: 0.5705
+================================================================================
+Saved Stage 1 best weights to /workspace/DFUMultiClassification/results/models/depth_map_depth_rgb_thermal_map_2_depth_rgb+depth_map+thermal_map.weights.h5
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+================================================================================
+STAGE 2: Fine-tuning top 20% backbone (100 weight tensors)
+  LR=1e-05, epochs=50
+================================================================================
+Epoch 18: early stopping
+Restoring model weights from the end of the best epoch: 3.
+================================================================================
+STAGE 2 COMPLETE — best epoch: 3/18
+  val_kappa: 0.3308
+================================================================================
+Saved Stage 2 best weights to /workspace/DFUMultiClassification/results/models/depth_map_depth_rgb_thermal_map_2_depth_rgb+depth_map+thermal_map.weights.h5
