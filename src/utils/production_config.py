@@ -57,10 +57,9 @@ N_EPOCHS = 200  # Full training epochs
 #   2. Stage 1: 0-20 epochs (frozen image, train fusion)
 #   3. Stage 2: 20-200 epochs (fine-tune everything)
 
-# Image backbone selection (defaults — can be overridden per-modality below)
-# Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
-RGB_BACKBONE = 'EfficientNetB0'  # Backbone for RGB images (B0=4M params vs B3=12M — less overfitting on ~2K samples)
-MAP_BACKBONE = 'EfficientNetB2'  # Backbone for map images (B2 validated by depth_map hparam search)
+# Default backbones (fallback for modalities not in MODALITY_CONFIGS; also used by data pipeline normalization)
+RGB_BACKBONE = 'EfficientNetB0'
+MAP_BACKBONE = 'EfficientNetB2'
 
 # =============================================================================
 # Per-Modality Hyperparameters
@@ -250,17 +249,14 @@ CONFIDENCE_FILTER_RESULTS_FILE = 'confidence_filter_results.json'
 CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 
 # Misclassification filtering thresholds (for core-data mode)
-# Lower threshold = exclude more misclassified samples
-# Set to None to use auto-optimized values from bayesian_optimization_results.json
-THRESHOLD_I = 18  # Inflammatory class threshold (Bayesian-optimized)
-THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
-THRESHOLD_R = 26  # Remodeling class threshold (higher to protect minority class)
-
 # Core dataset mode (uses optimized thresholds from auto_polish_dataset_v2.py)
 # When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
 # Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
 # If CSV missing: prints warning and continues with unfiltered data
-USE_CORE_DATA = True  # Use Bayesian-optimized core dataset with misclassification filtering
+USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
+THRESHOLD_I = 18  # Inflammatory class threshold (Bayesian-optimized)
+THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
+THRESHOLD_R = 26  # Remodeling class threshold (higher to protect minority class)
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)
@@ -440,7 +436,7 @@ LABEL_SMOOTHING = 0.1  # Label smoothing for focal loss (validated by depth_rgb 
 #
 # Quick testing: python src/main.py --cv_folds 2 --data_percentage 40 --resume_mode fresh
 #
-CV_N_SPLITS = 2  # For hierarchical gating only (use --cv_folds for main training)
+CV_N_SPLITS = 5  # For hierarchical gating only (use --cv_folds for main training)
 CV_RANDOM_STATE = 42  # Random state for reproducibility
 CV_SHUFFLE = True  # Whether to shuffle data before splitting
 
@@ -482,6 +478,8 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
     ('depth_rgb',),
+    ('thermal_map',),
+    ('depth_rgb','depth_map', 'thermal_map',),
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming

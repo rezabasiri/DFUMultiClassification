@@ -38,6 +38,10 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.insert(0, PROJECT_ROOT)
 os.chdir(PROJECT_ROOT)
 
+MODALITY = 'depth_rgb'
+MODALITY_LABEL = 'DEPTH RGB'
+AUDIT_DIR = os.path.join(PROJECT_ROOT, 'agent_communication', 'depth_rgb_pipeline_audit')
+
 # Set environment before TF import
 os.environ["OMP_NUM_THREADS"] = "2"
 os.environ['TF_NUM_INTEROP_THREADS'] = "2"
@@ -445,8 +449,8 @@ def prepare_datasets(data, cfg: SearchConfig, fold_idx=0):
     _, search_result_dir, _ = get_project_paths()
     aug_suffix = 'aug' if cfg.use_augmentation else 'noaug'
     norm_key = 'simplecnn' if cfg.backbone == 'SimpleCNN' else 'pretrained'
-    search_cache_dir = os.path.join(search_result_dir,
-        f'tf_records_search_{cfg.image_size}_{norm_key}_{aug_suffix}')
+    search_cache_dir = os.path.join(search_result_dir, 'search_cache',
+        f'{MODALITY}_{cfg.image_size}_{norm_key}_{aug_suffix}')
 
     train_ds, pre_aug_ds, valid_ds, steps_per_epoch, val_steps, alpha_values = prepare_cached_datasets(
         data,
@@ -1106,7 +1110,7 @@ def main(fresh: bool = False):
 
     # Load data once
     data, directory, result_dir = load_data()
-    results_csv = os.path.join(result_dir, 'depth_rgb_search_results.csv')
+    results_csv = os.path.join(AUDIT_DIR, f'{MODALITY}_search_results.csv')
 
     # Fresh start or resume
     completed = []
@@ -1388,7 +1392,7 @@ def main(fresh: bool = False):
     print(f"\nResults saved to: {results_csv}")
 
     # Save best config as JSON (the 5-fold winner)
-    best_config_path = os.path.join(result_dir, 'depth_rgb_best_config.json')
+    best_config_path = os.path.join(AUDIT_DIR, f'{MODALITY}_best_config.json')
     config_dict = asdict(winner_cfg)
     with open(best_config_path, 'w') as f:
         json.dump(config_dict, f, indent=2)
@@ -1405,10 +1409,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Set up logging: tee all stdout/stderr to a log file
-    log_dir = os.path.join(PROJECT_ROOT, 'results', 'logs')
+    log_dir = os.path.join(AUDIT_DIR, 'logs')
     os.makedirs(log_dir, exist_ok=True)
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_path = os.path.join(log_dir, f'hparam_search_{timestamp}.log')
+    log_path = os.path.join(log_dir, f'{MODALITY}_hparam_search_{timestamp}.log')
 
     class TeeStream:
         """Write to both a file and the original stream."""

@@ -1873,18 +1873,10 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
         filtered_df = outlier_filtered_data.get(combo_key, None)
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities, filtered_df=filtered_df)
         # Apply misclassification filtering if configured (from production_config)
-        if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
-            if any(t is None for t in [THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
-                print("\n" + "!" * 80)
-                print("!!!  WARNING: USE_CORE_DATA is enabled but thresholds are not fully set!")
-                print(f"!!!  Current: I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}")
-                print("!!!  Set all thresholds in production_config.py or via --threshold_I/P/R")
-                print("!!!  CONTINUING WITH UNFILTERED DATASET...")
-                print("!" * 80 + "\n")
-            else:
-                thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
-                from src.evaluation.metrics import filter_frequent_misclassifications
-                data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
+        if USE_CORE_DATA:
+            thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
+            from src.evaluation.metrics import filter_frequent_misclassifications
+            data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
         if data_percentage < 100:
             data = data.sample(frac=data_percentage / 100, random_state=789).reset_index(drop=True)  # Phase 7a: seed 789
         vprint(f"Using {data_percentage}% of the data: {len(data)} samples")
@@ -2599,27 +2591,14 @@ Configuration:
         (default: None - orchestrator auto-spawns subprocesses per fold)"""
     )
 
-    # Misclassification filtering args (used by auto_polish_dataset_v2.py)
-    parser.add_argument("--threshold_I", type=int, default=None,
-        help="Misclassification threshold for Inflammatory class (overrides production_config)")
-    parser.add_argument("--threshold_P", type=int, default=None,
-        help="Misclassification threshold for Proliferative class (overrides production_config)")
-    parser.add_argument("--threshold_R", type=int, default=None,
-        help="Misclassification threshold for Remodeling class (overrides production_config)")
     parser.add_argument("--track-misclass", type=str, choices=['both', 'valid', 'train', 'none'], default=None,
         dest='track_misclass_override',
         help="Misclassification tracking mode (overrides production_config TRACK_MISCLASS)")
 
     args = parser.parse_args()
 
-    # Override production_config values from CLI args (used by auto_polish_dataset_v2.py)
-    global THRESHOLD_I, THRESHOLD_P, THRESHOLD_R, TRACK_MISCLASS
-    if args.threshold_I is not None:
-        THRESHOLD_I = args.threshold_I
-    if args.threshold_P is not None:
-        THRESHOLD_P = args.threshold_P
-    if args.threshold_R is not None:
-        THRESHOLD_R = args.threshold_R
+    # Override production_config values from CLI args
+    global TRACK_MISCLASS
     if args.track_misclass_override is not None:
         TRACK_MISCLASS = args.track_misclass_override
 
@@ -2869,10 +2848,8 @@ Configuration:
         vprint(f"  Outlier contamination: {OUTLIER_CONTAMINATION*100:.0f}%", level=0)
         vprint(f"  Outlier batch size: {OUTLIER_BATCH_SIZE}", level=0)
     vprint(f"  Misclassification tracking: {TRACK_MISCLASS}", level=0)
-    if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
-        vprint(f"  Core data mode: {USE_CORE_DATA}", level=0)
-        if any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
-            vprint(f"  Thresholds: I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}", level=0)
+    if USE_CORE_DATA:
+        vprint(f"  Core data filtering: thresholds I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}", level=0)
 
     # Run the selected mode
     main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, target_fold=args.fold)
