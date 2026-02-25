@@ -34,7 +34,8 @@ from src.utils.production_config import (
     GENERATIVE_AUG_SDXL_MODEL_PATH,
     OUTLIER_CONTAMINATION, GENERATIVE_AUG_PROB,
     PRETRAIN_LR, STAGE1_LR, STAGE2_LR,
-    STAGE2_FINETUNE_EPOCHS, STAGE2_UNFREEZE_PCT, LABEL_SMOOTHING
+    STAGE2_FINETUNE_EPOCHS, STAGE2_UNFREEZE_PCT, LABEL_SMOOTHING,
+    get_modality_config
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
 
@@ -66,6 +67,25 @@ logs_path = output_paths['logs']
 pretrain_cache_dir = os.path.join(result_dir, 'pretrain_cache')
 
 
+def _resolve_training_params(selected_modalities):
+    """Resolve per-modality training params for the current modality set.
+
+    For single-image models the modality's own settings are used directly.
+    For multi-image fusion models, we pick the most conservative combination:
+      label_smoothing = max across modalities (keeps the regularisation)
+      finetune_epochs = max across modalities (shorter modalities benefit from early stopping)
+    """
+    image_mods = [m for m in selected_modalities
+                  if m in ('depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map')]
+    if not image_mods:
+        return {'label_smoothing': LABEL_SMOOTHING, 'finetune_epochs': STAGE2_FINETUNE_EPOCHS}
+    configs = [get_modality_config(m) for m in image_mods]
+    return {
+        'label_smoothing': max(c['label_smoothing'] for c in configs),
+        'finetune_epochs': max(c['finetune_epochs'] for c in configs),
+    }
+
+
 def _get_pretrain_cache_path(image_modality, fold_num):
     """Get config-aware cache path for pre-trained image weights.
 
@@ -73,9 +93,11 @@ def _get_pretrain_cache_path(image_modality, fold_num):
     If any of these change, a different cache file is used automatically.
     """
     import hashlib
+    mod_cfg = get_modality_config(image_modality)
     cache_key = (f"{image_modality}_fold{fold_num}_img{IMAGE_SIZE}_data{DATA_PERCENTAGE}"
                  f"_outlier{OUTLIER_CONTAMINATION}"
-                 f"_genaug{USE_GENERATIVE_AUGMENTATION}_{GENERATIVE_AUG_PROB}")
+                 f"_genaug{USE_GENERATIVE_AUGMENTATION}_{GENERATIVE_AUG_PROB}"
+                 f"_bb{mod_cfg['backbone']}_head{mod_cfg['head_units']}_l2{mod_cfg['head_l2']}")
     config_hash = hashlib.md5(cache_key.encode()).hexdigest()[:12]
     os.makedirs(pretrain_cache_dir, exist_ok=True)
     return os.path.join(pretrain_cache_dir, f'pretrain_{image_modality}_fold{fold_num}_{config_hash}.weights.h5')
@@ -1371,9 +1393,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_ordinal_weight = config.get('ordinal_weight', 0.0)
                                         pretrain_gamma = config.get('gamma', 2.0)
                                         pretrain_alpha = config.get('alpha', alpha_value)
+                                        pretrain_mod_cfg = get_modality_config(image_modality)
                                         pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
                                                                                gamma=pretrain_gamma, alpha=pretrain_alpha,
-                                                                               label_smoothing=LABEL_SMOOTHING)
+                                                                               label_smoothing=pretrain_mod_cfg['label_smoothing'])
                                         pretrain_macro_f1 = MacroF1Score(num_classes=3)
 
                                         # Compile pre-training model
@@ -1542,11 +1565,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     vprint(f"  Model will train from random initialization (may overfit)...", level=1)
                                     fusion_use_pretrained = False
 
+                        # Resolve per-modality training params (label smoothing, finetune epochs)
+                        mod_train_params = _resolve_training_params(selected_modalities)
+                        eff_label_smoothing = mod_train_params['label_smoothing']
+                        eff_finetune_epochs = mod_train_params['finetune_epochs']
+
                         # Use loss parameters from config if available, otherwise use defaults
                         ordinal_weight = config.get('ordinal_weight', 0.0)
                         gamma = config.get('gamma', 2.0)
                         alpha = config.get('alpha', alpha_value)  # Use alpha_value for consistency
-                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
+                        loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
                         macro_f1 = MacroF1Score(num_classes=3)
                         model.compile(optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0), loss=loss,
                             metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
@@ -1671,7 +1699,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         layer.trainable = False
 
                                 # Recompile with frozen backbone
-                                fusion_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
+                                fusion_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
                                 fusion_macro_f1 = MacroF1Score(num_classes=3)
                                 model.compile(
                                     optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0),
@@ -1713,7 +1741,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             backbone_layers_frozen += len(layer.weights)
 
                                     # Recompile with higher LR for head training
-                                    stage1_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
+                                    stage1_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
                                     stage1_macro_f1 = MacroF1Score(num_classes=3)
                                     model.compile(
                                         optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
@@ -1781,7 +1809,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     # Validated by depth_rgb hparam search: unfreezing top 20% of backbone
                                     # with LR=1e-5 for 50 epochs improves kappa over frozen-only training.
                                     # Key: only unfreeze top layers (not all), use low LR, keep BN frozen.
-                                    if STAGE2_FINETUNE_EPOCHS > 0:
+                                    if eff_finetune_epochs > 0:
                                         # Unfreeze top STAGE2_UNFREEZE_PCT of backbone layers
                                         for layer in model.layers:
                                             if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
@@ -1800,7 +1828,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         stage2_loss = get_focal_ordinal_loss(
                                             num_classes=3, ordinal_weight=ordinal_weight,
-                                            gamma=gamma, alpha=alpha, label_smoothing=LABEL_SMOOTHING)
+                                            gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
                                         stage2_macro_f1 = MacroF1Score(num_classes=3)
                                         model.compile(
                                             optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
@@ -1812,7 +1840,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint("=" * 80, level=2)
                                         vprint(f"STAGE 2: Fine-tuning top {STAGE2_UNFREEZE_PCT*100:.0f}% backbone "
                                                f"({s2_trainable} weight tensors)", level=2)
-                                        vprint(f"  LR={STAGE2_LR}, epochs={STAGE2_FINETUNE_EPOCHS}", level=2)
+                                        vprint(f"  LR={STAGE2_LR}, epochs={eff_finetune_epochs}", level=2)
                                         vprint("=" * 80, level=2)
 
                                         stage2_callbacks = [
@@ -1838,7 +1866,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         stage2_history = model.fit(
                                             train_dataset_dis,
-                                            epochs=STAGE2_FINETUNE_EPOCHS,
+                                            epochs=eff_finetune_epochs,
                                             steps_per_epoch=steps_per_epoch,
                                             validation_data=valid_dataset_dis,
                                             validation_steps=validation_steps,

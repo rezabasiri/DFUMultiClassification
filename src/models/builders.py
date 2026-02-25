@@ -20,7 +20,7 @@ from src.utils.verbosity import vprint
 directory, result_dir, root = get_project_paths()
 
 # Import IMAGE_SIZE and backbone configs from production config
-from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE
+from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE, get_modality_config
 
 def create_simple_cnn_rgb(image_input, modality):
     """Simple CNN for RGB images (4 conv layers)"""
@@ -116,20 +116,21 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
     return x
 
 def create_image_branch(input_shape, modality):
-    """Create image branch with configurable backbone"""
+    """Create image branch with per-modality backbone and projection head.
+
+    Each modality uses its own validated hyperparameters from MODALITY_CONFIGS
+    (backbone, head_units, head_l2).  See production_config.py for values.
+    """
+    mod_cfg = get_modality_config(modality)
+    backbone = mod_cfg['backbone']
+    head_units = mod_cfg['head_units']
+    head_l2 = mod_cfg['head_l2']
+    is_rgb = modality in ['depth_rgb', 'thermal_rgb']
+
     vprint(f"\nCreating image branch for {modality}", level=2)
+    vprint(f"{modality} using backbone: {backbone}, head: [{head_units}], l2={head_l2}", level=2)
 
     image_input = Input(shape=input_shape, name=f'{modality}_input')
-
-    # Select backbone based on modality type and config
-    if modality in ['depth_rgb', 'thermal_rgb']:
-        backbone = RGB_BACKBONE
-        is_rgb = True
-    else:  # depth_map, thermal_map
-        backbone = MAP_BACKBONE
-        is_rgb = False
-
-    vprint(f"{modality} using backbone: {backbone}", level=2)
 
     # Create feature extractor based on backbone
     if backbone == 'SimpleCNN':
@@ -142,10 +143,10 @@ def create_image_branch(input_shape, modality):
     else:
         raise ValueError(f"Unknown backbone: {backbone}")
 
-    # Single projection layer: backbone_dim (1280 for B0) -> 256
-    # Validated by depth_rgb hparam search: [256] outperformed [128], [64], [32], [256,64]
-    # Deeper heads (512->256->128->64) had ~900K params and overfit on ~2K samples
-    x = Dense(256, activation='relu', kernel_initializer='he_normal', name=f'{modality}_projection')(x)
+    # Per-modality projection head
+    l2_reg = tf.keras.regularizers.l2(head_l2) if head_l2 > 0 else None
+    x = Dense(head_units, activation='relu', kernel_initializer='he_normal',
+              kernel_regularizer=l2_reg, name=f'{modality}_projection')(x)
     x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj')(x)
     x = tf.keras.layers.Dropout(0.3, name=f'{modality}_dropout')(x)
 

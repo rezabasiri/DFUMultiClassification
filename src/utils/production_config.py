@@ -57,10 +57,68 @@ N_EPOCHS = 200  # Full training epochs
 #   2. Stage 1: 0-20 epochs (frozen image, train fusion)
 #   3. Stage 2: 20-200 epochs (fine-tune everything)
 
-# Image backbone selection
+# Image backbone selection (defaults — can be overridden per-modality below)
 # Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
 RGB_BACKBONE = 'EfficientNetB0'  # Backbone for RGB images (B0=4M params vs B3=12M — less overfitting on ~2K samples)
-MAP_BACKBONE = 'EfficientNetB0'  # Backbone for map images (B0 for consistency; B1 offered no benefit)
+MAP_BACKBONE = 'EfficientNetB2'  # Backbone for map images (B2 validated by depth_map hparam search)
+
+# =============================================================================
+# Per-Modality Hyperparameters
+# =============================================================================
+# Each modality can override the global defaults for backbone, head, loss, and
+# fine-tuning.  Values here are validated by standalone hparam searches:
+#   depth_rgb:   agent_communication/depth_rgb_pipeline_audit/
+#   depth_map:   agent_communication/depth_map_pipeline_audit/
+#   thermal_map: agent_communication/thermal_map_pipeline_audit/
+#
+# Keys not present in a modality dict fall back to the global defaults above.
+
+MODALITY_CONFIGS = {
+    'depth_rgb': {
+        'backbone': 'EfficientNetB0',   # validated: R6_ft_top20_50ep
+        'head_units': 256,
+        'head_l2': 0.0,
+        'label_smoothing': 0.1,
+        'finetune_epochs': 50,
+    },
+    'depth_map': {
+        'backbone': 'EfficientNetB2',   # validated: R3_focal_g2_l2_1e3
+        'head_units': 64,
+        'head_l2': 0.001,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 30,
+    },
+    'thermal_map': {
+        'backbone': 'EfficientNetB2',   # validated: R6_ft_top20_50ep
+        'head_units': 256,
+        'head_l2': 0.0,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 50,
+    },
+    'thermal_rgb': {
+        'backbone': 'EfficientNetB0',   # same as depth_rgb
+        'head_units': 256,
+        'head_l2': 0.0,
+        'label_smoothing': 0.1,
+        'finetune_epochs': 50,
+    },
+}
+
+def get_modality_config(modality):
+    """Get hyperparameters for a specific modality, falling back to globals.
+
+    Resolved at call time so that globals like LABEL_SMOOTHING / STAGE2_FINETUNE_EPOCHS
+    are available regardless of import order.
+    """
+    cfg = MODALITY_CONFIGS.get(modality, {})
+    is_rgb = modality in ['depth_rgb', 'thermal_rgb']
+    return {
+        'backbone': cfg.get('backbone', RGB_BACKBONE if is_rgb else MAP_BACKBONE),
+        'head_units': cfg.get('head_units', 256),
+        'head_l2': cfg.get('head_l2', 0.0),
+        'label_smoothing': cfg.get('label_smoothing', globals().get('LABEL_SMOOTHING', 0.0)),
+        'finetune_epochs': cfg.get('finetune_epochs', globals().get('STAGE2_FINETUNE_EPOCHS', 50)),
+    }
 
 # Fusion-specific training parameters
 PRETRAIN_LR = 1e-3  # Learning rate for Stage 1 head-only training (frozen backbone)
