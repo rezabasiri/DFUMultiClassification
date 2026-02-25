@@ -36,8 +36,45 @@ Healing Phase 0 (Non-healing):  2,569 samples (82.7%)
 Healing Phase 1 (Healing):      496 samples (16.0%)
 Missing/Unknown:                43 samples (1.4%)
 
+MODALITY IMAGE CHARACTERISTICS
+------------------------------
+                        Depth RGB       Depth Map       Thermal Map
+Resolution:             1280x720        1280x720        1080x1440
+Encoding:               Natural RGB     Viridis cmap    Viridis cmap
+Sensor FOV mask:        None            None            ~47% black border
+Median BB crop size:    55x56 px        55x56 px        63x82 px
+Median unique colors    1,136           78              1,136
+  per crop:
+Near-uniform crops:     ~0%             6.4%            0.3%
+
+Depth maps encode distance-from-camera as a viridis colormap (confirmed
+100% match to matplotlib viridis LUT). Crops contain 15.9x fewer unique
+colors than RGB, with 6.4% of crops effectively a single solid color.
+Thermal maps also use viridis but encode temperature, producing richer
+gradients (14.6x more color diversity than depth maps).
+
+PER-CLASS SIGNAL BY MODALITY (3-class: I/P/R)
+----------------------------------------------
+Depth Map — weak/negligible class separation:
+  Green ch mean:  I=35.9±20.9  P=40.9±22.7  R=39.2±20.8
+  Cohen's d:      I-vs-P=0.225  I-vs-R=0.157  P-vs-R=0.075
+  Best 5-fold mean kappa: 0.183 (near-random)
+
+Thermal Map — moderate class separation:
+  Green ch mean:  I=198.3±30.4  P=193.9±34.8  R=179.5±43.8
+  Pixel std:      I=74.3±12.7   P=73.1±14.8   R=64.5±15.3
+  Cohen's d (green): I-vs-R=0.499  P-vs-R=0.364  I-vs-P=0.135
+  Cohen's d (std):   I-vs-R=0.691  P-vs-R=0.567  I-vs-P=0.087
+  All I-vs-R and P-vs-R comparisons p<0.0001
+
+Thermal pattern is biologically consistent: inflammatory wounds are
+hottest (increased blood flow), remodeling wounds are coolest (reduced
+metabolic activity).
+
 NOTES
 -----
 - Multiple DFUs per image: Some patients presented with multiple wounds captured in the same image
 - Matching loss: 4.5% of depth annotations lost during depth-thermal-metadata matching
 - Class imbalance: ~5:1 ratio of non-healing to healing wounds
+- Depth maps have minimal standalone discriminative value; most useful as complementary signal in multimodal fusion
+- Thermal maps carry meaningful temperature-based signal, especially for distinguishing remodeling from inflammatory/proliferative phases
