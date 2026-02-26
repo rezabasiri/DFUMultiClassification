@@ -128,7 +128,7 @@ def create_image_branch(input_shape, modality):
     is_rgb = modality in ['depth_rgb', 'thermal_rgb']
 
     vprint(f"\nCreating image branch for {modality}", level=2)
-    vprint(f"{modality} using backbone: {backbone}, head: [{head_units}], l2={head_l2}", level=2)
+    vprint(f"{modality} using backbone: {backbone}, head: {head_units}, l2={head_l2}", level=2)
 
     image_input = Input(shape=input_shape, name=f'{modality}_input')
 
@@ -143,12 +143,15 @@ def create_image_branch(input_shape, modality):
     else:
         raise ValueError(f"Unknown backbone: {backbone}")
 
-    # Per-modality projection head
+    # Per-modality projection head (supports single int or list of ints)
     l2_reg = tf.keras.regularizers.l2(head_l2) if head_l2 > 0 else None
-    x = Dense(head_units, activation='relu', kernel_initializer='he_normal',
-              kernel_regularizer=l2_reg, name=f'{modality}_projection')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj')(x)
-    x = tf.keras.layers.Dropout(0.3, name=f'{modality}_dropout')(x)
+    units_list = head_units if isinstance(head_units, (list, tuple)) else [head_units]
+    for i, units in enumerate(units_list):
+        suffix = f'_{i}' if len(units_list) > 1 else ''
+        x = Dense(units, activation='relu', kernel_initializer='he_normal',
+                  kernel_regularizer=l2_reg, name=f'{modality}_projection{suffix}')(x)
+        x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj{suffix}')(x)
+        x = tf.keras.layers.Dropout(0.3, name=f'{modality}_dropout{suffix}')(x)
 
     return image_input, x
 

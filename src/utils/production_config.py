@@ -74,11 +74,11 @@ MAP_BACKBONE = 'EfficientNetB2'
 
 MODALITY_CONFIGS = {
     'depth_rgb': {
-        'backbone': 'EfficientNetB0',   # validated: R6_ft_top20_50ep
-        'head_units': 256,
+        'backbone': 'EfficientNetB2',   # validated: R4_lr1e3_b64_e100 (full-data search)
+        'head_units': [256, 64],         # two-layer head (search: [256, 64])
         'head_l2': 0.0,
-        'label_smoothing': 0.1,
-        'finetune_epochs': 50,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 30,
     },
     'depth_map': {
         'backbone': 'EfficientNetB2',   # validated: R3_focal_g2_l2_1e3
@@ -88,18 +88,18 @@ MODALITY_CONFIGS = {
         'finetune_epochs': 30,
     },
     'thermal_map': {
-        'backbone': 'EfficientNetB2',   # validated: R6_ft_top20_50ep
-        'head_units': 256,
+        'backbone': 'EfficientNetB0',   # validated: BASELINE (full-data search, avg kappa 0.426)
+        'head_units': 128,
         'head_l2': 0.0,
         'label_smoothing': 0.0,
-        'finetune_epochs': 50,
+        'finetune_epochs': 30,
     },
     'thermal_rgb': {
-        'backbone': 'EfficientNetB0',   # same as depth_rgb
-        'head_units': 256,
+        'backbone': 'EfficientNetB2',   # mirrors depth_rgb backbone
+        'head_units': [256, 64],
         'head_l2': 0.0,
-        'label_smoothing': 0.1,
-        'finetune_epochs': 50,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 30,
     },
 }
 
