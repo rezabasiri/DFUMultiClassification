@@ -286,13 +286,13 @@ class BayesianDatasetPolisher:
             'score': float(self.best_score),
             'metrics': best_metrics,
             'phase1_baseline_modality': self.phase1_baseline.get('modality', 'unknown') if self.phase1_baseline else None,
-            'command': (
-                f"python src/main.py --mode search --cv_folds 5"
-                f" --threshold_I {self.best_thresholds['I']}"
-                f" --threshold_P {self.best_thresholds['P']}"
-                f" --threshold_R {self.best_thresholds['R']}"
-                f" --device-mode multi"
+            'production_config_settings': (
+                f"USE_CORE_DATA = True, "
+                f"THRESHOLD_I = {self.best_thresholds['I']}, "
+                f"THRESHOLD_P = {self.best_thresholds['P']}, "
+                f"THRESHOLD_R = {self.best_thresholds['R']}"
             ),
+            'command': "python src/main.py --mode search --cv_folds 5 --device-mode multi",
             'timestamp': datetime.now().isoformat()
         }
 
@@ -1073,6 +1073,12 @@ class BayesianDatasetPolisher:
                     r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
                     f"INCLUDED_COMBINATIONS = [\n    {combo_str},  # Temporary: Phase 1 detection\n]",
                     current_config
+                )
+                # Phase 1 needs the full unfiltered dataset for misclassification detection
+                modified_config = re.sub(
+                    r'USE_CORE_DATA\s*=\s*(True|False)',
+                    'USE_CORE_DATA = False',
+                    modified_config
                 )
                 with open(config_path, 'w') as f:
                     f.write(modified_config)
@@ -2274,6 +2280,30 @@ class BayesianDatasetPolisher:
                 modified_config
             )
 
+            # Enable core data filtering with the trial thresholds
+            # (--threshold_I/P/R CLI args were removed from main.py; thresholds
+            #  are now read exclusively from production_config.py via USE_CORE_DATA)
+            modified_config = re.sub(
+                r'USE_CORE_DATA\s*=\s*(True|False)',
+                'USE_CORE_DATA = True',
+                modified_config
+            )
+            modified_config = re.sub(
+                r'THRESHOLD_I\s*=\s*\d+',
+                f"THRESHOLD_I = {thresholds['I']}",
+                modified_config
+            )
+            modified_config = re.sub(
+                r'THRESHOLD_P\s*=\s*\d+',
+                f"THRESHOLD_P = {thresholds['P']}",
+                modified_config
+            )
+            modified_config = re.sub(
+                r'THRESHOLD_R\s*=\s*\d+',
+                f"THRESHOLD_R = {thresholds['R']}",
+                modified_config
+            )
+
             with open(config_path, 'w') as f:
                 f.write(modified_config)
 
@@ -2285,9 +2315,6 @@ class BayesianDatasetPolisher:
                 '--data_percentage', str(self.phase2_data_percentage),
                 '--verbosity', '0',  # Minimal output during optimization
                 '--resume_mode', 'fresh',  # Force fresh training for each evaluation
-                '--threshold_I', str(thresholds['I']),
-                '--threshold_P', str(thresholds['P']),
-                '--threshold_R', str(thresholds['R']),
                 '--device-mode', self.device_mode,
                 '--min-gpu-memory', str(self.min_gpu_memory)
             ]
@@ -2666,11 +2693,13 @@ GPU Configuration:
             print("="*70)
             print(f"\nOptimal thresholds: {best_thresholds}")
             print(f"Optimization score: {polisher.best_score:.4f}")
-            print(f"\n💡 Use these thresholds for final training:")
-            print(f"   python src/main.py --mode search --cv_folds 5 \\")
-            print(f"       --threshold_I {best_thresholds['I']} \\")
-            print(f"       --threshold_P {best_thresholds['P']} \\")
-            print(f"       --threshold_R {best_thresholds['R']}")
+            print(f"\n💡 To use these thresholds for final training, update production_config.py:")
+            print(f"   USE_CORE_DATA = True")
+            print(f"   THRESHOLD_I = {best_thresholds['I']}")
+            print(f"   THRESHOLD_P = {best_thresholds['P']}")
+            print(f"   THRESHOLD_R = {best_thresholds['R']}")
+            print(f"\n   Then run:")
+            print(f"   python src/main.py --mode search --cv_folds 5")
 
     sys.exit(0)
 

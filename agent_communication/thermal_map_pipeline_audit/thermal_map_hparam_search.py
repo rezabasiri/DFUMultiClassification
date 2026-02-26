@@ -70,6 +70,10 @@ from tensorflow.keras.layers import (
 from tensorflow.keras.models import Model
 from sklearn.metrics import cohen_kappa_score, accuracy_score, f1_score, confusion_matrix
 
+# Multi-GPU setup — must happen before any model/dataset creation
+from src.utils.gpu_config import setup_device_strategy
+_strategy, _selected_gpus = setup_device_strategy(mode='multi')
+
 # ─────────────────────────────────────────────────────────────────────
 # Configuration dataclass
 # ─────────────────────────────────────────────────────────────────────
@@ -493,7 +497,7 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         alpha_list = alpha_arr.tolist()
         print(f"  Alpha values (sum={cfg.alpha_sum}): {[round(a, 3) for a in alpha_list]}")
 
-    strategy = tf.distribute.get_strategy()
+    strategy = _strategy
     with strategy.scope():
         model, base_model = build_model(cfg)
         apply_freeze_strategy(model, base_model, cfg)

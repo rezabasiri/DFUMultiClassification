@@ -131,16 +131,6 @@ echo "scripts: $(find scripts -type f | wc -l) (expect 10)" && \
 echo "agent_communication: $(find agent_communication -type f | wc -l) (expect 362)"
 ```
 
-## Uncommitted Changes (IMPORTANT)
-
-The current branch `claude/fix-trainable-parameters-UehxS` has uncommitted changes in:
-
-1. **`src/models/builders.py`**: Added two-layer projection head support. `head_units` now accepts a list (e.g., `[256, 64]`) for multi-layer heads, not just a single int.
-
-2. **`src/utils/production_config.py`**: Updated `MODALITY_CONFIGS` with search-validated hyperparameters for each modality (backbone, head_units, head_l2, finetune_epochs).
-
-These changes are critical. Commit them before doing anything else on the new machine.
-
 ## Pending Work
 
 ### 1. depth_map Hparam Search (Re-run Needed)
