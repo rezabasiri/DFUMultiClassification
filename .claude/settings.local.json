@@ -100,7 +100,11 @@
       "Bash(__NEW_LINE_5d18498bdf2698bb__ /venv/multimodal/bin/python /tmp/test_bfloat16.py)",
       "Bash(/tmp/quick_test_fix.py << 'EOF'\n\"\"\"Quick test of the fixed generative augmentation\"\"\"\nimport sys\nimport os\nsys.path.insert\\(0, '/workspace/DFUMultiClassification'\\)\nos.chdir\\('/workspace/DFUMultiClassification'\\)\n\n# Set minimal config\nfrom src.utils import production_config\nproduction_config.GENERATIVE_AUG_BATCH_LIMIT = 2\nproduction_config.GENERATIVE_AUG_INFERENCE_STEPS = 20  # Quick test\n\nfrom src.data.generative_augmentation_v3 import GenerativeAugmentationManager\n\nprint\\('Initializing SDXL model...'\\)\nmanager = GenerativeAugmentationManager\\('depth_rgb', test_mode=True\\)\n\nprint\\('\\\\nGenerating test images...'\\)\nimages = manager.generate_images\\(phase='P', batch_size=2, target_height=64, target_width=64\\)\n\nif images is not None:\n    print\\(f'\\\\n✓ SUCCESS!'\\)\n    print\\(f'Generated images shape: {images.shape}'\\)\n    print\\(f'Image stats: mean={images.numpy\\(\\).mean\\(\\):.4f}, std={images.numpy\\(\\).std\\(\\):.4f}'\\)\n    print\\(f'Min: {images.numpy\\(\\).min\\(\\):.4f}, Max: {images.numpy\\(\\).max\\(\\):.4f}'\\)\n    \n    # Save sample\n    import numpy as np\n    from PIL import Image\n    sample = \\(images[0].numpy\\(\\) * 255\\).astype\\(np.uint8\\)\n    Image.fromarray\\(sample\\).save\\('/tmp/test_fix_sample.png'\\)\n    print\\('Saved sample to /tmp/test_fix_sample.png'\\)\nelse:\n    print\\('✗ FAILED - returned None'\\)\n\nprint\\('\\\\nTest complete!'\\)\nEOF)",
       "Bash(__NEW_LINE_20e7c204dd47b888__ /venv/multimodal/bin/python /tmp/quick_test_fix.py)",
-      "Bash(/venv/multimodal/bin/pip index versions:*)"
+      "Bash(/venv/multimodal/bin/pip index versions:*)",
+      "Bash(/venv/multimodal/bin/pip freeze)",
+      "Bash(/venv/multimodal/bin/pip show albumentations)",
+      "Bash(git -C /workspace/DFUMultiClassification log --oneline -20)",
+      "Bash(git -C /workspace/DFUMultiClassification diff --stat HEAD)"
     ]
   }
 }
