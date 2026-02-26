@@ -104,7 +104,10 @@
       "Bash(/venv/multimodal/bin/pip freeze)",
       "Bash(/venv/multimodal/bin/pip show albumentations)",
       "Bash(git -C /workspace/DFUMultiClassification log --oneline -20)",
-      "Bash(git -C /workspace/DFUMultiClassification diff --stat HEAD)"
+      "Bash(git -C /workspace/DFUMultiClassification diff --stat HEAD)",
+      "Bash(# Agent communication is 20G?? Check what''s big du -sh /workspace/DFUMultiClassification/agent_communication/*/)",
+      "Bash(# src is 20G?? Check what''s big du -sh /workspace/DFUMultiClassification/src/*/)",
+      "Bash(# What''s 20G in src/models? du -sh /workspace/DFUMultiClassification/src/models/*/)"
     ]
   }
 }

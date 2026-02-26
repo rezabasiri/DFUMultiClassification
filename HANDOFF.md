@@ -83,14 +83,52 @@ Do NOT pass `--fold` manually. The orchestrator auto-spawns fold subprocesses wh
 ~600 patients, ~3100 total image sets (multiple visits per patient). Patient-level CV splitting prevents data leakage.
 
 ```
-data/raw/
-  DataMaster_Processed_V12_WithMissing.csv   # Master metadata
-  bounding_box_depth.csv                      # Depth bounding boxes
-  bounding_box_thermal.csv                    # Thermal bounding boxes
-  Depth_RGB/                                  # Depth RGB images
-  Depth_Map_IMG/                              # Depth map images
-  Thermal_RGB/                                # Thermal RGB images
-  Thermal_Map_IMG/                            # Thermal map images
+data/raw/                                      (11,650 files total, 8.6 GB)
+  DataMaster_Processed_V12_WithMissing.csv     # Master metadata
+  bounding_box_depth.csv                        # Depth bounding boxes
+  bounding_box_thermal.csv                      # Thermal bounding boxes
+  Depth_RGB/                                    # 2,884 files
+  Depth_Map_IMG/                                # 3,025 files
+  Thermal_RGB/                                  # 2,884 files
+  Thermal_Map_IMG/                              # 2,854 files
+```
+
+## File Transfer Verification
+
+Use these counts to verify all files transferred correctly:
+
+| Directory | Files | Size | Notes |
+|-----------|-------|------|-------|
+| `data/raw/` | 11,650 | 8.6 GB | 3 CSVs + 4 image dirs |
+| `data/raw/Depth_RGB/` | 2,884 | | RGB depth images |
+| `data/raw/Depth_Map_IMG/` | 3,025 | | Depth map images |
+| `data/raw/Thermal_RGB/` | 2,884 | | RGB thermal images |
+| `data/raw/Thermal_Map_IMG/` | 2,854 | | Thermal map images |
+| `results/GenerativeAug_Models/` | 3 | 9.6 GB | SDXL checkpoint (required for generative aug) |
+| `src/models/sdxl_checkpoints/` | 4 | 20 GB | SDXL training checkpoints (best, epoch30, epoch35, latest) |
+| `src/` (Python files) | 31 | | All source code |
+| `scripts/` | 10 | | Utility scripts |
+| `agent_communication/` | 362 | | Investigation docs and search scripts |
+
+**SDXL model duplication note**: There are SDXL checkpoints in two locations:
+- `results/GenerativeAug_Models/sdxl_full/` (9.6 GB) — the production checkpoint (`checkpoint_epoch_0035.pt`), referenced by `GENERATIVE_AUG_SDXL_MODEL_PATH` in production_config.py
+- `src/models/sdxl_checkpoints/` (20 GB) — training checkpoints (best, epoch30, epoch35, latest)
+- `agent_communication/generative_augmentation/` also contains ~20 GB of nested checkpoint copies
+
+Only `results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt` (9.6 GB) is needed for production. The others are training artifacts that can be skipped to save ~40 GB of transfer.
+
+Quick verification command:
+```bash
+echo "=== File counts ===" && \
+echo "data/raw total: $(find data/raw -type f | wc -l) (expect 11650)" && \
+echo "Depth_RGB: $(find data/raw/Depth_RGB -type f | wc -l) (expect 2884)" && \
+echo "Depth_Map_IMG: $(find data/raw/Depth_Map_IMG -type f | wc -l) (expect 3025)" && \
+echo "Thermal_RGB: $(find data/raw/Thermal_RGB -type f | wc -l) (expect 2884)" && \
+echo "Thermal_Map_IMG: $(find data/raw/Thermal_Map_IMG -type f | wc -l) (expect 2854)" && \
+echo "GenerativeAug_Models: $(find results/GenerativeAug_Models -type f | wc -l) (expect 3)" && \
+echo "src .py files: $(find src -name '*.py' -type f | wc -l) (expect 31)" && \
+echo "scripts: $(find scripts -type f | wc -l) (expect 10)" && \
+echo "agent_communication: $(find agent_communication -type f | wc -l) (expect 362)"
 ```
 
 ## Uncommitted Changes (IMPORTANT)
