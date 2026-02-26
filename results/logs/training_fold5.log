@@ -1,0 +1,1859 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold5.log
+[LOG] Started at: 2026-02-25 20:30:25
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: multi)
+================================================================================
+
+Detected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+  GPU 1: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected 2 GPU(s):
+  GPU 0: NVIDIA RTX A5000 (24.0GB)
+  GPU 1: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 2 GPU(s)
+
+Using MirroredStrategy (2 GPUs) with NCCL
+  Compute capability 8.6 detected (native NCCL support)
+  (Using NCCL for fastest multi-GPU communication)
+  Effective batch size: 2× global batch size
+================================================================================
+
+
+Batch size per replica: 32 (global batch size: 64, replicas: 2)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 2 (DETAILED)
+Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
+  Replicas: 2× batch size distribution
+Cross-validation: 5-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 64
+  Per-GPU batch: 32 (64 / 2 GPUs)
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 3 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+Outlier removal disabled
+Confidence filtering skipped (running specific fold subprocess)
+
+================================================================================
+MODALITY SEARCH MODE: CUSTOM (3 combinations)
+================================================================================
+Testing only specified combinations from production_config.py
+Total combinations to test: 3
+Cross-validation mode: 5-fold CV
+Iterations per combination: 5
+Total training sessions: 15
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: depth_rgb
+DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = None
+DEBUG CONF-FILTER: File exists = N/A
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+Using 100.0% of the data: 3108 samples
+Using strategy from main: MirroredStrategy
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 87 patients
+Class 1: 115 patients
+Class 2: 31 patients
+================================================================================
+
+Fold 1/5: 187 train patients, 46 valid patients
+  Train dist: {0: 0.287, 1: 0.606, 2: 0.107}
+  Valid dist: {0: 0.289, 1: 0.599, 2: 0.112}
+Fold 2/5: 185 train patients, 48 valid patients
+  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.288, 1: 0.605, 2: 0.107}
+Fold 3/5: 185 train patients, 48 valid patients
+  Train dist: {0: 0.288, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.286, 1: 0.605, 2: 0.108}
+Fold 4/5: 186 train patients, 47 valid patients
+  Train dist: {0: 0.288, 1: 0.604, 2: 0.109}
+  Valid dist: {0: 0.286, 1: 0.609, 2: 0.105}
+Fold 5/5: 189 train patients, 44 valid patients
+  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.287, 1: 0.606, 2: 0.107}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+
+Fold 3/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+Setting image shapes to 256x256...
+Generative augmentation disabled
+
+Preparing datasets for Fold 5/5 with all modalities: ['depth_rgb']
+Using consistent patient split across all modality combinations for run 5
+
+Class distributions:
+Training: {0: 0.287, 1: 0.605, 2: 0.108}
+Validation: {0: 0.287, 1: 0.606, 2: 0.107}
+Original class distribution (ordered):
+Class 0: 716
+Class 1: 1507
+Class 2: 269
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Original class distribution (ordered):
+Class 0: 716
+Class 1: 1507
+Class 2: 269
+No sampling applied (using original distribution)...
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2492,)
+depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (2492,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (616,)
+depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (616,)
+  Validation batch size adjusted: 64 → 64 (n_samples=616, num_gpus=2)
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classP_P005_A04_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb, starting fresh
+
+Training depth_rgb with modalities: ['depth_rgb'], fold 5/5
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Class weights (frequency): {0: 0.7251936345817738, 1: 0.34455118935670204, 2: 1.9302551760615243} or [0.725, 0.345, 1.93]
+
+Creating image branch for depth_rgb
+depth_rgb using backbone: EfficientNetB0, head: [256], l2=0.0
+Loading EfficientNetB0 from ImageNet
+depth_rgb using EfficientNetB0: 211 trainable weights
+No existing pretrained weights found
+Total model trainable weights: 217
+================================================================================
+STAGE 1: Frozen backbone, training head only (6 weight tensors)
+  LR=0.001, epochs=50
+================================================================================
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 29.
+================================================================================
+STAGE 1 COMPLETE — best epoch: 29/44
+  val_kappa:  0.1503
+  val_acc:    0.2711
+  val_loss:   0.3423
+
+  train_loss: 0.2709  train_acc: 0.4768
+================================================================================
+Saved Stage 1 best weights to /workspace/DFUMultiClassification/results/models/depth_rgb_5_depth_rgb.weights.h5
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+================================================================================
+STAGE 2: Fine-tuning top 20% backbone (28 weight tensors)
+  LR=1e-05, epochs=50
+================================================================================
+Epoch 20: early stopping
+Restoring model weights from the end of the best epoch: 5.
+================================================================================
+STAGE 2 COMPLETE — best epoch: 5/20
+  val_kappa: 0.1575
+================================================================================
+Saved Stage 2 best weights to /workspace/DFUMultiClassification/results/models/depth_rgb_5_depth_rgb.weights.h5
+Post-training eval: 616 validation samples evaluated
+
+Run 5 Results for depth_rgb:
+Cohen's Kappa: 0.0644
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:  117   41   19
+Actual Prolif:  224   92   57
+Actual Remodl:   39   14   13
+
+Training gating network for run 5...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (2492, 3)
+Shape of true labels: (2492,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 5:
+Accuracy: 0.3604
+F1 Macro: 0.3139
+Kappa: 0.0644
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_valid.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_valid.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run3_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run3_valid.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run4_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run4_valid.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run5_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run5_valid.npy
+Results for depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: thermal_map
+DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = None
+DEBUG CONF-FILTER: File exists = N/A
+Number of samples for each selected modality:
+  thermal_map: 3108
+  thermal_bb: 3108
+Using 100.0% of the data: 3108 samples
+Using strategy from main: MirroredStrategy
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 87 patients
+Class 1: 115 patients
+Class 2: 31 patients
+================================================================================
+
+Fold 1/5: 187 train patients, 46 valid patients
+  Train dist: {0: 0.287, 1: 0.606, 2: 0.107}
+  Valid dist: {0: 0.289, 1: 0.599, 2: 0.112}
+Fold 2/5: 185 train patients, 48 valid patients
+  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.288, 1: 0.605, 2: 0.107}
+Fold 3/5: 185 train patients, 48 valid patients
+  Train dist: {0: 0.288, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.286, 1: 0.605, 2: 0.108}
+Fold 4/5: 186 train patients, 47 valid patients
+  Train dist: {0: 0.288, 1: 0.604, 2: 0.109}
+  Valid dist: {0: 0.286, 1: 0.609, 2: 0.105}
+Fold 5/5: 189 train patients, 44 valid patients
+  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.287, 1: 0.606, 2: 0.107}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_depth_rgb_fold4_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_depth_rgb_fold4_seed42.index
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_depth_rgb_fold4_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_depth_rgb_fold4_seed42.index
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+
+Fold 3/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=5). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+Setting image shapes to 256x256...
+Generative augmentation disabled
+
+Preparing datasets for Fold 5/5 with all modalities: ['thermal_map']
+Using consistent patient split across all modality combinations for run 5
+
+Class distributions:
+Training: {0: 0.287, 1: 0.605, 2: 0.108}
+Validation: {0: 0.287, 1: 0.606, 2: 0.107}
+Original class distribution (ordered):
+Class 0: 716
+Class 1: 1507
+Class 2: 269
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Original class distribution (ordered):
+Class 0: 716
+Class 1: 1507
+Class 2: 269
+No sampling applied (using original distribution)...
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2492,)
+thermal_map type: <class 'pandas.arrays.StringArray'> shape: (2492,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (616,)
+thermal_map type: <class 'pandas.arrays.StringArray'> shape: (616,)
+  Validation batch size adjusted: 64 → 64 (n_samples=616, num_gpus=2)
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classP_P005_A04_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for thermal_map, starting fresh
+
+Training thermal_map with modalities: ['thermal_map'], fold 5/5
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Class weights (frequency): {0: 0.7251936345817738, 1: 0.34455118935670204, 2: 1.9302551760615243} or [0.725, 0.345, 1.93]
+
+Creating image branch for thermal_map
+thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
+Loading EfficientNetB2 from ImageNet
+thermal_map using EfficientNetB2: 299 trainable weights
+No existing pretrained weights found
+Total model trainable weights: 305
+================================================================================
+STAGE 1: Frozen backbone, training head only (6 weight tensors)
+  LR=0.001, epochs=50
+================================================================================
+Error during training (attempt 1/3): Graph execution error:
+
+Detected at node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node adam/CollectiveReduceV2_1 defined at (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 2855, in <module>
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 2329, in main
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 1885, in main_search
+
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 399, in fit
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 241, in function
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 154, in multi_step_on_iterator
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 125, in wrapper
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 134, in one_step_on_data
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) CANCELLED:  op cancelled
+	 [[{{node adam/CollectiveReduceV2_1}}]]
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_231319]
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+    stage1_history = model.fit(
+                     ^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/eager/execute.py", line 59, in quick_execute
+    except TypeError as e:
+tensorflow.python.framework.errors_impl.ResourceExhaustedError: Graph execution error:
+
+Detected at node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node adam/CollectiveReduceV2_1 defined at (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 2855, in <module>
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 2329, in main
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 1885, in main_search
+
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 399, in fit
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 241, in function
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 154, in multi_step_on_iterator
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 125, in wrapper
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 134, in one_step_on_data
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) CANCELLED:  op cancelled
+	 [[{{node adam/CollectiveReduceV2_1}}]]
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_231319]
+
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Class weights (frequency): {0: 0.7251936345817738, 1: 0.34455118935670204, 2: 1.9302551760615243} or [0.725, 0.345, 1.93]
+
+Creating image branch for thermal_map
+thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
+thermal_map using EfficientNetB2: 299 trainable weights
+No existing pretrained weights found
+Total model trainable weights: 305
+================================================================================
+STAGE 1: Frozen backbone, training head only (6 weight tensors)
+  LR=0.001, epochs=50
+================================================================================
+Epoch 37: early stopping
+Restoring model weights from the end of the best epoch: 22.
+================================================================================
+STAGE 1 COMPLETE — best epoch: 22/37
+  val_kappa:  0.1931
+  val_acc:    0.4448
+  val_loss:   0.2854
+
+  train_loss: 0.2809  train_acc: 0.4123
+================================================================================
+Saved Stage 1 best weights to /workspace/DFUMultiClassification/results/models/thermal_map_5_thermal_map.weights.h5
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+================================================================================
+STAGE 2: Fine-tuning top 20% backbone (38 weight tensors)
+  LR=1e-05, epochs=50
+================================================================================
+Error during training (attempt 2/3): Graph execution error:
+
+Detected at node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 93, in test_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+ [Op:__inference_multi_step_on_iterator_399342]
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1867, in cross_validation_manual_split
+    stage2_history = model.fit(
+                     ^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/eager/execute.py", line 59, in quick_execute
+    except TypeError as e:
+tensorflow.python.framework.errors_impl.ResourceExhaustedError: Graph execution error:
+
+Detected at node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 93, in test_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+ [Op:__inference_multi_step_on_iterator_399342]
+
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Class weights (frequency): {0: 0.7251936345817738, 1: 0.34455118935670204, 2: 1.9302551760615243} or [0.725, 0.345, 1.93]
+
+Creating image branch for thermal_map
+thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
+thermal_map using EfficientNetB2: 32 trainable weights
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 2 variables whereas the saved optimizer has 14 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+Loaded existing weights
+Post-training eval: 616 validation samples evaluated
+
+Run 5 Results for thermal_map:
+Cohen's Kappa: 0.1873
+
+Confusion Matrix (validation):
+        Predicted: I    P    R
+Actual Inflam:   93   82    2
+Actual Prolif:  197  130   46
+Actual Remodl:   23   17   26
+
+Training gating network for run 5...
+
+Number of models: 1
+
+Initializing gating network training...
+Number of models: 1
+Shape of first model predictions: (2492, 3)
+Shape of true labels: (2492,)
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 5:
+Accuracy: 0.4042
+F1 Macro: 0.3943
+Kappa: 0.1873
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_valid.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_valid.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run3_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run3_valid.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run4_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run4_valid.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run5_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run5_valid.npy
+Results for thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: depth_rgb, depth_map, thermal_map
+DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = None
+DEBUG CONF-FILTER: File exists = N/A
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  depth_map: 3108
+  thermal_map: 3108
+  thermal_bb: 3108
+Using 100.0% of the data: 3108 samples
+Using strategy from main: MirroredStrategy
+
+================================================================================
+MULTI-GPU TRAINING: 2 GPUs
+Global batch size: 64 (per-GPU: 32)
+Strategy: MirroredStrategy
+================================================================================
+
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 87 patients
+Class 1: 115 patients
+Class 2: 31 patients
+================================================================================
+
+Fold 1/5: 187 train patients, 46 valid patients
+  Train dist: {0: 0.287, 1: 0.606, 2: 0.107}
+  Valid dist: {0: 0.289, 1: 0.599, 2: 0.112}
+Fold 2/5: 185 train patients, 48 valid patients
+  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.288, 1: 0.605, 2: 0.107}
+Fold 3/5: 185 train patients, 48 valid patients
+  Train dist: {0: 0.288, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.286, 1: 0.605, 2: 0.108}
+Fold 4/5: 186 train patients, 47 valid patients
+  Train dist: {0: 0.288, 1: 0.604, 2: 0.109}
+  Valid dist: {0: 0.286, 1: 0.609, 2: 0.105}
+Fold 5/5: 189 train patients, 44 valid patients
+  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
+  Valid dist: {0: 0.287, 1: 0.606, 2: 0.107}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_thermal_map_fold4_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_thermal_map_fold4_seed42.index
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_thermal_map_fold4_seed42.data-00000-of-00001
+Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_thermal_map_fold4_seed42.index
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+
+Fold 3/5 skipped (target_fold=5). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=5). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+Setting image shapes to 256x256...
+Generative augmentation disabled
+
+Preparing datasets for Fold 5/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 5
+
+Class distributions:
+Training: {0: 0.287, 1: 0.605, 2: 0.108}
+Validation: {0: 0.287, 1: 0.606, 2: 0.107}
+Original class distribution (ordered):
+Class 0: 716
+Class 1: 1507
+Class 2: 269
+
+Calculated alpha values from original distribution:
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Original class distribution (ordered):
+Class 0: 716
+Class 1: 1507
+Class 2: 269
+No sampling applied (using original distribution)...
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2492,)
+depth_map type: <class 'pandas.arrays.StringArray'> shape: (2492,)
+thermal_map type: <class 'pandas.arrays.StringArray'> shape: (2492,)
+depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (2492,)
+Healing Phase Abs type: <class 'numpy.ndarray'> shape: (616,)
+depth_map type: <class 'pandas.arrays.StringArray'> shape: (616,)
+thermal_map type: <class 'pandas.arrays.StringArray'> shape: (616,)
+depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (616,)
+  Validation batch size adjusted: 64 → 64 (n_samples=616, num_gpus=2)
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classP_P005_A04_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold5_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb+depth_map+thermal_map, starting fresh
+
+Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_map', 'thermal_map'], fold 5/5
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Class weights (frequency): {0: 0.7251936345817738, 1: 0.34455118935670204, 2: 1.9302551760615243} or [0.725, 0.345, 1.93]
+
+Creating image branch for depth_rgb
+depth_rgb using backbone: EfficientNetB0, head: [256], l2=0.0
+depth_rgb using EfficientNetB0: 22 trainable weights
+
+Creating image branch for depth_map
+depth_map using backbone: EfficientNetB2, head: [64], l2=0.001
+Loading EfficientNetB2 from ImageNet
+depth_map using EfficientNetB2: 299 trainable weights
+
+Creating image branch for thermal_map
+thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
+thermal_map using EfficientNetB2: 32 trainable weights
+No existing pretrained weights found
+Total model trainable weights: 367
+================================================================================
+STAGE 1: Frozen backbone, training head only (14 weight tensors)
+  LR=0.001, epochs=50
+================================================================================
+Error during training (attempt 1/3): Graph execution error:
+
+Detected at node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node adam/CollectiveReduceV2_1 defined at (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 2855, in <module>
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 2329, in main
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 1885, in main_search
+
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 399, in fit
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 241, in function
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 154, in multi_step_on_iterator
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 125, in wrapper
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 134, in one_step_on_data
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) CANCELLED:  op cancelled
+	 [[{{node adam/CollectiveReduceV2_1}}]]
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_519810]
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+    stage1_history = model.fit(
+                     ^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/eager/execute.py", line 59, in quick_execute
+    except TypeError as e:
+tensorflow.python.framework.errors_impl.ResourceExhaustedError: Graph execution error:
+
+Detected at node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node adam/CollectiveReduceV2_1 defined at (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 2855, in <module>
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 2329, in main
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 1885, in main_search
+
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 399, in fit
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 241, in function
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 154, in multi_step_on_iterator
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 125, in wrapper
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 134, in one_step_on_data
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) CANCELLED:  op cancelled
+	 [[{{node adam/CollectiveReduceV2_1}}]]
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_519810]
+
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Class weights (frequency): {0: 0.7251936345817738, 1: 0.34455118935670204, 2: 1.9302551760615243} or [0.725, 0.345, 1.93]
+
+Creating image branch for depth_rgb
+depth_rgb using backbone: EfficientNetB0, head: [256], l2=0.0
+depth_rgb using EfficientNetB0: 211 trainable weights
+
+Creating image branch for depth_map
+depth_map using backbone: EfficientNetB2, head: [64], l2=0.001
+depth_map using EfficientNetB2: 299 trainable weights
+
+Creating image branch for thermal_map
+thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
+thermal_map using EfficientNetB2: 299 trainable weights
+No existing pretrained weights found
+Total model trainable weights: 823
+================================================================================
+STAGE 1: Frozen backbone, training head only (14 weight tensors)
+  LR=0.001, epochs=50
+================================================================================
+Error during training (attempt 2/3): Graph execution error:
+
+Detected at node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+	 [[StatefulPartitionedCall/replica_1/BitwiseAnd_1/_559]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_583634]
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+    stage1_history = model.fit(
+                     ^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/eager/execute.py", line 59, in quick_execute
+    except TypeError as e:
+tensorflow.python.framework.errors_impl.ResourceExhaustedError: Graph execution error:
+
+Detected at node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+	 [[StatefulPartitionedCall/replica_1/BitwiseAnd_1/_559]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/depth_rgb_efficientnetb0_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_583634]
+
+Alpha values (ordered) [I, P, R]: [0.725, 0.345, 1.93]
+Class weights (frequency): {0: 0.7251936345817738, 1: 0.34455118935670204, 2: 1.9302551760615243} or [0.725, 0.345, 1.93]
+
+Creating image branch for depth_rgb
+depth_rgb using backbone: EfficientNetB0, head: [256], l2=0.0
+depth_rgb using EfficientNetB0: 211 trainable weights
+
+Creating image branch for depth_map
+depth_map using backbone: EfficientNetB2, head: [64], l2=0.001
+depth_map using EfficientNetB2: 299 trainable weights
+
+Creating image branch for thermal_map
+thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
+thermal_map using EfficientNetB2: 299 trainable weights
+No existing pretrained weights found
+Total model trainable weights: 823
+================================================================================
+STAGE 1: Frozen backbone, training head only (14 weight tensors)
+  LR=0.001, epochs=50
+================================================================================
+Error during training (attempt 3/3): Graph execution error:
+
+Detected at node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node adam/CollectiveReduceV2_1 defined at (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 2855, in <module>
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 2329, in main
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 1885, in main_search
+
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 399, in fit
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 241, in function
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 154, in multi_step_on_iterator
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 125, in wrapper
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 134, in one_step_on_data
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) CANCELLED:  op cancelled
+	 [[{{node adam/CollectiveReduceV2_1}}]]
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_647458]
+Traceback: Traceback (most recent call last):
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+    stage1_history = model.fit(
+                     ^^^^^^^^^^
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/venv/multimodal/lib/python3.11/site-packages/tensorflow/python/eager/execute.py", line 59, in quick_execute
+    except TypeError as e:
+tensorflow.python.framework.errors_impl.ResourceExhaustedError: Graph execution error:
+
+Detected at node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad defined at (most recent call last):
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1002, in _bootstrap
+
+  File "/venv/multimodal/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 59, in train_step
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 183, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/function.py", line 206, in _run_through_graph
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/models/functional.py", line 647, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/layer.py", line 953, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/layers/reshaping/zero_padding2d.py", line 114, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5392, in pad
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/operation.py", line 59, in __call__
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 156, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/ops/numpy.py", line 5330, in call
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/numpy.py", line 2201, in pad
+
+Detected at node adam/CollectiveReduceV2_1 defined at (most recent call last):
+  File "/workspace/DFUMultiClassification/src/main.py", line 2855, in <module>
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 2329, in main
+
+  File "/workspace/DFUMultiClassification/src/main.py", line 1885, in main_search
+
+  File "/workspace/DFUMultiClassification/src/training/training_utils.py", line 1779, in cross_validation_manual_split
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/utils/traceback_utils.py", line 117, in error_handler
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 399, in fit
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 241, in function
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 154, in multi_step_on_iterator
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 125, in wrapper
+
+  File "/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py", line 134, in one_step_on_data
+
+2 root error(s) found.
+  (0) RESOURCE_EXHAUSTED:  OOM when allocating tensor with shape[32,129,129,96] and type float on /job:localhost/replica:0/task:0/device:GPU:0 by allocator GPU_0_bfc
+	 [[{{node functional_1/thermal_map_efficientnetb2_1/block2a_dwconv_pad_1/Pad}}]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info. This isn't available when running in Eager mode.
+
+  (1) CANCELLED:  op cancelled
+	 [[{{node adam/CollectiveReduceV2_1}}]]
+0 successful operations.
+0 derived errors ignored. [Op:__inference_multi_step_on_iterator_647458]
+
+ERROR: Training failed for depth_rgb+depth_map+thermal_map after 3 attempts. Skipping this configuration.
+Warning: No predictions to save for run 5 (train). Skipping...
+Warning: No predictions to save for run 5 (valid). Skipping...
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_valid.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_valid.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run3_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run3_valid.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run4_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run4_valid.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run5_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run5_valid.npy
+Results for depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS
+================================================================================
+Ensembling predictions from 3 modality combinations
+
+Fold 1/5
+  Loaded depth_rgb: train shape (2474, 3), valid shape (634, 3)
+  Loaded thermal_map: train shape (2474, 3), valid shape (634, 3)
+  Loaded depth_rgb+depth_map+thermal_map: train shape (2474, 3), valid shape (634, 3)
+
+Training gating network with 3 modality combinations:
+  - depth_rgb
+  - thermal_map
+  - depth_rgb+depth_map+thermal_map
+
+Initializing gating network training...
+Number of models: 3
+Shape of first model predictions: (2474, 3)
+Shape of true labels: (2474,)
+Excluded models from previous time code was run: set()
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.0718
+Best Accuracy: 0.2192
+Best Weighted Accuracy: 0.3829
+Best Loss: 0.7461
+
+Gating Network Ensemble Results for Run 1:
+  Accuracy: 0.2192
+  F1 Macro: 0.1714
+  Kappa: -0.0015
+
+Fold 2/5
+  Loaded depth_rgb: train shape (2490, 3), valid shape (618, 3)
+  Loaded thermal_map: train shape (2490, 3), valid shape (618, 3)
+  Loaded depth_rgb+depth_map+thermal_map: train shape (2490, 3), valid shape (618, 3)
+
+Training gating network with 3 modality combinations:
+  - depth_rgb
+  - thermal_map
+  - depth_rgb+depth_map+thermal_map
+
+Initializing gating network training...
+Number of models: 3
+Shape of first model predictions: (2490, 3)
+Shape of true labels: (2490,)
+Excluded models from previous time code was run: set()
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.1777
+Best Accuracy: 0.6149
+Best Weighted Accuracy: 0.3815
+Best Loss: 0.7169
+
+Gating Network Ensemble Results for Run 2:
+  Accuracy: 0.6149
+  F1 Macro: 0.3542
+  Kappa: 0.1133
+
+Fold 3/5
+  Loaded depth_rgb: train shape (2490, 3), valid shape (618, 3)
+  Loaded thermal_map: train shape (2490, 3), valid shape (618, 3)
+  Loaded depth_rgb+depth_map+thermal_map: train shape (2490, 3), valid shape (618, 3)
+
+Training gating network with 3 modality combinations:
+  - depth_rgb
+  - thermal_map
+  - depth_rgb+depth_map+thermal_map
+
+Initializing gating network training...
+Number of models: 3
+Shape of first model predictions: (2490, 3)
+Shape of true labels: (2490,)
+Excluded models from previous time code was run: set()
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.0524
+Best Accuracy: 0.2201
+Best Weighted Accuracy: 0.3331
+Best Loss: 0.8338
+
+Gating Network Ensemble Results for Run 3:
+  Accuracy: 0.2201
+  F1 Macro: 0.1693
+  Kappa: -0.0442
+
+Fold 4/5
+  Loaded depth_rgb: train shape (2486, 3), valid shape (622, 3)
+  Loaded thermal_map: train shape (2486, 3), valid shape (622, 3)
+  Loaded depth_rgb+depth_map+thermal_map: train shape (2486, 3), valid shape (622, 3)
+
+Training gating network with 3 modality combinations:
+  - depth_rgb
+  - thermal_map
+  - depth_rgb+depth_map+thermal_map
+
+Initializing gating network training...
+Number of models: 3
+Shape of first model predictions: (2486, 3)
+Shape of true labels: (2486,)
+Excluded models from previous time code was run: set()
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.0806
+Best Accuracy: 0.6013
+Best Weighted Accuracy: 0.3685
+Best Loss: 0.8034
+
+Gating Network Ensemble Results for Run 4:
+  Accuracy: 0.6013
+  F1 Macro: 0.3105
+  Kappa: 0.0240
+
+Fold 5/5
+  Loaded depth_rgb: train shape (2492, 3), valid shape (616, 3)
+  Loaded thermal_map: train shape (2492, 3), valid shape (616, 3)
+  Loaded depth_rgb+depth_map+thermal_map: train shape (2492, 3), valid shape (616, 3)
+
+Training gating network with 3 modality combinations:
+  - depth_rgb
+  - thermal_map
+  - depth_rgb+depth_map+thermal_map
+
+Initializing gating network training...
+Number of models: 3
+Shape of first model predictions: (2492, 3)
+Shape of true labels: (2492,)
+
+Training with all models...
+Train data shape: (2492, 3, 3), Train labels shape: (2492, 3)
+Val data shape: (616, 3, 3), Val labels shape: (616, 3)
+Train classes: [0, 1, 2]
+Debug train_model_combination: train_labels shape=(2492, 3), indices shape=(2492,)
+Debug: unique_classes=[0 1 2], train_label_indices[:10]=[1 0 1 1 1 1 1 2 2 2]
+Restoring model weights from the end of the best epoch: 1.
+Initial Accuracy: 0.1429, Initial Weighted Accuracy: 0.3513, Loss: 0.7770, kappa: 0.0098
+/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
+
+Detailed results saved to /workspace/DFUMultiClassification/results/csv/model_combination_results_5.txt
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.0098
+Best Accuracy: 0.1429
+Best Weighted Accuracy: 0.3513
+Best Loss: 0.7770
+
+Gating Network Ensemble Results for Run 5:
+  Accuracy: 0.1429
+  F1 Macro: 0.1039
+  Kappa: 0.0104
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: depth_rgb+depth_map+thermal_map
+  Accuracy: 0.4910 ± 0.0356
+  F1 Macro: 0.4509
+  Kappa: 0.2901
+
+Total combinations tested: 3
+================================================================================
+
