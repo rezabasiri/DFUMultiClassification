@@ -1,0 +1,23 @@
+{
+  "thresholds": {
+    "P": 16,
+    "I": 9,
+    "R": 15
+  },
+  "score": -1.2142091873366614,
+  "metrics": {
+    "f1_per_class": {
+      "I": 0.4483356095033475,
+      "P": 0.4644839812184355,
+      "R": 0.1627280866411301
+    },
+    "macro_f1": 0.3585158924543044,
+    "weighted_f1": 0.4285514340723463,
+    "kappa": 0.3029691664567373,
+    "accuracy": 0.4345215861336925
+  },
+  "phase1_baseline_modality": "metadata+depth_rgb+thermal_rgb+thermal_map",
+  "production_config_settings": "USE_CORE_DATA = True, THRESHOLD_I = 9, THRESHOLD_P = 16, THRESHOLD_R = 15",
+  "command": "python src/main.py --mode search --cv_folds 5 --device-mode multi",
+  "timestamp": "2026-02-27T20:18:58.727765"
+}

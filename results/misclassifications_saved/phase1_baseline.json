@@ -1,0 +1,63 @@
+{
+  "metadata+depth_rgb": {
+    "modality": "metadata+depth_rgb",
+    "accuracy": 0.5828486931747802,
+    "accuracy_std": 0.0177757186281019,
+    "macro_f1": 0.5254182949265651,
+    "macro_f1_std": 0.025714506482014,
+    "weighted_f1": 0.5868463604047337,
+    "weighted_f1_std": 0.0167818174696642,
+    "kappa": 0.3209836104045913,
+    "kappa_std": 0.0660684913627582,
+    "f1_I": 0.4517541716028946,
+    "f1_P": 0.6695919237903992,
+    "f1_R": 0.4549087893864013,
+    "min_f1": 0.4517541716028946
+  },
+  "metadata+depth_rgb+thermal_rgb": {
+    "modality": "metadata+depth_rgb+thermal_rgb",
+    "accuracy": 0.5539421528551963,
+    "accuracy_std": 0.0194559917803417,
+    "macro_f1": 0.5121423042942014,
+    "macro_f1_std": 0.022065378667637,
+    "weighted_f1": 0.5612423198806382,
+    "weighted_f1_std": 0.0163328342462,
+    "kappa": 0.3401736017217631,
+    "kappa_std": 0.0600261144079645,
+    "f1_I": 0.4815558169531126,
+    "f1_P": 0.6216218994331943,
+    "f1_R": 0.4332491964962973,
+    "min_f1": 0.4332491964962973
+  },
+  "metadata+depth_rgb+thermal_rgb+thermal_map": {
+    "modality": "metadata+depth_rgb+thermal_rgb+thermal_map",
+    "accuracy": 0.5756448412698413,
+    "accuracy_std": 0.0310876198210002,
+    "macro_f1": 0.5371867811639705,
+    "macro_f1_std": 0.0313818596303716,
+    "weighted_f1": 0.576022121636773,
+    "weighted_f1_std": 0.0291517862854655,
+    "kappa": 0.3612504060725328,
+    "kappa_std": 0.0477749482066033,
+    "f1_I": 0.4461602789740269,
+    "f1_P": 0.642795010863685,
+    "f1_R": 0.5226050536541995,
+    "min_f1": 0.4461602789740269,
+    "best_overall": true
+  },
+  "depth_rgb+thermal_map": {
+    "modality": "depth_rgb+thermal_map",
+    "accuracy": 0.4842740804923217,
+    "accuracy_std": 0.0512224493648142,
+    "macro_f1": 0.4380168466389169,
+    "macro_f1_std": 0.040267849878848,
+    "weighted_f1": 0.4890274171772688,
+    "weighted_f1_std": 0.0452468245871741,
+    "kappa": 0.3087013607347887,
+    "kappa_std": 0.063897610181281,
+    "f1_I": 0.4757702876890692,
+    "f1_P": 0.5096523573645684,
+    "f1_R": 0.3286278948631132,
+    "min_f1": 0.3286278948631132
+  }
+}

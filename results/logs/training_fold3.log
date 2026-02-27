@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold3.log
-[LOG] Started at: 2026-02-25 19:30:15
+[LOG] Started at: 2026-02-27 21:32:59
 
 
 ================================================================================
@@ -30,7 +30,7 @@ DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
 Mode: search
 Resume mode: auto
 Data percentage: 100.0%
-Verbosity: 2 (DETAILED)
+Verbosity: 0 (MINIMAL)
 Device: GPUs [0, 1] (multi-GPU mode, MirroredStrategy)
   Replicas: 2× batch size distribution
 Cross-validation: 5-fold CV (patient-level)
@@ -41,7 +41,7 @@ Batch size: 64
   Per-GPU batch: 32 (64 / 2 GPUs)
 Max epochs: 200 (with early stopping)
 Modality search mode: custom
-Will test 3 custom combinations
+Will test 1 custom combinations
 ================================================================================
 
 
@@ -51,713 +51,62 @@ Will test 3 custom combinations
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-Outlier removal disabled
-Confidence filtering skipped (running specific fold subprocess)
+  Core data filtering: thresholds I=12, P=16, R=11
 
-================================================================================
-MODALITY SEARCH MODE: CUSTOM (3 combinations)
-================================================================================
-Testing only specified combinations from production_config.py
-Total combinations to test: 3
-Cross-validation mode: 5-fold CV
-Iterations per combination: 5
-Total training sessions: 15
-Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
-================================================================================
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=12, P=16, R=11
 
+Excluded samples per class:
+  Class I: 74 samples
+  Class P: 0 samples
+  Class R: 19 samples
 
-Testing modalities: depth_rgb
-DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = None
-DEBUG CONF-FILTER: File exists = N/A
-Number of samples for each selected modality:
-  depth_rgb: 3108
-  depth_bb: 3108
-Using 100.0% of the data: 3108 samples
-Using strategy from main: MirroredStrategy
+Total unique samples to exclude: 93
 
-================================================================================
-MULTI-GPU TRAINING: 2 GPUs
-Global batch size: 64 (per-GPU: 32)
-Strategy: MirroredStrategy
-================================================================================
+Dataset size (rows): 3108 -> 2611 (84.0%)
+Unique samples: 648 -> 555 (removed 93)
 
+Class distribution after filtering:
+  Class I: 501 rows
+  Class P: 1880 rows
+  Class R: 230 rows
+============================================================
 
-================================================================================
-GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
-================================================================================
-
-================================================================================
-STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
-================================================================================
-Class 0: 87 patients
-Class 1: 115 patients
-Class 2: 31 patients
-================================================================================
-
-Fold 1/5: 187 train patients, 46 valid patients
-  Train dist: {0: 0.287, 1: 0.606, 2: 0.107}
-  Valid dist: {0: 0.289, 1: 0.599, 2: 0.112}
-Fold 2/5: 185 train patients, 48 valid patients
-  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.288, 1: 0.605, 2: 0.107}
-Fold 3/5: 185 train patients, 48 valid patients
-  Train dist: {0: 0.288, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.286, 1: 0.605, 2: 0.108}
-Fold 4/5: 186 train patients, 47 valid patients
-  Train dist: {0: 0.288, 1: 0.604, 2: 0.109}
-  Valid dist: {0: 0.286, 1: 0.609, 2: 0.105}
-Fold 5/5: 189 train patients, 44 valid patients
-  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.287, 1: 0.606, 2: 0.107}
-Generated 5 folds
-All data will be validated exactly once across all folds
-================================================================================
-
-
-Fold 1/5
-Using pre-computed fold 1 patient split
-
-Fold 1/5 skipped (target_fold=3). Loading saved results...
-  Loaded 1 saved metric(s) for Fold 1/5
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=3). Loading saved results...
-  Loaded 1 saved metric(s) for Fold 2/5
-
-Fold 3/5
-Using pre-computed fold 3 patient split
-Setting image shapes to 256x256...
-Generative augmentation disabled
-
-Preparing datasets for Fold 3/5 with all modalities: ['depth_rgb']
-Using consistent patient split across all modality combinations for run 3
-
-Class distributions:
-Training: {0: 0.288, 1: 0.605, 2: 0.108}
-Validation: {0: 0.286, 1: 0.605, 2: 0.108}
-Original class distribution (ordered):
-Class 0: 716
-Class 1: 1506
-Class 2: 268
-
-Calculated alpha values from original distribution:
-Alpha values (ordered) [I, P, R]: [0.723, 0.344, 1.933]
-Original class distribution (ordered):
-Class 0: 716
-Class 1: 1506
-Class 2: 268
-No sampling applied (using original distribution)...
-Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2490,)
-depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (2490,)
-Healing Phase Abs type: <class 'numpy.ndarray'> shape: (618,)
-depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (618,)
-  Validation batch size adjusted: 64 → 64 (n_samples=618, num_gpus=2)
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_rgb, starting fresh
-
-Training depth_rgb with modalities: ['depth_rgb'], fold 3/5
-Alpha values (ordered) [I, P, R]: [0.723, 0.344, 1.933]
-Class weights (frequency): {0: 0.723401712996597, 1: 0.3439280388483157, 2: 1.9326702481550875} or [0.723, 0.344, 1.933]
-
-Creating image branch for depth_rgb
-depth_rgb using backbone: EfficientNetB0, head: [256], l2=0.0
-Loading EfficientNetB0 from ImageNet
-depth_rgb using EfficientNetB0: 211 trainable weights
-No existing pretrained weights found
-Total model trainable weights: 217
-================================================================================
-STAGE 1: Frozen backbone, training head only (6 weight tensors)
-  LR=0.001, epochs=50
-================================================================================
-Epoch 18: early stopping
-Restoring model weights from the end of the best epoch: 3.
-================================================================================
-STAGE 1 COMPLETE — best epoch: 3/18
-  val_kappa:  0.2418
-  val_acc:    0.5761
-  val_loss:   0.3699
-
-  train_loss: 0.3875  train_acc: 0.3778
-================================================================================
-Saved Stage 1 best weights to /workspace/DFUMultiClassification/results/models/depth_rgb_3_depth_rgb.weights.h5
-  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
-================================================================================
-STAGE 2: Fine-tuning top 20% backbone (28 weight tensors)
-  LR=1e-05, epochs=50
-================================================================================
-Epoch 16: early stopping
-Restoring model weights from the end of the best epoch: 1.
-================================================================================
-STAGE 2 COMPLETE — best epoch: 1/16
-  val_kappa: 0.2270
-================================================================================
-Saved Stage 2 best weights to /workspace/DFUMultiClassification/results/models/depth_rgb_3_depth_rgb.weights.h5
-Post-training eval: 618 validation samples evaluated
-
-Run 3 Results for depth_rgb:
-Cohen's Kappa: 0.2203
-
-Confusion Matrix (validation):
-        Predicted: I    P    R
-Actual Inflam:   71   93   13
-Actual Prolif:   97  250   27
-Actual Remodl:    8   40   19
-
-Training gating network for run 3...
-
-Number of models: 1
-
-Initializing gating network training...
-Number of models: 1
-Shape of first model predictions: (2490, 3)
-Shape of true labels: (2490,)
-Skipping gating network: only 1 model(s), need at least 2 to combine
-
-Gating Network Results for Run 3:
-Accuracy: 0.5502
-F1 Macro: 0.4548
-Kappa: 0.2203
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_depth_rgb_fold2_seed42.data-00000-of-00001
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_depth_rgb_fold2_seed42.index
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_depth_rgb_fold2_seed42.data-00000-of-00001
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_depth_rgb_fold2_seed42.index
-
-Fold 4/5
-Using pre-computed fold 4 patient split
-
-Fold 4/5 skipped (target_fold=3). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
-
-Fold 5/5
-Using pre-computed fold 5 patient split
-
-Fold 5/5 skipped (target_fold=3). Loading saved results...
-  Warning: No saved metrics found for Fold 5/5
-Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_train.npy
-Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_valid.npy
-Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_train.npy
-Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_valid.npy
-Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run3_train.npy
-Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run3_valid.npy
-Results for depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
-
-Testing modalities: thermal_map
-DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = None
-DEBUG CONF-FILTER: File exists = N/A
-Number of samples for each selected modality:
-  thermal_map: 3108
-  thermal_bb: 3108
-Using 100.0% of the data: 3108 samples
-Using strategy from main: MirroredStrategy
-
-================================================================================
-MULTI-GPU TRAINING: 2 GPUs
-Global batch size: 64 (per-GPU: 32)
-Strategy: MirroredStrategy
-================================================================================
-
-
-================================================================================
-GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
-================================================================================
-
-================================================================================
-STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
-================================================================================
-Class 0: 87 patients
-Class 1: 115 patients
-Class 2: 31 patients
-================================================================================
-
-Fold 1/5: 187 train patients, 46 valid patients
-  Train dist: {0: 0.287, 1: 0.606, 2: 0.107}
-  Valid dist: {0: 0.289, 1: 0.599, 2: 0.112}
-Fold 2/5: 185 train patients, 48 valid patients
-  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.288, 1: 0.605, 2: 0.107}
-Fold 3/5: 185 train patients, 48 valid patients
-  Train dist: {0: 0.288, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.286, 1: 0.605, 2: 0.108}
-Fold 4/5: 186 train patients, 47 valid patients
-  Train dist: {0: 0.288, 1: 0.604, 2: 0.109}
-  Valid dist: {0: 0.286, 1: 0.609, 2: 0.105}
-Fold 5/5: 189 train patients, 44 valid patients
-  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.287, 1: 0.606, 2: 0.107}
-Generated 5 folds
-All data will be validated exactly once across all folds
-================================================================================
-
-
-Fold 1/5
-Using pre-computed fold 1 patient split
-
-Fold 1/5 skipped (target_fold=3). Loading saved results...
-  Loaded 1 saved metric(s) for Fold 1/5
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=3). Loading saved results...
-  Loaded 1 saved metric(s) for Fold 2/5
-
-Fold 3/5
-Using pre-computed fold 3 patient split
-Setting image shapes to 256x256...
-Generative augmentation disabled
-
-Preparing datasets for Fold 3/5 with all modalities: ['thermal_map']
-Using consistent patient split across all modality combinations for run 3
-
-Class distributions:
-Training: {0: 0.288, 1: 0.605, 2: 0.108}
-Validation: {0: 0.286, 1: 0.605, 2: 0.108}
-Original class distribution (ordered):
-Class 0: 716
-Class 1: 1506
-Class 2: 268
-
-Calculated alpha values from original distribution:
-Alpha values (ordered) [I, P, R]: [0.723, 0.344, 1.933]
-Original class distribution (ordered):
-Class 0: 716
-Class 1: 1506
-Class 2: 268
-No sampling applied (using original distribution)...
-Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2490,)
-thermal_map type: <class 'pandas.arrays.StringArray'> shape: (2490,)
-Healing Phase Abs type: <class 'numpy.ndarray'> shape: (618,)
-thermal_map type: <class 'pandas.arrays.StringArray'> shape: (618,)
-  Validation batch size adjusted: 64 → 64 (n_samples=618, num_gpus=2)
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for thermal_map, starting fresh
-
-Training thermal_map with modalities: ['thermal_map'], fold 3/5
-Alpha values (ordered) [I, P, R]: [0.723, 0.344, 1.933]
-Class weights (frequency): {0: 0.723401712996597, 1: 0.3439280388483157, 2: 1.9326702481550875} or [0.723, 0.344, 1.933]
-
-Creating image branch for thermal_map
-thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
-Loading EfficientNetB2 from ImageNet
-thermal_map using EfficientNetB2: 299 trainable weights
-No existing pretrained weights found
-Total model trainable weights: 305
-================================================================================
-STAGE 1: Frozen backbone, training head only (6 weight tensors)
-  LR=0.001, epochs=50
-================================================================================
-Epoch 26: early stopping
-Restoring model weights from the end of the best epoch: 11.
-================================================================================
-STAGE 1 COMPLETE — best epoch: 11/26
-  val_kappa:  0.2593
-  val_acc:    0.4612
-  val_loss:   0.2809
-
-  train_loss: 0.2919  train_acc: 0.4091
-================================================================================
-Saved Stage 1 best weights to /workspace/DFUMultiClassification/results/models/thermal_map_3_thermal_map.weights.h5
-  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
-================================================================================
-STAGE 2: Fine-tuning top 20% backbone (38 weight tensors)
-  LR=1e-05, epochs=50
-================================================================================
-Epoch 16: early stopping
-Restoring model weights from the end of the best epoch: 1.
-================================================================================
-STAGE 2 COMPLETE — best epoch: 1/16
-  val_kappa: 0.2380
-================================================================================
-Saved Stage 2 best weights to /workspace/DFUMultiClassification/results/models/thermal_map_3_thermal_map.weights.h5
-Post-training eval: 618 validation samples evaluated
-
-Run 3 Results for thermal_map:
-Cohen's Kappa: 0.1849
-
-Confusion Matrix (validation):
-        Predicted: I    P    R
-Actual Inflam:  132   28   17
-Actual Prolif:  214  111   49
-Actual Remodl:   23   30   14
-
-Training gating network for run 3...
-
-Number of models: 1
-
-Initializing gating network training...
-Number of models: 1
-Shape of first model predictions: (2490, 3)
-Shape of true labels: (2490,)
-Skipping gating network: only 1 model(s), need at least 2 to combine
-
-Gating Network Results for Run 3:
-Accuracy: 0.4159
-F1 Macro: 0.3609
-Kappa: 0.1849
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_thermal_map_fold2_seed42.data-00000-of-00001
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_thermal_map_fold2_seed42.index
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_thermal_map_fold2_seed42.data-00000-of-00001
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_thermal_map_fold2_seed42.index
-
-Fold 4/5
-Using pre-computed fold 4 patient split
-
-Fold 4/5 skipped (target_fold=3). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
-
-Fold 5/5
-Using pre-computed fold 5 patient split
-
-Fold 5/5 skipped (target_fold=3). Loading saved results...
-  Warning: No saved metrics found for Fold 5/5
-Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_train.npy
-Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_valid.npy
-Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_train.npy
-Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_valid.npy
-Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run3_train.npy
-Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run3_valid.npy
-Results for thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
-
-Testing modalities: depth_rgb, depth_map, thermal_map
-DEBUG CONF-FILTER: CONFIDENCE_EXCLUSION_FILE env = None
-DEBUG CONF-FILTER: File exists = N/A
-Number of samples for each selected modality:
-  depth_rgb: 3108
-  depth_bb: 3108
-  depth_map: 3108
-  thermal_map: 3108
-  thermal_bb: 3108
-Using 100.0% of the data: 3108 samples
-Using strategy from main: MirroredStrategy
-
-================================================================================
-MULTI-GPU TRAINING: 2 GPUs
-Global batch size: 64 (per-GPU: 32)
-Strategy: MirroredStrategy
-================================================================================
-
-
-================================================================================
-GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
-================================================================================
-
-================================================================================
-STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
-================================================================================
-Class 0: 87 patients
-Class 1: 115 patients
-Class 2: 31 patients
-================================================================================
-
-Fold 1/5: 187 train patients, 46 valid patients
-  Train dist: {0: 0.287, 1: 0.606, 2: 0.107}
-  Valid dist: {0: 0.289, 1: 0.599, 2: 0.112}
-Fold 2/5: 185 train patients, 48 valid patients
-  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.288, 1: 0.605, 2: 0.107}
-Fold 3/5: 185 train patients, 48 valid patients
-  Train dist: {0: 0.288, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.286, 1: 0.605, 2: 0.108}
-Fold 4/5: 186 train patients, 47 valid patients
-  Train dist: {0: 0.288, 1: 0.604, 2: 0.109}
-  Valid dist: {0: 0.286, 1: 0.609, 2: 0.105}
-Fold 5/5: 189 train patients, 44 valid patients
-  Train dist: {0: 0.287, 1: 0.605, 2: 0.108}
-  Valid dist: {0: 0.287, 1: 0.606, 2: 0.107}
-Generated 5 folds
-All data will be validated exactly once across all folds
-================================================================================
-
-
-Fold 1/5
-Using pre-computed fold 1 patient split
-
-Fold 1/5 skipped (target_fold=3). Loading saved results...
-  Loaded 1 saved metric(s) for Fold 1/5
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=3). Loading saved results...
-  Loaded 1 saved metric(s) for Fold 2/5
-
-Fold 3/5
-Using pre-computed fold 3 patient split
-Setting image shapes to 256x256...
-Generative augmentation disabled
-
-Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 3
-
-Class distributions:
-Training: {0: 0.288, 1: 0.605, 2: 0.108}
-Validation: {0: 0.286, 1: 0.605, 2: 0.108}
-Original class distribution (ordered):
-Class 0: 716
-Class 1: 1506
-Class 2: 268
-
-Calculated alpha values from original distribution:
-Alpha values (ordered) [I, P, R]: [0.723, 0.344, 1.933]
-Original class distribution (ordered):
-Class 0: 716
-Class 1: 1506
-Class 2: 268
-No sampling applied (using original distribution)...
-Healing Phase Abs type: <class 'numpy.ndarray'> shape: (2490,)
-depth_map type: <class 'pandas.arrays.StringArray'> shape: (2490,)
-thermal_map type: <class 'pandas.arrays.StringArray'> shape: (2490,)
-depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (2490,)
-Healing Phase Abs type: <class 'numpy.ndarray'> shape: (618,)
-depth_map type: <class 'pandas.arrays.StringArray'> shape: (618,)
-thermal_map type: <class 'pandas.arrays.StringArray'> shape: (618,)
-depth_rgb type: <class 'pandas.arrays.StringArray'> shape: (618,)
-  Validation batch size adjusted: 64 → 64 (n_samples=618, num_gpus=2)
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_rgb+depth_map+thermal_map, starting fresh
-
-Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_map', 'thermal_map'], fold 3/5
-Alpha values (ordered) [I, P, R]: [0.723, 0.344, 1.933]
-Class weights (frequency): {0: 0.723401712996597, 1: 0.3439280388483157, 2: 1.9326702481550875} or [0.723, 0.344, 1.933]
-
-Creating image branch for depth_rgb
-depth_rgb using backbone: EfficientNetB0, head: [256], l2=0.0
-depth_rgb using EfficientNetB0: 22 trainable weights
-
-Creating image branch for depth_map
-depth_map using backbone: EfficientNetB2, head: [64], l2=0.001
-Loading EfficientNetB2 from ImageNet
-depth_map using EfficientNetB2: 299 trainable weights
-
-Creating image branch for thermal_map
-thermal_map using backbone: EfficientNetB2, head: [256], l2=0.0
-thermal_map using EfficientNetB2: 32 trainable weights
-No existing pretrained weights found
-Total model trainable weights: 367
-================================================================================
-STAGE 1: Frozen backbone, training head only (14 weight tensors)
-  LR=0.001, epochs=50
-================================================================================
-Epoch 19: early stopping
-Restoring model weights from the end of the best epoch: 4.
-================================================================================
-STAGE 1 COMPLETE — best epoch: 4/19
-  val_kappa:  0.2297
-  val_acc:    0.5259
-  val_loss:   0.4105
-
-  train_loss: 0.4440  train_acc: 0.4403
-================================================================================
-Saved Stage 1 best weights to /workspace/DFUMultiClassification/results/models/depth_map_depth_rgb_thermal_map_3_depth_rgb+depth_map+thermal_map.weights.h5
-  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
-  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
-  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
-================================================================================
-STAGE 2: Fine-tuning top 20% backbone (100 weight tensors)
-  LR=1e-05, epochs=50
-================================================================================
-Epoch 23: early stopping
-Restoring model weights from the end of the best epoch: 8.
-================================================================================
-STAGE 2 COMPLETE — best epoch: 8/23
-  val_kappa: 0.2108
-================================================================================
-Saved Stage 2 best weights to /workspace/DFUMultiClassification/results/models/depth_map_depth_rgb_thermal_map_3_depth_rgb+depth_map+thermal_map.weights.h5
-Post-training eval: 618 validation samples evaluated
-
-Run 3 Results for depth_rgb+depth_map+thermal_map:
-Cohen's Kappa: 0.2453
-
-Confusion Matrix (validation):
-        Predicted: I    P    R
-Actual Inflam:   88   54   35
-Actual Prolif:  115  166   93
-Actual Remodl:    3   33   31
-
-Training gating network for run 3...
-
-Number of models: 1
-
-Initializing gating network training...
-Number of models: 1
-Shape of first model predictions: (2490, 3)
-Shape of true labels: (2490,)
-Skipping gating network: only 1 model(s), need at least 2 to combine
-
-Gating Network Results for Run 3:
-Accuracy: 0.4612
-F1 Macro: 0.4211
-Kappa: 0.2453
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_depth_map_depth_rgb_thermal_map_fold2_seed42.data-00000-of-00001
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_train_depth_map_depth_rgb_thermal_map_fold2_seed42.index
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_depth_map_depth_rgb_thermal_map_fold2_seed42.data-00000-of-00001
-Removed cache file: /workspace/DFUMultiClassification/results/tf_records/tf_cache_valid_depth_map_depth_rgb_thermal_map_fold2_seed42.index
-
-Fold 4/5
-Using pre-computed fold 4 patient split
-
-Fold 4/5 skipped (target_fold=3). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
-
-Fold 5/5
-Using pre-computed fold 5 patient split
-
-Fold 5/5 skipped (target_fold=3). Loading saved results...
-  Warning: No saved metrics found for Fold 5/5
-Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_train.npy
-Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_valid.npy
-Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_train.npy
-Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_valid.npy
-Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run3_train.npy
-Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run3_valid.npy
-Results for depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+Epoch 50: early stopping
+Restoring model weights from the end of the best epoch: 30.
+Epoch 49: early stopping
+Restoring model weights from the end of the best epoch: 29.
+
+Run 3 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.52      0.48      0.50       137
+           P       0.65      0.41      0.50       323
+           R       0.26      0.87      0.40        54
+
+    accuracy                           0.48       514
+   macro avg       0.47      0.59      0.47       514
+weighted avg       0.57      0.48      0.49       514
+
+Cohen's Kappa: 0.4464
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
-
-================================================================================
-GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS
-================================================================================
-Ensembling predictions from 3 modality combinations
-
-Fold 1/5
-  Loaded depth_rgb: train shape (2474, 3), valid shape (634, 3)
-  Loaded thermal_map: train shape (2474, 3), valid shape (634, 3)
-  Loaded depth_rgb+depth_map+thermal_map: train shape (2474, 3), valid shape (634, 3)
-
-Training gating network with 3 modality combinations:
-  - depth_rgb
-  - thermal_map
-  - depth_rgb+depth_map+thermal_map
-
-Initializing gating network training...
-Number of models: 3
-Shape of first model predictions: (2474, 3)
-Shape of true labels: (2474,)
-Excluded models from previous time code was run: set()
-
-Final Results:
-==============
-Best Cohen's Kappa: 0.0718
-Best Accuracy: 0.2192
-Best Weighted Accuracy: 0.3829
-Best Loss: 0.7461
-
-Gating Network Ensemble Results for Run 1:
-  Accuracy: 0.2192
-  F1 Macro: 0.1714
-  Kappa: -0.0015
-
-Fold 2/5
-  Loaded depth_rgb: train shape (2490, 3), valid shape (618, 3)
-  Loaded thermal_map: train shape (2490, 3), valid shape (618, 3)
-  Loaded depth_rgb+depth_map+thermal_map: train shape (2490, 3), valid shape (618, 3)
-
-Training gating network with 3 modality combinations:
-  - depth_rgb
-  - thermal_map
-  - depth_rgb+depth_map+thermal_map
-
-Initializing gating network training...
-Number of models: 3
-Shape of first model predictions: (2490, 3)
-Shape of true labels: (2490,)
-Excluded models from previous time code was run: set()
-
-Final Results:
-==============
-Best Cohen's Kappa: 0.1777
-Best Accuracy: 0.6149
-Best Weighted Accuracy: 0.3815
-Best Loss: 0.7169
-
-Gating Network Ensemble Results for Run 2:
-  Accuracy: 0.6149
-  F1 Macro: 0.3542
-  Kappa: 0.1133
-
-Fold 3/5
-  Loaded depth_rgb: train shape (2490, 3), valid shape (618, 3)
-  Loaded thermal_map: train shape (2490, 3), valid shape (618, 3)
-  Loaded depth_rgb+depth_map+thermal_map: train shape (2490, 3), valid shape (618, 3)
-
-Training gating network with 3 modality combinations:
-  - depth_rgb
-  - thermal_map
-  - depth_rgb+depth_map+thermal_map
-
-Initializing gating network training...
-Number of models: 3
-Shape of first model predictions: (2490, 3)
-Shape of true labels: (2490,)
-
-Training with all models...
-Train data shape: (2490, 3, 3), Train labels shape: (2490, 3)
-Val data shape: (618, 3, 3), Val labels shape: (618, 3)
-Train classes: [0, 1, 2]
-Debug train_model_combination: train_labels shape=(2490, 3), indices shape=(2490,)
-Debug: unique_classes=[0 1 2], train_label_indices[:10]=[1 1 1 0 1 1 1 1 1 2]
-Restoring model weights from the end of the best epoch: 1.
-Initial Accuracy: 0.2201, Initial Weighted Accuracy: 0.3331, Loss: 0.8338, kappa: 0.0524
-/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
-  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
-/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
-  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
-/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1833: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
-  _warn_prf(average, modifier, f"{metric.capitalize()} is", result.shape[0])
-
-Detailed results saved to /workspace/DFUMultiClassification/results/csv/model_combination_results_3.txt
-
-Final Results:
-==============
-Best Cohen's Kappa: 0.0524
-Best Accuracy: 0.2201
-Best Weighted Accuracy: 0.3331
-Best Loss: 0.8338
-
-Gating Network Ensemble Results for Run 3:
-  Accuracy: 0.2201
-  F1 Macro: 0.1693
-  Kappa: -0.0442
-
-Fold 4/5
-  Warning: Could not load predictions for depth_rgb
-  Warning: Could not load predictions for thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
-  Not enough predictions loaded (0) for gating network ensemble
-
-Fold 5/5
-  Warning: Could not load predictions for depth_rgb
-  Warning: Could not load predictions for thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
-  Not enough predictions loaded (0) for gating network ensemble
 
 ================================================================================
 FINAL SUMMARY - BEST MODALITY COMBINATIONS
 ================================================================================
 
 Best by Accuracy:
-  Modalities: depth_rgb+depth_map+thermal_map
-  Accuracy: 0.4910 ± 0.0356
-  F1 Macro: 0.4509
-  Kappa: 0.2901
+  Modalities: metadata+depth_rgb+thermal_map
+  Accuracy: 0.4437 ± 0.0247
+  F1 Macro: 0.3873
+  Kappa: 0.3321
 
-Total combinations tested: 3
+Total combinations tested: 1
 ================================================================================
 

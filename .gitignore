@@ -56,7 +56,6 @@ results/GenerativeAug_Models/
 results/*.csv
 results/frequent_*.csv
 results/modality_*.csv
-*.log
 !agent_communication/image_backbone/*.log
 !agent_communication/generative_augmentation/*.log
 !agent_communication/generative_augmentation/agent_communication/generative_augmentation/reports/full_sdxl_logs/*.log
@@ -64,6 +63,8 @@ results/modality_*.csv
 device*
 results/pretrain_cache/
 !results/depth_rgb_search_results.csv
+*.log
+
 
 # Contamination search experiment
 agent_communication/contamination_search/logs/
@@ -95,7 +96,3 @@ results/tf_records_search_224_pretrained_noaug
 results/tf_records_search_256_pretrained_aug
 results/tf_records_search_256_pretrained_noaug
 results/tf_records_search_256_simplecnn_aug
-
-# Map pipeline audit logs (large, regenerated on each run)
-agent_communication/depth_map_pipeline_audit/logs/
-agent_communication/thermal_map_pipeline_audit/logs/
