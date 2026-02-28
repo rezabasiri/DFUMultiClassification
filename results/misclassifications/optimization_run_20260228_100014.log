@@ -1,0 +1,134 @@
+📝 Logging to: results/misclassifications/optimization_run_20260228_100014.log
+
+
+🚀 Starting Phase 2: Bayesian Threshold Optimization
+
+
+======================================================================
+PHASE 2: BAYESIAN THRESHOLD OPTIMIZATION
+======================================================================
+
+Original dataset size: 648 samples
+Minimum dataset size after filtering: 324 samples (50%)
+
+  📊 Grid Search Strategy:
+     Rarest class: R (76 samples)
+     Per-class retention floors:
+       I: >=50% (102/204 samples)
+       P: >=50% (184/368 samples)
+       R: >=75% (57/76 samples)
+     Total retention floor: >=60% (389/648 samples)
+
+  Grid search: 108 combinations tested
+  Valid (>=60% total retention): 100
+  Valid ranges: I=[8,16], P=[15,16], R=[11,16]
+  Invalid corner cases in box: 8/108 (7.4%)
+  (Pre-training retention check will skip these)
+  Lowest valid retention: I=10, P=15, R=11 -> 389/648 (60.0%)
+
+======================================================================
+AUTOMATIC THRESHOLD CALCULATION (Balanced Dataset Strategy)
+======================================================================
+  Minority class retention target: 75%
+
+  Class I:
+    Original samples: 204 (893 images)
+    Target retention for balance: 50.0%
+    Misclass count range: 1-15, median=8.0
+    Min threshold for retention: 8
+    Actual retention at this threshold: 107/204 (52.5%) ≈ 468 images
+
+  Class P:
+    Original samples: 368 (1880 images)
+    Target retention for balance: 50.0%
+    Misclass count range: 1-15, median=14.0
+    Min threshold for retention: 15
+    Actual retention at this threshold: 214/368 (58.2%) ≈ 1093 images
+
+  Class R:
+    Original samples: 76 (335 images)
+    Target retention for balance: 75.0%
+    Misclass count range: 1-15, median=5.0
+    Min threshold for retention: 11
+    Actual retention at this threshold: 57/76 (75.0%) ≈ 251 images
+
+======================================================================
+SEARCH SPACE (auto-calculated, 60% total retention floor)
+======================================================================
+  P: 15-16 (min threshold for 50.0% retention)
+  I: 8-16 (min threshold for 50.0% retention)
+  R: 11-16 (min threshold for 75.0% retention)
+  Combined retention at lower bounds: 378/648 (58.3%)
+
+Optimization Settings:
+  Evaluations: 30
+  CV folds per evaluation: 5
+  Score: 0.35×Δmacro_f1 + 0.30×Δmin_f1 + 0.25×Δkappa + 0.10×retention - penalties
+  (Δ = improvement over baseline; focuses on clinical applicability)
+
+Soft Constraints (smooth penalties guide optimizer):
+  Dataset size: Target ≥50% of original (heavy exp penalty)
+  Min F1 per class: Target ≥0.25 (exponential penalty)
+  Min samples per class: Target ≥30 (linear penalty)
+  Max class imbalance: Target ≤5.0x (linear penalty)
+
+All constraints are soft - optimizer learns from violations!
+
+
+======================================================================
+PHASE 1 BASELINE PERFORMANCE (Before Optimization)
+======================================================================
+
+  metadata+depth_rgb+thermal_rgb+thermal_map << BEST:
+    Accuracy: 0.5756
+    Macro F1: 0.5372
+    Weighted F1: 0.5760
+    Per-class F1: I=0.4462, P=0.6428, R=0.5226
+    Kappa: 0.3613
+
+  metadata+depth_rgb+thermal_rgb:
+    Accuracy: 0.5539
+    Macro F1: 0.5121
+    Weighted F1: 0.5612
+    Per-class F1: I=0.4816, P=0.6216, R=0.4332
+    Kappa: 0.3402
+
+  metadata+depth_rgb:
+    Accuracy: 0.5828
+    Macro F1: 0.5254
+    Weighted F1: 0.5868
+    Per-class F1: I=0.4518, P=0.6696, R=0.4549
+    Kappa: 0.3210
+
+  depth_rgb+thermal_map:
+    Accuracy: 0.4843
+    Macro F1: 0.4380
+    Weighted F1: 0.4890
+    Per-class F1: I=0.4758, P=0.5097, R=0.3286
+    Kappa: 0.3087
+
+  📊 Using best baseline for optimization: metadata+depth_rgb+thermal_rgb+thermal_map
+     Accuracy: 0.5756, Macro F1: 0.5372, Weighted F1: 0.5760
+     Per-class F1: I=0.4462, P=0.6428, R=0.5226, Kappa: 0.3613
+
+🔍 Starting Bayesian optimization...
+
+📋 Training outputs will be logged to:
+   (Log file will be created on first evaluation)
+
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 1/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=16, I=9, R=15
+Dataset after filtering: 547/648 samples (84.4%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
