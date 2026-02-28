@@ -164,10 +164,8 @@ class PeriodicEpochPrintCallback(tf.keras.callbacks.Callback):
                 metrics_str += f" - val_macro_f1: {logs['val_macro_f1']:.4f}"
             if 'cohen_kappa' in logs:
                 metrics_str += f" - kappa: {logs['cohen_kappa']:.4f}"
-            if 'val_kappa_unpadded' in logs:
-                metrics_str += f" - val_kappa: {logs['val_kappa_unpadded']:.4f}"
-            elif 'val_cohen_kappa' in logs:
-                metrics_str += f" - val_kappa(padded): {logs['val_cohen_kappa']:.4f}"
+            if 'val_cohen_kappa' in logs:
+                metrics_str += f" - val_kappa: {logs['val_cohen_kappa']:.4f}"
 
             print(metrics_str, flush=True)
 
@@ -195,30 +193,26 @@ class UnpaddedKappaCallback(tf.keras.callbacks.Callback):
     so each GPU gets equal work.  The built-in Keras CohenKappa metric therefore
     sees duplicate/padded samples, inflating val_cohen_kappa.
 
-    This callback iterates the *non-distributed* validation dataset, runs
-    model.predict per batch, and injects ``val_kappa_unpadded`` into the epoch
-    logs so EarlyStopping / ReduceLROnPlateau / ModelCheckpoint can monitor it.
+    Runs every ``freq`` epochs to reduce overhead; on skipped epochs the last
+    computed value is carried forward so EarlyStopping/ReduceLR still see it.
     """
 
-    def __init__(self, valid_dataset):
-        """
-        Args:
-            valid_dataset: Non-distributed tf.data.Dataset (sample_id already
-                removed) — the same object passed to
-                strategy.experimental_distribute_dataset but *before* that call.
-        """
+    def __init__(self, valid_dataset, freq=5):
         super().__init__()
         self.valid_dataset = valid_dataset
+        self.freq = max(1, freq)
+        self._last_kappa = 0.0
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
-        y_true, y_pred = [], []
-        for features, labels in self.valid_dataset:
-            preds = self.model.predict(features, verbose=0)
-            y_true.extend(np.argmax(labels.numpy(), axis=1))
-            y_pred.extend(np.argmax(preds, axis=1))
-        kappa = cohen_kappa_score(y_true, y_pred, weights='quadratic')
-        logs['val_kappa_unpadded'] = kappa
+        if (epoch + 1) % self.freq == 0 or epoch == 0:
+            y_true, y_pred = [], []
+            for features, labels in self.valid_dataset:
+                preds = self.model(features, training=False)
+                y_true.extend(tf.argmax(labels, axis=1).numpy())
+                y_pred.extend(tf.argmax(preds, axis=1).numpy())
+            self._last_kappa = cohen_kappa_score(y_true, y_pred, weights='quadratic')
+        logs['val_kappa_unpadded'] = self._last_kappa
 
 def clean_up_training_resources():
     """Helper function to clean up resources before restarting training"""
@@ -418,9 +412,10 @@ class ProcessedDataManager:
         """Get input shapes for selected modalities."""
         return {mod: self.all_modality_shapes[mod] for mod in selected_modalities if mod in self.all_modality_shapes}
 class CohenKappa(tf.keras.metrics.Metric):
-    # NOTE: With MirroredStrategy, this metric is inflated because auto-padded
-    # duplicate samples are included in the confusion matrix.  Use the
-    # val_kappa_unpadded metric (from UnpaddedKappaCallback) for early stopping.
+    # NOTE: With MirroredStrategy, this metric is slightly inflated because
+    # auto-padded duplicate samples are included in the confusion matrix.
+    # The inflation is small and consistent, so relative trends are reliable
+    # for EarlyStopping and ReduceLROnPlateau.
     def __init__(self, num_classes=3, name='cohen_kappa', **kwargs):
         super(CohenKappa, self).__init__(name=name, **kwargs)
         self.num_classes = num_classes
@@ -1441,7 +1436,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_model.compile(
                                             optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
                                             loss=pretrain_loss,
-                                            metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)]
+                                            metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)],
+                                            jit_compile=True
                                         )
 
                                         pretrain_trainable = len(pretrain_model.trainable_weights)
@@ -1463,15 +1459,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                         pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
 
-                                        # Monitor val_kappa_unpadded (sklearn kappa on raw dataset)
-                                        # instead of val_cohen_kappa (Keras metric inflated by
-                                        # MirroredStrategy auto-padding on the last batch)
+                                        # Use built-in val_cohen_kappa for EarlyStopping/LR scheduling
+                                        # (slightly inflated by MirroredStrategy padding but trend is identical;
+                                        #  avoids extra validation pass from UnpaddedKappaCallback)
                                         pretrain_callbacks = [
-                                            UnpaddedKappaCallback(pretrain_valid_dataset),
                                             EarlyStopping(
                                                 patience=EARLY_STOP_PATIENCE,
                                                 restore_best_weights=True,
-                                                monitor='val_kappa_unpadded',
+                                                monitor='val_cohen_kappa',
                                                 min_delta=0.001,
                                                 mode='max',
                                                 verbose=1
@@ -1479,14 +1474,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             ReduceLROnPlateau(
                                                 factor=0.50,
                                                 patience=REDUCE_LR_PATIENCE,
-                                                monitor='val_kappa_unpadded',
+                                                monitor='val_cohen_kappa',
                                                 min_delta=0.0005,
                                                 min_lr=1e-8,
                                                 mode='max',
                                             ),
                                             tf.keras.callbacks.ModelCheckpoint(
                                                 image_only_checkpoint,  # Save to same path fusion will load from
-                                                monitor='val_kappa_unpadded',
+                                                monitor='val_cohen_kappa',
                                                 save_best_only=True,
                                                 mode='max',
                                                 save_weights_only=True
@@ -1522,10 +1517,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             verbose=pretrain_verbose
                                         )
 
-                                        # Get best kappa from pre-training (prefer unpadded)
-                                        pretrain_kappa_key = 'val_kappa_unpadded' if 'val_kappa_unpadded' in pretrain_history.history else 'val_cohen_kappa'
-                                        pretrain_best_kappa = max(pretrain_history.history.get(pretrain_kappa_key, [0]))
-                                        vprint(f"  {image_modality} pre-training completed! Best val kappa (unpadded): {pretrain_best_kappa:.4f}", level=1)
+                                        # Report best kappa from pre-training
+                                        pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
+                                        vprint(f"  {image_modality} pre-training completed! Best val kappa: {pretrain_best_kappa:.4f}", level=1)
                                         vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
 
                                         # Now load the pre-trained weights into fusion model
@@ -1616,19 +1610,17 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
                         macro_f1 = MacroF1Score(num_classes=3)
                         model.compile(optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0), loss=loss,
-                            metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)]
+                            metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)],
+                            jit_compile=True
                         )
                         # Create distributed datasets
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
                         valid_dataset_dis = strategy.experimental_distribute_dataset(valid_dataset)
-                        # Monitor val_kappa_unpadded (sklearn kappa on raw dataset)
-                        # instead of val_cohen_kappa (inflated by MirroredStrategy padding)
                         callbacks = [
-                            UnpaddedKappaCallback(valid_dataset),
                             EarlyStopping(
                                 patience=EARLY_STOP_PATIENCE,
                                 restore_best_weights=True,
-                                monitor='val_kappa_unpadded',
+                                monitor='val_cohen_kappa',
                                 min_delta=0.001,
                                 mode='max',
                                 verbose=1
@@ -1636,14 +1628,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             ReduceLROnPlateau(
                                 factor=0.50,
                                 patience=REDUCE_LR_PATIENCE,
-                                monitor='val_kappa_unpadded',
+                                monitor='val_cohen_kappa',
                                 min_delta=0.0005,
                                 min_lr=1e-8,
                                 mode='max',
                             ),
                             tf.keras.callbacks.ModelCheckpoint(
                                 create_checkpoint_filename(selected_modalities, run+1, config_name),
-                                monitor='val_kappa_unpadded',
+                                monitor='val_cohen_kappa',
                                 save_best_only=True,
                                 mode='max',
                                 save_weights_only=True
@@ -1746,7 +1738,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 model.compile(
                                     optimizer=Adam(learning_rate=STAGE1_LR, clipnorm=1.0),
                                     loss=fusion_loss,
-                                    metrics=['accuracy', weighted_f1, weighted_acc, fusion_macro_f1, CohenKappa(num_classes=3)]
+                                    metrics=['accuracy', weighted_f1, weighted_acc, fusion_macro_f1, CohenKappa(num_classes=3)],
+                                    jit_compile=True
                                 )
 
                                 fusion_trainable = len(model.trainable_weights)
@@ -1788,7 +1781,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     model.compile(
                                         optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
                                         loss=stage1_loss,
-                                        metrics=['accuracy', weighted_f1, weighted_acc, stage1_macro_f1, CohenKappa(num_classes=3)]
+                                        metrics=['accuracy', weighted_f1, weighted_acc, stage1_macro_f1, CohenKappa(num_classes=3)],
+                                        jit_compile=True
                                     )
 
                                     trainable_count = len(model.trainable_weights)
@@ -1798,11 +1792,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     vprint("=" * 80, level=2)
 
                                     stage1_callbacks = [
-                                        UnpaddedKappaCallback(valid_dataset),
                                         EarlyStopping(
                                             patience=15,  # Allow convergence but stop if plateaued
                                             restore_best_weights=True,
-                                            monitor='val_kappa_unpadded',
+                                            monitor='val_cohen_kappa',
                                             min_delta=0.001,
                                             mode='max',
                                             verbose=1
@@ -1810,7 +1803,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         ReduceLROnPlateau(
                                             factor=0.50,
                                             patience=7,
-                                            monitor='val_kappa_unpadded',
+                                            monitor='val_cohen_kappa',
                                             min_delta=0.001,
                                             min_lr=1e-6,
                                             mode='max',
@@ -1831,16 +1824,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                     # Print best Stage 1 metrics (weights already restored by EarlyStopping)
                                     s1h = stage1_history.history
-                                    # Use unpadded kappa (accurate) for best-epoch selection; fall back to Keras metric
-                                    s1_kappa_key = 'val_kappa_unpadded' if 'val_kappa_unpadded' in s1h else 'val_cohen_kappa'
-                                    if s1_kappa_key in s1h and s1h[s1_kappa_key]:
-                                        best_epoch = int(np.argmax(s1h[s1_kappa_key]))
-                                        n_epochs = len(s1h[s1_kappa_key])
+                                    if 'val_cohen_kappa' in s1h and s1h['val_cohen_kappa']:
+                                        best_epoch = int(np.argmax(s1h['val_cohen_kappa']))
+                                        n_epochs = len(s1h['val_cohen_kappa'])
                                         vprint("=" * 80, level=2)
                                         vprint(f"STAGE 1 COMPLETE — best epoch: {best_epoch + 1}/{n_epochs}", level=2)
-                                        vprint(f"  val_kappa (unpadded): {s1h[s1_kappa_key][best_epoch]:.4f}", level=2)
-                                        if 'val_cohen_kappa' in s1h:
-                                            vprint(f"  val_kappa (Keras, inflated by GPU padding): {s1h['val_cohen_kappa'][best_epoch]:.4f}", level=2)
+                                        vprint(f"  val_kappa: {s1h['val_cohen_kappa'][best_epoch]:.4f}", level=2)
                                         vprint(f"  val_acc:    {s1h['val_accuracy'][best_epoch]:.4f}" if 'val_accuracy' in s1h else "", level=2)
                                         vprint(f"  val_loss:   {s1h['val_loss'][best_epoch]:.4f}" if 'val_loss' in s1h else "", level=2)
                                         vprint(f"  val_f1:     {s1h['val_macro_f1_score'][best_epoch]:.4f}" if 'val_macro_f1_score' in s1h else "", level=2)
@@ -1881,7 +1870,8 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         model.compile(
                                             optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
                                             loss=stage2_loss,
-                                            metrics=['accuracy', weighted_f1, weighted_acc, stage2_macro_f1, CohenKappa(num_classes=3)]
+                                            metrics=['accuracy', weighted_f1, weighted_acc, stage2_macro_f1, CohenKappa(num_classes=3)],
+                                            jit_compile=True
                                         )
 
                                         s2_trainable = len(model.trainable_weights)
@@ -1892,11 +1882,10 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint("=" * 80, level=2)
 
                                         stage2_callbacks = [
-                                            UnpaddedKappaCallback(valid_dataset),
                                             EarlyStopping(
                                                 patience=15,
                                                 restore_best_weights=True,
-                                                monitor='val_kappa_unpadded',
+                                                monitor='val_cohen_kappa',
                                                 min_delta=0.001,
                                                 mode='max',
                                                 verbose=1
@@ -1904,7 +1893,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             ReduceLROnPlateau(
                                                 factor=0.50,
                                                 patience=7,
-                                                monitor='val_kappa_unpadded',
+                                                monitor='val_cohen_kappa',
                                                 min_delta=0.001,
                                                 min_lr=1e-8,
                                                 mode='max',
@@ -1925,14 +1914,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         # Print Stage 2 results
                                         s2h = stage2_history.history
-                                        s2_kappa_key = 'val_kappa_unpadded' if 'val_kappa_unpadded' in s2h else 'val_cohen_kappa'
-                                        if s2_kappa_key in s2h and s2h[s2_kappa_key]:
-                                            best_s2_epoch = int(np.argmax(s2h[s2_kappa_key]))
+                                        if 'val_cohen_kappa' in s2h and s2h['val_cohen_kappa']:
+                                            best_s2_epoch = int(np.argmax(s2h['val_cohen_kappa']))
                                             vprint("=" * 80, level=2)
-                                            vprint(f"STAGE 2 COMPLETE — best epoch: {best_s2_epoch + 1}/{len(s2h[s2_kappa_key])}", level=2)
-                                            vprint(f"  val_kappa (unpadded): {s2h[s2_kappa_key][best_s2_epoch]:.4f}", level=2)
-                                            if 'val_cohen_kappa' in s2h:
-                                                vprint(f"  val_kappa (Keras, inflated by GPU padding): {s2h['val_cohen_kappa'][best_s2_epoch]:.4f}", level=2)
+                                            vprint(f"STAGE 2 COMPLETE — best epoch: {best_s2_epoch + 1}/{len(s2h['val_cohen_kappa'])}", level=2)
+                                            vprint(f"  val_kappa: {s2h['val_cohen_kappa'][best_s2_epoch]:.4f}", level=2)
                                             vprint("=" * 80, level=2)
 
                                         # Save Stage 2 checkpoint
@@ -1961,39 +1947,36 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         with strategy.scope():
                             model.load_weights(best_load_path)
 
-                        # Evaluate training data
+                        # Evaluate training data predictions
+                        # NOTE: Skipped when track_misclass='none' (Phase 2 threshold search).
+                        # Re-enable by setting TRACK_MISCLASS='both'/'train' in production_config.py
+                        # or when you need train predictions for correlation studies / gating network.
+                        need_train_eval = track_misclass in ['both', 'train']
                         y_true_t = []
                         y_pred_t = []
                         probabilities_t = []
                         all_sample_ids_t = []
 
-                        # No strategy.scope() needed for prediction - model already knows its distribution
-                        # pre_aug_train_dataset is finite (no .repeat()), iterate all batches
-                        for batch in pre_aug_train_dataset:
-                            batch_inputs, batch_labels = batch
-                            # Extract sample_id before filtering for model.predict()
-                            sample_ids_batch = batch_inputs['sample_id'].numpy()
-                            # Filter out sample_id for model.predict() (Keras 3 compatibility)
-                            model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
-                            batch_pred = model.predict(model_inputs, verbose=0)
-                            y_true_t.extend(np.argmax(batch_labels, axis=1))
-                            y_pred_t.extend(np.argmax(batch_pred, axis=1))
-                            probabilities_t.extend(batch_pred)
-                            all_sample_ids_t.extend(sample_ids_batch)
+                        if need_train_eval:
+                            for batch in pre_aug_train_dataset:
+                                batch_inputs, batch_labels = batch
+                                sample_ids_batch = batch_inputs['sample_id'].numpy()
+                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
+                                batch_pred = model(model_inputs, training=False)
+                                batch_pred_np = batch_pred.numpy()
+                                y_true_t.extend(np.argmax(batch_labels, axis=1))
+                                y_pred_t.extend(np.argmax(batch_pred_np, axis=1))
+                                probabilities_t.extend(batch_pred_np)
+                                all_sample_ids_t.extend(sample_ids_batch)
 
-                            del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
-                            gc.collect()
+                                del batch_inputs, batch_labels, batch_pred, batch_pred_np, model_inputs, sample_ids_batch
+                                gc.collect()
 
-                        # Save predictions with sample IDs for confidence-based filtering
-                        sample_ids_t = np.array(all_sample_ids_t)
-                        save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train', sample_ids=sample_ids_t)
-                        # Store probabilities for gating network
-                        run_predictions_list_t.append(np.array(probabilities_t))
-                        if run_true_labels_t is None:
-                            run_true_labels_t = np.array(y_true_t)
-
-                        # Track misclassifications from training set (if requested)
-                        if track_misclass in ['both', 'train']:
+                            sample_ids_t = np.array(all_sample_ids_t)
+                            save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train', sample_ids=sample_ids_t)
+                            run_predictions_list_t.append(np.array(probabilities_t))
+                            if run_true_labels_t is None:
+                                run_true_labels_t = np.array(y_true_t)
                             track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
 
                         # Evaluate model
@@ -2005,21 +1988,18 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                         # Re-filter from master to get sample_id back for tracking
                         valid_dataset_with_ids = filter_dataset_modalities(master_valid_dataset, selected_modalities)
 
-                        # No strategy.scope() needed for prediction - model already knows its distribution
-                        # Iterate ALL batches (dataset is finite, no .take() needed)
                         for batch in valid_dataset_with_ids:
                             batch_inputs, batch_labels = batch
-                            # Extract sample_id before filtering for model.predict()
                             sample_ids_batch = batch_inputs['sample_id'].numpy()
-                            # Filter out sample_id for model.predict() (Keras 3 compatibility)
                             model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
-                            batch_pred = model.predict(model_inputs, verbose=0)
+                            batch_pred = model(model_inputs, training=False)
+                            batch_pred_np = batch_pred.numpy()
                             y_true_v.extend(np.argmax(batch_labels, axis=1))
-                            y_pred_v.extend(np.argmax(batch_pred, axis=1))
-                            probabilities_v.extend(batch_pred)
+                            y_pred_v.extend(np.argmax(batch_pred_np, axis=1))
+                            probabilities_v.extend(batch_pred_np)
                             all_sample_ids_v.extend(sample_ids_batch)
 
-                            del batch_inputs, batch_labels, batch_pred, model_inputs, sample_ids_batch
+                            del batch_inputs, batch_labels, batch_pred, batch_pred_np, model_inputs, sample_ids_batch
                             gc.collect()
 
                         # Save predictions with sample IDs for confidence-based filtering

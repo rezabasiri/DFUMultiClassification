@@ -271,6 +271,14 @@ def setup_device_strategy(
         except RuntimeError as e:
             print(f"⚠️  Could not set memory growth: {e}")
 
+    # Enable mixed precision (float16 compute with float32 accumulation)
+    # A4000/A5000 (compute 8.6) have good fp16 tensor cores → ~1.5-2x speedup
+    # Keras automatically keeps loss scaling and softmax output in float32
+    if mode != 'cpu':
+        tf.keras.mixed_precision.set_global_policy('mixed_float16')
+        if verbose:
+            print(f"Enabled mixed precision (mixed_float16)")
+
     # Create TensorFlow distribution strategy
     if len(selected_gpu_ids) == 1:
         # Single GPU - use default strategy (no distribution)

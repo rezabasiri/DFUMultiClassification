@@ -19,5 +19,5 @@
   "phase1_baseline_modality": "metadata+depth_rgb+thermal_rgb+thermal_map",
   "production_config_settings": "USE_CORE_DATA = True, THRESHOLD_I = 9, THRESHOLD_P = 16, THRESHOLD_R = 15",
   "command": "python src/main.py --mode search --cv_folds 5 --device-mode multi",
-  "timestamp": "2026-02-27T20:18:58.727765"
+  "timestamp": "2026-02-28T07:38:19.533366"
 }

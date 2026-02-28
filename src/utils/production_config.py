@@ -254,9 +254,9 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 # Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
 # If CSV missing: prints warning and continues with unfiltered data
 USE_CORE_DATA = True  # Use Bayesian-optimized core dataset with misclassification filtering
-THRESHOLD_I = 12  # Inflammatory class threshold (Bayesian-optimized)
+THRESHOLD_I = 9  # Inflammatory class threshold (Bayesian-optimized)
 THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
-THRESHOLD_R = 11  # Remodeling class threshold (higher to protect minority class)
+THRESHOLD_R = 15  # Remodeling class threshold (higher to protect minority class)
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)

@@ -374,7 +374,7 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 output = Lambda(lambda x: tf.identity(x), name='output')(branches[0])
             else:
                 # Single image modality - train classifier
-                output = Dense(3, activation='softmax', name='output')(branches[0])
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(branches[0])
 
         elif len(selected_modalities) == 2:
             if has_metadata:
@@ -385,16 +385,16 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 rf_probs = branches[metadata_idx]
                 image_idx = 1 - metadata_idx
                 image_features = branches[image_idx]
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_features)
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_features)
 
                 # Concat RF probs (3) + image probs (3) → Dense(3)
                 # 21 params — learns per-class weighting (e.g. trust RF for class R, images for class I)
                 fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output')(fused)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
                 # Two image modalities
                 merged = concatenate(branches, name='concat_branches')
-                output = Dense(3, activation='softmax', name='output')(merged)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         elif len(selected_modalities) == 3:
             if has_metadata:
@@ -405,14 +405,14 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 rf_probs = branches[metadata_idx]
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_merged)
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
 
                 fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output')(fused)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
                 # Three image modalities
                 merged = concatenate(branches, name='concat_branches')
-                output = Dense(3, activation='softmax', name='output')(merged)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         elif len(selected_modalities) == 4:
             if has_metadata:
@@ -423,10 +423,10 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 rf_probs = branches[metadata_idx]
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_merged)
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
 
                 fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output')(fused)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
                 # Four image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -436,7 +436,7 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(x)
                 x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
                 x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
-                output = Dense(3, activation='softmax', name='output')(x)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
 
         elif len(selected_modalities) == 5:
             if has_metadata:
@@ -447,14 +447,14 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 rf_probs = branches[metadata_idx]
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(image_merged)
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
 
                 fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output')(fused)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
                 # Five image modalities
                 merged = concatenate(branches, name='concat_branches')
-                output = Dense(3, activation='softmax', name='output')(merged)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         model = Model(inputs=inputs, outputs=output)
 

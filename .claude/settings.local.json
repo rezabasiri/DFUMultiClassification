@@ -107,7 +107,8 @@
       "Bash(git -C /workspace/DFUMultiClassification diff --stat HEAD)",
       "Bash(# Agent communication is 20G?? Check what''s big du -sh /workspace/DFUMultiClassification/agent_communication/*/)",
       "Bash(# src is 20G?? Check what''s big du -sh /workspace/DFUMultiClassification/src/*/)",
-      "Bash(# What''s 20G in src/models? du -sh /workspace/DFUMultiClassification/src/models/*/)"
+      "Bash(# What''s 20G in src/models? du -sh /workspace/DFUMultiClassification/src/models/*/)",
+      "Bash(python3.11 --version)"
     ]
   }
 }
