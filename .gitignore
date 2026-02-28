@@ -45,7 +45,6 @@ results/tf_records/
 # results/demo/
 results/models/
 results/csv/
-results/misclassifications/
 results/visualizations/
 results/attention_analysis/
 results/batch_visualizations_generative/
@@ -56,14 +55,16 @@ results/GenerativeAug_Models/
 results/*.csv
 results/frequent_*.csv
 results/modality_*.csv
-!agent_communication/image_backbone/*.log
-!agent_communication/generative_augmentation/*.log
-!agent_communication/generative_augmentation/agent_communication/generative_augmentation/reports/full_sdxl_logs/*.log
-!results/logs/*.log
 device*
 results/pretrain_cache/
 !results/depth_rgb_search_results.csv
 *.log
+!agent_communication/image_backbone/*.log
+!agent_communication/generative_augmentation/*.log
+!agent_communication/generative_augmentation/agent_communication/generative_augmentation/reports/full_sdxl_logs/*.log
+!results/logs/*.log
+!results/misclassifications/*.log
+!results/misclassifications_saved/*.log
 
 
 # Contamination search experiment
