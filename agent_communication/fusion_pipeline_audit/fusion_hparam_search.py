@@ -4,13 +4,16 @@ Fusion Pipeline Hyperparameter Search — Standalone Script
 
 Systematically tests fusion-specific training configurations for
 metadata + depth_rgb + thermal_map to maximize val_cohen_kappa. Uses sequential elimination:
-  Round 1: Fusion learning rate (STAGE1_LR)         (6 configs)
+  Baseline: Default parameters, 5-fold CV            (5 folds)
+  Round 1: Fusion learning rate (STAGE1_LR)          (6 configs)
   Round 2: Fusion training epochs                    (4 configs)
   Round 3: Metadata confidence scaling               (6 configs)
   Round 4: Cross-modal attention regularization      (4 configs)
   Round 5: Metadata-image attention asymmetry        (4 configs)
   Round 6: RF hyperparameters                        (6 configs)
   Round 7: Stage 2 fine-tuning in fusion context     (4 configs)
+  Top 3:   Best configs from rounds, 5-fold CV       (15 folds)
+  Summary compares top configs against baseline.
 
 Fusion-specific vs standalone searches:
   - Standalone searches optimize backbone, head, loss, augmentation per modality
@@ -21,8 +24,10 @@ Fusion-specific vs standalone searches:
   - Fuses metadata + depth_rgb + thermal_map (3-modality fusion)
 
 Prerequisites:
-  - Standalone modality searches should be completed first (depth_rgb, thermal_map)
-  - Pre-trained standalone checkpoints improve convergence (optional — trains from scratch if absent)
+  - Standalone modality configs (backbone, head) should be finalized first
+  - Each experiment pre-trains image branches (frozen backbone, head-only) on the
+    same fold split, then freezes the backbone for fusion training — matching the
+    approach in src/main.py to avoid overfitting with ~2K images
 
 Usage:
   # Fresh start (backs up old results):
@@ -74,6 +79,12 @@ from src.utils.gpu_config import setup_device_strategy
 _strategy, _selected_gpus = setup_device_strategy(mode='multi')
 
 from src.utils.config import RANDOM_SEED
+from src.models.losses import get_focal_ordinal_loss
+
+# Cache pre-trained image weights per (modality, fold) to avoid redundant training.
+# All configs in the same fold use the same data split and the same pre-training
+# hyperparams, so the pre-trained weights are identical.
+_pretrain_cache = {}  # key: (modality, fold_idx) -> {layer_name: weights}
 
 # ─────────────────────────────────────────────────────────────────────
 # Configuration dataclass
@@ -92,18 +103,19 @@ class FusionSearchConfig:
     # Modalities
     image_modalities: list = field(default_factory=lambda: ["depth_rgb", "thermal_map"])
 
-    # Fusion training — Stage 1 (frozen backbone, train fusion layers)
+    # Fusion training — Stage 1 (frozen backbone after pre-training, fusion layers only)
+    # Defaults match main.py: STAGE1_LR, N_EPOCHS, EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE
     stage1_lr: float = 1e-4           # STAGE1_LR in production_config
-    stage1_epochs: int = 50           # STAGE1_EPOCHS
-    early_stop_patience: int = 15
-    reduce_lr_patience: int = 7
+    stage1_epochs: int = 200          # N_EPOCHS (main.py uses full budget + early stopping)
+    early_stop_patience: int = 20     # EARLY_STOP_PATIENCE in production_config
+    reduce_lr_patience: int = 10      # REDUCE_LR_PATIENCE in production_config
     batch_size: int = 64
     lr_schedule: str = "plateau"      # plateau, cosine
     warmup_epochs: int = 0
 
-    # Fusion training — Stage 2 (partial backbone unfreeze)
+    # Fusion training — Stage 2 (partial backbone unfreeze + lower LR fine-tuning)
     stage2_lr: float = 1e-5           # STAGE2_LR
-    stage2_epochs: int = 0            # 0 = skip Stage 2 for fusion
+    stage2_epochs: int = 0            # 0 = skip Stage 2 (default for fusion in main.py)
     stage2_unfreeze_pct: float = 0.2  # STAGE2_UNFREEZE_PCT
 
     # Metadata confidence scaling (ConfidenceBasedMetadataAttention)
@@ -116,11 +128,11 @@ class FusionSearchConfig:
     meta_query_scale: float = 0.8     # score scaling when metadata queries images
     image_query_scale: float = 1.5    # score scaling when images query metadata
 
-    # Loss (kept from standalone — just focal with validated params)
+    # Loss — uses same focal_ordinal_loss as main.py (from src/models/losses.py)
     loss_type: str = "focal"
     focal_gamma: float = 2.0
     alpha_sum: float = 3.0
-    label_smoothing: float = 0.0
+    label_smoothing: float = 0.1      # Matches main.py: _resolve_training_params → max(modality label_smoothing)
 
     # RF hyperparameters (metadata pipeline)
     rf_n_estimators: int = 200
@@ -453,99 +465,6 @@ def prepare_datasets(data, cfg: FusionSearchConfig, fold_idx=0):
     return train_ds_clean, valid_ds_clean, pre_aug_ds, steps_per_epoch, val_steps, alpha_values
 
 
-# ─────────────────────────────────────────────────────────────────────
-# Pre-trained weight loading
-# ─────────────────────────────────────────────────────────────────────
-
-def load_pretrained_image_weights(model, cfg: FusionSearchConfig):
-    """Load pre-trained standalone image weights into the fusion model.
-
-    Attempts to load standalone checkpoints for each image modality
-    (depth_rgb, thermal_map). Returns True if at least one was loaded.
-    """
-    from src.training.training_utils import create_checkpoint_filename
-    from src.models.builders import create_multimodal_model
-
-    any_loaded = False
-    loaded_modalities = []
-    failed_modalities = []
-
-    for image_modality in cfg.image_modalities:
-        # Look for standalone checkpoint: {modality}_run1_{modality}.weights.h5
-        ckpt_base = create_checkpoint_filename([image_modality], 1, image_modality)
-
-        found = False
-        # Try .weights.h5 and .ckpt extensions
-        for ext_path in [ckpt_base, ckpt_base.replace('.ckpt', '.weights.h5')]:
-            if os.path.exists(ext_path) or os.path.exists(ext_path + '.index'):
-                try:
-                    # Infer shapes from fusion model inputs
-                    image_input_shape = None
-                    for layer in model.layers:
-                        if hasattr(layer, 'input_shape') and image_modality in layer.name:
-                            image_input_shape = layer.input_shape[0][1:]  # Remove batch dim
-                            break
-
-                    if image_input_shape is None:
-                        # Fallback: get from model input
-                        for inp_name, inp in model.input.items() if isinstance(model.input, dict) else []:
-                            if image_modality in inp_name:
-                                image_input_shape = inp.shape[1:]
-                                break
-
-                    if image_input_shape is None:
-                        image_input_shape = (cfg.image_size, cfg.image_size, 3)
-
-                    temp_shapes = {image_modality: image_input_shape}
-                    temp_model = create_multimodal_model(temp_shapes, [image_modality], None)
-
-                    actual_path = ext_path
-                    if os.path.exists(ext_path + '.index'):
-                        actual_path = ext_path
-                    temp_model.load_weights(actual_path)
-
-                    # Transfer weights by layer name
-                    transferred = 0
-                    for layer in temp_model.layers:
-                        if image_modality in layer.name:
-                            try:
-                                fusion_layer = model.get_layer(layer.name)
-                                fusion_layer.set_weights(layer.get_weights())
-                                transferred += 1
-                            except (ValueError, Exception):
-                                continue
-
-                    del temp_model
-                    print(f"  Loaded {transferred} pre-trained layers for {image_modality}")
-                    loaded_modalities.append(image_modality)
-                    any_loaded = True
-                    found = True
-                    break
-
-                except Exception as e:
-                    print(f"  WARNING: Failed to load pre-trained weights for {image_modality}: {e}")
-
-        if not found:
-            failed_modalities.append(image_modality)
-            print(f"  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print(f"  !!!  WARNING: No pre-trained checkpoint found for {image_modality}")
-            print(f"  !!!  Looked for: {ckpt_base}")
-            print(f"  !!!  {image_modality} backbone will train FROM SCRATCH")
-            print(f"  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-
-    # Summary
-    if failed_modalities:
-        print(f"\n  ================================================================")
-        print(f"  PRETRAINED WEIGHT SUMMARY:")
-        if loaded_modalities:
-            print(f"    Loaded:  {', '.join(loaded_modalities)}")
-        print(f"    MISSING: {', '.join(failed_modalities)} -- training from scratch!")
-        print(f"  ================================================================\n")
-    else:
-        print(f"  All image modalities loaded pre-trained weights: {', '.join(loaded_modalities)}")
-
-    return any_loaded
-
 
 # ─────────────────────────────────────────────────────────────────────
 # Training logic
@@ -593,25 +512,181 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
         break
 
     strategy = _strategy
+
+    # ── Step 1: Pre-train each image modality (frozen backbone, head-only) ──
+    # Matches src/main.py approach: train image branches standalone FIRST,
+    # then freeze backbone during fusion.  Without this, the ~12M backbone
+    # params overfit on ~2K images (Train 0.96, Val 0.02).
+    from src.models.builders import create_multimodal_model as _create_mm
+    from src.utils.production_config import PRETRAIN_LR, N_EPOCHS, EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE
+
+    pretrain_epochs = N_EPOCHS  # Use same budget as main pipeline
+    pretrained_weights = {}  # modality -> {layer_name: weights}
+
+    for image_modality in cfg.image_modalities:
+        cache_key = (image_modality, fold_idx)
+
+        if cache_key in _pretrain_cache:
+            # Reuse cached pre-trained weights (same fold = same data split)
+            pretrained_weights[image_modality] = _pretrain_cache[cache_key]
+            print(f"\n  PRE-TRAINING: {image_modality} — using cached weights (fold {fold_idx})")
+            continue
+
+        print(f"\n  PRE-TRAINING: {image_modality} (frozen backbone, head-only)")
+
+        # Build standalone dataset for just this image modality (same patient split)
+        # This matches how main.py pre-trains: standalone model with standalone dataset
+        from src.data.dataset_utils import create_patient_folds as _cpf, prepare_cached_datasets as _pcd
+        from src.data.generative_augmentation_v3 import AugmentationConfig as _AugCfg
+        from src.utils.config import get_project_paths as _gpp
+
+        pt_patient_folds = _cpf(data, n_folds=cfg.n_folds, random_state=42)
+        pt_train_patients, pt_valid_patients = pt_patient_folds[fold_idx]
+
+        pt_aug_config = _AugCfg()
+        pt_aug_config.generative_settings['output_size']['width'] = cfg.image_size
+        pt_aug_config.generative_settings['output_size']['height'] = cfg.image_size
+
+        _, pt_result_dir, _ = _gpp()
+        pt_cache_dir = os.path.join(pt_result_dir, 'search_cache',
+            f'fusion_pretrain_{image_modality}_{cfg.image_size}_aug')
+
+        pt_train_ds, _, pt_valid_ds, pt_steps, pt_val_steps, pt_alpha = _pcd(
+            data,
+            [image_modality],  # Single modality — matches standalone audit approach
+            batch_size=cfg.batch_size,
+            gen_manager=None,
+            aug_config=pt_aug_config,
+            run=fold_idx,
+            image_size=cfg.image_size,
+            train_patients=pt_train_patients,
+            valid_patients=pt_valid_patients,
+            cache_dir=pt_cache_dir,
+        )
+
+        # Remove sample_id from datasets
+        def _rm_sid(features, labels):
+            return {k: v for k, v in features.items() if k != 'sample_id'}, labels
+        pt_train_ds = pt_train_ds.map(_rm_sid, num_parallel_calls=tf.data.AUTOTUNE)
+        pt_valid_ds = pt_valid_ds.map(_rm_sid, num_parallel_calls=tf.data.AUTOTUNE)
+
+        with strategy.scope():
+            temp_shapes = {image_modality: image_input_shapes[image_modality]}
+            pretrain_model = _create_mm(temp_shapes, [image_modality], None)
+
+            # Freeze EfficientNet backbone — only train projection head + classifier
+            for layer in pretrain_model.layers:
+                if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                    layer.trainable = False
+
+            pt_trainable = len(pretrain_model.trainable_weights)
+            print(f"    Trainable weights: {pt_trainable} (backbone frozen)")
+
+            # Use same loss as standalone audits (make_focal_loss equivalent)
+            pt_loss = make_focal_loss(gamma=cfg.focal_gamma, alpha=alpha_list,
+                                      label_smoothing=0.0)  # Standalone audits used 0.0
+            pretrain_model.compile(
+                optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
+                loss=pt_loss,
+                metrics=['accuracy', CohenKappaMetric(num_classes=3)],
+                jit_compile=True
+            )
+
+        pt_train_dis = strategy.experimental_distribute_dataset(pt_train_ds)
+        pt_valid_dis = strategy.experimental_distribute_dataset(pt_valid_ds)
+
+        pt_callbacks = [
+            EarlyStopping(
+                patience=EARLY_STOP_PATIENCE,
+                restore_best_weights=True,
+                monitor='val_cohen_kappa',
+                min_delta=0.001,
+                mode='max',
+                verbose=1
+            ),
+            ReduceLROnPlateau(
+                factor=0.50,
+                patience=REDUCE_LR_PATIENCE,
+                monitor='val_cohen_kappa',
+                min_delta=0.0005,
+                min_lr=1e-8,
+                mode='max',
+            ),
+        ]
+
+        pt_history = pretrain_model.fit(
+            pt_train_dis,
+            epochs=pretrain_epochs,
+            steps_per_epoch=pt_steps,
+            validation_data=pt_valid_dis,
+            validation_steps=pt_val_steps,
+            callbacks=pt_callbacks,
+            verbose=0
+        )
+
+        pt_kappas = pt_history.history.get('val_cohen_kappa', [])
+        pt_best = max(pt_kappas) if pt_kappas else 0.0
+        pt_best_ep = int(np.argmax(pt_kappas)) + 1 if pt_kappas else 0
+        print(f"    Pre-train best: val_kappa={pt_best:.4f} at epoch {pt_best_ep}/{len(pt_kappas)}")
+
+        # Save weights for transfer to fusion model
+        pretrained_weights[image_modality] = {}
+        for layer in pretrain_model.layers:
+            if image_modality in layer.name:
+                pretrained_weights[image_modality][layer.name] = layer.get_weights()
+        # Also save the output classifier weights → image_classifier in fusion
+        try:
+            output_layer = pretrain_model.get_layer('output')
+            pretrained_weights[image_modality]['__output__'] = output_layer.get_weights()
+        except ValueError:
+            pass
+
+        # Cache for other configs using the same fold
+        _pretrain_cache[cache_key] = pretrained_weights[image_modality]
+
+        del pretrain_model, pt_train_ds, pt_valid_ds, pt_train_dis, pt_valid_dis
+        gc.collect()
+        tf.keras.backend.clear_session()
+
+    # ── Step 2: Build fusion model, transfer pretrained weights, freeze backbone ──
     with strategy.scope():
         model = build_fusion_model(cfg, image_input_shapes, metadata_input_shape)
 
-        # Load pre-trained image weights and freeze backbone
-        pretrained_loaded = load_pretrained_image_weights(model, cfg)
+        # Transfer pre-trained image weights into fusion model
+        total_transferred = 0
+        for image_modality, layer_weights in pretrained_weights.items():
+            for layer_name, weights in layer_weights.items():
+                if layer_name == '__output__':
+                    # Transfer standalone classifier → fusion's image_classifier
+                    try:
+                        fusion_cls = model.get_layer('image_classifier')
+                        if weights[0].shape == fusion_cls.get_weights()[0].shape:
+                            fusion_cls.set_weights(weights)
+                            total_transferred += 1
+                    except (ValueError, IndexError):
+                        pass
+                else:
+                    try:
+                        fusion_layer = model.get_layer(layer_name)
+                        fusion_layer.set_weights(weights)
+                        total_transferred += 1
+                    except (ValueError, Exception):
+                        continue
+        print(f"  Transferred {total_transferred} pre-trained layers to fusion model")
 
-        if pretrained_loaded:
-            # Freeze image backbone for Stage 1 (only train fusion layers)
-            for layer in model.layers:
-                if hasattr(layer, 'layers'):  # Sub-model (EfficientNet backbone)
-                    layer.trainable = False
+        # Freeze backbone — only train fusion layers (matches main.py)
+        # "Unfreezing causes BatchNorm stat disruption + overfitting with ~2K images"
+        for layer in model.layers:
+            if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                layer.trainable = False
 
         trainable_count = len(model.trainable_weights)
         total_count = len(model.weights)
-        print(f"  Trainable weights: {trainable_count}/{total_count} "
-              f"(backbone {'frozen' if pretrained_loaded else 'trainable'})")
+        print(f"  Trainable weights: {trainable_count}/{total_count} (backbone frozen, fusion layers trainable)")
 
-        loss_fn = make_focal_loss(gamma=cfg.focal_gamma, alpha=alpha_list,
-                                  label_smoothing=cfg.label_smoothing)
+        loss_fn = get_focal_ordinal_loss(num_classes=3, ordinal_weight=0.0,
+                                          gamma=cfg.focal_gamma, alpha=alpha_list,
+                                          label_smoothing=cfg.label_smoothing)
 
         model.compile(
             optimizer=Adam(learning_rate=cfg.stage1_lr, clipnorm=1.0),
@@ -657,7 +732,7 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
             mode='max',
         ))
 
-    # Stage 1: Frozen backbone, train fusion layers
+    # ── Step 3: Fusion training (frozen backbone) ──
     history = model.fit(
         train_ds_dis,
         epochs=cfg.stage1_epochs,
@@ -671,12 +746,12 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
     s1_kappas = history.history.get('val_cohen_kappa', [])
     best_s1_kappa = max(s1_kappas) if s1_kappas else 0.0
     best_s1_epoch = int(np.argmax(s1_kappas)) + 1 if s1_kappas else 0
-    print(f"  Stage 1 best: val_kappa={best_s1_kappa:.4f} at epoch {best_s1_epoch}/{len(s1_kappas)}")
+    print(f"  Fusion best: val_kappa={best_s1_kappa:.4f} at epoch {best_s1_epoch}/{len(s1_kappas)}")
 
-    # Stage 2: Partial backbone unfreeze (optional for fusion)
+    # ── Step 4: Optional Stage 2 — partial backbone unfreeze + lower LR ──
     best_s2_kappa = 0.0
     ran_stage2 = False
-    if pretrained_loaded and cfg.stage2_epochs > 0:
+    if cfg.stage2_epochs > 0:
         for layer in model.layers:
             if hasattr(layer, 'layers'):  # Sub-model (backbone)
                 layer.trainable = True
@@ -789,7 +864,7 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
         'mixup_alpha': cfg.mixup_alpha,
         'image_size': cfg.image_size,
         'fold': fold_idx,
-        'pretrained_loaded': pretrained_loaded,
+        'pretrained_loaded': True,
         'trainable_weights': trainable_count,
         'total_weights': total_count,
         'best_s1_kappa': best_s1_kappa,
@@ -816,8 +891,9 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
 def round1_fusion_lr():
     """Round 1: Fusion learning rate (STAGE1_LR).
 
-    The standalone image models were trained at PRETRAIN_LR=1e-3.
-    Fusion needs a lower LR to avoid destroying pre-trained features.
+    LR for fusion-layer training (backbone frozen, pre-trained).
+    Image branches pre-trained at PRETRAIN_LR=1e-3; fusion needs lower LR
+    to learn cross-modal combination without destroying image features.
     """
     configs = []
     for lr in [5e-5, 1e-4, 3e-4, 5e-4, 1e-3, 3e-3]:
@@ -828,9 +904,13 @@ def round1_fusion_lr():
 
 
 def round2_fusion_epochs(best_r1: FusionSearchConfig):
-    """Round 2: Fusion training epochs."""
+    """Round 2: Fusion training epochs and early stopping patience.
+
+    Main.py uses N_EPOCHS=200 with EARLY_STOP_PATIENCE=20.
+    Test whether more/fewer epochs or different patience helps fusion.
+    """
     configs = []
-    for epochs, patience in [(30, 10), (50, 15), (80, 20), (120, 25)]:
+    for epochs, patience in [(100, 15), (200, 20), (200, 30), (300, 25)]:
         cfg = deepcopy(best_r1)
         cfg.name = f"R2_ep{epochs}_pat{patience}"
         cfg.stage1_epochs = epochs
@@ -927,17 +1007,18 @@ def round6_rf_params(best_r5: FusionSearchConfig):
 
 
 def round7_stage2_finetune(best_r6: FusionSearchConfig):
-    """Round 7: Stage 2 fine-tuning in fusion context.
+    """Round 7: Stage 2 — partial backbone unfreeze + lower LR fine-tuning.
 
-    Standalone searches validated fine-tuning for single modalities.
-    In fusion, fine-tuning may disrupt the learned cross-modal balance.
+    After fusion training with frozen backbone, tests whether partially
+    unfreezing the backbone and fine-tuning with a lower LR helps.
+    Risk: BatchNorm stat disruption + overfitting on ~2K images.
     """
     configs = []
     variants = [
-        ('no_ft',            0,   0.0, 0.0),      # No Stage 2 (baseline)
-        ('ft_top10_30ep',    30,  0.1, 1e-5),
-        ('ft_top20_30ep',    30,  0.2, 1e-5),
-        ('ft_top20_50ep',    50,  0.2, 5e-6),
+        ('no_ft',            0,   0.0, 0.0),      # No Stage 2 (default for fusion in main.py)
+        ('ft_top10_50ep',    50,  0.1, 1e-5),     # Conservative: 10% unfreeze, STAGE2_FINETUNE_EPOCHS
+        ('ft_top20_50ep',    50,  0.2, 1e-5),     # Standard: 20% unfreeze (STAGE2_UNFREEZE_PCT)
+        ('ft_top20_50ep_lr', 50,  0.2, 5e-6),     # Lower LR variant
     ]
     for name, epochs, pct, lr in variants:
         cfg = deepcopy(best_r6)
@@ -1092,6 +1173,28 @@ def main(fresh: bool = False):
 
     all_results = []
 
+    # ─── Baseline: 5-fold CV with default parameters ───
+    N_BASELINE_FOLDS = 5
+    print(f"\n{'#'*80}")
+    print("BASELINE: 5-FOLD CV WITH DEFAULT PARAMETERS")
+    print(f"{'#'*80}")
+
+    baseline_base = FusionSearchConfig(name="BASELINE")
+    baseline_base.n_folds = N_BASELINE_FOLDS
+    baseline_configs = []
+    for fold_idx in range(N_BASELINE_FOLDS):
+        cfg = deepcopy(baseline_base)
+        cfg.name = f"BASELINE_fold{fold_idx+1}"
+        cfg.fold = fold_idx
+        baseline_configs.append(cfg)
+
+    baseline_results = run_round("BASELINE", baseline_configs, data, results_csv, completed)
+    all_results.extend(baseline_results)
+
+    baseline_kappas = [r['post_eval_kappa'] for r in baseline_results]
+    print(f"\n  BASELINE 5-fold: mean_kappa={np.mean(baseline_kappas):.4f} +/- {np.std(baseline_kappas):.4f}")
+    print(f"  Per-fold: {[f'{k:.4f}' for k in baseline_kappas]}")
+
     print(f"\n{'#'*80}")
     print("ROUND 1: FUSION LEARNING RATE (STAGE1_LR)")
     print(f"{'#'*80}")
@@ -1160,7 +1263,11 @@ def main(fresh: bool = False):
     print("TOP 3 SELECTION: 5-FOLD VALIDATION OF BEST CONFIGS")
     print(f"{'#'*80}")
 
-    search_results = sorted(all_results, key=lambda r: r['post_eval_kappa'], reverse=True)
+    # Exclude baseline from top-3 selection (baseline already has 5-fold CV)
+    search_results = sorted(
+        [r for r in all_results if not r['name'].startswith('BASELINE')],
+        key=lambda r: r['post_eval_kappa'], reverse=True
+    )
 
     seen_configs = set()
     top_results = []
@@ -1181,6 +1288,18 @@ def main(fresh: bool = False):
 
     N_FINAL_FOLDS = 5
     top_fold_results = {}
+
+    # Include baseline as the reference point
+    baseline_base_cfg = FusionSearchConfig(name="BASELINE")
+    baseline_base_cfg.n_folds = N_FINAL_FOLDS
+    top_fold_results['BASELINE'] = {
+        'cfg': baseline_base_cfg,
+        'orig_name': 'BASELINE (defaults)',
+        'fold0_kappa': baseline_results[0]['post_eval_kappa'],
+        'fold_results': baseline_results,
+        'mean_kappa': np.mean([fr['post_eval_kappa'] for fr in baseline_results]),
+    }
+
     for rank, r in enumerate(top_results):
         _, base_cfg = pick_best([r])
         base_cfg.n_folds = N_FINAL_FOLDS
@@ -1206,6 +1325,7 @@ def main(fresh: bool = False):
     print(f"FUSION SEARCH COMPLETE — SUMMARY")
     print(f"{'='*80}")
 
+    print(f"  BASELINE: mean_kappa={np.mean(baseline_kappas):.4f} +/- {np.std(baseline_kappas):.4f}")
     for round_name, round_results in [
         ('R1: Fusion LR', r1_results),
         ('R2: Epochs', r2_results),
@@ -1219,20 +1339,35 @@ def main(fresh: bool = False):
         print(f"  {round_name}: {best['name']} -> kappa={best['post_eval_kappa']:.4f}")
 
     print(f"\n{'─'*60}")
-    print("TOP CONFIGS — 5-FOLD RESULTS")
+    print("BASELINE + TOP CONFIGS — 5-FOLD RESULTS")
     print(f"{'─'*60}")
 
-    sorted_top = sorted(top_fold_results.items(),
-                        key=lambda x: x[1]['mean_kappa'], reverse=True)
+    baseline_mean = top_fold_results['BASELINE']['mean_kappa']
 
-    print(f"\n  {'Rank':<6} {'Config':<30} {'Fold0':>7} {'Mean+/-Std':>14}")
-    print(f"  {'-'*60}")
+    # Sort: baseline first, then top configs by mean kappa
+    sorted_top = sorted(
+        [(tag, info) for tag, info in top_fold_results.items() if tag != 'BASELINE'],
+        key=lambda x: x[1]['mean_kappa'], reverse=True
+    )
+    sorted_top = [('BASELINE', top_fold_results['BASELINE'])] + sorted_top
+
+    print(f"\n  {'Rank':<6} {'Config':<30} {'Fold0':>7} {'Mean+/-Std':>14} {'vs Base':>9}")
+    print(f"  {'-'*70}")
     for rank, (tag, info) in enumerate(sorted_top):
         fk = [r['post_eval_kappa'] for r in info['fold_results']]
-        print(f"  {rank+1:<6} {info['orig_name']:<30} {info['fold0_kappa']:>7.4f} "
-              f"{np.mean(fk):>6.4f}+/-{np.std(fk):.4f}")
+        mean_k = np.mean(fk)
+        delta = mean_k - baseline_mean
+        delta_str = '  (ref)' if tag == 'BASELINE' else f'{delta:+.4f}'
+        label = '  BL' if tag == 'BASELINE' else f'  {rank}'
+        print(f"{label:<6} {info['orig_name']:<30} {info['fold0_kappa']:>7.4f} "
+              f"{mean_k:>6.4f}+/-{np.std(fk):.4f} {delta_str:>9}")
 
-    winner_tag, winner_info = sorted_top[0]
+    # Winner is best non-baseline config (or baseline if nothing beats it)
+    non_baseline = [(tag, info) for tag, info in sorted_top if tag != 'BASELINE']
+    if non_baseline and non_baseline[0][1]['mean_kappa'] > baseline_mean:
+        winner_tag, winner_info = non_baseline[0]
+    else:
+        winner_tag, winner_info = 'BASELINE', top_fold_results['BASELINE']
     winner_cfg = winner_info['cfg']
 
     for rank, (tag, info) in enumerate(sorted_top):
@@ -1240,7 +1375,10 @@ def main(fresh: bool = False):
         fold_accs = [r['post_eval_acc'] for r in info['fold_results']]
         fold_f1s = [r['post_eval_f1'] for r in info['fold_results']]
 
-        print(f"\n  #{rank+1}: {info['orig_name']}")
+        delta = np.mean(fold_kappas) - baseline_mean
+        delta_str = '' if tag == 'BASELINE' else f' (delta={delta:+.4f} vs baseline)'
+        label = 'BASELINE' if tag == 'BASELINE' else f'#{rank}'
+        print(f"\n  {label}: {info['orig_name']}{delta_str}")
         print(f"  stage1_lr={info['cfg'].stage1_lr}, epochs={info['cfg'].stage1_epochs}")
         print(f"  meta_scale=[{info['cfg'].meta_min_scale}, {info['cfg'].meta_max_scale}]")
         print(f"  fusion_query_dim={info['cfg'].fusion_query_dim}, l2={info['cfg'].fusion_query_l2}")
