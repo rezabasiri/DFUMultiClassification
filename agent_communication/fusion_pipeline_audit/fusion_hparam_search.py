@@ -2,8 +2,8 @@
 """
 Fusion Pipeline Hyperparameter Search — Standalone Script
 
-Systematically tests fusion-specific training configurations for metadata + image
-combinations to maximize val_cohen_kappa. Uses sequential elimination:
+Systematically tests fusion-specific training configurations for
+metadata + depth_rgb + thermal_map to maximize val_cohen_kappa. Uses sequential elimination:
   Round 1: Fusion learning rate (STAGE1_LR)         (6 configs)
   Round 2: Fusion training epochs                    (4 configs)
   Round 3: Metadata confidence scaling               (6 configs)
@@ -15,14 +15,14 @@ combinations to maximize val_cohen_kappa. Uses sequential elimination:
 Fusion-specific vs standalone searches:
   - Standalone searches optimize backbone, head, loss, augmentation per modality
   - This search optimizes HOW modalities are COMBINED — parameters that only
-    activate when 2+ modalities are present
+    activate when 3 modalities are present
   - All standalone modality configs (backbone, head, etc.) are loaded from
     production_config.MODALITY_CONFIGS and kept fixed during fusion search
-  - Uses metadata+depth_rgb as the reference fusion pair (most common combo)
+  - Fuses metadata + depth_rgb + thermal_map (3-modality fusion)
 
 Prerequisites:
-  - Standalone modality searches must be completed first (depth_rgb, thermal_map, etc.)
-  - Pre-trained standalone checkpoints must exist for weight transfer
+  - Standalone modality searches should be completed first (depth_rgb, thermal_map)
+  - Pre-trained standalone checkpoints improve convergence (optional — trains from scratch if absent)
 
 Usage:
   # Fresh start (backs up old results):
@@ -30,9 +30,6 @@ Usage:
 
   # Resume from where it left off (default):
   python agent_communication/fusion_pipeline_audit/fusion_hparam_search.py
-
-  # Test a different modality pair:
-  python agent_communication/fusion_pipeline_audit/fusion_hparam_search.py --image-modality thermal_map
 
 Results written to: agent_communication/fusion_pipeline_audit/fusion_search_results.csv
 """
@@ -93,7 +90,7 @@ class FusionSearchConfig:
     name: str = "baseline"
 
     # Modalities
-    image_modality: str = "depth_rgb"  # which image modality to fuse with metadata
+    image_modalities: list = field(default_factory=lambda: ["depth_rgb", "thermal_map"])
 
     # Fusion training — Stage 1 (frozen backbone, train fusion layers)
     stage1_lr: float = 1e-4           # STAGE1_LR in production_config
@@ -255,11 +252,17 @@ def apply_mixup(features, labels, alpha=0.2):
 # Model building — fusion-specific
 # ─────────────────────────────────────────────────────────────────────
 
-def build_fusion_model(cfg: FusionSearchConfig, image_input_shape, metadata_input_shape):
-    """Build a metadata + image fusion model with configurable fusion parameters.
+def build_fusion_model(cfg: FusionSearchConfig, image_input_shapes: dict, metadata_input_shape):
+    """Build a metadata + depth_rgb + thermal_map fusion model with configurable fusion parameters.
 
     Uses the project's create_multimodal_model as the base, but patches
     fusion-specific parameters from the search config.
+
+    Args:
+        cfg: Fusion search configuration.
+        image_input_shapes: Dict mapping image modality name to shape, e.g.
+            {'depth_rgb': (256,256,3), 'thermal_map': (256,256,3)}.
+        metadata_input_shape: Shape of metadata input, e.g. (3,).
     """
     import src.utils.production_config as _pcfg
     import src.models.builders as _builders
@@ -327,11 +330,8 @@ def build_fusion_model(cfg: FusionSearchConfig, image_input_shape, metadata_inpu
     _builders.create_fusion_layer = patched_create_fusion
 
     # Build the model using the project's standard builder
-    selected_modalities = ['metadata', cfg.image_modality]
-    input_shapes = {
-        'metadata': metadata_input_shape,
-        cfg.image_modality: image_input_shape,
-    }
+    selected_modalities = ['metadata'] + cfg.image_modalities
+    input_shapes = {'metadata': metadata_input_shape, **image_input_shapes}
 
     from src.models.builders import create_multimodal_model
     model = create_multimodal_model(input_shapes, selected_modalities, None)
@@ -347,14 +347,17 @@ def build_fusion_model(cfg: FusionSearchConfig, image_input_shape, metadata_inpu
 # Data pipeline — reuses project's existing data loading
 # ─────────────────────────────────────────────────────────────────────
 
-def load_data(image_modality='depth_rgb'):
-    """Load the dataset for fusion (metadata + image modality).
+def load_data(image_modalities=None):
+    """Load the dataset for fusion (metadata + depth_rgb + thermal_map).
 
     NOTE: Core data filtering (USE_CORE_DATA) is intentionally DISABLED here.
     The fusion search should use ALL data so that results are not biased by
     thresholds optimized for standalone paths. Filtering can be re-evaluated
     after the best fusion config is found.
     """
+    if image_modalities is None:
+        image_modalities = ["depth_rgb", "thermal_map"]
+
     from src.utils.config import get_project_paths, get_data_paths
     from src.data.image_processing import prepare_dataset
 
@@ -365,10 +368,11 @@ def load_data(image_modality='depth_rgb'):
     depth_bb_file = data_paths['bb_depth_csv']
     thermal_bb_file = data_paths['bb_thermal_csv']
 
-    selected_modalities = ['metadata', image_modality]
+    selected_modalities = ['metadata'] + image_modalities
     data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities)
 
-    print(f"Loaded {len(data)} samples for fusion: metadata + {image_modality}")
+    modalities_str = ' + '.join(selected_modalities)
+    print(f"Loaded {len(data)} samples for fusion: {modalities_str}")
     return data, directory, result_dir
 
 
@@ -386,7 +390,7 @@ def prepare_datasets(data, cfg: FusionSearchConfig, fold_idx=0):
     aug_config.generative_settings['output_size']['width'] = cfg.image_size
     aug_config.generative_settings['output_size']['height'] = cfg.image_size
 
-    selected_modalities = ['metadata', cfg.image_modality]
+    selected_modalities = ['metadata'] + cfg.image_modalities
 
     # Override RF hyperparameters in production_config for this experiment
     import src.utils.production_config as _pcfg
@@ -414,8 +418,9 @@ def prepare_datasets(data, cfg: FusionSearchConfig, fold_idx=0):
     _, search_result_dir, _ = get_project_paths()
     aug_suffix = 'aug' if cfg.use_augmentation else 'noaug'
     rf_key = f"rf{cfg.rf_n_estimators}_d{cfg.rf_max_depth}_l{cfg.rf_min_samples_leaf}_k{cfg.rf_feature_selection_k}"
+    img_key = '_'.join(cfg.image_modalities)
     search_cache_dir = os.path.join(search_result_dir, 'search_cache',
-        f'fusion_meta_{cfg.image_modality}_{cfg.image_size}_{aug_suffix}_{rf_key}')
+        f'fusion_meta_{img_key}_{cfg.image_size}_{aug_suffix}_{rf_key}')
 
     train_ds, pre_aug_ds, valid_ds, steps_per_epoch, val_steps, alpha_values = prepare_cached_datasets(
         data,
@@ -455,78 +460,91 @@ def prepare_datasets(data, cfg: FusionSearchConfig, fold_idx=0):
 def load_pretrained_image_weights(model, cfg: FusionSearchConfig):
     """Load pre-trained standalone image weights into the fusion model.
 
-    Returns True if weights were loaded, False otherwise.
+    Attempts to load standalone checkpoints for each image modality
+    (depth_rgb, thermal_map). Returns True if at least one was loaded.
     """
     from src.training.training_utils import create_checkpoint_filename
     from src.models.builders import create_multimodal_model
 
-    image_modality = cfg.image_modality
+    any_loaded = False
+    loaded_modalities = []
+    failed_modalities = []
 
-    # Look for standalone checkpoint: {modality}_run1_{modality}.ckpt
-    ckpt_base = create_checkpoint_filename([image_modality], 1, image_modality)
+    for image_modality in cfg.image_modalities:
+        # Look for standalone checkpoint: {modality}_run1_{modality}.weights.h5
+        ckpt_base = create_checkpoint_filename([image_modality], 1, image_modality)
 
-    # Try .weights.h5 and .ckpt extensions
-    for ext_path in [ckpt_base, ckpt_base.replace('.ckpt', '.weights.h5')]:
-        if os.path.exists(ext_path) or os.path.exists(ext_path + '.index'):
-            try:
-                # Build temporary standalone model
-                for batch in []:
-                    pass  # Just to get shapes
-                # Infer shapes from fusion model inputs
-                image_input_shape = None
-                for layer in model.layers:
-                    if hasattr(layer, 'input_shape') and image_modality in layer.name:
-                        image_input_shape = layer.input_shape[0][1:]  # Remove batch dim
-                        break
-
-                if image_input_shape is None:
-                    # Fallback: get from model input
-                    for inp_name, inp in model.input.items() if isinstance(model.input, dict) else []:
-                        if image_modality in inp_name:
-                            image_input_shape = inp.shape[1:]
+        found = False
+        # Try .weights.h5 and .ckpt extensions
+        for ext_path in [ckpt_base, ckpt_base.replace('.ckpt', '.weights.h5')]:
+            if os.path.exists(ext_path) or os.path.exists(ext_path + '.index'):
+                try:
+                    # Infer shapes from fusion model inputs
+                    image_input_shape = None
+                    for layer in model.layers:
+                        if hasattr(layer, 'input_shape') and image_modality in layer.name:
+                            image_input_shape = layer.input_shape[0][1:]  # Remove batch dim
                             break
 
-                if image_input_shape is None:
-                    image_input_shape = (cfg.image_size, cfg.image_size, 3)
+                    if image_input_shape is None:
+                        # Fallback: get from model input
+                        for inp_name, inp in model.input.items() if isinstance(model.input, dict) else []:
+                            if image_modality in inp_name:
+                                image_input_shape = inp.shape[1:]
+                                break
 
-                temp_shapes = {image_modality: image_input_shape}
-                temp_model = create_multimodal_model(temp_shapes, [image_modality], None)
+                    if image_input_shape is None:
+                        image_input_shape = (cfg.image_size, cfg.image_size, 3)
 
-                actual_path = ext_path
-                if os.path.exists(ext_path + '.index'):
+                    temp_shapes = {image_modality: image_input_shape}
+                    temp_model = create_multimodal_model(temp_shapes, [image_modality], None)
+
                     actual_path = ext_path
-                temp_model.load_weights(actual_path)
+                    if os.path.exists(ext_path + '.index'):
+                        actual_path = ext_path
+                    temp_model.load_weights(actual_path)
 
-                # Transfer weights by layer name
-                transferred = 0
-                for layer in temp_model.layers:
-                    if image_modality in layer.name:
-                        try:
-                            fusion_layer = model.get_layer(layer.name)
-                            fusion_layer.set_weights(layer.get_weights())
-                            transferred += 1
-                        except (ValueError, Exception):
-                            continue
+                    # Transfer weights by layer name
+                    transferred = 0
+                    for layer in temp_model.layers:
+                        if image_modality in layer.name:
+                            try:
+                                fusion_layer = model.get_layer(layer.name)
+                                fusion_layer.set_weights(layer.get_weights())
+                                transferred += 1
+                            except (ValueError, Exception):
+                                continue
 
-                # Transfer output → image_classifier weights
-                try:
-                    pretrain_output = temp_model.get_layer('output')
-                    fusion_img_cls = model.get_layer('image_classifier')
-                    if pretrain_output.get_weights()[0].shape == fusion_img_cls.get_weights()[0].shape:
-                        fusion_img_cls.set_weights(pretrain_output.get_weights())
-                        transferred += 1
-                except (ValueError, IndexError):
-                    pass
+                    del temp_model
+                    print(f"  Loaded {transferred} pre-trained layers for {image_modality}")
+                    loaded_modalities.append(image_modality)
+                    any_loaded = True
+                    found = True
+                    break
 
-                del temp_model
-                print(f"  Loaded {transferred} pre-trained layers for {image_modality}")
-                return True
+                except Exception as e:
+                    print(f"  WARNING: Failed to load pre-trained weights for {image_modality}: {e}")
 
-            except Exception as e:
-                print(f"  Warning: Failed to load pre-trained weights: {e}")
+        if not found:
+            failed_modalities.append(image_modality)
+            print(f"  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            print(f"  !!!  WARNING: No pre-trained checkpoint found for {image_modality}")
+            print(f"  !!!  Looked for: {ckpt_base}")
+            print(f"  !!!  {image_modality} backbone will train FROM SCRATCH")
+            print(f"  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-    print(f"  Warning: No pre-trained checkpoint found for {image_modality}")
-    return False
+    # Summary
+    if failed_modalities:
+        print(f"\n  ================================================================")
+        print(f"  PRETRAINED WEIGHT SUMMARY:")
+        if loaded_modalities:
+            print(f"    Loaded:  {', '.join(loaded_modalities)}")
+        print(f"    MISSING: {', '.join(failed_modalities)} -- training from scratch!")
+        print(f"  ================================================================\n")
+    else:
+        print(f"  All image modalities loaded pre-trained weights: {', '.join(loaded_modalities)}")
+
+    return any_loaded
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -535,8 +553,9 @@ def load_pretrained_image_weights(model, cfg: FusionSearchConfig):
 
 def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
     """Train a single fusion configuration and return metrics."""
+    modalities_str = '+'.join(['metadata'] + cfg.image_modalities)
     print(f"\n{'='*80}")
-    print(f"CONFIG [FUSION metadata+{cfg.image_modality}]: {cfg.name}")
+    print(f"CONFIG [FUSION {modalities_str}]: {cfg.name}")
     print(f"  stage1_lr={cfg.stage1_lr}, stage1_epochs={cfg.stage1_epochs}")
     print(f"  stage2_lr={cfg.stage2_lr}, stage2_epochs={cfg.stage2_epochs}, unfreeze_pct={cfg.stage2_unfreeze_pct}")
     print(f"  meta_scale=[{cfg.meta_min_scale}, {cfg.meta_max_scale}]")
@@ -566,13 +585,16 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
     # Infer input shapes from dataset
     for batch in train_ds.take(1):
         batch_inputs, batch_labels = batch
-        image_input_shape = batch_inputs[f'{cfg.image_modality}_input'].shape[1:]
+        image_input_shapes = {
+            mod: batch_inputs[f'{mod}_input'].shape[1:]
+            for mod in cfg.image_modalities
+        }
         metadata_input_shape = batch_inputs['metadata_input'].shape[1:]
         break
 
     strategy = _strategy
     with strategy.scope():
-        model = build_fusion_model(cfg, image_input_shape, metadata_input_shape)
+        model = build_fusion_model(cfg, image_input_shapes, metadata_input_shape)
 
         # Load pre-trained image weights and freeze backbone
         pretrained_loaded = load_pretrained_image_weights(model, cfg)
@@ -738,7 +760,7 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
 
     result = {
         'name': cfg.name,
-        'image_modality': cfg.image_modality,
+        'image_modalities': '+'.join(cfg.image_modalities),
         'stage1_lr': cfg.stage1_lr,
         'stage1_epochs': cfg.stage1_epochs,
         'stage2_lr': cfg.stage2_lr,
@@ -953,7 +975,6 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Fusi
 
     cfg = FusionSearchConfig(
         name=best['name'],
-        image_modality=best.get('image_modality', 'depth_rgb'),
         stage1_lr=float(best['stage1_lr']),
         stage1_epochs=int(best['stage1_epochs']),
         stage2_lr=float(best.get('stage2_lr', 1e-5)),
@@ -1046,12 +1067,14 @@ def run_round(round_name: str, configs: List[FusionSearchConfig], data,
 # Main
 # ─────────────────────────────────────────────────────────────────────
 
-def main(fresh: bool = False, image_modality: str = 'depth_rgb'):
+def main(fresh: bool = False):
+    image_modalities = ["depth_rgb", "thermal_map"]
+    modalities_str = ' + '.join(['metadata'] + image_modalities)
     print("=" * 80)
-    print(f"FUSION HYPERPARAMETER SEARCH (metadata + {image_modality})")
+    print(f"FUSION HYPERPARAMETER SEARCH ({modalities_str})")
     print("=" * 80)
 
-    data, directory, result_dir = load_data(image_modality)
+    data, directory, result_dir = load_data(image_modalities)
     results_csv = os.path.join(AUDIT_DIR, 'fusion_search_results.csv')
 
     completed = []
@@ -1067,9 +1090,6 @@ def main(fresh: bool = False, image_modality: str = 'depth_rgb'):
         else:
             print("RESUME MODE — no previous results found, starting from scratch")
 
-    # Set image_modality on all default configs
-    FusionSearchConfig.image_modality = image_modality
-
     all_results = []
 
     print(f"\n{'#'*80}")
@@ -1077,8 +1097,6 @@ def main(fresh: bool = False, image_modality: str = 'depth_rgb'):
     print(f"{'#'*80}")
 
     r1_configs = round1_fusion_lr()
-    for cfg in r1_configs:
-        cfg.image_modality = image_modality
     r1_results = run_round("R1", r1_configs, data, results_csv, completed)
     all_results.extend(r1_results)
     _, best_r1_cfg = pick_best(r1_results)
@@ -1251,12 +1269,9 @@ if __name__ == '__main__':
     import datetime
     import argparse
 
-    parser = argparse.ArgumentParser(description='Fusion Pipeline Hyperparameter Search')
+    parser = argparse.ArgumentParser(description='Fusion Pipeline Hyperparameter Search (metadata + depth_rgb + thermal_map)')
     parser.add_argument('--fresh', action='store_true',
                         help='Start fresh (back up old results). Default: resume from existing CSV.')
-    parser.add_argument('--image-modality', type=str, default='depth_rgb',
-                        choices=['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'],
-                        help='Image modality to fuse with metadata (default: depth_rgb)')
     args = parser.parse_args()
 
     log_dir = os.path.join(AUDIT_DIR, 'logs')
@@ -1284,7 +1299,7 @@ if __name__ == '__main__':
     print(f"Logging to: {log_path}")
 
     try:
-        main(fresh=args.fresh, image_modality=args.image_modality)
+        main(fresh=args.fresh)
     finally:
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
