@@ -46,7 +46,7 @@ apply_environment_config()
 # TensorFlow and Keras
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add
+from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add, Reshape, Multiply, Concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.optimizers import Adam
@@ -185,9 +185,8 @@ csv_file = data_paths['csv_file']
 depth_bb_file = data_paths['bb_depth_csv']
 thermal_bb_file = data_paths['bb_thermal_csv']
 
-# Load bounding box data
-depth_bb = pd.read_csv(depth_bb_file)
-thermal_bb = pd.read_csv(thermal_bb_file)
+# Bounding box data is loaded on demand by prepare_dataset() using the file paths above.
+# No need to read CSVs at module level (avoids crashes if files don't exist yet).
 
 #%% Training Parameters - using production_config values
 image_size = IMAGE_SIZE
@@ -269,12 +268,11 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
 
 
         def on_train_begin(self, logs=None):
-            """Store validation data at the start of training"""
-            if hasattr(self.model, 'validation_data'):
-                self.val_data = self.model.validation_data[0]
-                self.val_labels = self.model.validation_data[1]
-            # else:
-            #     print("Warning: No validation data found in model")
+            """Store validation data at the start of training (only if not already provided)"""
+            if self.val_data is None and self.val_labels is None:
+                if hasattr(self.model, 'validation_data'):
+                    self.val_data = self.model.validation_data[0]
+                    self.val_labels = self.model.validation_data[1]
 
         def analyze_class_specific_attention(self, model_weights, class_weights, predictions, true_labels):
             pred_classes = np.argmax(predictions, axis=1)
@@ -499,8 +497,8 @@ class BestModelAttentionCallback(tf.keras.callbacks.Callback):
             # Only call the attention visualization when metric improves
             self.base_callback.on_epoch_end(epoch, logs)
 class ResidualBlock(tf.keras.layers.Layer):
-    def __init__(self, input_dim, dropout_rate=DROPOUT_RATE):
-        super(ResidualBlock, self).__init__()
+    def __init__(self, input_dim, dropout_rate=DROPOUT_RATE, **kwargs):
+        super(ResidualBlock, self).__init__(**kwargs)
         # Store the arguments as instance attributes
         self._input_dim = input_dim  # using _input_dim to avoid conflict
         self._dropout_rate = dropout_rate
@@ -542,8 +540,8 @@ class ResidualBlock(tf.keras.layers.Layer):
         return inputs + x
 
 class DualLevelAttentionLayer(tf.keras.layers.Layer):
-    def __init__(self, num_heads, key_dim, num_classes):
-        super().__init__()
+    def __init__(self, num_heads, key_dim, num_classes, **kwargs):
+        super().__init__(**kwargs)
         self.num_heads = num_heads
         self.num_classes = num_classes
         self.key_dim = key_dim
@@ -747,34 +745,35 @@ class DynamicLRSchedule(tf.keras.callbacks.Callback):
                 cycle_epoch = 0
                 # Increase cycle length
                 self.cycle_length = int(self.cycle_length * self.cycle_multiplier)
-            
+
             # Cosine annealing within cycle
             progress = cycle_epoch / self.cycle_length
             cosine_decay = 0.5 * (1 + tf.cos(tf.constant(np.pi) * progress))
-            
+
             # Calculate learning rate
             lr = self.min_lr + (self.initial_lr - self.min_lr) * cosine_decay
-            
-            # Adjust based on loss improvement
-            if logs and 'loss' in logs:
-                current_loss = logs['loss']
-                if current_loss < self.best_loss:
-                    self.best_loss = current_loss
-                    self.patience_counter = 0
-                else:
-                    self.patience_counter += 1
-                    # If loss hasn't improved for a while, reduce max learning rate - from production_config
-                    if self.patience_counter >= LR_SCHEDULE_PATIENCE_THRESHOLD:
-                        self.initial_lr *= LR_SCHEDULE_DECAY_FACTOR
-                        self.patience_counter = 0
-        
+
         # Set the learning rate
         tf.keras.backend.set_value(self.model.optimizer.lr, lr)
-        
+
         # Log the learning rate for monitoring
         if logs is None:
             logs = {}
         logs['lr'] = lr
+
+    def on_epoch_end(self, epoch, logs=None):
+        # Adjust initial_lr based on loss improvement (logs available at epoch end)
+        if epoch >= self.exploration_epochs and logs and 'loss' in logs:
+            current_loss = logs['loss']
+            if current_loss < self.best_loss:
+                self.best_loss = current_loss
+                self.patience_counter = 0
+            else:
+                self.patience_counter += 1
+                # If loss hasn't improved for a while, reduce max learning rate - from production_config
+                if self.patience_counter >= LR_SCHEDULE_PATIENCE_THRESHOLD:
+                    self.initial_lr *= LR_SCHEDULE_DECAY_FACTOR
+                    self.patience_counter = 0
 def ImprovedGatingNetwork(num_models=16, num_classes=3):
     input_layer = tf.keras.layers.Input(shape=(num_models, num_classes))
 
@@ -791,9 +790,9 @@ def ImprovedGatingNetwork(num_models=16, num_classes=3):
     
     return tf.keras.Model(inputs=input_layer, outputs=predictions)
 def train_model_combination(train_data, val_data, train_labels, val_labels):
-    tf.random.set_seed(42)
-    np.random.seed(42)
-    random.seed(42)
+    tf.random.set_seed(RANDOM_SEED)
+    np.random.seed(RANDOM_SEED)
+    random.seed(RANDOM_SEED)
 
     # Validate input data
     if train_data is None or len(train_data) == 0:
@@ -848,7 +847,7 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
 
-    weighted_acc = WeightedAccuracy(alpha_values=class_weights, name='weighted_accuracy')
+    weighted_acc = WeightedAccuracy(alpha_values=alpha_values, name='weighted_accuracy')
     
     # with strategy.scope():
     # Build the model
@@ -951,11 +950,6 @@ def process_trial(trial, all_combinations, completed_combinations, train_predict
         return None
     # If this specific combination was already tried, skip
     if selected_key in completed_combinations:
-        return None
-    # Keep track of how many new combinations processed for this model count
-    new_combinations_count = sum(1 for combo in completed_combinations if len(combo) == current_model_count and combo not in completed_combinations)     
-    # Skip if processed enough new combinations to reach max_tries_min
-    if new_combinations_count >= remaining_tries:
         return None
     
     train_predictions_selected = [train_predictions_list[i] for i in selected_indices]
@@ -1378,10 +1372,11 @@ def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=HI
         phase_inputs = tf.keras.layers.Lambda(lambda x: x[:, :, phase])(inputs)
         phase_inputs = Reshape((num_models, 1))(phase_inputs)
         
-        # Learn phase-specific attention
+        # Learn phase-specific attention weights across models
         attention = Dense(embedding_dim, activation='relu')(phase_inputs)
         attention = LayerNormalization()(attention)
-        attention = Dense(1, activation='softmax')(attention)
+        attention = Dense(1)(attention)  # (batch, num_models, 1) - raw logits
+        attention = tf.keras.layers.Softmax(axis=1)(attention)  # softmax across models dimension
         
         # Weight model predictions for this phase
         weighted_phase = Multiply()([phase_inputs, attention])

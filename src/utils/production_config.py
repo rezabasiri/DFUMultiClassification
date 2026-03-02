@@ -253,7 +253,7 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 # When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
 # Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
 # If CSV missing: prints warning and continues with unfiltered data
-USE_CORE_DATA = True  # Use Bayesian-optimized core dataset with misclassification filtering
+USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
 THRESHOLD_I = 9  # Inflammatory class threshold (Bayesian-optimized)
 THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
 THRESHOLD_R = 15  # Remodeling class threshold (higher to protect minority class)
@@ -477,7 +477,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb', 'thermal_map',),  # Temporary: Phase 2 evaluation
+    ('metadata', 'depth_rgb', 'thermal_map',),  
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming
