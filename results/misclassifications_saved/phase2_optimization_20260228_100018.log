@@ -1,124 +1,0 @@
-================================================================================
-PHASE 2 OPTIMIZATION LOG
-Started: 20260228_100018
-Modalities: metadata+depth_rgb+thermal_map
-Total evaluations planned: 30
-CV folds per evaluation: 5
-================================================================================
-
-
-================================================================================
-EVALUATION EVAL_1
-Timestamp: 2026-02-28 10:00:18
-Thresholds: I=9, P=16, R=15
-================================================================================
-
-2026-02-28 10:00:19.405484: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1772272819.443550    7844 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1772272819.457596    7844 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
-[LOG] Started at: 2026-02-28 10:00:28
-
-
-================================================================================
-SUBPROCESS ISOLATION: Running 5 folds in separate processes
-  (Prevents TF/CUDA resource accumulation across folds)
-================================================================================
-
-
-================================================================================
-FOLD 1/5 - Starting in isolated subprocess
-Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode multi --min-gpu-memory 8.0 --fold 1 --resume_mode fresh
-================================================================================
-
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-E0000 00:00:1772272829.008648    8195 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-E0000 00:00:1772272829.016166    8195 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
-[LOG] Started at: 2026-02-28 10:00:37
-
-
-================================================================================
-DEVICE CONFIGURATION (mode: multi)
-================================================================================
-
-Detected 1 GPU(s):
-  GPU 0: NVIDIA GeForce RTX 4090 - 24.0GB (compute 8.9)
-⚠️  Only 1 suitable GPU found - using single GPU mode instead
-
-Selected 1 GPU(s):
-  GPU 0: NVIDIA GeForce RTX 4090 (24.0GB)
-Enabled memory growth for 1 GPU(s)
-Enabled mixed precision (mixed_float16)
-
-Using default strategy (single GPU)
-================================================================================
-
-
-Batch size per replica: 64 (global batch size: 64, replicas: 1)
-
-================================================================================
-DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
-================================================================================
-Mode: search
-Resume mode: fresh
-Data percentage: 100.0%
-Verbosity: 0 (MINIMAL)
-Device: GPU 0 (single GPU mode)
-Cross-validation: 5-fold CV (patient-level)
-
-Configuration loaded from: src/utils/production_config.py
-Image size: 256x256
-Batch size: 64
-Max epochs: 200 (with early stopping)
-Modality search mode: custom
-Will test 1 custom combinations
-================================================================================
-
-
-🧹 FRESH START MODE: Deleting all checkpoints...
-================================================================================
-
-Cleanup Statistics:
-================================================================================
-
-I0000 00:00:1772272839.122847    8195 gpu_device.cc:2022] Created device /device:GPU:0 with 22149 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:3e:00.0, compute capability: 8.9
-
-Data Cleaning Configuration (from production_config.py):
-  Outlier removal: False
-  Misclassification tracking: none
-  Core data filtering: thresholds I=9, P=16, R=15
-
-============================================================
-FILTERING SUMMARY
-============================================================
-Thresholds: I=9, P=16, R=15
-
-Excluded samples per class:
-  Class I: 90 samples
-  Class P: 0 samples
-  Class R: 11 samples
-
-Total unique samples to exclude: 101
-
-Dataset size (rows): 3108 -> 2588 (83.3%)
-Unique samples: 648 -> 547 (removed 101)
-
-Class distribution after filtering:
-  Class I: 440 rows
-  Class P: 1880 rows
-  Class R: 268 rows
-============================================================
-
-I0000 00:00:1772272846.232366    8195 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 22149 MB memory:  -> device: 0, name: NVIDIA GeForce RTX 4090, pci bus id: 0000:3e:00.0, compute capability: 8.9
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-Downloading data from https://storage.googleapis.com/keras-applications/efficientnetb2_notop.h5
-[1m       0/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m0s[0m 0s/step[1m   49152/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:02[0m 2us/step[1m   81920/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m1:10[0m 2us/step[1m  163840/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m45s[0m 1us/step [1m  245760/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m37s[0m 1us/step[1m  360448/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m29s[0m 1us/step[1m  565248/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m21s[0m 1us/step[1m  835584/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m16s[0m 1us/step[1m 1212416/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m12s[0m 0us/step[1m 1589248/31790344[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m10s[0m 0us/step[1m 2301952/31790344[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m7s[0m 0us/step [1m 2826240/31790344[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m6s[0m 0us/step[1m 3629056/31790344[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m5s[0m 0us/step[1m 5128192/31790344[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m 6078464/31790344[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m 7667712/31790344[0m [32m━━━━[0m[37m━━━━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m10747904/31790344[0m [32m━━━━━━[0m[37m━━━━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m12640256/31790344[0m [32m━━━━━━━[0m[37m━━━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m15335424/31790344[0m [32m━━━━━━━━━[0m[37m━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m18759680/31790344[0m [32m━━━━━━━━━━━[0m[37m━━━━━━━━━[0m [1m0s[0m 0us/step[1m21282816/31790344[0m [32m━━━━━━━━━━━━━[0m[37m━━━━━━━[0m [1m0s[0m 0us/step[1m23052288/31790344[0m [32m━━━━━━━━━━━━━━[0m[37m━━━━━━[0m [1m0s[0m 0us/step[1m26460160/31790344[0m [32m━━━━━━━━━━━━━━━━[0m[37m━━━━[0m [1m0s[0m 0us/step[1m28966912/31790344[0m [32m━━━━━━━━━━━━━━━━━━[0m[37m━━[0m [1m0s[0m 0us/step[1m30711808/31790344[0m [32m━━━━━━━━━━━━━━━━━━━[0m[37m━[0m [1m0s[0m 0us/step[1m31790344/31790344[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 0us/step
-Downloading data from https://storage.googleapis.com/keras-applications/efficientnetb0_notop.h5
-[1m       0/16705208[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m0s[0m 0s/step[1m   49152/16705208[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m32s[0m 2us/step[1m   81920/16705208[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m36s[0m 2us/step[1m  163840/16705208[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m23s[0m 1us/step[1m  262144/16705208[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m17s[0m 1us/step[1m  393216/16705208[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m14s[0m 1us/step[1m  638976/16705208[0m [37m━━━━━━━━━━━━━━━━━━━━[0m [1m9s[0m 1us/step [1m  933888/16705208[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m7s[0m 0us/step[1m 1310720/16705208[0m [32m━[0m[37m━━━━━━━━━━━━━━━━━━━[0m [1m5s[0m 0us/step[1m 1753088/16705208[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m4s[0m 0us/step[1m 2523136/16705208[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m3s[0m 0us/step[1m 3153920/16705208[0m [32m━━━[0m[37m━━━━━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m 3940352/16705208[0m [32m━━━━[0m[37m━━━━━━━━━━━━━━━━[0m [1m2s[0m 0us/step[1m 5545984/16705208[0m [32m━━━━━━[0m[37m━━━━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m 6520832/16705208[0m [32m━━━━━━━[0m[37m━━━━━━━━━━━━━[0m [1m1s[0m 0us/step[1m 8224768/16705208[0m [32m━━━━━━━━━[0m[37m━━━━━━━━━━━[0m [1m0s[0m 0us/step[1m11468800/16705208[0m [32m━━━━━━━━━━━━━[0m[37m━━━━━━━[0m [1m0s[0m 0us/step[1m13434880/16705208[0m [32m━━━━━━━━━━━━━━━━[0m[37m━━━━[0m [1m0s[0m 0us/step[1m15745024/16705208[0m [32m━━━━━━━━━━━━━━━━━━[0m[37m━━[0m [1m0s[0m 0us/step[1m16705208/16705208[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 0us/step
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-I0000 00:00:1772272911.124692    8484 cuda_dnn.cc:529] Loaded cuDNN version 91002
-Epoch 31: early stopping
-Restoring model weights from the end of the best epoch: 11.

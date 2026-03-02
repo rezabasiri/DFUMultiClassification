@@ -256,7 +256,7 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 USE_CORE_DATA = True  # Use Bayesian-optimized core dataset with misclassification filtering
 THRESHOLD_I = 9  # Inflammatory class threshold (Bayesian-optimized)
 THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
-THRESHOLD_R = 15  # Remodeling class threshold (higher to protect minority class)
+THRESHOLD_R = 14  # Remodeling class threshold (higher to protect minority class)
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)
