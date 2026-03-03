@@ -81,6 +81,21 @@ _strategy, _selected_gpus = setup_device_strategy(mode='multi')
 from src.utils.config import RANDOM_SEED
 from src.models.losses import get_focal_ordinal_loss
 
+# Load standalone best configs for pre-training — ensures each image arm in fusion
+# is pre-trained with the exact same hyperparameters that were optimized by the
+# standalone pipeline audits.  Keys: modality name -> dict of training params.
+_STANDALONE_CONFIGS = {}
+for _mod, _cfg_file in [
+    ('depth_rgb', 'depth_rgb_pipeline_audit/depth_rgb_best_config.json'),
+    # Add other modalities here as they are audited:
+    # ('thermal_map', 'thermal_map_pipeline_audit/thermal_map_best_config.json'),
+]:
+    _cfg_path = os.path.join(PROJECT_ROOT, 'agent_communication', _cfg_file)
+    if os.path.exists(_cfg_path):
+        with open(_cfg_path, 'r') as _f:
+            _STANDALONE_CONFIGS[_mod] = json.load(_f)
+            print(f"  Loaded standalone config for {_mod}: {_cfg_path}")
+
 # Cache pre-trained image weights per (modality, fold) to avoid redundant training.
 # All configs in the same fold use the same data split and the same pre-training
 # hyperparams, so the pre-trained weights are identical.
@@ -147,8 +162,8 @@ class FusionSearchConfig:
     mixup_alpha: float = 0.2
     image_size: int = 256
 
-    # Cross-validation
-    n_folds: int = 3
+    # Cross-validation (5-fold to match standalone audits — 3-fold gives different splits!)
+    n_folds: int = 5
     fold: int = 0
 
 
@@ -513,14 +528,15 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
 
     strategy = _strategy
 
-    # ── Step 1: Pre-train each image modality (frozen backbone, head-only) ──
-    # Matches src/main.py approach: train image branches standalone FIRST,
-    # then freeze backbone during fusion.  Without this, the ~12M backbone
-    # params overfit on ~2K images (Train 0.96, Val 0.02).
+    # ── Step 1: Pre-train each image modality using standalone-matched params ──
+    # Each image arm is pre-trained with the EXACT hyperparameters from its
+    # standalone pipeline audit (loaded from _STANDALONE_CONFIGS).  This ensures
+    # the pre-training kappa matches the standalone result (e.g., depth_rgb
+    # fold 0 ≈ 0.3144).  Falls back to production_config defaults when no
+    # standalone config is available for a modality.
     from src.models.builders import create_multimodal_model as _create_mm
     from src.utils.production_config import PRETRAIN_LR, N_EPOCHS, EARLY_STOP_PATIENCE, REDUCE_LR_PATIENCE
 
-    pretrain_epochs = N_EPOCHS  # Use same budget as main pipeline
     pretrained_weights = {}  # modality -> {layer_name: weights}
 
     for image_modality in cfg.image_modalities:
@@ -532,10 +548,30 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
             print(f"\n  PRE-TRAINING: {image_modality} — using cached weights (fold {fold_idx})")
             continue
 
-        print(f"\n  PRE-TRAINING: {image_modality} (frozen backbone, head-only)")
+        # Resolve pre-training hyperparameters: standalone config (preferred) → production_config fallback
+        sa_cfg = _STANDALONE_CONFIGS.get(image_modality, {})
+        pt_lr            = sa_cfg.get('learning_rate', PRETRAIN_LR)             # standalone: 1e-3
+        pt_epochs        = sa_cfg.get('stage1_epochs', N_EPOCHS)                # standalone: 100
+        pt_es_patience   = sa_cfg.get('early_stop_patience', EARLY_STOP_PATIENCE)  # standalone: 15
+        pt_rlr_patience  = sa_cfg.get('reduce_lr_patience', REDUCE_LR_PATIENCE)    # standalone: 7
+        pt_gamma         = sa_cfg.get('focal_gamma', cfg.focal_gamma)           # standalone: 2.0
+        pt_label_smooth  = sa_cfg.get('label_smoothing', 0.0)                   # standalone: 0.0
+        pt_alpha_sum     = sa_cfg.get('alpha_sum', cfg.alpha_sum)               # standalone: 3.0
+        # Stage 2 fine-tuning (missing in previous version!)
+        pt_ft_epochs     = sa_cfg.get('finetune_epochs', 0)                     # standalone: 30
+        pt_ft_lr         = sa_cfg.get('finetune_lr', 1e-5)                      # standalone: 1e-5
+        pt_unfreeze_pct  = sa_cfg.get('unfreeze_pct', 0.2)                      # standalone: 0.2
+
+        has_sa_cfg = bool(sa_cfg)
+        print(f"\n  PRE-TRAINING: {image_modality} "
+              f"({'standalone config' if has_sa_cfg else 'production_config fallback'})")
+        print(f"    lr={pt_lr}, epochs={pt_epochs}, es_patience={pt_es_patience}, "
+              f"rlr_patience={pt_rlr_patience}")
+        if pt_ft_epochs > 0:
+            print(f"    Stage 2: finetune_epochs={pt_ft_epochs}, finetune_lr={pt_ft_lr}, "
+                  f"unfreeze_pct={pt_unfreeze_pct}")
 
         # Build standalone dataset for just this image modality (same patient split)
-        # This matches how main.py pre-trains: standalone model with standalone dataset
         from src.data.dataset_utils import create_patient_folds as _cpf, prepare_cached_datasets as _pcd
         from src.data.generative_augmentation_v3 import AugmentationConfig as _AugCfg
         from src.utils.config import get_project_paths as _gpp
@@ -564,6 +600,15 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
             cache_dir=pt_cache_dir,
         )
 
+        # Compute alpha values for this pre-training (same as standalone)
+        if pt_alpha_sum == 0:
+            pt_alpha_list = [1.0, 1.0, 1.0]
+        else:
+            pt_alpha_arr = np.array(pt_alpha)
+            pt_alpha_arr = pt_alpha_arr / pt_alpha_arr.sum() * pt_alpha_sum
+            pt_alpha_list = pt_alpha_arr.tolist()
+        print(f"    Alpha values (sum={pt_alpha_sum}): {[round(a, 3) for a in pt_alpha_list]}")
+
         # Remove sample_id from datasets
         def _rm_sid(features, labels):
             return {k: v for k, v in features.items() if k != 'sample_id'}, labels
@@ -582,22 +627,21 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
             pt_trainable = len(pretrain_model.trainable_weights)
             print(f"    Trainable weights: {pt_trainable} (backbone frozen)")
 
-            # Use same loss as standalone audits (make_focal_loss equivalent)
-            pt_loss = make_focal_loss(gamma=cfg.focal_gamma, alpha=alpha_list,
-                                      label_smoothing=0.0)  # Standalone audits used 0.0
+            pt_loss = make_focal_loss(gamma=pt_gamma, alpha=pt_alpha_list,
+                                      label_smoothing=pt_label_smooth)
             pretrain_model.compile(
-                optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
+                optimizer=Adam(learning_rate=pt_lr, clipnorm=1.0),
                 loss=pt_loss,
-                metrics=['accuracy', CohenKappaMetric(num_classes=3)],
-                jit_compile=True
+                metrics=['accuracy', CohenKappaMetric(num_classes=3)]
             )
 
         pt_train_dis = strategy.experimental_distribute_dataset(pt_train_ds)
         pt_valid_dis = strategy.experimental_distribute_dataset(pt_valid_ds)
 
+        # Stage 1: Head-only training (backbone frozen)
         pt_callbacks = [
             EarlyStopping(
-                patience=EARLY_STOP_PATIENCE,
+                patience=pt_es_patience,
                 restore_best_weights=True,
                 monitor='val_cohen_kappa',
                 min_delta=0.001,
@@ -606,17 +650,17 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
             ),
             ReduceLROnPlateau(
                 factor=0.50,
-                patience=REDUCE_LR_PATIENCE,
+                patience=pt_rlr_patience,
                 monitor='val_cohen_kappa',
-                min_delta=0.0005,
-                min_lr=1e-8,
+                min_delta=0.001,
+                min_lr=1e-7,
                 mode='max',
             ),
         ]
 
         pt_history = pretrain_model.fit(
             pt_train_dis,
-            epochs=pretrain_epochs,
+            epochs=pt_epochs,
             steps_per_epoch=pt_steps,
             validation_data=pt_valid_dis,
             validation_steps=pt_val_steps,
@@ -627,7 +671,85 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
         pt_kappas = pt_history.history.get('val_cohen_kappa', [])
         pt_best = max(pt_kappas) if pt_kappas else 0.0
         pt_best_ep = int(np.argmax(pt_kappas)) + 1 if pt_kappas else 0
-        print(f"    Pre-train best: val_kappa={pt_best:.4f} at epoch {pt_best_ep}/{len(pt_kappas)}")
+        print(f"    Stage 1 best: val_kappa={pt_best:.4f} at epoch {pt_best_ep}/{len(pt_kappas)}")
+
+        # Stage 2: Fine-tuning (partial backbone unfreeze + lower LR)
+        # This was MISSING — the standalone script runs finetune_epochs=30 with
+        # unfreeze_pct=0.2 and finetune_lr=1e-5 after Stage 1.
+        if pt_ft_epochs > 0:
+            base_model_layers = None
+            for layer in pretrain_model.layers:
+                if hasattr(layer, 'layers'):  # Sub-model (EfficientNet backbone)
+                    base_model_layers = layer
+                    break
+
+            if base_model_layers is not None:
+                base_model_layers.trainable = True
+                n_layers = len(base_model_layers.layers)
+                freeze_until = int(n_layers * (1.0 - pt_unfreeze_pct))
+                for sub_layer in base_model_layers.layers[:freeze_until]:
+                    sub_layer.trainable = False
+                unfrozen_count = n_layers - freeze_until
+                print(f"    Stage 2: unfreezing top {pt_unfreeze_pct*100:.0f}% "
+                      f"({unfrozen_count}/{n_layers} layers)")
+
+                with strategy.scope():
+                    pretrain_model.compile(
+                        optimizer=Adam(learning_rate=pt_ft_lr, clipnorm=1.0),
+                        loss=pt_loss,
+                        metrics=['accuracy', CohenKappaMetric(num_classes=3)]
+                    )
+
+                s2_callbacks = [
+                    EarlyStopping(
+                        patience=10,
+                        restore_best_weights=True,
+                        monitor='val_cohen_kappa',
+                        min_delta=0.001,
+                        mode='max',
+                        verbose=1
+                    ),
+                    ReduceLROnPlateau(
+                        factor=0.50,
+                        patience=5,
+                        monitor='val_cohen_kappa',
+                        min_delta=0.001,
+                        min_lr=1e-8,
+                        mode='max',
+                    ),
+                ]
+
+                s2_history = pretrain_model.fit(
+                    pt_train_dis,
+                    epochs=pt_ft_epochs,
+                    steps_per_epoch=pt_steps,
+                    validation_data=pt_valid_dis,
+                    validation_steps=pt_val_steps,
+                    callbacks=s2_callbacks,
+                    verbose=0
+                )
+
+                s2_kappas = s2_history.history.get('val_cohen_kappa', [])
+                s2_best = max(s2_kappas) if s2_kappas else 0.0
+                s2_best_ep = int(np.argmax(s2_kappas)) + 1 if s2_kappas else 0
+                print(f"    Stage 2 best: val_kappa={s2_best:.4f} at epoch {s2_best_ep}/{len(s2_kappas)}")
+
+        # Post-eval: compute sklearn kappa on validation set for direct comparison
+        # with standalone results (e.g., depth_rgb fold 0 target ≈ 0.3144)
+        pt_y_true = []
+        pt_y_pred = []
+        for batch in pt_valid_ds:
+            batch_inputs, batch_labels = batch
+            batch_pred = pretrain_model.predict(batch_inputs, verbose=0)
+            pt_y_true.extend(np.argmax(batch_labels.numpy(), axis=1))
+            pt_y_pred.extend(np.argmax(batch_pred, axis=1))
+        pt_y_true = np.array(pt_y_true)
+        pt_y_pred = np.array(pt_y_pred)
+        pt_post_kappa = cohen_kappa_score(pt_y_true, pt_y_pred, weights='quadratic')
+        pt_post_acc = accuracy_score(pt_y_true, pt_y_pred)
+        pt_post_f1 = f1_score(pt_y_true, pt_y_pred, average='macro', zero_division=0)
+        print(f"    Pre-train POST-EVAL: kappa={pt_post_kappa:.4f}, acc={pt_post_acc:.4f}, "
+              f"f1={pt_post_f1:.4f} (n={len(pt_y_true)})")
 
         # Save weights for transfer to fusion model
         pretrained_weights[image_modality] = {}
