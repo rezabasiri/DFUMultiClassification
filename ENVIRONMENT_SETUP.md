@@ -7,6 +7,9 @@
 - CUDA 12.8+ compatible driver
 - ~50GB disk space (models, data, checkpoints)
 
+## Goal is to create environment 
+"source /opt/miniforge3/bin/activate multimodal"
+
 ## Option A: Conda (Recommended)
 
 ```bash
