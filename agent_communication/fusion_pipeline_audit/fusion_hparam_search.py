@@ -117,6 +117,7 @@ _STANDALONE_CONFIGS = {
         'finetune_lr': 1e-5,
         'finetune_epochs': 30,
         'unfreeze_pct': 0.2,
+        'freeze_bn_in_stage2': False,  # depth_rgb standalone does NOT freeze BN in stage 2
     },
     'thermal_map': {
         'backbone': 'EfficientNetB0',
@@ -145,6 +146,7 @@ _STANDALONE_CONFIGS = {
         'finetune_lr': 1e-5,
         'finetune_epochs': 30,
         'unfreeze_pct': 0.2,
+        'freeze_bn_in_stage2': True,  # thermal_map standalone freezes BN in stage 2
     },
 }
 for _mod, _cfg in _STANDALONE_CONFIGS.items():
@@ -722,15 +724,17 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
             _pcfg.USE_GENERAL_AUGMENTATION = False
             _ds_utils.USE_GENERAL_AUGMENTATION = False
 
-        # Set backbone for data pipeline normalization:
-        # depth_rgb uses RGB_BACKBONE, depth_map/thermal_map use MAP_BACKBONE
+        # Set backbone for data pipeline normalization — match standalone exactly.
+        # Standalone scripts force 'EfficientNetB0' to keep [0,255] pipeline for
+        # ALL pretrained backbones (EfficientNet has built-in Rescaling, others get
+        # preprocess_input inside the model). We do the same here.
         is_rgb = (image_modality == 'depth_rgb')
         if is_rgb:
-            _pcfg.RGB_BACKBONE = pt_backbone
-            _ds_utils.RGB_BACKBONE = pt_backbone
+            _pcfg.RGB_BACKBONE = 'EfficientNetB0'
+            _ds_utils.RGB_BACKBONE = 'EfficientNetB0'
         else:
-            _pcfg.MAP_BACKBONE = pt_backbone
-            _ds_utils.MAP_BACKBONE = pt_backbone
+            _pcfg.MAP_BACKBONE = 'EfficientNetB0'
+            _ds_utils.MAP_BACKBONE = 'EfficientNetB0'
 
         _, pt_result_dir, _ = _gpp()
         pt_aug_suffix = 'aug' if pt_use_aug else 'noaug'
@@ -767,18 +771,30 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
             pt_alpha_list = pt_alpha_arr.tolist()
         print(f"    Alpha values (sum={pt_alpha_sum}): {[round(a, 3) for a in pt_alpha_list]}")
 
-        # Remove sample_id from datasets
-        def _rm_sid(features, labels):
-            return {k: v for k, v in features.items() if k != 'sample_id'}, labels
-        pt_train_ds = pt_train_ds.map(_rm_sid, num_parallel_calls=tf.data.AUTOTUNE)
-        pt_valid_ds = pt_valid_ds.map(_rm_sid, num_parallel_calls=tf.data.AUTOTUNE)
+        # Remove sample_id and extract the single image tensor for pre-training.
+        # The model Input is named '{modality}_input' and the dataset produces
+        # {'sample_id': ..., '{modality}_input': tensor}. Extracting the tensor
+        # directly avoids Keras warnings about input structure mismatch.
+        _pt_input_key = f'{image_modality}_input'
+        def _extract_image(features, labels):
+            return features[_pt_input_key], labels
+        pt_train_ds = pt_train_ds.map(_extract_image, num_parallel_calls=tf.data.AUTOTUNE)
+        pt_valid_ds = pt_valid_ds.map(_extract_image, num_parallel_calls=tf.data.AUTOTUNE)
 
         # Apply mixup if standalone config uses it
         if pt_use_mixup:
             _mixup_a = pt_mixup_alpha
+            def _pt_mixup(img, labels):
+                batch_size = tf.shape(img)[0]
+                u1 = tf.random.uniform([], 0.0, 1.0)
+                u2 = tf.random.uniform([], 0.0, 1.0)
+                lam = tf.maximum(u1, u2) if _mixup_a <= 0.3 else (u1 + u2) / 2.0
+                indices = tf.random.shuffle(tf.range(batch_size))
+                mixed_img = lam * img + (1.0 - lam) * tf.gather(img, indices)
+                mixed_labels = lam * labels + (1.0 - lam) * tf.gather(labels, indices)
+                return mixed_img, mixed_labels
             pt_train_ds = pt_train_ds.map(
-                lambda f, l: apply_mixup(f, l, alpha=_mixup_a),
-                num_parallel_calls=tf.data.AUTOTUNE
+                _pt_mixup, num_parallel_calls=tf.data.AUTOTUNE
             )
 
         with strategy.scope():
@@ -845,16 +861,23 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0):
         print(f"    Stage 1 best: val_kappa={pt_best:.4f} at epoch {pt_best_ep}/{len(pt_kappas)}")
 
         # Stage 2: Fine-tuning (partial backbone unfreeze + lower LR)
-        # Matches standalone: base_model.trainable=True, freeze bottom layers
+        # Matches standalone exactly: base_model.trainable=True, freeze bottom layers,
+        # and optionally freeze all BN layers (thermal_map standalone does this).
         if pt_ft_epochs > 0 and pt_base_model is not None:
             pt_base_model.trainable = True
             n_layers = len(pt_base_model.layers)
             freeze_until = int(n_layers * (1.0 - pt_unfreeze_pct))
             for sub_layer in pt_base_model.layers[:freeze_until]:
                 sub_layer.trainable = False
+            # Freeze BN layers if standalone config does so (e.g. thermal_map)
+            if sa_cfg.get('freeze_bn_in_stage2', False):
+                for sub_layer in pt_base_model.layers:
+                    if isinstance(sub_layer, tf.keras.layers.BatchNormalization):
+                        sub_layer.trainable = False
             unfrozen_count = n_layers - freeze_until
+            bn_note = ", BN frozen" if sa_cfg.get('freeze_bn_in_stage2', False) else ""
             print(f"    Stage 2: unfreezing top {pt_unfreeze_pct*100:.0f}% "
-                  f"({unfrozen_count}/{n_layers} layers)")
+                  f"({unfrozen_count}/{n_layers} layers{bn_note})")
 
             with strategy.scope():
                 if pt_optimizer == 'adamw':

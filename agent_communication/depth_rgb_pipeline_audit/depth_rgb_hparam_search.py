@@ -121,7 +121,7 @@ class SearchConfig:
     unfreeze_pct: float = 0.2  # Fraction of backbone to unfreeze in stage 2 (0.2=top 20%)
 
     # Cross-validation
-    n_folds: int = 3  # Number of CV folds (3 for screening rounds, 5 for final validation)
+    n_folds: int = 5  # 5-fold throughout — matches fusion pipeline splits  # Number of CV folds (3 for screening rounds, 5 for final validation)
     fold: int = 0  # Which fold to run (0-indexed)
 
 
@@ -399,6 +399,10 @@ def load_data():
             print(f"  Warning: Core data filtering failed: {e}")
 
     print(f"Loaded {len(data)} samples")
+    if 'Healing Phase Abs' in data.columns:
+        class_dist = data['Healing Phase Abs'].value_counts().sort_index()
+        print(f"  Class distribution: {dict(class_dist)}")
+        print(f"  Unique patients: {data['Patient#'].nunique()}")
     return data, directory, result_dir
 
 
@@ -417,6 +421,12 @@ def prepare_datasets(data, cfg: SearchConfig, fold_idx=0):
     # Get patient folds
     patient_folds = create_patient_folds(data, n_folds=cfg.n_folds, random_state=42)
     train_patients, valid_patients = patient_folds[fold_idx]
+
+    train_mask = data['Patient#'].isin(train_patients)
+    valid_mask = data['Patient#'].isin(valid_patients)
+    print(f"  [FOLD] n_folds={cfg.n_folds}, fold_idx={fold_idx}, "
+          f"train={train_mask.sum()} samples ({len(train_patients)} patients), "
+          f"valid={valid_mask.sum()} samples ({len(valid_patients)} patients)")
 
     # Augmentation
     aug_config = AugmentationConfig()
@@ -468,6 +478,10 @@ def prepare_datasets(data, cfg: SearchConfig, fold_idx=0):
         valid_patients=valid_patients,
         cache_dir=search_cache_dir,
     )
+
+    print(f"  [CACHE] {search_cache_dir}")
+    print(f"  [PIPELINE] steps={steps_per_epoch}, val_steps={val_steps}, "
+          f"alpha={[round(a, 4) for a in alpha_values]}")
 
     # Restore overridden globals
     _pcfg.USE_GENERAL_AUGMENTATION = original_aug
@@ -522,6 +536,7 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     print(f"  augmentation={cfg.use_augmentation}, mixup={cfg.use_mixup}({cfg.mixup_alpha})")
     print(f"  label_smooth={cfg.label_smoothing}, image_size={cfg.image_size}, fold={fold_idx}")
     print(f"  unfreeze_pct={cfg.unfreeze_pct}, finetune_lr={cfg.finetune_lr}, finetune_epochs={cfg.finetune_epochs}")
+    print(f"  [CONFIG_DICT] {json.dumps(asdict(cfg), indent=None, default=str)}")
     print(f"{'='*80}")
 
     start_time = time.time()
@@ -734,6 +749,8 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     elapsed = time.time() - start_time
     print(f"\n  POST-EVAL: kappa={kappa:.4f}, acc={accuracy:.4f}, f1={f1_macro:.4f}")
     print(f"  Confusion matrix:\n{cm}")
+    from sklearn.metrics import classification_report
+    print(f"  Per-class report:\n{classification_report(y_true_v, y_pred_v, target_names=['I','P','R'], labels=[0,1,2], zero_division=0)}")
     print(f"  Time: {elapsed:.0f}s")
 
     # Overall best kappa (max of stage1 and stage2)
@@ -1005,6 +1022,10 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Sear
     best = max(results, key=lambda r: r[metric])
     print(f"\n  BEST from this round: {best['name']} "
           f"(kappa={best['post_eval_kappa']:.4f}, s1_kappa={best['best_s1_kappa']:.4f})")
+    print(f"  → Config: backbone={best['backbone']}, head={best['head_units']}, "
+          f"lr={best['learning_rate']}, loss={best['loss_type']}, "
+          f"epochs={best['stage1_epochs']}+{best.get('finetune_epochs',0)}ft, "
+          f"img={best['image_size']}, n_val={best['n_val_samples']}")
 
     # Reconstruct config from result
     # Handle string values that may come back from CSV
@@ -1122,6 +1143,23 @@ def main(fresh: bool = False):
         if os.path.exists(results_csv):
             os.rename(results_csv, results_csv + '.bak')
             print(f"FRESH START — backed up old results to {results_csv}.bak")
+        # Delete search cache for this modality to avoid stale data
+        import shutil
+        from src.utils.config import get_project_paths as _gpp
+        _, _search_result_dir, _ = _gpp()
+        _cache_base = os.path.join(_search_result_dir, 'search_cache')
+        if os.path.exists(_cache_base):
+            _deleted = []
+            for _item in os.listdir(_cache_base):
+                if _item.startswith(f'{MODALITY}_'):
+                    shutil.rmtree(os.path.join(_cache_base, _item))
+                    _deleted.append(_item)
+            if _deleted:
+                print(f"FRESH START — deleted {len(_deleted)} cache dirs: {_deleted}")
+            else:
+                print(f"FRESH START — no {MODALITY} cache dirs found to delete")
+        else:
+            print(f"FRESH START — no search_cache directory found")
     else:
         completed = load_completed_results(results_csv)
         if completed:
@@ -1198,9 +1236,9 @@ def main(fresh: bool = False):
 
     best_r6_result, best_r6_cfg = pick_best(r6_results)
 
-    # ─── Top 5 Selection: Pick top 5 configs from all rounds ───
+    # ─── Top 3 Selection: Pick top 3 configs from all rounds ───
     print(f"\n{'#'*80}")
-    print("TOP 5 SELECTION: 5-FOLD VALIDATION OF BEST CONFIGS")
+    print("TOP 3 SELECTION: 5-FOLD VALIDATION OF BEST CONFIGS")
     print(f"{'#'*80}")
 
     # Collect all single-fold results from rounds 1-6, sort by kappa
@@ -1212,7 +1250,7 @@ def main(fresh: bool = False):
     # De-duplicate by config identity (same backbone+freeze+head+loss+lr combo can appear
     # in multiple rounds if it won and was carried forward)
     seen_configs = set()
-    top5_results = []
+    top3_results = []
     for r in search_results:
         # Build a config fingerprint from the training-relevant fields
         fingerprint = (
@@ -1229,21 +1267,22 @@ def main(fresh: bool = False):
         )
         if fingerprint not in seen_configs:
             seen_configs.add(fingerprint)
-            top5_results.append(r)
-        if len(top5_results) == 5:
+            top3_results.append(r)
+            print(f"  Selected TOP3 #{len(top3_results)}: {r['name']} → kappa={r['post_eval_kappa']:.4f}")
+        if len(top3_results) == 3:
             break
 
-    print(f"\nTop 5 configs by fold-0 kappa:")
-    for i, r in enumerate(top5_results):
+    print(f"\nTop 3 configs by fold-0 kappa:")
+    for i, r in enumerate(top3_results):
         print(f"  {i+1}. {r['name']} → kappa={r['post_eval_kappa']:.4f}")
 
-    # Run each top-5 config on all 5 folds (independent 5-fold CV for robust comparison)
+    # Run each top-3 config on all 5 folds (independent 5-fold CV for robust comparison)
     N_FINAL_FOLDS = 5
-    top5_fold_results = {}  # name → {cfg, fold_results}
-    for rank, r in enumerate(top5_results):
+    top3_fold_results = {}  # name → {cfg, fold_results}
+    for rank, r in enumerate(top3_results):
         _, base_cfg = pick_best([r])  # Reconstruct SearchConfig from result dict
         base_cfg.n_folds = N_FINAL_FOLDS
-        tag = f"TOP5_{rank+1}"
+        tag = f"TOP3_{rank+1}"
         fold_configs = []
         for fold_idx in range(N_FINAL_FOLDS):
             cfg = deepcopy(base_cfg)
@@ -1252,7 +1291,7 @@ def main(fresh: bool = False):
             fold_configs.append(cfg)
         fold_results = run_round(tag, fold_configs, data, results_csv, completed)
         all_results.extend(fold_results)
-        top5_fold_results[tag] = {
+        top3_fold_results[tag] = {
             'cfg': base_cfg,
             'orig_name': r['name'],
             'fold0_kappa': r['post_eval_kappa'],
@@ -1299,7 +1338,7 @@ def main(fresh: bool = False):
         best = max(round_results, key=lambda r: r['post_eval_kappa'])
         print(f"  {round_name}: {best['name']} → kappa={best['post_eval_kappa']:.4f}")
 
-    # Helper to print config + 3-fold metrics
+    # Helper to print config + fold metrics
     def print_config_summary(label, cfg, fold_results):
         print(f"\n{label}:")
         print(f"  backbone={cfg.backbone}, freeze={cfg.freeze}")
@@ -1325,24 +1364,24 @@ def main(fresh: bool = False):
 
         return fold_kappas, fold_accs, fold_f1s
 
-    # ─── Top 5 Leaderboard ───
+    # ─── Top 3 Leaderboard ───
     print(f"\n{'─'*60}")
-    print("TOP 5 CONFIGS — 5-FOLD RESULTS")
+    print("TOP 3 CONFIGS — 5-FOLD RESULTS")
     print(f"{'─'*60}")
 
-    # Sort top 5 by 3-fold mean kappa
-    sorted_top5 = sorted(top5_fold_results.items(),
+    # Sort top 3 by 5-fold mean kappa
+    sorted_top3 = sorted(top3_fold_results.items(),
                          key=lambda x: x[1]['mean_kappa'], reverse=True)
 
     print(f"\n  {'Rank':<6} {'Config':<30} {'Fold0':>7} {'Mean±Std':>14}")
     print(f"  {'-'*60}")
-    for rank, (tag, info) in enumerate(sorted_top5):
+    for rank, (tag, info) in enumerate(sorted_top3):
         fk = [r['post_eval_kappa'] for r in info['fold_results']]
         print(f"  {rank+1:<6} {info['orig_name']:<30} {info['fold0_kappa']:>7.4f} "
               f"{np.mean(fk):>6.4f}±{np.std(fk):.4f}")
 
-    # The overall winner is the top-5 config with highest 3-fold mean kappa
-    winner_tag, winner_info = sorted_top5[0]
+    # The overall winner is the top-3 config with highest 5-fold mean kappa
+    winner_tag, winner_info = sorted_top3[0]
     winner_cfg = winner_info['cfg']
     winner_fold_results = winner_info['fold_results']
 
@@ -1351,8 +1390,8 @@ def main(fresh: bool = False):
     print("DETAILED RESULTS")
     print(f"{'─'*60}")
 
-    # Print each top-5 config
-    for rank, (tag, info) in enumerate(sorted_top5):
+    # Print each top-3 config
+    for rank, (tag, info) in enumerate(sorted_top3):
         print_config_summary(
             f"#{rank+1}: {info['orig_name']} ({tag})",
             info['cfg'], info['fold_results'])
