@@ -3,13 +3,15 @@
 Thermal Map Hyperparameter Search — Standalone Script
 
 Systematically tests architecture and training configurations for thermal_map
-standalone to maximize val_cohen_kappa. Uses sequential elimination:
+standalone to maximize val_cohen_kappa. Uses Top-K R1 carry-forward with
+sequential elimination within each branch:
   Round 1: Backbone + freeze strategy  (8 configs)
-  Round 2: Head architecture            (5 configs)
-  Round 3: Loss + regularization        (12 configs)
-  Round 4: Training dynamics            (8 configs)
-  Round 5: Augmentation + image size    (4 configs)
-  Round 6: Fine-tuning strategy         (4 configs)
+           → Top-3 R1 winners each get their own independent R2–R6 branch
+  Round 2: Head architecture            (5 configs per branch)
+  Round 3: Loss + regularization        (12 configs per branch)
+  Round 4: Training dynamics            (8 configs per branch)
+  Round 5: Augmentation + image size    (4 configs per branch)
+  Round 6: Fine-tuning strategy         (6 configs per branch)
 
 Map-specific adjustments vs depth_rgb search:
   - SimpleCNN uses 3 layers (128→64→32) instead of 4 — maps are simpler
@@ -126,6 +128,7 @@ class SearchConfig:
     finetune_lr: float = 1e-5
     finetune_epochs: int = 30
     unfreeze_pct: float = 0.2
+    freeze_bn_in_stage2: bool = True  # Freeze BatchNorm in stage 2 (default True for thermal_map)
 
     # Cross-validation
     n_folds: int = 5  # 5-fold throughout — matches fusion pipeline splits
@@ -616,11 +619,13 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         freeze_until = int(n_layers * (1.0 - cfg.unfreeze_pct))
         for layer in base_model.layers[:freeze_until]:
             layer.trainable = False
-        for layer in base_model.layers:
-            if isinstance(layer, tf.keras.layers.BatchNormalization):
-                layer.trainable = False
+        if cfg.freeze_bn_in_stage2:
+            for layer in base_model.layers:
+                if isinstance(layer, tf.keras.layers.BatchNormalization):
+                    layer.trainable = False
         unfrozen_count = n_layers - freeze_until
-        print(f"  Stage 2: unfreezing top {cfg.unfreeze_pct*100:.0f}% ({unfrozen_count}/{n_layers} layers, BN frozen)")
+        bn_note = ", BN frozen" if cfg.freeze_bn_in_stage2 else ""
+        print(f"  Stage 2: unfreezing top {cfg.unfreeze_pct*100:.0f}% ({unfrozen_count}/{n_layers} layers{bn_note})")
 
         with strategy.scope():
             if cfg.optimizer == 'adamw':
@@ -725,6 +730,7 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         'stage1_epochs': cfg.stage1_epochs,
         'finetune_epochs': cfg.finetune_epochs if ran_stage2 else 0,
         'unfreeze_pct': cfg.unfreeze_pct,
+        'freeze_bn_in_stage2': cfg.freeze_bn_in_stage2,
         'fold': fold_idx,
         'trainable_weights': trainable_count,
         'total_weights': total_count,
@@ -898,22 +904,31 @@ def round5_augmentation_imagesize(best_r4: SearchConfig):
 
 
 def round6_finetuning(best_r5: SearchConfig):
-    """Round 6: Fine-tuning strategy exploration."""
+    """Round 6: Fine-tuning strategy exploration.
+
+    Tests different stage 2 unfreezing depth, duration, and learning rate.
+    Also tests whether fine-tuning helps at all (finetune_epochs=0), and
+    whether BN freezing matters (thermal_map defaults to BN frozen).
+    """
     configs = []
 
+    # (name, unfreeze_pct, finetune_epochs, finetune_lr, freeze_bn)
     variants = [
-        ('ft_top20_30ep',     0.2,  30, 1e-5),
-        ('ft_top40_30ep',     0.4,  30, 1e-5),
-        ('ft_top50_50ep',     0.5,  50, 5e-6),
-        ('ft_top20_50ep',     0.2,  50, 5e-6),
+        ('no_finetune',              0.2,   0, 1e-5, True),   # No Stage 2 — test if fine-tuning hurts
+        ('ft_top20_30ep',            0.2,  30, 1e-5, True),   # Default (BN frozen)
+        ('ft_top20_30ep_bn_unfrozen',0.2,  30, 1e-5, False),  # Same but BN trainable
+        ('ft_top40_30ep',            0.4,  30, 1e-5, True),   # Deeper unfreeze
+        ('ft_top50_50ep',            0.5,  50, 5e-6, True),   # Deep + more epochs + lower LR
+        ('ft_top20_50ep',            0.2,  50, 5e-6, True),   # Shallow but longer + lower LR
     ]
 
-    for name, pct, epochs, lr in variants:
+    for name, pct, epochs, lr, freeze_bn in variants:
         cfg = deepcopy(best_r5)
         cfg.name = f"R6_{name}"
         cfg.unfreeze_pct = pct
         cfg.finetune_epochs = epochs
         cfg.finetune_lr = lr
+        cfg.freeze_bn_in_stage2 = freeze_bn
         configs.append(cfg)
 
     return configs
@@ -976,9 +991,38 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Sear
         stage1_epochs=int(best['stage1_epochs']),
         finetune_epochs=int(best.get('finetune_epochs', 0)),
         unfreeze_pct=float(best.get('unfreeze_pct', 0.2)),
+        freeze_bn_in_stage2=str(best.get('freeze_bn_in_stage2', 'True')).lower() in ('true', '1'),
     )
 
     return best, cfg
+
+
+def pick_topk(results: List[Dict], k: int = 3,
+              metric='post_eval_kappa') -> List[Tuple[Dict, SearchConfig]]:
+    """Pick the top-K results by metric, de-duplicating by backbone+freeze.
+
+    Returns a list of (result_dict, SearchConfig) tuples, one per unique
+    backbone+freeze combination, sorted by metric descending.
+    """
+    sorted_results = sorted(results, key=lambda r: r[metric], reverse=True)
+
+    seen = set()
+    topk = []
+    for r in sorted_results:
+        key = (r['backbone'], r['freeze'])
+        if key not in seen:
+            seen.add(key)
+            _, cfg = pick_best([r])
+            topk.append((r, cfg))
+            if len(topk) == k:
+                break
+
+    print(f"\n  TOP-{k} R1 BRANCHES selected:")
+    for i, (r, cfg) in enumerate(topk):
+        print(f"    Branch {i+1}: {r['name']} → kappa={r[metric]:.4f} "
+              f"(backbone={cfg.backbone}, freeze={cfg.freeze})")
+
+    return topk
 
 
 def load_completed_results(filepath: str) -> List[Dict]:
@@ -1002,7 +1046,7 @@ def load_completed_results(filepath: str) -> List[Dict]:
                         'warmup_epochs', 'n_val_samples']:
                 if key in row and row[key]:
                     row[key] = int(row[key])
-            for key in ['head_use_bn', 'use_augmentation', 'use_mixup']:
+            for key in ['head_use_bn', 'use_augmentation', 'use_mixup', 'freeze_bn_in_stage2']:
                 if key in row and row[key]:
                     row[key] = row[key] in ('True', 'true', '1')
             results.append(row)
@@ -1072,7 +1116,9 @@ def main(fresh: bool = False):
             print("RESUME MODE — no previous results found, starting from scratch")
 
     all_results = []
+    R1_TOP_K = 3  # Number of R1 branches to carry forward
 
+    # ─── Round 1: Backbone + Freeze ───
     print(f"\n{'#'*80}")
     print("ROUND 1: BACKBONE + FREEZE STRATEGY")
     print(f"{'#'*80}")
@@ -1080,60 +1126,105 @@ def main(fresh: bool = False):
     r1_configs = round1_backbone_freeze()
     r1_results = run_round("R1", r1_configs, data, results_csv, completed)
     all_results.extend(r1_results)
-    best_r1_result, best_r1_cfg = pick_best(r1_results)
 
+    # Pick top-K R1 winners (de-duplicated by backbone+freeze)
+    r1_topk = pick_topk(r1_results, k=R1_TOP_K)
+
+    # ─── Branches: Run R2–R6 independently for each R1 winner ───
+    branch_results = {}  # branch_tag → {r1_cfg, all_branch_results, per_round_results}
+    for branch_idx, (r1_result, r1_cfg) in enumerate(r1_topk):
+        branch_tag = f"B{branch_idx+1}"
+        branch_label = f"{r1_cfg.backbone}_{r1_cfg.freeze}"
+
+        print(f"\n{'#'*80}")
+        print(f"BRANCH {branch_tag}: {branch_label} (R1 kappa={r1_result['post_eval_kappa']:.4f})")
+        print(f"{'#'*80}")
+
+        branch_all = []
+        branch_rounds = {}
+
+        # ─── R2: Head Architecture ───
+        print(f"\n{'='*60}")
+        print(f"  {branch_tag} — ROUND 2: HEAD ARCHITECTURE")
+        print(f"{'='*60}")
+        r2_configs = round2_head(r1_cfg)
+        for c in r2_configs:
+            c.name = f"{branch_tag}_{c.name}"
+        r2_results = run_round(f"{branch_tag}_R2", r2_configs, data, results_csv, completed)
+        branch_all.extend(r2_results)
+        all_results.extend(r2_results)
+        _, best_r2_cfg = pick_best(r2_results)
+        branch_rounds['R2'] = r2_results
+
+        # ─── R3: Loss + Regularization ───
+        print(f"\n{'='*60}")
+        print(f"  {branch_tag} — ROUND 3: LOSS + REGULARIZATION")
+        print(f"{'='*60}")
+        r3_configs = round3_loss_regularization(best_r2_cfg)
+        for c in r3_configs:
+            c.name = f"{branch_tag}_{c.name}"
+        r3_results = run_round(f"{branch_tag}_R3", r3_configs, data, results_csv, completed)
+        branch_all.extend(r3_results)
+        all_results.extend(r3_results)
+        _, best_r3_cfg = pick_best(r3_results)
+        branch_rounds['R3'] = r3_results
+
+        # ─── R4: Training Dynamics ───
+        print(f"\n{'='*60}")
+        print(f"  {branch_tag} — ROUND 4: TRAINING DYNAMICS")
+        print(f"{'='*60}")
+        r4_configs = round4_training_dynamics(best_r3_cfg)
+        for c in r4_configs:
+            c.name = f"{branch_tag}_{c.name}"
+        r4_results = run_round(f"{branch_tag}_R4", r4_configs, data, results_csv, completed)
+        branch_all.extend(r4_results)
+        all_results.extend(r4_results)
+        _, best_r4_cfg = pick_best(r4_results)
+        branch_rounds['R4'] = r4_results
+
+        # ─── R5: Augmentation + Image Size ───
+        print(f"\n{'='*60}")
+        print(f"  {branch_tag} — ROUND 5: AUGMENTATION + IMAGE SIZE")
+        print(f"{'='*60}")
+        r5_configs = round5_augmentation_imagesize(best_r4_cfg)
+        for c in r5_configs:
+            c.name = f"{branch_tag}_{c.name}"
+        r5_results = run_round(f"{branch_tag}_R5", r5_configs, data, results_csv, completed)
+        branch_all.extend(r5_results)
+        all_results.extend(r5_results)
+        _, best_r5_cfg = pick_best(r5_results)
+        branch_rounds['R5'] = r5_results
+
+        # ─── R6: Fine-tuning Strategy ───
+        print(f"\n{'='*60}")
+        print(f"  {branch_tag} — ROUND 6: FINE-TUNING STRATEGY")
+        print(f"{'='*60}")
+        r6_configs = round6_finetuning(best_r5_cfg)
+        for c in r6_configs:
+            c.name = f"{branch_tag}_{c.name}"
+        r6_results = run_round(f"{branch_tag}_R6", r6_configs, data, results_csv, completed)
+        branch_all.extend(r6_results)
+        all_results.extend(r6_results)
+        _, best_r6_cfg = pick_best(r6_results)
+        branch_rounds['R6'] = r6_results
+
+        branch_results[branch_tag] = {
+            'r1_cfg': r1_cfg,
+            'label': branch_label,
+            'r1_kappa': r1_result['post_eval_kappa'],
+            'all_results': branch_all,
+            'round_results': branch_rounds,
+        }
+
+    # ─── Top 3 Selection: Pick top 3 configs across ALL branches ───
     print(f"\n{'#'*80}")
-    print("ROUND 2: HEAD ARCHITECTURE")
+    print("TOP 3 SELECTION: 5-FOLD VALIDATION OF BEST CONFIGS (CROSS-BRANCH)")
     print(f"{'#'*80}")
 
-    r2_configs = round2_head(best_r1_cfg)
-    r2_results = run_round("R2", r2_configs, data, results_csv, completed)
-    all_results.extend(r2_results)
-    best_r2_result, best_r2_cfg = pick_best(r2_results)
-
-    print(f"\n{'#'*80}")
-    print("ROUND 3: LOSS + REGULARIZATION")
-    print(f"{'#'*80}")
-
-    r3_configs = round3_loss_regularization(best_r2_cfg)
-    r3_results = run_round("R3", r3_configs, data, results_csv, completed)
-    all_results.extend(r3_results)
-    best_r3_result, best_r3_cfg = pick_best(r3_results)
-
-    print(f"\n{'#'*80}")
-    print("ROUND 4: TRAINING DYNAMICS")
-    print(f"{'#'*80}")
-
-    r4_configs = round4_training_dynamics(best_r3_cfg)
-    r4_results = run_round("R4", r4_configs, data, results_csv, completed)
-    all_results.extend(r4_results)
-    best_r4_result, best_r4_cfg = pick_best(r4_results)
-
-    print(f"\n{'#'*80}")
-    print("ROUND 5: AUGMENTATION + IMAGE SIZE")
-    print(f"{'#'*80}")
-
-    r5_configs = round5_augmentation_imagesize(best_r4_cfg)
-    r5_results = run_round("R5", r5_configs, data, results_csv, completed)
-    all_results.extend(r5_results)
-    best_r5_result, best_r5_cfg = pick_best(r5_results)
-
-    print(f"\n{'#'*80}")
-    print("ROUND 6: FINE-TUNING STRATEGY")
-    print(f"{'#'*80}")
-
-    r6_configs = round6_finetuning(best_r5_cfg)
-    r6_results = run_round("R6", r6_configs, data, results_csv, completed)
-    all_results.extend(r6_results)
-    best_r6_result, best_r6_cfg = pick_best(r6_results)
-
-    # ─── Top 3 Selection ───
-    print(f"\n{'#'*80}")
-    print("TOP 3 SELECTION: 5-FOLD VALIDATION OF BEST CONFIGS")
-    print(f"{'#'*80}")
-
+    # Pool all results from R1 + all branches
     search_results = sorted(all_results, key=lambda r: r['post_eval_kappa'], reverse=True)
 
+    # De-duplicate by config identity
     seen_configs = set()
     top3_results = []
     for r in search_results:
@@ -1156,10 +1247,11 @@ def main(fresh: bool = False):
         if len(top3_results) == 3:
             break
 
-    print(f"\nTop 3 configs by fold-0 kappa:")
+    print(f"\nTop 3 configs by fold-0 kappa (cross-branch):")
     for i, r in enumerate(top3_results):
         print(f"  {i+1}. {r['name']} → kappa={r['post_eval_kappa']:.4f}")
 
+    # Run each top-3 config on all 5 folds
     N_FINAL_FOLDS = 5
     top3_fold_results = {}
     for rank, r in enumerate(top3_results):
@@ -1209,16 +1301,16 @@ def main(fresh: bool = False):
     print(f"{MODALITY_LABEL} SEARCH COMPLETE — SUMMARY")
     print(f"{'='*80}")
 
-    for round_name, round_results in [
-        ('R1: Backbone+Freeze', r1_results),
-        ('R2: Head', r2_results),
-        ('R3: Loss+Reg+Alpha', r3_results),
-        ('R4: Training+Optim', r4_results),
-        ('R5: Aug+ImgSize', r5_results),
-        ('R6: FineTuning', r6_results),
-    ]:
-        best = max(round_results, key=lambda r: r['post_eval_kappa'])
-        print(f"  {round_name}: {best['name']} → kappa={best['post_eval_kappa']:.4f}")
+    # R1 results
+    best_r1 = max(r1_results, key=lambda r: r['post_eval_kappa'])
+    print(f"  R1: Backbone+Freeze: {best_r1['name']} → kappa={best_r1['post_eval_kappa']:.4f}")
+
+    # Per-branch best from each round
+    for btag, binfo in branch_results.items():
+        print(f"\n  {btag} ({binfo['label']}, R1 kappa={binfo['r1_kappa']:.4f}):")
+        for rname, rresults in binfo['round_results'].items():
+            best = max(rresults, key=lambda r: r['post_eval_kappa'])
+            print(f"    {rname}: {best['name']} → kappa={best['post_eval_kappa']:.4f}")
 
     def print_config_summary(label, cfg, fold_results):
         print(f"\n{label}:")

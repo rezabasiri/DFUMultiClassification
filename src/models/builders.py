@@ -115,6 +115,69 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
 
     return x
 
+
+def create_generic_backbone_branch(image_input, modality, backbone_name):
+    """Create a pretrained backbone branch for non-EfficientNet architectures.
+
+    Supports DenseNet121, ResNet50V2, MobileNetV3Large. These require explicit
+    preprocess_input (unlike EfficientNet which has built-in Rescaling).
+    Data pipeline delivers [0,255] so preprocessing is applied inside the model.
+    """
+    if not hasattr(create_generic_backbone_branch, '_model_cache'):
+        create_generic_backbone_branch._model_cache = {}
+
+    backbone_map = {
+        'DenseNet121': tf.keras.applications.DenseNet121,
+        'ResNet50V2': tf.keras.applications.ResNet50V2,
+        'MobileNetV3Large': tf.keras.applications.MobileNetV3Large,
+    }
+
+    preprocess_map = {
+        'DenseNet121': tf.keras.applications.densenet.preprocess_input,
+        'ResNet50V2': tf.keras.applications.resnet_v2.preprocess_input,
+        'MobileNetV3Large': tf.keras.applications.mobilenet_v3.preprocess_input,
+    }
+
+    BackboneClass = backbone_map[backbone_name]
+    preprocess_fn = preprocess_map[backbone_name]
+
+    cache_key = f"{modality}_{backbone_name}"
+
+    if cache_key not in create_generic_backbone_branch._model_cache:
+        model_name = f'{modality}_{backbone_name.lower()}'
+
+        local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
+        if os.path.exists(local_weights_path):
+            vprint(f"Loading {backbone_name} from local weights", level=2)
+            base_model = BackboneClass(
+                weights=None, include_top=False, pooling='avg', name=model_name)
+            base_model.load_weights(local_weights_path)
+        else:
+            vprint(f"Loading {backbone_name} from ImageNet", level=2)
+            _temp_model = BackboneClass(
+                weights='imagenet', include_top=False, pooling='avg')
+            base_model = BackboneClass(
+                weights=None, include_top=False, pooling='avg', name=model_name)
+            base_model.set_weights(_temp_model.get_weights())
+            del _temp_model
+
+        create_generic_backbone_branch._model_cache[cache_key] = base_model
+    else:
+        base_model = create_generic_backbone_branch._model_cache[cache_key]
+
+    base_model.trainable = True
+
+    # Apply preprocessing (DenseNet/ResNet expect specific normalization, not [0,255])
+    from tensorflow.keras.layers import Lambda
+    x = Lambda(lambda img: preprocess_fn(img),
+               name=f'{modality}_preprocess')(image_input)
+    x = base_model(x)
+
+    vprint(f"{modality} using {backbone_name}: {len(base_model.trainable_weights)} trainable weights", level=2)
+
+    return x
+
+
 def create_image_branch(input_shape, modality):
     """Create image branch with per-modality backbone and projection head.
 
@@ -140,6 +203,8 @@ def create_image_branch(input_shape, modality):
             x = create_simple_cnn_map(image_input, modality)
     elif backbone.startswith('EfficientNet'):
         x = create_efficientnet_branch(image_input, modality, backbone)
+    elif backbone in ('DenseNet121', 'ResNet50V2', 'MobileNetV3Large'):
+        x = create_generic_backbone_branch(image_input, modality, backbone)
     else:
         raise ValueError(f"Unknown backbone: {backbone}")
 
