@@ -1305,8 +1305,19 @@ def main(fresh: bool = False):
 
     print(f"\nResults saved to: {results_csv}")
 
+    # Decide overall best: winner vs baseline (higher mean kappa wins)
+    bl_mean_kappa = np.mean(bl_kappas)
+    winner_mean_kappa = np.mean(best_kappas)
+    if bl_mean_kappa >= winner_mean_kappa:
+        final_cfg = baseline_cfg
+        print(f"\n  BASELINE wins (kappa {bl_mean_kappa:.4f} >= {winner_mean_kappa:.4f})")
+    else:
+        final_cfg = winner_cfg
+        print(f"\n  {winner_info['orig_name']} wins (kappa {winner_mean_kappa:.4f} > {bl_mean_kappa:.4f})")
+
+    # Save best config as JSON
     best_config_path = os.path.join(AUDIT_DIR, f'{MODALITY}_best_config.json')
-    config_dict = asdict(winner_cfg)
+    config_dict = asdict(final_cfg)
     with open(best_config_path, 'w') as f:
         json.dump(config_dict, f, indent=2)
     print(f"Best config saved to: {best_config_path}")
