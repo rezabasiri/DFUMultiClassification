@@ -65,6 +65,12 @@ results/pretrain_cache/
 !results/logs/*.log
 !results/misclassifications/*.log
 !results/misclassifications_saved/*.log
+!agent_communication/depth_rgb_pipeline_audit/logs/
+!agent_communication/depth_rgb_pipeline_audit/logs/*.log
+!agent_communication/thermal_map_pipeline_audit/logs/
+!agent_communication/thermal_map_pipeline_audit/logs/*.log
+!agent_communication/fusion_pipeline_audit/logs/
+!agent_communication/fusion_pipeline_audit/logs/*.log
 
 
 # Contamination search experiment
