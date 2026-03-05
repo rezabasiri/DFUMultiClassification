@@ -172,7 +172,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         load_and_preprocess_single_sample,
         num_parallel_calls=tf.data.AUTOTUNE
     )
-    
+
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
@@ -432,7 +432,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 if is_training:
                     try:
                         import tensorflow_decision_forests as tfdf
-                        print("Using TensorFlow Decision Forests")
+                        print("\033[1m✓ Using TensorFlow Decision Forests for Random Forest models\033[0m")
                         
                         # Create models
                         rf_model1 = tfdf.keras.RandomForestModel(
@@ -489,7 +489,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         rf_model1.fit(dataset1)
                         rf_model2.fit(dataset2)
                     except ImportError:
-                        print("Using Scikit-learn RandomForestClassifier")
+                        print("\033[1m⚠️  WARNING: TensorFlow Decision Forests not available - falling back to Scikit-learn RandomForest\033[0m")
                         from sklearn.ensemble import RandomForestClassifier
                         rf_model1 = RandomForestClassifier(
                             n_estimators=300,
@@ -518,7 +518,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1),
                         label=None  # No label needed for prediction
                     )
-                    
+
                     # Get predictions
                     pred1 = rf_model1.predict(dataset1)
                     pred2 = rf_model2.predict(dataset1)
@@ -526,6 +526,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     prob1 = np.squeeze(pred1)
                     prob2 = np.squeeze(pred2)
                 except ImportError:
+                    print("\033[1m⚠️  WARNING: TensorFlow Decision Forests not available for prediction - using Scikit-learn RandomForest\033[0m")
                     dataset = metadata_df.drop(['Patient#', 'Healing Phase Abs'], axis=1)
                     # dataset_pd = tf_to_pd(dataset)
                     prob1 = rf_model1.predict_proba(dataset)[:, 1]

@@ -1,238 +1,0 @@
-📝 Logging to: results/misclassifications/optimization_run_20251229_191704.log
-
-
-🚀 Starting Phase 1: Misclassification Detection
-
-
-======================================================================
-PHASE 1: MISCLASSIFICATION DETECTION
-======================================================================
-Dataset: 647 samples (100% of 647)
-Min after filtering: 323 samples (50%)
-Testing 4 modalities individually: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
-Running 5 runs per modality (total 20 runs)
-Misclassification counts: max=25 (mode=both, runs=5, folds=5)
-CV folds=5, verbosity=silent
-
-
-🧹 FRESH START MODE: Deleting all checkpoints...
-================================================================================
-
-Cleanup Statistics:
-  Csv Results: 1 files deleted
-  Tf Cache: 2 files deleted
-================================================================================
-
-
-======================================================================
-Testing modality: metadata (5 runs)
-======================================================================
-Phase 1 Progress (metadata):   0%|                                                                                                 | 0/5 [00:00<?, ?run/s]
-📊 Updating baseline after metadata run 1...
-Phase 1 Progress (metadata):  20%|#################6                                                                      | 1/5 [06:43<26:52, 403.18s/run]
-📊 Updating baseline after metadata run 2...
-Phase 1 Progress (metadata):  40%|###################################2                                                    | 2/5 [14:07<21:21, 427.30s/run]
-📊 Updating baseline after metadata run 3...
-Phase 1 Progress (metadata):  60%|####################################################8                                   | 3/5 [20:24<13:29, 404.53s/run]
-📊 Updating baseline after metadata run 4...
-Phase 1 Progress (metadata):  80%|######################################################################4                 | 4/5 [27:16<06:47, 407.34s/run]
-📊 Updating baseline after metadata run 5...
-Phase 1 Progress (metadata): 100%|########################################################################################| 5/5 [33:57<00:00, 405.11s/run]Phase 1 Progress (metadata): 100%|########################################################################################| 5/5 [33:57<00:00, 407.52s/run]
-
-======================================================================
-Testing modality: depth_rgb (5 runs)
-======================================================================
-Phase 1 Progress (depth_rgb):   0%|                                                                                                | 0/5 [00:00<?, ?run/s]
-📊 Updating baseline after depth_rgb run 1...
-Phase 1 Progress (depth_rgb):  20%|################8                                                                   | 1/5 [41:14<2:44:56, 2474.14s/run]
-📊 Updating baseline after depth_rgb run 2...
-Phase 1 Progress (depth_rgb):  40%|################################8                                                 | 2/5 [1:22:03<2:02:59, 2459.83s/run]
-📊 Updating baseline after depth_rgb run 3...
-Phase 1 Progress (depth_rgb):  60%|#################################################1                                | 3/5 [2:01:31<1:20:35, 2417.91s/run]
-📊 Updating baseline after depth_rgb run 4...
-Phase 1 Progress (depth_rgb):  80%|###################################################################2                | 4/5 [2:39:41<39:27, 2367.08s/run]
-📊 Updating baseline after depth_rgb run 5...
-Phase 1 Progress (depth_rgb): 100%|####################################################################################| 5/5 [3:20:17<00:00, 2391.93s/run]Phase 1 Progress (depth_rgb): 100%|####################################################################################| 5/5 [3:20:17<00:00, 2403.43s/run]
-
-======================================================================
-Testing modality: depth_map (5 runs)
-======================================================================
-Phase 1 Progress (depth_map):   0%|                                                                                                | 0/5 [00:00<?, ?run/s]
-📊 Updating baseline after depth_map run 1...
-Phase 1 Progress (depth_map):  20%|################8                                                                   | 1/5 [44:44<2:58:57, 2684.39s/run]
-📊 Updating baseline after depth_map run 2...
-Phase 1 Progress (depth_map):  40%|################################8                                                 | 2/5 [1:23:43<2:04:03, 2481.32s/run]
-📊 Updating baseline after depth_map run 3...
-Phase 1 Progress (depth_map):  60%|#################################################1                                | 3/5 [1:58:45<1:16:56, 2308.19s/run]
-📊 Updating baseline after depth_map run 4...
-Phase 1 Progress (depth_map):  80%|###################################################################2                | 4/5 [2:36:00<37:59, 2279.20s/run]
-📊 Updating baseline after depth_map run 5...
-Phase 1 Progress (depth_map): 100%|####################################################################################| 5/5 [3:15:40<00:00, 2315.56s/run]Phase 1 Progress (depth_map): 100%|####################################################################################| 5/5 [3:15:40<00:00, 2348.10s/run]
-
-======================================================================
-Testing modality: thermal_map (5 runs)
-======================================================================
-Phase 1 Progress (thermal_map):   0%|                                                                                              | 0/5 [00:00<?, ?run/s]
-📊 Updating baseline after thermal_map run 1...
-Phase 1 Progress (thermal_map):  20%|################4                                                                 | 1/5 [43:58<2:55:55, 2638.81s/run]
-📊 Updating baseline after thermal_map run 2...
-Phase 1 Progress (thermal_map):  40%|################################                                                | 2/5 [1:28:48<2:13:26, 2668.88s/run]
-📊 Updating baseline after thermal_map run 3...
-Phase 1 Progress (thermal_map):  60%|################################################                                | 3/5 [2:10:24<1:26:19, 2589.70s/run]
-📊 Updating baseline after thermal_map run 4...
-Phase 1 Progress (thermal_map):  80%|#################################################################6                | 4/5 [2:52:06<42:35, 2555.38s/run]
-📊 Updating baseline after thermal_map run 5...
-Phase 1 Progress (thermal_map): 100%|##################################################################################| 5/5 [3:36:23<00:00, 2591.95s/run]Phase 1 Progress (thermal_map): 100%|##################################################################################| 5/5 [3:36:23<00:00, 2596.75s/run]
-
-======================================================================
-✅ PHASE 1 COMPLETE
-======================================================================
-
-💾 Saved Phase 1 misclassification data:
-   - frequent_misclassifications_saved.csv (total)
-   - frequent_misclassifications_metadata_saved.csv
-   - frequent_misclassifications_depth_rgb_saved.csv
-   - frequent_misclassifications_depth_map_saved.csv
-   - frequent_misclassifications_thermal_map_saved.csv
-🔒 Locked Phase 1 data - Phase 2 training won't contaminate counts
-
-Misclassification Summary:
-  Total unique misclassified samples: 647
-  Max count observed: 97
-
-  By class:
-    I: 203 samples, counts 60-97, median=86.0
-    P: 368 samples, counts 29-89, median=70.0
-    R: 76 samples, counts 52-89, median=81.5
-
-💾 Saved Phase 1 baseline metrics: /workspace/DFUMultiClassification/results/misclassifications/phase1_baseline.json
-   Baselines for 1 modalities preserved
-   CSV backup: /workspace/DFUMultiClassification/results/misclassifications_saved/phase1_modality_results.csv
-
-======================================================================
-PHASE 1 BASELINE PERFORMANCE (Before Optimization)
-======================================================================
-
-  thermal_map:
-    Macro F1: 0.3625
-    Weighted F1: 0.4465
-    Per-class F1: I=0.3604, P=0.5112, R=0.2160
-    Min F1: 0.2160
-    Kappa: 0.0811
-
-  📊 Using best baseline for optimization: thermal_map
-     Weighted F1: 0.4465, Per-class F1: I=0.3604, P=0.5112, R=0.2160
-
-🚀 Starting Phase 2: Bayesian Threshold Optimization
-
-
-======================================================================
-PHASE 2: BAYESIAN THRESHOLD OPTIMIZATION
-======================================================================
-
-  📊 Balancing Strategy:
-     Rarest class: R (76 samples)
-     Target after 70% retention: 54 samples per class
-     Calculated retention rates for balance:
-       I: 26.6% of 203 → ~54 samples
-       P: 14.7% of 368 → ~54 samples
-       R: 71.1% of 76 → ~54 samples
-
-======================================================================
-AUTOMATIC THRESHOLD CALCULATION (Balanced Dataset Strategy)
-======================================================================
-  Minority class retention target: 70%
-
-  Class I:
-    Original samples: 203 (892 images)
-    Target retention for balance: 26.6%
-    Misclass count range: 60-97, median=86.0
-    Min threshold for retention: 81
-    Actual retention at this threshold: 58/203 (28.6%) ≈ 254 images
-
-  Class P:
-    Original samples: 368 (1880 images)
-    Target retention for balance: 14.7%
-    Misclass count range: 29-89, median=70.0
-    Min threshold for retention: 60
-    Actual retention at this threshold: 60/368 (16.3%) ≈ 306 images
-
-  Class R:
-    Original samples: 76 (335 images)
-    Target retention for balance: 71.1%
-    Misclass count range: 52-89, median=81.5
-    Min threshold for retention: 85
-    Actual retention at this threshold: 55/76 (72.4%) ≈ 242 images
-
-======================================================================
-SEARCH SPACE (auto-calculated for balanced dataset)
-======================================================================
-  P: 60-98 (min threshold for 14.7% retention)
-  I: 81-98 (min threshold for 26.6% retention)
-  R: 85-98 (min threshold for 71.1% retention)
-
-Optimization Settings:
-  Evaluations: 30
-  CV folds per evaluation: 5
-  Score: 0.4×Δweighted_f1 + 0.3×Δmin_f1 + 0.2×Δkappa + 0.1×retention - penalties
-  (Δ = improvement over baseline; focuses on clinical applicability)
-
-Soft Constraints (smooth penalties guide optimizer):
-  Dataset size: Target ≥50% of original (heavy exp penalty)
-  Min F1 per class: Target ≥0.25 (exponential penalty)
-  Min samples per class: Target ≥30 (linear penalty)
-  Max class imbalance: Target ≤5.0x (linear penalty)
-
-All constraints are soft - optimizer learns from violations!
-
-
-======================================================================
-PHASE 1 BASELINE PERFORMANCE (Before Optimization)
-======================================================================
-
-  thermal_map:
-    Macro F1: 0.3625
-    Weighted F1: 0.4465
-    Per-class F1: I=0.3604, P=0.5112, R=0.2160
-    Min F1: 0.2160
-    Kappa: 0.0811
-
-  📊 Using best baseline for optimization: thermal_map
-     Weighted F1: 0.4465, Per-class F1: I=0.3604, P=0.5112, R=0.2160
-
-🔍 Starting Bayesian optimization...
-
-📋 Training outputs will be logged to:
-   (Log file will be created on first evaluation)
-
-
-──────────────────────────────────────────────────────────────────────
-EVALUATION 1/30
-──────────────────────────────────────────────────────────────────────
-Trying thresholds: P=90, I=84, R=95
-Dataset after filtering: 524/647 samples (81.0%)
-
-🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
-================================================================================
-
-Cleanup Statistics:
-  Models: 10 files deleted
-  Predictions: 60 files deleted
-================================================================================
-
-
-================================================================================
-BATCH SIZE ADJUSTMENT FOR PHASE 2
-================================================================================
-Phase 1 batch size (1 modality at a time): 800
-Phase 2 modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
-  Image modalities with weights:
-    - depth_rgb: 1.0 units
-    - depth_map: 0.6 units
-    - thermal_map: 0.6 units
-  Total weight: 2.2 units
-  Adjusted batch size: 800 / 2.2 = 363
-  Memory reduction: ~2.2x less per batch
-================================================================================
-
-⏳ Training with cv_folds=5 (fresh mode)...

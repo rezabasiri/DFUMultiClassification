@@ -20,7 +20,7 @@ from src.utils.verbosity import vprint
 directory, result_dir, root = get_project_paths()
 
 # Import IMAGE_SIZE and backbone configs from production config
-from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE
+from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE, get_modality_config
 
 def create_simple_cnn_rgb(image_input, modality):
     """Simple CNN for RGB images (4 conv layers)"""
@@ -40,7 +40,19 @@ def create_simple_cnn_map(image_input, modality):
     return x
 
 def create_efficientnet_branch(image_input, modality, backbone_name):
-    """Create EfficientNet branch with specified variant and unique layer names"""
+    """Create EfficientNet branch with specified variant and unique layer names
+
+    Keras 3 Compatibility Note:
+    - In Keras 3, model/layer names must be globally unique within a Model graph
+    - When using the same backbone for multiple modalities, we create separate instances
+      with modality-specific names to avoid conflicts
+    - CRITICAL: The backbone is called directly (not wrapped in Lambda) so its weights
+      are visible to the parent model's optimizer and actually train
+    """
+    # Cache to store loaded base models (shared weights, separate instances per modality)
+    if not hasattr(create_efficientnet_branch, '_model_cache'):
+        create_efficientnet_branch._model_cache = {}
+
     # Map backbone name to Keras application
     backbone_map = {
         'EfficientNetB0': tf.keras.applications.EfficientNetB0,
@@ -51,62 +63,137 @@ def create_efficientnet_branch(image_input, modality, backbone_name):
 
     EfficientNetClass = backbone_map[backbone_name]
 
-    # Try to load local weights, fall back to ImageNet
-    local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
-    if os.path.exists(local_weights_path):
-        vprint(f"Loading {backbone_name} from local weights", level=2)
-        # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        # Note: EfficientNet wrappers don't support 'name' parameter
-        # We'll rename layers after creation instead
-        base_model = EfficientNetClass(
-            weights=None,
-            include_top=False,
-            pooling='avg'
-        )
-        base_model.load_weights(local_weights_path)
+    # Create a unique model instance for this modality
+    # Even if we load the same backbone, each modality gets its own instance
+    cache_key = f"{modality}_{backbone_name}"
+
+    if cache_key not in create_efficientnet_branch._model_cache:
+        # Use modality-specific name to avoid Keras 3 name conflicts
+        model_name = f'{modality}_{backbone_name.lower()}'
+
+        # Try to load local weights, fall back to ImageNet
+        local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
+        if os.path.exists(local_weights_path):
+            vprint(f"Loading {backbone_name} from local weights", level=2)
+            base_model = EfficientNetClass(
+                weights=None,
+                include_top=False,
+                pooling='avg',
+                name=model_name
+            )
+            base_model.load_weights(local_weights_path)
+        else:
+            vprint(f"Loading {backbone_name} from ImageNet", level=2)
+            # Load with default name first (Keras uses model name in weights download URL)
+            # then create a new instance with modality-specific name and transfer weights
+            _temp_model = EfficientNetClass(
+                weights='imagenet',
+                include_top=False,
+                pooling='avg'
+            )
+            base_model = EfficientNetClass(
+                weights=None,
+                include_top=False,
+                pooling='avg',
+                name=model_name
+            )
+            base_model.set_weights(_temp_model.get_weights())
+            del _temp_model
+
+        # Cache this model instance for this modality
+        create_efficientnet_branch._model_cache[cache_key] = base_model
     else:
-        vprint(f"Loading {backbone_name} from ImageNet", level=2)
-        # Create base model WITHOUT input_tensor to avoid layer name conflicts
-        # Note: EfficientNet wrappers don't support 'name' parameter
-        # We'll rename layers after creation instead
-        base_model = EfficientNetClass(
-            weights='imagenet',
-            include_top=False,
-            pooling='avg'
-        )
+        base_model = create_efficientnet_branch._model_cache[cache_key]
 
     base_model.trainable = True
 
-    # Rename the base model itself to avoid conflicts when same backbone is used for multiple modalities
-    base_model._name = f'{modality}_{backbone_name.lower()}'
-
-    # Rename ALL layers (including nested ones) to avoid conflicts between modalities
-    # This is critical when using same backbone for multiple modalities
-    for layer in base_model.layers:
-        layer._name = f'{modality}_{layer.name}'
-
-    # Connect the input manually
+    # Call backbone directly — exposes all backbone weights to the parent model's optimizer
+    # (Lambda wrapping hid backbone weights, causing only projection head to train)
     x = base_model(image_input)
 
     vprint(f"{modality} using {backbone_name}: {len(base_model.trainable_weights)} trainable weights", level=2)
 
     return x
 
+
+def create_generic_backbone_branch(image_input, modality, backbone_name):
+    """Create a pretrained backbone branch for non-EfficientNet architectures.
+
+    Supports DenseNet121, ResNet50V2, MobileNetV3Large. These require explicit
+    preprocess_input (unlike EfficientNet which has built-in Rescaling).
+    Data pipeline delivers [0,255] so preprocessing is applied inside the model.
+    """
+    if not hasattr(create_generic_backbone_branch, '_model_cache'):
+        create_generic_backbone_branch._model_cache = {}
+
+    backbone_map = {
+        'DenseNet121': tf.keras.applications.DenseNet121,
+        'ResNet50V2': tf.keras.applications.ResNet50V2,
+        'MobileNetV3Large': tf.keras.applications.MobileNetV3Large,
+    }
+
+    preprocess_map = {
+        'DenseNet121': tf.keras.applications.densenet.preprocess_input,
+        'ResNet50V2': tf.keras.applications.resnet_v2.preprocess_input,
+        'MobileNetV3Large': tf.keras.applications.mobilenet_v3.preprocess_input,
+    }
+
+    BackboneClass = backbone_map[backbone_name]
+    preprocess_fn = preprocess_map[backbone_name]
+
+    cache_key = f"{modality}_{backbone_name}"
+
+    if cache_key not in create_generic_backbone_branch._model_cache:
+        model_name = f'{modality}_{backbone_name.lower()}'
+
+        local_weights_path = os.path.join(directory, f"local_weights/{backbone_name.lower()}_notop.h5")
+        if os.path.exists(local_weights_path):
+            vprint(f"Loading {backbone_name} from local weights", level=2)
+            base_model = BackboneClass(
+                weights=None, include_top=False, pooling='avg', name=model_name)
+            base_model.load_weights(local_weights_path)
+        else:
+            vprint(f"Loading {backbone_name} from ImageNet", level=2)
+            _temp_model = BackboneClass(
+                weights='imagenet', include_top=False, pooling='avg')
+            base_model = BackboneClass(
+                weights=None, include_top=False, pooling='avg', name=model_name)
+            base_model.set_weights(_temp_model.get_weights())
+            del _temp_model
+
+        create_generic_backbone_branch._model_cache[cache_key] = base_model
+    else:
+        base_model = create_generic_backbone_branch._model_cache[cache_key]
+
+    base_model.trainable = True
+
+    # Apply preprocessing (DenseNet/ResNet expect specific normalization, not [0,255])
+    from tensorflow.keras.layers import Lambda
+    x = Lambda(lambda img: preprocess_fn(img),
+               name=f'{modality}_preprocess')(image_input)
+    x = base_model(x)
+
+    vprint(f"{modality} using {backbone_name}: {len(base_model.trainable_weights)} trainable weights", level=2)
+
+    return x
+
+
 def create_image_branch(input_shape, modality):
-    """Create image branch with configurable backbone"""
+    """Create image branch with per-modality backbone and projection head.
+
+    Each modality uses its own validated hyperparameters from MODALITY_CONFIGS
+    (backbone, head_units, head_l2).  See production_config.py for values.
+    """
+    mod_cfg = get_modality_config(modality)
+    backbone = mod_cfg['backbone']
+    head_units = mod_cfg['head_units']
+    head_l2 = mod_cfg['head_l2']
+    is_rgb = modality in ['depth_rgb', 'thermal_rgb']
+
     vprint(f"\nCreating image branch for {modality}", level=2)
+    vprint(f"{modality} using backbone: {backbone}, head: {head_units}, l2={head_l2}", level=2)
 
     image_input = Input(shape=input_shape, name=f'{modality}_input')
-
-    # Select backbone based on modality type and config
-    if modality in ['depth_rgb', 'thermal_rgb']:
-        backbone = RGB_BACKBONE
-        is_rgb = True
-    else:  # depth_map, thermal_map
-        backbone = MAP_BACKBONE
-        is_rgb = False
-
-    vprint(f"{modality} using backbone: {backbone}", level=2)
 
     # Create feature extractor based on backbone
     if backbone == 'SimpleCNN':
@@ -116,32 +203,22 @@ def create_image_branch(input_shape, modality):
             x = create_simple_cnn_map(image_input, modality)
     elif backbone.startswith('EfficientNet'):
         x = create_efficientnet_branch(image_input, modality, backbone)
+    elif backbone in ('DenseNet121', 'ResNet50V2', 'MobileNetV3Large'):
+        x = create_generic_backbone_branch(image_input, modality, backbone)
     else:
         raise ValueError(f"Unknown backbone: {backbone}")
 
-    # x = Dense(64, activation='relu', name=f'{modality}_projection3')(x)
-        
-    # # Projection layer to ensure consistent dimensionality across modalities
-    x = Dense(512, activation='relu',  kernel_regularizer=tf.keras.regularizers.l2(0.001),  kernel_initializer='he_normal', name=f'{modality}_projection512')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj512')(x)
-    x = tf.keras.layers.Dropout(0.15, name=f'{modality}_dropout_512')(x)
-    x = Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001),  kernel_initializer='he_normal', name=f'{modality}_projection1')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj1')(x)
-    x = tf.keras.layers.Dropout(0.10, name=f'{modality}_dropout_1')(x)
-    x = Dense(128, activation='relu',  kernel_initializer='he_normal', name=f'{modality}_projection2')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj2')(x)
-    # x = tf.keras.layers.Dropout(0.10, name=f'{modality}_dropout_2')(x)
-    x = Dense(64, activation='relu',  kernel_initializer='he_normal', name=f'{modality}_projection3')(x)
-    x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj3')(x)
-    # x = tf.keras.layers.Dropout(0.10, name=f'{modality}_DP_proj3')(x)
-    
-    # Apply modular attention
-    modular_attention = OptimizedModularAttention(name=f'{modality}_modular_attention')
-    attention_output = modular_attention(x)
-    
-    
-    return image_input, attention_output
-    # return image_input, x
+    # Per-modality projection head (supports single int or list of ints)
+    l2_reg = tf.keras.regularizers.l2(head_l2) if head_l2 > 0 else None
+    units_list = head_units if isinstance(head_units, (list, tuple)) else [head_units]
+    for i, units in enumerate(units_list):
+        suffix = f'_{i}' if len(units_list) > 1 else ''
+        x = Dense(units, activation='relu', kernel_initializer='he_normal',
+                  kernel_regularizer=l2_reg, name=f'{modality}_projection{suffix}')(x)
+        x = tf.keras.layers.BatchNormalization(name=f'{modality}_BN_proj{suffix}')(x)
+        x = tf.keras.layers.Dropout(0.3, name=f'{modality}_dropout{suffix}')(x)
+
+    return image_input, x
 
 class ConfidenceBasedMetadataAttention(Layer):
     """Attention mechanism that scales based on metadata confidence"""
@@ -193,7 +270,7 @@ def create_metadata_branch(input_shape, index):
     """
     Metadata branch - minimal processing to preserve RF quality.
 
-    CRITICAL: RF produces calibrated probabilities (Kappa ~0.20).
+    CRITICAL: RF produces calibrated probabilities.
     BatchNormalization was destroying probability structure (negative values, wrong scale).
     Just cast to float32 - that's it!
     """
@@ -354,116 +431,67 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
 
         if len(selected_modalities) == 1:
             if has_metadata:
-                # METADATA-ONLY: Use RF probabilities directly
-                # NO Dense layer - RF already provides optimal predictions
+                # METADATA-ONLY: Use RF probabilities directly (already sum to 1.0)
+                # NO Dense layer, NO softmax — RF probabilities are pre-normalized.
+                # Softmax on valid probabilities distorts them (sharpens peaks, dampens tails).
                 from src.utils.verbosity import vprint
                 vprint("Model: Metadata-only - using RF predictions directly (no Dense layer)", level=2)
-                output = Activation('softmax', name='output')(branches[0])
+                output = Lambda(lambda x: tf.identity(x), name='output')(branches[0])
             else:
                 # Single image modality - train classifier
-                output = Dense(3, activation='softmax', name='output')(branches[0])
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(branches[0])
 
         elif len(selected_modalities) == 2:
             if has_metadata:
                 # MULTI-MODAL (2): Metadata + 1 Image
-                # CRITICAL: Image branch MUST use pre-trained weights from standalone training!
-                # Training image branch in fusion mode causes catastrophic overfitting
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 1 image - two-stage fine-tuning with pre-trained image", level=2)
+                vprint("Model: Metadata + 1 image - concat fusion", level=2)
 
-                # Get RF probabilities (already optimal - Kappa 0.254, proper probabilities)
                 rf_probs = branches[metadata_idx]
-
-                # Get image features and classify
-                image_idx = 1 - metadata_idx  # The other branch
+                image_idx = 1 - metadata_idx
                 image_features = branches[image_idx]
-                image_classifier = Dense(3, activation='softmax', name='image_classifier')
-                image_probs = image_classifier(image_features)
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_features)
 
-                # FIXED WEIGHTED AVERAGE FUSION
-                # Use FIXED α = 0.70: output = 0.70*RF + 0.30*Image
-                # This GUARANTEES RF quality dominates while allowing image contribution
-
-                # Create fixed weights as constants (not trainable)
-                rf_weight = 0.70  # RF contributes 70% (since RF has Kappa 0.254)
-                image_weight = 0.30  # Image contributes 30%
-
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-
-                # Compute weighted average with FIXED weights
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-
-                # Sum weighted predictions (always sums to 1.0)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                # Concat RF probs (3) + image probs (3) → Dense(3)
+                # 21 params — learns per-class weighting (e.g. trust RF for class R, images for class I)
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
-                # Two image modalities - original architecture
+                # Two image modalities
                 merged = concatenate(branches, name='concat_branches')
-                output = Dense(3, activation='softmax', name='output')(merged)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         elif len(selected_modalities) == 3:
             if has_metadata:
                 # MULTI-MODAL (3): Metadata + 2 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 2 images - constrained weighted fusion preserving RF quality", level=2)
+                vprint("Model: Metadata + 2 images - concat fusion", level=2)
 
-                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
-
-                # Get image branches and fuse them
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
 
-                # Image processing
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense')(image_merged)
-                x = tf.keras.layers.BatchNormalization(name='image_BN')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout')(x)
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
-
-                # FIXED weighted average fusion
-                rf_weight = 0.70
-                image_weight = 0.30
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
-                # Three image modalities - original architecture
+                # Three image modalities
                 merged = concatenate(branches, name='concat_branches')
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(merged)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
-                output = Dense(3, activation='softmax', name='output')(x)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         elif len(selected_modalities) == 4:
             if has_metadata:
                 # MULTI-MODAL (4): Metadata + 3 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 3 images - constrained weighted fusion preserving RF quality", level=2)
+                vprint("Model: Metadata + 3 images - concat fusion", level=2)
 
-                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
-
-                # Get image branches and fuse them
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
 
-                # Image processing
-                x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_1')(image_merged)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_1')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_1')(x)
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_2')(x)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_2')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
-
-                # FIXED weighted average fusion
-                rf_weight = 0.70
-                image_weight = 0.30
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
                 # Four image modalities - original architecture
                 merged = concatenate(branches, name='concat_branches')
@@ -473,53 +501,25 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(x)
                 x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
                 x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
-                output = Dense(3, activation='softmax', name='output')(x)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
 
         elif len(selected_modalities) == 5:
             if has_metadata:
                 # MULTI-MODAL (5): Metadata + 4 Images
                 from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 4 images - constrained weighted fusion preserving RF quality", level=2)
+                vprint("Model: Metadata + 4 images - concat fusion", level=2)
 
-                # Get RF probabilities (proper probabilities, no BatchNorm)
                 rf_probs = branches[metadata_idx]
-
-                # Get image branches and fuse them
                 image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
                 image_merged = concatenate(image_branches, name='concat_images')
+                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
 
-                # Image processing
-                x = Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_1')(image_merged)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_1')(x)
-                x = tf.keras.layers.Dropout(0.25, name='image_dropout_1')(x)
-                x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_2')(x)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_2')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_2')(x)
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='image_dense_3')(x)
-                x = tf.keras.layers.BatchNormalization(name='image_BN_3')(x)
-                x = tf.keras.layers.Dropout(0.10, name='image_dropout_3')(x)
-                image_probs = Dense(3, activation='softmax', name='image_classifier')(x)
-
-                # FIXED weighted average fusion
-                rf_weight = 0.70
-                image_weight = 0.30
-                vprint(f"  Fusion weights: RF={rf_weight:.2f}, Image={image_weight:.2f}", level=2)
-                weighted_rf = Lambda(lambda x: x * rf_weight, name='weighted_rf')(rf_probs)
-                weighted_image = Lambda(lambda x: x * image_weight, name='weighted_image')(image_probs)
-                output = Add(name='output')([weighted_rf, weighted_image])
+                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
             else:
-                # Five image modalities - original architecture
+                # Five image modalities
                 merged = concatenate(branches, name='concat_branches')
-                x = Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_2')(merged)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_2')(x)
-                x = tf.keras.layers.Dropout(0.25, name='final_dropout_2')(x)
-                x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_3')(x)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_3')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_3')(x)
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(x)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
-                output = Dense(3, activation='softmax', name='output')(x)
+                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         model = Model(inputs=inputs, outputs=output)
 

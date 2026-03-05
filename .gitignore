@@ -45,9 +45,7 @@ results/tf_records/
 # results/demo/
 results/models/
 results/csv/
-results/misclassifications/
 results/visualizations/
-results/logs/
 results/attention_analysis/
 results/batch_visualizations_generative/
 results/training_plots_generative/
@@ -57,11 +55,32 @@ results/GenerativeAug_Models/
 results/*.csv
 results/frequent_*.csv
 results/modality_*.csv
+device*
+results/pretrain_cache/
+!results/depth_rgb_search_results.csv
 *.log
 !agent_communication/image_backbone/*.log
 !agent_communication/generative_augmentation/*.log
 !agent_communication/generative_augmentation/agent_communication/generative_augmentation/reports/full_sdxl_logs/*.log
-device*
+!results/logs/*.log
+!results/misclassifications/*.log
+!results/misclassifications_saved/*.log
+!agent_communication/depth_rgb_pipeline_audit/logs/
+!agent_communication/depth_rgb_pipeline_audit/logs/*.log
+!agent_communication/thermal_map_pipeline_audit/logs/
+!agent_communication/thermal_map_pipeline_audit/logs/*.log
+!agent_communication/fusion_pipeline_audit/logs/
+!agent_communication/fusion_pipeline_audit/logs/*.log
+
+
+# Contamination search experiment
+agent_communication/contamination_search/logs/
+agent_communication/contamination_search/logs_multi/
+agent_communication/contamination_search/results/
+*.backup_search
+*.backup_multi
+*.db  # Optuna SQLite database
+*.db-journal  # SQLite journal files
 
 # raw data
 data/raw/Depth_Map_IMG/
@@ -71,7 +90,16 @@ data/raw/Thermal_RGB/
 data/DFU_Updated/
 data/diffusion/
 cache_outlier/*.npy
+data/cleaned/*
 
 # Git backup
 .git.backup/
 results/.xla_cache/
+
+# tf records (search cache — all modalities)
+results/search_cache/
+results/tf_records_search_224_pretrained_aug
+results/tf_records_search_224_pretrained_noaug
+results/tf_records_search_256_pretrained_aug
+results/tf_records_search_256_pretrained_noaug
+results/tf_records_search_256_simplecnn_aug

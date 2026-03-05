@@ -231,22 +231,23 @@ def augment_image(image, modality, seed, config):
     if seed_val is None:
         seed_val = 42
 
-    # Try augmentation - run on CPU to avoid deterministic GPU issues with AdjustContrastv2
+    # Apply GPU-accelerated augmentation
+    # NOTE: Removed CPU device placement - all tf.image ops are GPU-compatible
+    # If deterministic behavior is required, set TF_DETERMINISTIC_OPS=1 environment variable
     try:
         settings = config.modality_settings[modality]['regular_augmentations']
-        with tf.device('/CPU:0'):
-            if modality in ['depth_rgb', 'thermal_rgb']:
-                augmented = tf.map_fn(
-                    lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
-                    image,
-                    fn_output_signature=tf.float32
-                )
-            else:
-                augmented = tf.map_fn(
-                    lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
-                    image,
-                    fn_output_signature=tf.float32
-                )
+        if modality in ['depth_rgb', 'thermal_rgb']:
+            augmented = tf.map_fn(
+                lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
+                image,
+                fn_output_signature=tf.float32
+            )
+        else:
+            augmented = tf.map_fn(
+                lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
+                image,
+                fn_output_signature=tf.float32
+            )
 
         augmented = tf.ensure_shape(augmented, [
             None,
@@ -568,7 +569,8 @@ class GenerativeAugmentationManager:
         # current_phase is a TensorFlow string tensor, need to decode it for comparison
         try:
             phase_str = self.current_phase if isinstance(self.current_phase, str) else self.current_phase.numpy().decode('utf-8')
-        except:
+        except (AttributeError, UnicodeDecodeError) as e:
+            print(f"  [WARNING] Failed to decode phase tensor in should_generate: {type(e).__name__}: {e}", flush=True)
             return False
 
         if phase_str not in GENERATIVE_AUG_PHASES:

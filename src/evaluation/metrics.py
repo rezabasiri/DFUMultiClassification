@@ -190,7 +190,26 @@ def filter_frequent_misclassifications(data, result_dir, thresholds={'I': 12, 'P
             break
 
     if misclass_file is None:
-        vprint("No misclassification file found. Using original dataset.", level=1)
+        print("\n" + "!" * 80)
+        print("!" * 80)
+        print("!!!")
+        print("!!!  WARNING: MISCLASSIFICATION CSV FILE NOT FOUND")
+        print("!!!")
+        print("!!!  Core data filtering is ENABLED but the required file is missing:")
+        print("!!!    frequent_misclassifications_saved.csv")
+        print("!!!")
+        print("!!!  Looked in:")
+        for p in possible_paths:
+            print(f"!!!    - {p}")
+        print("!!!")
+        print("!!!  To fix this, either:")
+        print("!!!    1. Copy the file to one of the above locations, OR")
+        print("!!!    2. Run: python scripts/auto_polish_dataset_v2.py to generate it")
+        print("!!!")
+        print("!!!  CONTINUING WITH UNFILTERED DATASET...")
+        print("!!!")
+        print("!" * 80)
+        print("!" * 80 + "\n")
         return data
 
     # Load misclassification data

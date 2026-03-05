@@ -38,10 +38,15 @@ import gc
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
+# Import production config and apply environment settings BEFORE importing TensorFlow
+# Threading and determinism settings must be set before TF import
+from src.utils.production_config import apply_environment_config
+apply_environment_config()
+
 # TensorFlow and Keras
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add
+from tensorflow.keras.layers import Layer, Dense, Dropout, LayerNormalization, MultiHeadAttention, Input, GlobalAveragePooling1D, Add, Reshape, Multiply, Concatenate
 from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.optimizers import Adam
@@ -80,6 +85,8 @@ from src.utils.outlier_detection import (
     detect_outliers, apply_cleaned_dataset, restore_original_dataset, check_metadata_in_modalities,
     detect_outliers_combination, apply_cleaned_dataset_combination
 )
+# Confidence-based filtering (imported conditionally when USE_CONFIDENCE_FILTERING=True)
+# Import is done lazily in main() to avoid circular imports
 from src.data.image_processing import (
     extract_info_from_filename, find_file_match, find_best_alternative,
     create_best_matching_dataset, prepare_dataset, preprocess_image_data,
@@ -178,9 +185,8 @@ csv_file = data_paths['csv_file']
 depth_bb_file = data_paths['bb_depth_csv']
 thermal_bb_file = data_paths['bb_thermal_csv']
 
-# Load bounding box data
-depth_bb = pd.read_csv(depth_bb_file)
-thermal_bb = pd.read_csv(thermal_bb_file)
+# Bounding box data is loaded on demand by prepare_dataset() using the file paths above.
+# No need to read CSVs at module level (avoids crashes if files don't exist yet).
 
 #%% Training Parameters - using production_config values
 image_size = IMAGE_SIZE
@@ -262,12 +268,11 @@ def create_attention_visualization_callback(val_data, val_labels, save_dir='atte
 
 
         def on_train_begin(self, logs=None):
-            """Store validation data at the start of training"""
-            if hasattr(self.model, 'validation_data'):
-                self.val_data = self.model.validation_data[0]
-                self.val_labels = self.model.validation_data[1]
-            # else:
-            #     print("Warning: No validation data found in model")
+            """Store validation data at the start of training (only if not already provided)"""
+            if self.val_data is None and self.val_labels is None:
+                if hasattr(self.model, 'validation_data'):
+                    self.val_data = self.model.validation_data[0]
+                    self.val_labels = self.model.validation_data[1]
 
         def analyze_class_specific_attention(self, model_weights, class_weights, predictions, true_labels):
             pred_classes = np.argmax(predictions, axis=1)
@@ -492,17 +497,17 @@ class BestModelAttentionCallback(tf.keras.callbacks.Callback):
             # Only call the attention visualization when metric improves
             self.base_callback.on_epoch_end(epoch, logs)
 class ResidualBlock(tf.keras.layers.Layer):
-    def __init__(self, input_dim, dropout_rate=0.3):
-        super(ResidualBlock, self).__init__()
+    def __init__(self, input_dim, dropout_rate=DROPOUT_RATE, **kwargs):
+        super(ResidualBlock, self).__init__(**kwargs)
         # Store the arguments as instance attributes
         self._input_dim = input_dim  # using _input_dim to avoid conflict
         self._dropout_rate = dropout_rate
-        
+
         # Create layers in __init__
         self.dense1 = tf.keras.layers.Dense(input_dim, activation=None)
         self.dense2 = tf.keras.layers.Dense(input_dim, activation=None)
-        self.norm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        self.norm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.norm1 = tf.keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON)
+        self.norm2 = tf.keras.layers.LayerNormalization(epsilon=LAYER_NORM_EPSILON)
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
         self.activation = tf.keras.layers.ReLU()
     
@@ -535,8 +540,8 @@ class ResidualBlock(tf.keras.layers.Layer):
         return inputs + x
 
 class DualLevelAttentionLayer(tf.keras.layers.Layer):
-    def __init__(self, num_heads, key_dim, num_classes):
-        super().__init__()
+    def __init__(self, num_heads, key_dim, num_classes, **kwargs):
+        super().__init__(**kwargs)
         self.num_heads = num_heads
         self.num_classes = num_classes
         self.key_dim = key_dim
@@ -547,22 +552,22 @@ class DualLevelAttentionLayer(tf.keras.layers.Layer):
         self.model_attention_scores = None
         self.class_attention_scores = None
         
-        # Add trainable temperature parameter
-        self.temperature = tf.Variable(0.1, trainable=True, name='attention_temperature')
-        
+        # Add trainable temperature parameter (from production_config)
+        self.temperature = tf.Variable(ATTENTION_TEMPERATURE, trainable=True, name='attention_temperature')
+
         # Add separate attention for different purposes
         self.model_attention = tf.keras.layers.MultiHeadAttention(
             num_heads=num_heads,
             key_dim=key_dim,
-            dropout=0.1,
-            kernel_regularizer=tf.keras.regularizers.l2(1e-4)
+            dropout=GATING_DROPOUT_RATE,
+            kernel_regularizer=tf.keras.regularizers.l2(GATING_L2_REGULARIZATION)
         )
-        
+
         self.class_attention = tf.keras.layers.MultiHeadAttention(
-            num_heads=8, #num_heads//2,  # Fewer heads for class attention or fix values becuase calsses dont change
-            key_dim=32,       # Larger key dimension
-            dropout=0.1,
-            kernel_regularizer=tf.keras.regularizers.l2(1e-4)
+            num_heads=ATTENTION_CLASS_NUM_HEADS,  # Fixed for class attention (classes don't change)
+            key_dim=ATTENTION_CLASS_KEY_DIM,
+            dropout=GATING_DROPOUT_RATE,
+            kernel_regularizer=tf.keras.regularizers.l2(GATING_L2_REGULARIZATION)
         )
         
         # Add gating mechanism
@@ -594,8 +599,8 @@ class DualLevelAttentionLayer(tf.keras.layers.Layer):
         return tf.py_function(convert_to_numpy, [attention_weights], attention_weights.dtype)
 
     def call(self, inputs, training=True):
-        # Scale inputs by learned temperature
-        scaled_inputs = inputs / tf.math.maximum(self.temperature, 0.01)
+        # Scale inputs by learned temperature (from production_config)
+        scaled_inputs = inputs / tf.math.maximum(self.temperature, TEMPERATURE_MIN_VALUE)
         
         # Model-level attention
         model_attended, model_weights = self.model_attention(
@@ -740,34 +745,35 @@ class DynamicLRSchedule(tf.keras.callbacks.Callback):
                 cycle_epoch = 0
                 # Increase cycle length
                 self.cycle_length = int(self.cycle_length * self.cycle_multiplier)
-            
+
             # Cosine annealing within cycle
             progress = cycle_epoch / self.cycle_length
             cosine_decay = 0.5 * (1 + tf.cos(tf.constant(np.pi) * progress))
-            
+
             # Calculate learning rate
             lr = self.min_lr + (self.initial_lr - self.min_lr) * cosine_decay
-            
-            # Adjust based on loss improvement
-            if logs and 'loss' in logs:
-                current_loss = logs['loss']
-                if current_loss < self.best_loss:
-                    self.best_loss = current_loss
-                    self.patience_counter = 0
-                else:
-                    self.patience_counter += 1
-                    # If loss hasn't improved for a while, reduce max learning rate - from production_config
-                    if self.patience_counter >= LR_SCHEDULE_PATIENCE_THRESHOLD:
-                        self.initial_lr *= LR_SCHEDULE_DECAY_FACTOR
-                        self.patience_counter = 0
-        
+
         # Set the learning rate
         tf.keras.backend.set_value(self.model.optimizer.lr, lr)
-        
+
         # Log the learning rate for monitoring
         if logs is None:
             logs = {}
         logs['lr'] = lr
+
+    def on_epoch_end(self, epoch, logs=None):
+        # Adjust initial_lr based on loss improvement (logs available at epoch end)
+        if epoch >= self.exploration_epochs and logs and 'loss' in logs:
+            current_loss = logs['loss']
+            if current_loss < self.best_loss:
+                self.best_loss = current_loss
+                self.patience_counter = 0
+            else:
+                self.patience_counter += 1
+                # If loss hasn't improved for a while, reduce max learning rate - from production_config
+                if self.patience_counter >= LR_SCHEDULE_PATIENCE_THRESHOLD:
+                    self.initial_lr *= LR_SCHEDULE_DECAY_FACTOR
+                    self.patience_counter = 0
 def ImprovedGatingNetwork(num_models=16, num_classes=3):
     input_layer = tf.keras.layers.Input(shape=(num_models, num_classes))
 
@@ -780,13 +786,13 @@ def ImprovedGatingNetwork(num_models=16, num_classes=3):
     
     # Final residual block and prediction
     final_residual = ResidualBlock(num_classes)(dual_attention_output)
-    predictions = tf.nn.softmax(final_residual)  # Direct softmax since dimensions already match
+    predictions = tf.keras.layers.Activation('softmax')(final_residual)
     
     return tf.keras.Model(inputs=input_layer, outputs=predictions)
 def train_model_combination(train_data, val_data, train_labels, val_labels):
-    tf.random.set_seed(42)
-    np.random.seed(42)
-    random.seed(42)
+    tf.random.set_seed(RANDOM_SEED)
+    np.random.seed(RANDOM_SEED)
+    random.seed(RANDOM_SEED)
 
     # Validate input data
     if train_data is None or len(train_data) == 0:
@@ -841,7 +847,7 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
     alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
 
 
-    weighted_acc = WeightedAccuracy(alpha_values=class_weights, name='weighted_accuracy')
+    weighted_acc = WeightedAccuracy(alpha_values=alpha_values, name='weighted_accuracy')
     
     # with strategy.scope():
     # Build the model
@@ -914,7 +920,6 @@ def train_model_combination(train_data, val_data, train_labels, val_labels):
         shuffle=True,
         verbose=GATING_VERBOSE
     )
-
     # Predict outputs
     predictions = model.predict(train_data, verbose=0)
     val_predictions = model.predict(val_data, verbose=0)
@@ -945,11 +950,6 @@ def process_trial(trial, all_combinations, completed_combinations, train_predict
         return None
     # If this specific combination was already tried, skip
     if selected_key in completed_combinations:
-        return None
-    # Keep track of how many new combinations processed for this model count
-    new_combinations_count = sum(1 for combo in completed_combinations if len(combo) == current_model_count and combo not in completed_combinations)     
-    # Skip if processed enough new combinations to reach max_tries_min
-    if new_combinations_count >= remaining_tries:
         return None
     
     train_predictions_selected = [train_predictions_list[i] for i in selected_indices]
@@ -1333,13 +1333,13 @@ def write_save_best_combo_results(best_predictions, best_accuracy, best_weighted
 
     print(f"\nDetailed results saved to {results_file}")
 class TransformerBlock(Layer):
-    def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
+    def __init__(self, embed_dim, num_heads, ff_dim, rate=TRANSFORMER_DROPOUT_RATE):
         super(TransformerBlock, self).__init__()
         self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
         self.ffn1 = Dense(ff_dim, activation="gelu")  # First Dense layer
         self.ffn2 = Dense(embed_dim)  # Second Dense layer
-        self.layernorm1 = LayerNormalization(epsilon=1e-6)
-        self.layernorm2 = LayerNormalization(epsilon=1e-6)
+        self.layernorm1 = LayerNormalization(epsilon=LAYER_NORM_EPSILON)
+        self.layernorm2 = LayerNormalization(epsilon=LAYER_NORM_EPSILON)
         self.dropout1 = Dropout(rate)
         self.dropout2 = Dropout(rate)
 
@@ -1372,10 +1372,11 @@ def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=HI
         phase_inputs = tf.keras.layers.Lambda(lambda x: x[:, :, phase])(inputs)
         phase_inputs = Reshape((num_models, 1))(phase_inputs)
         
-        # Learn phase-specific attention
+        # Learn phase-specific attention weights across models
         attention = Dense(embedding_dim, activation='relu')(phase_inputs)
         attention = LayerNormalization()(attention)
-        attention = Dense(1, activation='softmax')(attention)
+        attention = Dense(1)(attention)  # (batch, num_models, 1) - raw logits
+        attention = tf.keras.layers.Softmax(axis=1)(attention)  # softmax across models dimension
         
         # Weight model predictions for this phase
         weighted_phase = Multiply()([phase_inputs, attention])
@@ -1408,11 +1409,10 @@ def create_hierarchical_gating_network(num_models, num_classes, embedding_dim=HI
     combined = Concatenate()([transformer_pooled, residual])
     combined = Dense(embedding_dim, activation='relu')(combined)
     combined = LayerNormalization()(combined)
-    combined = Dropout(0.1)(combined)
-    
-    # Output probabilities
-    outputs = Dense(num_classes, activation='softmax', kernel_regularizer=tf.keras.regularizers.l2(0.001))(combined) ##TRY THIS TO AVOID OVERFITTING
-    # outputs = Dense(num_classes, activation='softmax')(combined)
+    combined = Dropout(TRANSFORMER_DROPOUT_RATE)(combined)
+
+    # Output probabilities (using L2 regularization from production_config)
+    outputs = Dense(num_classes, activation='softmax', kernel_regularizer=tf.keras.regularizers.l2(HIERARCHICAL_L2_REGULARIZATION))(combined)
     
     return Model(inputs=inputs, outputs=outputs)
 def focal_loss_gating_network(gamma=HIERARCHICAL_FOCAL_GAMMA, alpha=HIERARCHICAL_FOCAL_ALPHA):
@@ -1670,16 +1670,13 @@ def create_current_get_focal_ordinal_loss(ordinal_weight, gamma, alpha):
 def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
     """
     Perform grid search over loss function parameters.
+    Uses parameter values from production_config.py for consistency.
     """
-    # Define parameter grids
+    # Define parameter grids from production_config
     param_grid = {
-        'ordinal_weight': [1.0],
-        'gamma': [2.0, 3.0],
-        'alpha': [
-            [0.598, 0.315, 1.597],  # Your current weights
-            [1, 0.5, 2],  # Alternative weights
-            [1.5, 0.3, 1.5]  # Another alternative
-        ]
+        'ordinal_weight': GRID_SEARCH_ORDINAL_WEIGHTS,
+        'gamma': GRID_SEARCH_GAMMAS,
+        'alpha': GRID_SEARCH_ALPHAS
     }
     
     # Create results CSV
@@ -1777,7 +1774,7 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_fo
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outlier_filtered_data=None):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outlier_filtered_data=None, target_fold=None):
     """
     Test all modality combinations and save results to CSV.
 
@@ -1871,7 +1868,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
         filtered_df = outlier_filtered_data.get(combo_key, None)
         data = prepare_dataset(depth_bb_file, thermal_bb_file, csv_file, selected_modalities, filtered_df=filtered_df)
         # Apply misclassification filtering if configured (from production_config)
-        if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
+        if USE_CORE_DATA:
             thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
             from src.evaluation.metrics import filter_frequent_misclassifications
             data = filter_frequent_misclassifications(data, result_dir, thresholds=thresholds)
@@ -1881,7 +1878,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
         # Perform cross-validation with manual patient split
         run_data = data.copy(deep=True)
         cv_results, confusion_matrices, histories = cross_validation_manual_split(
-            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=TRACK_MISCLASS
+            run_data, selected_modalities, train_patient_percentage, cv_folds=cv_folds, track_misclass=TRACK_MISCLASS, target_fold=target_fold
         )
 
         # Save predictions per combination for later gating network ensemble
@@ -1933,12 +1930,30 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
             "Cohen's Kappa (Std)": std_kappa
         }
 
-        # Append the result to the CSV file
-        with open(csv_filename, 'a', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writerow(result)
+        # Update or append the result to the CSV file
+        # Read existing rows, update if modality already exists, otherwise append
+        existing_rows = []
+        if os.path.exists(csv_filename):
+            with open(csv_filename, 'r', newline='') as csvfile:
+                reader = csv.DictReader(csvfile)
+                existing_rows = list(reader)
 
-        vprint(f"Results for {', '.join(selected_modalities)} appended to {csv_filename}")
+        updated = False
+        for i, row in enumerate(existing_rows):
+            if row.get('Modalities') == result['Modalities']:
+                existing_rows[i] = result
+                updated = True
+                break
+
+        if not updated:
+            existing_rows.append(result)
+
+        with open(csv_filename, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(existing_rows)
+
+        vprint(f"Results for {', '.join(selected_modalities)} {'updated in' if updated else 'appended to'} {csv_filename}")
 
         # Update progress bar with current combination info
         status = f"{'+'.join(selected_modalities)} | Acc: {avg_accuracy:.3f} | F1: {avg_f1_macro:.3f}"
@@ -2057,6 +2072,13 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
     try:
         results_df = pd.read_csv(csv_filename)
         if len(results_df) > 0:
+            # IMPORTANT: When running with subprocess isolation per fold, the CSV will have multiple rows
+            # for the same modality combination (one per fold subprocess completing). Each fold subprocess
+            # appends a new row with metrics aggregated from all completed folds up to that point.
+            # The LAST row for each modality combination has the most folds aggregated (most complete result).
+            # Drop duplicates keeping 'last' occurrence of each modality combination.
+            results_df = results_df.drop_duplicates(subset='Modalities', keep='last')
+
             # Best by accuracy
             best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
             best_acc_row = results_df.loc[best_acc_idx]
@@ -2092,7 +2114,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, target_fold=None):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2101,6 +2123,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         data_percentage (float): Percentage of data to use
         train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
         cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
+        target_fold (int): If set, only run this specific fold (1-indexed). Others loaded from disk.
 
     Configuration (from production_config.py):
         OUTLIER_REMOVAL: Enable outlier detection and removal
@@ -2180,7 +2203,12 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
                         vprint(f"  ⚠ Detection failed for {combo_name}, using original", level=1)
 
                 except Exception as e:
-                    vprint(f"  ⚠ Error for {combo_name}: {str(e)}", level=1)
+                    # Check if it's a benign FileNotFoundError for best_matching.csv (file gets created automatically)
+                    error_str = str(e)
+                    if "best_matching.csv" in error_str and "No such file or directory" in error_str:
+                        vprint(f"  ℹ Info for {combo_name}: best_matching.csv was generated", level=1)
+                    else:
+                        vprint(f"  ⚠ Error for {combo_name}: {error_str}", level=1)
                     vprint(f"    Continuing with original dataset", level=2)
 
             vprint("", level=1)
@@ -2190,6 +2218,88 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
     else:
         outlier_filtered_data = {}  # Initialize empty dict when outlier removal disabled
         vprint("Outlier removal disabled", level=2)
+
+    # =========================================================================
+    # CONFIDENCE-BASED FILTERING (if enabled)
+    # =========================================================================
+    # This runs a preliminary training to identify low-confidence samples,
+    # then filters them out for the main training run.
+    confidence_exclusion_set = set()
+
+    # Skip confidence filtering if:
+    # 1. Explicitly disabled via environment variable (e.g., during preliminary training)
+    # 2. Running a specific fold subprocess (target_fold is set) - filtering should only run in orchestrator
+    if os.environ.get('DISABLE_CONFIDENCE_FILTERING') == '1':
+        vprint("Confidence filtering disabled (DISABLE_CONFIDENCE_FILTERING=1)", level=2)
+    elif target_fold is not None:
+        vprint("Confidence filtering skipped (running specific fold subprocess)", level=2)
+    elif USE_CONFIDENCE_FILTERING:
+        vprint("\n" + "="*80, level=1)
+        vprint("CONFIDENCE-BASED FILTERING", level=1)
+        vprint("="*80, level=1)
+
+        # Import helper functions from confidence_based_filtering script
+        try:
+            from scripts.confidence_based_filtering import (
+                run_confidence_filtering_pipeline,
+                load_exclusion_set,
+                exclusion_list_exists,
+                get_confidence_filter_stats
+            )
+
+            # Check if we already have an exclusion list
+            if exclusion_list_exists():
+                vprint("Found existing confidence exclusion list", level=1)
+                confidence_exclusion_set = load_exclusion_set()
+                stats = get_confidence_filter_stats()
+                if stats:
+                    vprint(f"  Created: {stats.get('timestamp', 'unknown')}", level=2)
+                    vprint(f"  Config: {stats.get('config', {})}", level=2)
+                vprint(f"  Samples to exclude: {len(confidence_exclusion_set)}", level=1)
+            else:
+                vprint("No exclusion list found - running preliminary training...", level=1)
+                vprint(f"  Percentile: {CONFIDENCE_FILTER_PERCENTILE}%", level=2)
+                vprint(f"  Mode: {CONFIDENCE_FILTER_MODE}", level=2)
+                vprint(f"  Metric: {CONFIDENCE_METRIC}", level=2)
+
+                # Run confidence filtering pipeline (uses same cv_folds as main training)
+                success, excluded_samples = run_confidence_filtering_pipeline(
+                    percentile=CONFIDENCE_FILTER_PERCENTILE,
+                    mode=CONFIDENCE_FILTER_MODE,
+                    metric=CONFIDENCE_METRIC,
+                    min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
+                    max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
+                    cv_folds=cv_folds,  # Use same number of folds as main training
+                    data_percentage=data_percentage,
+                    force_recompute=False,
+                    verbosity=get_verbosity()
+                )
+
+                if success:
+                    confidence_exclusion_set = set(excluded_samples)
+                    vprint(f"\n✓ Confidence filtering complete: {len(confidence_exclusion_set)} samples to exclude", level=1)
+                else:
+                    vprint("⚠ Confidence filtering failed, continuing without filtering", level=1)
+
+        except ImportError as e:
+            vprint(f"⚠ Could not import confidence_based_filtering: {e}", level=1)
+            vprint("  Continuing without confidence filtering", level=1)
+        except Exception as e:
+            vprint(f"⚠ Error during confidence filtering: {e}", level=1)
+            vprint("  Continuing without confidence filtering", level=1)
+
+        vprint("="*80 + "\n", level=1)
+    else:
+        vprint("Confidence filtering disabled", level=2)
+
+    # Store exclusion set for use in data loading
+    # This will be accessed via environment or passed to prepare_dataset
+    if confidence_exclusion_set:
+        import json
+        exclusion_file = os.path.join(result_dir, 'confidence_exclusion_list.txt')
+        os.environ['CONFIDENCE_EXCLUSION_FILE'] = exclusion_file
+        vprint(f"Set CONFIDENCE_EXCLUSION_FILE={exclusion_file}", level=2)
+
     # Clear any existing cache files to ensure fresh tf_records for each run
     import glob
     cache_patterns = [
@@ -2211,13 +2321,75 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
             vprint(f"Warning: Error while processing pattern {pattern}: {str(e)}", level=2)
 
     if mode.lower() == 'search':
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data, target_fold=target_fold)
     elif mode.lower() == 'specialized':
         # Note: Specialized mode not yet implemented, falling back to search mode
         vprint("Warning: Specialized mode not implemented, running search mode instead", level=0)
-        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data)
+        main_search(data_percentage, train_patient_percentage, cv_folds=cv_folds, outlier_filtered_data=outlier_filtered_data, target_fold=target_fold)
     else:
         raise ValueError("Mode must be either 'search' or 'specialized'")
+
+
+def _orchestrate_cv_folds(args):
+    """Run each CV fold in a separate subprocess to prevent TF/CUDA resource accumulation.
+
+    TensorFlow and CUDA accumulate internal C++ resources (memory maps, GPU buffers) across
+    training runs that cannot be freed by clear_session() or gc.collect(). On systems with
+    vm.max_map_count limits (e.g., Docker), this causes pthread_create EAGAIN crashes.
+    Running each fold as a separate subprocess gives each fold a fresh TF/CUDA state.
+    """
+    import subprocess
+
+    cv_folds = args.cv_folds
+
+    # Rebuild command from sys.argv, stripping --fold and --resume_mode (we add our own)
+    # Always use sys.executable to ensure subprocess uses the same Python interpreter
+    base_argv = [sys.executable]
+    skip_next = False
+    for i, arg in enumerate(sys.argv):
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in ('--fold', '--resume_mode'):
+            skip_next = True
+            continue
+        # Skip argv[0] if it's the same as sys.executable (avoid duplicating interpreter)
+        if i == 0 and os.path.basename(arg) == os.path.basename(sys.executable):
+            continue
+        base_argv.append(arg)
+
+    print(f"\n{'='*80}")
+    print(f"SUBPROCESS ISOLATION: Running {cv_folds} folds in separate processes")
+    print(f"  (Prevents TF/CUDA resource accumulation across folds)")
+    print(f"{'='*80}\n")
+
+    for fold in range(1, cv_folds + 1):
+        fold_cmd = base_argv + ['--fold', str(fold)]
+
+        # First fold: use user's original resume_mode; subsequent folds: auto
+        if fold == 1:
+            fold_cmd += ['--resume_mode', args.resume_mode]
+        else:
+            fold_cmd += ['--resume_mode', 'auto']
+
+        print(f"\n{'='*80}")
+        print(f"FOLD {fold}/{cv_folds} - Starting in isolated subprocess")
+        print(f"Command: {' '.join(fold_cmd)}")
+        print(f"{'='*80}\n")
+
+        # Pass through DISABLE_CONFIDENCE_FILTERING if set (to prevent recursion in fold subprocesses)
+        env = os.environ.copy()
+        result = subprocess.run(fold_cmd, env=env)
+
+        if result.returncode != 0:
+            print(f"\nERROR: Fold {fold}/{cv_folds} failed with return code {result.returncode}")
+            return result.returncode
+
+        print(f"\nFold {fold}/{cv_folds} completed successfully.")
+
+    print(f"\nAll {cv_folds} folds completed successfully.")
+    return 0
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -2301,6 +2473,8 @@ Configuration:
         help="""Number of cross-validation folds with patient-level splitting.
         Each fold uses a different subset as validation.
         All data is validated exactly once across all folds.
+        When > 1, each fold runs in a separate subprocess automatically
+        (prevents TF/CUDA memory leaks). Do NOT add --fold manually.
         Set to 0 or 1 for single train/val split (no cross-validation).
         Examples: 0 (single split), 3 (3-fold CV), 5 (5-fold CV)
         (default: 3)"""
@@ -2396,7 +2570,170 @@ Configuration:
         (default: False - display GPUs excluded)"""
     )
 
+    parser.add_argument(
+        "--fold",
+        type=int,
+        default=None,
+        help="""FOR INTERNAL/SUBPROCESS USE. Run only the specified fold (1-indexed).
+        DO NOT set this manually for normal training runs.
+
+        When --fold is NOT set (default) and cv_folds > 1, the orchestrator
+        automatically spawns each fold as a separate subprocess with --fold N.
+        This prevents TF/CUDA resource accumulation across folds.
+
+        Normal usage: just set --cv_folds 3 (orchestrator handles the rest)
+        Manual single fold (advanced): --fold 2 --cv_folds 3 --resume_mode auto
+        (default: None - orchestrator auto-spawns subprocesses per fold)"""
+    )
+
+    parser.add_argument("--track-misclass", type=str, choices=['both', 'valid', 'train', 'none'], default=None,
+        dest='track_misclass_override',
+        help="Misclassification tracking mode (overrides production_config TRACK_MISCLASS)")
+
     args = parser.parse_args()
+
+    # Override production_config values from CLI args
+    global TRACK_MISCLASS
+    if args.track_misclass_override is not None:
+        TRACK_MISCLASS = args.track_misclass_override
+
+    # Set up logging to file
+    from datetime import datetime
+    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'results', 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Create log filename with prefix for confidence filtering vs main training
+    # Confidence filtering subprocesses have DISABLE_CONFIDENCE_FILTERING=1
+    is_confidence_run = os.environ.get('DISABLE_CONFIDENCE_FILTERING') == '1'
+    log_prefix = 'confidence' if is_confidence_run else 'training'
+    fold_suffix = f'_fold{args.fold}' if args.fold is not None else ''
+    log_file = os.path.join(log_dir, f'{log_prefix}{fold_suffix}.log')
+
+    # Open log file and redirect stdout/stderr
+    class TeeOutput:
+        """Write to both file and original stream"""
+        def __init__(self, file_obj, stream):
+            self.file = file_obj
+            self.stream = stream
+        def write(self, data):
+            self.file.write(data)
+            self.stream.write(data)
+            self.file.flush()  # Ensure real-time writing
+        def flush(self):
+            self.file.flush()
+            self.stream.flush()
+
+    log_file_obj = open(log_file, 'w', buffering=1)  # Line buffered
+    sys.stdout = TeeOutput(log_file_obj, sys.stdout)
+    sys.stderr = TeeOutput(log_file_obj, sys.stderr)
+
+    print(f"[LOG] Output is being logged to: {log_file}")
+    print(f"[LOG] Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+    # Set verbosity early for confidence filtering
+    set_verbosity(args.verbosity)
+
+    # =========================================================================
+    # CONFIDENCE-BASED FILTERING (if enabled) - Run BEFORE fold orchestration
+    # =========================================================================
+    # This runs a preliminary training to identify low-confidence samples,
+    # then filters them out for the main training run.
+    # IMPORTANT: This must run in the orchestrator (args.fold is None), not in fold subprocesses
+    if args.fold is None and args.cv_folds > 1 and USE_CONFIDENCE_FILTERING and os.environ.get('DISABLE_CONFIDENCE_FILTERING') != '1':
+        print("\n" + "="*80)
+        print("CONFIDENCE-BASED FILTERING")
+        print("="*80)
+
+        # Import helper functions from confidence_based_filtering script
+        try:
+            from scripts.confidence_based_filtering import (
+                run_confidence_filtering_pipeline,
+                load_exclusion_set,
+                exclusion_list_exists,
+                get_confidence_filter_stats
+            )
+
+            # Check if we already have an exclusion list
+            if exclusion_list_exists():
+                print("Using existing confidence exclusion list")
+                confidence_exclusion_set = load_exclusion_set()
+                stats = get_confidence_filter_stats()
+                if stats and args.verbosity >= 2:
+                    print(f"  Created: {stats.get('timestamp', 'unknown')}")
+                    print(f"  Config: {stats.get('config', {})}")
+
+                # Show per-class percentiles if available
+                if hasattr(sys.modules['src.utils.production_config'], 'CONFIDENCE_FILTER_PERCENTILE_I'):
+                    from src.utils.production_config import (
+                        CONFIDENCE_FILTER_PERCENTILE_I,
+                        CONFIDENCE_FILTER_PERCENTILE_P,
+                        CONFIDENCE_FILTER_PERCENTILE_R
+                    )
+                    print(f"  Excluding {len(confidence_exclusion_set)} samples [I:{CONFIDENCE_FILTER_PERCENTILE_I}%, P:{CONFIDENCE_FILTER_PERCENTILE_P}%, R:{CONFIDENCE_FILTER_PERCENTILE_R}%]")
+                else:
+                    print(f"  Excluding {len(confidence_exclusion_set)} samples ({CONFIDENCE_FILTER_PERCENTILE}% lowest confidence)")
+            else:
+                print(f"Running preliminary training to identify low-confidence samples...")
+                # Use per-class percentiles if available, otherwise fall back to single percentile
+                if hasattr(sys.modules['src.utils.production_config'], 'CONFIDENCE_FILTER_PERCENTILE_I'):
+                    from src.utils.production_config import (
+                        CONFIDENCE_FILTER_PERCENTILE_I,
+                        CONFIDENCE_FILTER_PERCENTILE_P,
+                        CONFIDENCE_FILTER_PERCENTILE_R
+                    )
+                    per_class_pct = {
+                        0: CONFIDENCE_FILTER_PERCENTILE_I,
+                        1: CONFIDENCE_FILTER_PERCENTILE_P,
+                        2: CONFIDENCE_FILTER_PERCENTILE_R
+                    }
+                    print(f"  Filtering: per-class percentiles [I:{CONFIDENCE_FILTER_PERCENTILE_I}%, P:{CONFIDENCE_FILTER_PERCENTILE_P}%, R:{CONFIDENCE_FILTER_PERCENTILE_R}%] using {CONFIDENCE_METRIC} metric")
+                else:
+                    per_class_pct = None
+                    print(f"  Filtering: bottom {CONFIDENCE_FILTER_PERCENTILE}% per class using {CONFIDENCE_METRIC} metric")
+
+                # Run confidence filtering pipeline (uses same cv_folds as main training)
+                # Set verbosity to 0 to suppress internal prints, we'll handle the output here
+                success, excluded_samples = run_confidence_filtering_pipeline(
+                    percentile=CONFIDENCE_FILTER_PERCENTILE if per_class_pct is None else None,
+                    percentiles_per_class=per_class_pct,
+                    mode=CONFIDENCE_FILTER_MODE,
+                    metric=CONFIDENCE_METRIC,
+                    min_samples_per_class=CONFIDENCE_FILTER_MIN_SAMPLES,
+                    max_class_removal_pct=CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT,
+                    cv_folds=args.cv_folds,  # Use same number of folds as main training
+                    data_percentage=args.data_percentage,
+                    force_recompute=False,
+                    verbosity=args.verbosity
+                )
+
+                if success:
+                    confidence_exclusion_set = set(excluded_samples)
+                    print(f"✓ Identified {len(confidence_exclusion_set)} low-confidence samples to exclude")
+                else:
+                    print("⚠ Confidence filtering failed, continuing without filtering")
+
+        except ImportError as e:
+            print(f"⚠ Could not import confidence_based_filtering: {e}")
+            print("  Continuing without confidence filtering")
+        except Exception as e:
+            print(f"⚠ Error during confidence filtering: {e}")
+            print("  Continuing without confidence filtering")
+
+        # Set environment variable so fold subprocesses can access the exclusion list
+        # The exclusion list file path is used by image_processing.py during data loading
+        exclusion_file = os.path.join(result_dir, 'confidence_exclusion_list.txt')
+        if os.path.exists(exclusion_file):
+            os.environ['CONFIDENCE_EXCLUSION_FILE'] = exclusion_file
+            if args.verbosity >= 2:
+                print(f"Set CONFIDENCE_EXCLUSION_FILE={exclusion_file}")
+
+        print("="*80 + "\n")
+
+    # SUBPROCESS ORCHESTRATION: When running multi-fold CV without --fold,
+    # automatically spawn each fold as a separate subprocess to prevent
+    # TF/CUDA resource accumulation (memory maps, RSS growth per fold).
+    if args.fold is None and args.cv_folds > 1:
+        sys.exit(_orchestrate_cv_folds(args))
 
     # Set up GPU/device strategy BEFORE importing TensorFlow models
     # This must happen early to properly configure CUDA_VISIBLE_DEVICES
@@ -2420,7 +2757,7 @@ Configuration:
 
     # Now that CUDA_VISIBLE_DEVICES is set, configure TensorFlow
     tf.random.set_seed(RANDOM_SEED)
-    apply_environment_config()  # Apply threading and determinism settings
+    # Environment config already applied early (before TF import) - no need to reapply
     tf.config.optimizer.set_experimental_options({"layout_optimizer": False})
 
     # Calculate effective batch size now that strategy is set up
@@ -2506,13 +2843,11 @@ Configuration:
         vprint(f"  Outlier contamination: {OUTLIER_CONTAMINATION*100:.0f}%", level=0)
         vprint(f"  Outlier batch size: {OUTLIER_BATCH_SIZE}", level=0)
     vprint(f"  Misclassification tracking: {TRACK_MISCLASS}", level=0)
-    if USE_CORE_DATA or any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
-        vprint(f"  Core data mode: {USE_CORE_DATA}", level=0)
-        if any([THRESHOLD_I, THRESHOLD_P, THRESHOLD_R]):
-            vprint(f"  Thresholds: I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}", level=0)
+    if USE_CORE_DATA:
+        vprint(f"  Core data filtering: thresholds I={THRESHOLD_I}, P={THRESHOLD_P}, R={THRESHOLD_R}", level=0)
 
     # Run the selected mode
-    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds)
+    main(args.mode, args.data_percentage, args.train_patient_percentage, args.cv_folds, target_fold=args.fold)
 
     # Clear memory after completion
     clear_gpu_memory()

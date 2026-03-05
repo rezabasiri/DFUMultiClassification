@@ -25,9 +25,10 @@ Categories:
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 64  # Image dimensions (64x64 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas
-N_EPOCHS = 300  # Full training epochs
+IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas (16 per GPU; reduced from 600 to get ~17 steps/epoch with ~516 training samples instead of 1)
+PHASE2_BATCH_SIZE_ADJUSTMENT = False  # Auto-adjust batch size in Phase 2 based on modality count/weight (can reduce batch size too aggressively)
+N_EPOCHS = 200  # Full training epochs
 
 # EPOCH SETTINGS - Understanding the different epoch parameters:
 # ----------------------------------------------------------------
@@ -35,48 +36,137 @@ N_EPOCHS = 300  # Full training epochs
 #   - For pre-training (image-only models): Uses N_EPOCHS epochs
 #   - For Stage 1 (frozen image branch): Uses STAGE1_EPOCHS epochs
 #   - For Stage 2 (fine-tuning): Uses (N_EPOCHS - STAGE1_EPOCHS) epochs
-#   - Production: 300 epochs total
+#   - Production: 200 epochs total
 #   - Quick test: 50 epochs total (agent_communication/generative_augmentation/test_generative_aug.py)
 #
 # STAGE1_EPOCHS: Number of epochs for Stage 1 fusion training (frozen image branch)
 #   - Only used in two-stage fusion training
 #   - Image branch is frozen, only fusion layers train
-#   - Typically ~10% of N_EPOCHS (30 out of 300)
-#   - Production: 50 epochs
-#   - Quick test: 25 epochs
+#   - Typically ~10% of N_EPOCHS (20 out of 200)
+#   - Production: 20 epochs
+#   - Quick test: 5 epochs
 #
 # LR_SCHEDULE_EXPLORATION_EPOCHS: Learning rate schedule exploration period
-#   - Defines how long to explore different learning rates
-#   - Should match N_EPOCHS for full training
-#   - Production: 300 epochs
-#   - Quick test: 50 epochs (auto-set to match N_EPOCHS in test script)
+#   - Defines how long to stay at initial LR before entering cosine annealing
+#   - Automatically set to 10% of N_EPOCHS (matches STAGE1_EPOCHS ratio)
+#   - Production (N_EPOCHS=200): 20 epochs exploration
+#   - After exploration, uses cosine annealing with warm restarts
 #
-# Example production timeline (N_EPOCHS=300, STAGE1_EPOCHS=30):
-#   1. Pre-training: 0-300 epochs (trains image-only model)
-#   2. Stage 1: 0-30 epochs (frozen image, train fusion)
-#   3. Stage 2: 30-300 epochs (fine-tune everything)
+# Example production timeline (N_EPOCHS=200, STAGE1_EPOCHS=20):
+#   1. Pre-training: 0-200 epochs (trains image-only model)
+#   2. Stage 1: 0-20 epochs (frozen image, train fusion)
+#   3. Stage 2: 20-200 epochs (fine-tune everything)
 
-# Image backbone selection (for backbone comparison experiments)
-# Options: 'SimpleCNN', 'EfficientNetB0', 'EfficientNetB1', 'EfficientNetB2', 'EfficientNetB3'
-# Best combination from 20-test comparison: B3+B1 (Kappa=0.3295, 79.7% improvement over baseline)
-RGB_BACKBONE = 'EfficientNetB3'  # Backbone for RGB images (depth_rgb, thermal_rgb)
-MAP_BACKBONE = 'EfficientNetB1'  # Backbone for map images (depth_map, thermal_map)
+# Default backbones (fallback for modalities not in MODALITY_CONFIGS; also used by data pipeline normalization)
+RGB_BACKBONE = 'EfficientNetB0'
+MAP_BACKBONE = 'EfficientNetB2'
+
+# =============================================================================
+# Per-Modality Hyperparameters
+# =============================================================================
+# Each modality can override the global defaults for backbone, head, loss, and
+# fine-tuning.  Values here are validated by standalone hparam searches:
+#   depth_rgb:   agent_communication/depth_rgb_pipeline_audit/
+#   depth_map:   agent_communication/depth_map_pipeline_audit/
+#   thermal_map: agent_communication/thermal_map_pipeline_audit/
+#
+# Keys not present in a modality dict fall back to the global defaults above.
+
+MODALITY_CONFIGS = {
+    'depth_rgb': {
+        'backbone': 'EfficientNetB2',   # validated: R4_lr1e3_b64_e100 (full-data search)
+        'head_units': [256, 64],         # two-layer head (search: [256, 64])
+        'head_l2': 0.0,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 30,
+    },
+    'depth_map': {
+        'backbone': 'EfficientNetB2',   # validated: R3_focal_g2_l2_1e3
+        'head_units': 64,
+        'head_l2': 0.001,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 30,
+    },
+    'thermal_map': {
+        'backbone': 'EfficientNetB0',   # validated: BASELINE (full-data search, avg kappa 0.426)
+        'head_units': 128,
+        'head_l2': 0.0,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 30,
+    },
+    'thermal_rgb': {
+        'backbone': 'EfficientNetB2',   # mirrors depth_rgb backbone
+        'head_units': [256, 64],
+        'head_l2': 0.0,
+        'label_smoothing': 0.0,
+        'finetune_epochs': 30,
+    },
+}
+
+def get_modality_config(modality):
+    """Get hyperparameters for a specific modality, falling back to globals.
+
+    Resolved at call time so that globals like LABEL_SMOOTHING / STAGE2_FINETUNE_EPOCHS
+    are available regardless of import order.
+    """
+    cfg = MODALITY_CONFIGS.get(modality, {})
+    is_rgb = modality in ['depth_rgb', 'thermal_rgb']
+    return {
+        'backbone': cfg.get('backbone', RGB_BACKBONE if is_rgb else MAP_BACKBONE),
+        'head_units': cfg.get('head_units', 256),
+        'head_l2': cfg.get('head_l2', 0.0),
+        'label_smoothing': cfg.get('label_smoothing', globals().get('LABEL_SMOOTHING', 0.0)),
+        'finetune_epochs': cfg.get('finetune_epochs', globals().get('STAGE2_FINETUNE_EPOCHS', 50)),
+    }
 
 # Fusion-specific training parameters
-STAGE1_EPOCHS = 50  # Stage 1 fusion training epochs (frozen image branch)
+PRETRAIN_LR = 1e-3  # Learning rate for Stage 1 head-only training (frozen backbone)
+STAGE1_LR = 1e-4  # Learning rate for Stage 1 fusion training (frozen image branch)
+STAGE2_LR = 1e-5  # Learning rate for Stage 2 fine-tuning (validated by depth_rgb hparam search: 1e-5 with 20% unfreeze)
+FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
+STAGE1_EPOCHS = 50  # Stage 1 head-only training epochs (was 20; head needs more epochs to converge)
+STAGE2_FINETUNE_EPOCHS = 50  # Stage 2 fine-tuning epochs (validated by depth_rgb hparam search)
+STAGE2_UNFREEZE_PCT = 0.2  # Fraction of backbone to unfreeze in Stage 2 (0.2 = top 20%, validated by search)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
-# Options: 'random', 'smote', 'combined', 'combined_smote'
+# Options: 'none', 'random', 'smote', 'combined', 'combined_smote'
+#   'none':   No resampling — use original imbalanced distribution as-is
 #   'random': Simple oversampling to MAX class (Kappa ~0.10) - NOT RECOMMENDED
 #   'smote': SMOTE synthetic oversampling to MAX class (Kappa ~0.14)
 #   'combined': Undersample majority + oversample minority to MIDDLE class (Kappa ~0.17) - RECOMMENDED
 #   'combined_smote': Undersample majority + SMOTE minority to MIDDLE class - NOT for fusion (creates synthetic samples without images)
-# For production with 15% outlier removal: Expected Kappa 0.27 ± 0.08
-SAMPLING_STRATEGY = 'combined'  # PRODUCTION: Use 'combined' for best fusion performance
+# For production with 25% outlier removal: Expected Kappa 0.31 ± 0.08
+SAMPLING_STRATEGY = 'none'  # PRODUCTION: Use 'combined' for best fusion performance
+
+# Additional class weighting based on original class frequencies (applied ON TOP of sampling strategy)
+# --- Alpha values: inverse class frequency weights from ORIGINAL (pre-resampling) distribution ---
+# Controls: WeightedF1Score metric, focal loss alpha, and optionally RF/training class weights below
+USE_FREQUENCY_BASED_WEIGHTS = True   # Compute alpha values from original class distribution
+FREQUENCY_WEIGHT_NORMALIZATION = 3.0  # Alpha values normalized to sum to this value (3.0 = standard; 10.0 was too aggressive)
+
+# --- Neural network loss weighting (independent of RF) ---
+# Controls: focal loss per-sample weighting via model.fit(class_weight=...)
+# Options: 'uniform'    → [1, 1, 1] (no extra weighting)
+#          'balanced'   → sklearn compute_class_weight('balanced') from post-resampling data
+#          'frequency'  → alpha values (requires USE_FREQUENCY_BASED_WEIGHTS=True)
+TRAINING_CLASS_WEIGHT_MODE = 'frequency'
+
+# --- Random Forest hyperparameters (independent of neural network) ---
+# Controls: RF model used to generate metadata probabilities fed into the neural network
+RF_N_ESTIMATORS = 200         # Number of trees (50 = more regularized, 300 = more capacity)
+RF_CLASS_WEIGHT = 'frequency'  # 'balanced' (sklearn auto), 'frequency' (alpha values), or None
+RF_OOF_FOLDS = 5             # Internal OOF folds for training predictions
+RF_MAX_DEPTH = 8              # Limit tree depth (None = unlimited, try 6-12)
+RF_MIN_SAMPLES_LEAF = 5       # Min samples per leaf (prevents memorizing rare patterns)
+RF_MIN_SAMPLES_SPLIT = 10     # Min samples to split a node
+
+# Metadata feature selection (Mutual Information)
+RF_FEATURE_SELECTION = True  # Enable/disable MI-based feature selection before RF training
+RF_FEATURE_SELECTION_K = 40  # Number of top features to keep (only used if RF_FEATURE_SELECTION=True)
 
 # Early stopping and learning rate
-EARLY_STOP_PATIENCE = 30  # Epochs to wait before stopping (increased for longer training)
+EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
 REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for longer training)
 
 # =============================================================================
@@ -84,8 +174,8 @@ REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for long
 # =============================================================================
 
 # Multimodal outlier detection (Isolation Forest on joint feature space)
-OUTLIER_REMOVAL = True  # Enable/disable outlier detection and removal
-OUTLIER_CONTAMINATION = 0.15  # Expected proportion of outliers (0.0-1.0)
+OUTLIER_REMOVAL = False  # Enable/disable outlier detection and removal
+OUTLIER_CONTAMINATION = 0.25  # Expected proportion of outliers (0.0-1.0)
 OUTLIER_BATCH_SIZE = 32  # Batch size for on-the-fly feature extraction
 
 # General augmentation (applied during training only, not validation)
@@ -98,12 +188,12 @@ USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augme
 # V3: Uses single conditional SDXL model fine-tuned on all phases
 # V2 (legacy): Uses separate SD 1.5 models per modality/phase from results/GenerativeAug_Models/models_5_7/
 # Only applies to RGB images (depth_rgb, thermal_rgb)
-USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation
+USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation
 GENERATIVE_AUG_VERSION = 'v3'  # 'v3' = SDXL conditional model, 'v2' = SD 1.5 per-phase models
-GENERATIVE_AUG_PROB = 0.05  # Probability of applying generative augmentation (0.0-1.0)
+GENERATIVE_AUG_PROB = 0.06  # Probability of applying generative augmentation (0.0-1.0)
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
-GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (10=fast, 50=quality)
-GENERATIVE_AUG_BATCH_LIMIT = 64  # Max batch size for generative aug (GPU memory constraint)
+GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (25=fast/good quality, 50=higher quality but 2x slower)
+GENERATIVE_AUG_BATCH_LIMIT = 32  # Max batch size for generative aug (increased - full GPU mode has more memory available)
 GENERATIVE_AUG_PHASES = ['I', 'P', 'R']  # Which phases to generate images for
 
 # SDXL-specific settings (V3)
@@ -123,17 +213,61 @@ GENERATIVE_AUG_MAX_MODELS = 3  # Max SD 1.5 models loaded in GPU memory simultan
 #   'both': Track from both train and validation sets
 #   'valid': Track only from validation set
 #   'train': Track only from training set (not recommended)
-TRACK_MISCLASS = 'none'  # Misclassification tracking mode
+TRACK_MISCLASS = 'none'  # Misclassification tracking mode: 'both', 'valid', 'train', 'none'
+
+# =============================================================================
+# Confidence-Based Filtering (scripts/confidence_based_filtering.py)
+# =============================================================================
+# Identifies "bad" samples by analyzing model prediction confidence.
+# Low-confidence samples are often annotation errors or ambiguous cases.
+# Faster than iterative misclassification tracking (requires only 1 training run).
+
+# Enable/disable confidence-based filtering during training
+USE_CONFIDENCE_FILTERING = False  # Disabled: replaced by RF LOO influence filtering
+
+# Filtering parameters - PER-CLASS percentiles (bottom X% to remove from each class)
+# This allows different filtering intensity for each class based on data quality
+CONFIDENCE_FILTER_PERCENTILE_I = 17  # Inflammatory class (class 0)
+CONFIDENCE_FILTER_PERCENTILE_P = 23  # Proliferative class (class 1) - majority class
+CONFIDENCE_FILTER_PERCENTILE_R = 15  # Remodeling class (class 2) - minority class
+
+# Legacy single percentile (used as fallback if per-class not specified)
+CONFIDENCE_FILTER_PERCENTILE = 15  # Remove bottom X% lowest confidence samples (default: 15%)
+
+CONFIDENCE_FILTER_MODE = 'per_class'  # 'global' = bottom X% overall, 'per_class' = bottom X% per class
+CONFIDENCE_FILTER_MIN_SAMPLES = 50  # Minimum samples to keep per class (safety limit)
+CONFIDENCE_FILTER_MAX_CLASS_REMOVAL_PCT = 30  # Never remove more than X% from ANY class (protects minority classes)
+
+# Confidence metric to use
+# 'max_prob': Maximum softmax probability (simple, fast)
+# 'margin': Difference between top-2 probabilities (measures uncertainty)
+# 'entropy': Prediction entropy (information-theoretic uncertainty)
+CONFIDENCE_METRIC = 'max_prob'
+
+# Output files (relative to results directory)
+CONFIDENCE_FILTER_RESULTS_FILE = 'confidence_filter_results.json'
+CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 
 # Misclassification filtering thresholds (for core-data mode)
-# Lower threshold = exclude more misclassified samples
-# Set to None to use auto-optimized values from bayesian_optimization_results.json
-THRESHOLD_I = None  # Inflammatory class threshold
-THRESHOLD_P = None  # Proliferative class threshold
-THRESHOLD_R = None  # Remodeling class threshold (typically higher to protect minority)
-
 # Core dataset mode (uses optimized thresholds from auto_polish_dataset_v2.py)
+# When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
+# Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
+# If CSV missing: prints warning and continues with unfiltered data
 USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
+THRESHOLD_I = 9  # Inflammatory class threshold (Bayesian-optimized)
+THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
+THRESHOLD_R = 16  # Remodeling class threshold (higher to protect minority class)
+
+# =============================================================================
+# RF LOO Influence Filtering (replaces confidence-based filtering for RF)
+# =============================================================================
+# For each unique metadata pattern, measures OOF Kappa change when removed.
+# Patterns whose removal improves Kappa are flagged as harmful and excluded
+# from BOTH training and validation sets (applied before the split).
+USE_RF_LOO_FILTERING = False
+RF_LOO_MIN_INFLUENCE = 0.005    # Min influence score to flag pattern as harmful (0.001 is noise)
+RF_LOO_MAX_REMOVAL_PCT = 15     # Max % of patterns to remove per class
+RF_LOO_MIN_PATTERNS_PER_CLASS = 50  # Min unique patterns to keep per class
 
 # =============================================================================
 # Verbosity and Progress Tracking
@@ -161,6 +295,15 @@ PROGRESS_BAR_UPDATE_INTERVAL = 1  # Seconds between progress bar updates
 GATING_NUM_HEADS_MULTIPLIER = 1  # num_heads = max(8, num_models + this)
 GATING_KEY_DIM_MULTIPLIER = 2  # key_dim = max(16, multiplier * (num_models + 1))
 
+# Neural network hyperparameters (moved from hardcoded values in main.py)
+DROPOUT_RATE = 0.3  # Dropout rate for ResidualBlock
+GATING_DROPOUT_RATE = 0.1  # Dropout rate for gating network MultiHeadAttention layers
+GATING_L2_REGULARIZATION = 1e-4  # L2 regularization for gating network dense layers
+ATTENTION_TEMPERATURE = 0.1  # Initial temperature for dual-level attention
+TEMPERATURE_MIN_VALUE = 0.01  # Minimum temperature value for scaling
+ATTENTION_CLASS_NUM_HEADS = 8  # Number of attention heads for class-level attention
+ATTENTION_CLASS_KEY_DIM = 32  # Key dimension for class-level attention
+
 # Training parameters
 GATING_LEARNING_RATE = 1e-3  # Adam optimizer learning rate
 GATING_EPOCHS = 30  # Maximum number of epochs (reduced for faster testing)
@@ -187,6 +330,11 @@ HIERARCHICAL_EMBEDDING_DIM = 32  # Embedding dimension for hierarchical network
 HIERARCHICAL_NUM_HEADS = 2  # Number of attention heads in transformer
 HIERARCHICAL_FF_DIM_MULTIPLIER = 2  # Feed-forward dim = embedding_dim * this
 
+# Hierarchical neural network hyperparameters (moved from hardcoded values in main.py)
+TRANSFORMER_DROPOUT_RATE = 0.1  # Dropout rate for TransformerBlock
+HIERARCHICAL_L2_REGULARIZATION = 0.001  # L2 regularization for hierarchical gating output layer
+LAYER_NORM_EPSILON = 1e-6  # Epsilon for LayerNormalization layers
+
 # Training parameters
 HIERARCHICAL_LEARNING_RATE = 1e-3  # Adam optimizer learning rate
 HIERARCHICAL_EPOCHS = 50  # Maximum number of epochs
@@ -205,11 +353,14 @@ HIERARCHICAL_FOCAL_ALPHA = None  # Alpha parameter (None = no class weighting)
 
 # =============================================================================
 # Learning Rate Scheduler (DynamicLRSchedule)
+# NOTE: These LR_SCHEDULE_* params are currently UNUSED. They are only referenced
+# by the DynamicLRSchedule class (defined in src/main.py) which is never
+# instantiated anywhere. Kept for potential future use.
 # =============================================================================
 
 LR_SCHEDULE_INITIAL_LR = 1e-3  # Initial learning rate
 LR_SCHEDULE_MIN_LR = 1e-14  # Minimum learning rate
-LR_SCHEDULE_EXPLORATION_EPOCHS = 300  # Number of exploration epochs
+LR_SCHEDULE_EXPLORATION_EPOCHS = int(N_EPOCHS * 0.10)  # Exploration epochs (10% of N_EPOCHS, auto-adjusts when N_EPOCHS changes)
 LR_SCHEDULE_CYCLE_LENGTH = 30  # Initial cycle length
 LR_SCHEDULE_CYCLE_MULTIPLIER = 2.0  # Factor to multiply cycle length
 
@@ -262,15 +413,30 @@ ENTROPY_LOSS_WEIGHT = 0.2  # Base weight for entropy in total loss
 # =============================================================================
 
 # Focal ordinal loss defaults (when not specified)
-FOCAL_ORDINAL_WEIGHT = 0.5  # Default ordinal penalty weight
-FOCAL_GAMMA = 1.0  # Reduced from 2.0 to be less aggressive with easy examples
-FOCAL_ALPHA = 0.25  # Default focal loss alpha
+FOCAL_ORDINAL_WEIGHT = 0.0  # Ordinal penalty disabled — argmax-based distance is non-differentiable, adds complexity with no benefit. Pure focal loss with alpha is sufficient.
+LABEL_SMOOTHING = 0.1  # Label smoothing for focal loss (validated by depth_rgb hparam search: 0.1 optimal)
+# Note: HIERARCHICAL_FOCAL_GAMMA and HIERARCHICAL_FOCAL_ALPHA are used for hierarchical gating
 
 # =============================================================================
 # Cross-Validation Configuration
 # =============================================================================
-
-CV_N_SPLITS = 3  # Number of cross-validation folds
+#
+# IMPORTANT: Use --cv_folds flag (NOT this config) to control main training!
+#
+# --cv_folds N (command line, default: 3)
+#   - Controls BOTH main training AND confidence filtering folds
+#   - Each fold runs in isolated subprocess to prevent memory leaks
+#   - Examples:
+#       --cv_folds 3              # Run 3 folds
+#       --cv_folds 3 --fold 2     # Run only fold 2 (others load from disk)
+#
+# CV_N_SPLITS (this config)
+#   - Used ONLY for hierarchical gating network
+#   - Does NOT affect main training or confidence filtering
+#
+# Quick testing: python src/main.py --cv_folds 2 --data_percentage 40 --resume_mode fresh
+#
+CV_N_SPLITS = 5  # For hierarchical gating only (use --cv_folds for main training)
 CV_RANDOM_STATE = 42  # Random state for reproducibility
 CV_SHUFFLE = True  # Whether to shuffle data before splitting
 
@@ -300,7 +466,8 @@ PROGRESS_RETRY_DELAY = 0.4  # Delay between retries (seconds)
 # =============================================================================
 
 # All available modalities
-ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+# ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map']
+ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
 
 # Search mode: 'all' tests all 31 combinations, 'custom' uses INCLUDED_COMBINATIONS
 MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
@@ -310,7 +477,7 @@ EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
 INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb', 'depth_map', 'thermal_map',),
+    ('metadata', 'depth_rgb', 'thermal_map',),  
 ] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
 
 # Results file naming

@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 from collections import Counter
-from sklearn.utils.class_weight import compute_class_weight
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, classification_report
@@ -18,7 +17,8 @@ from imblearn.under_sampling import RandomUnderSampler
 
 from src.utils.config import get_project_paths, get_data_paths, get_output_paths, CLASS_LABELS
 from src.utils.verbosity import vprint, get_verbosity
-from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION
+
+from src.utils.production_config import USE_GENERAL_AUGMENTATION, GENERATIVE_AUG_VERSION, RGB_BACKBONE, MAP_BACKBONE
 from src.data.image_processing import load_and_preprocess_image
 
 # Conditionally import generative augmentation module based on version
@@ -38,7 +38,11 @@ _selected_features_cache = {}
 
 def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
     """
-    Create k-fold cross-validation splits at patient level with class balance.
+    Create k-fold cross-validation splits at patient level with class stratification.
+
+    Uses sklearn's StratifiedGroupKFold to ensure:
+    - No patient appears in both train and validation (group constraint)
+    - Class distribution is preserved across folds (stratification constraint)
 
     Args:
         data: DataFrame with 'Patient#' and 'Healing Phase Abs' columns
@@ -50,102 +54,57 @@ def create_patient_folds(data, n_folds=3, random_state=42, max_imbalance=0.3):
         List of tuples (train_patients, valid_patients) for each fold
     """
     import os
+    from sklearn.model_selection import StratifiedGroupKFold
 
     # Allow override via environment variable (used by auto_polish for multiple runs with different folds)
     if 'CV_FOLD_SEED' in os.environ:
         try:
             random_state = int(os.environ['CV_FOLD_SEED'])
         except ValueError:
-            pass  # Keep default if invalid
-
-    np.random.seed(random_state)
-    random.seed(random_state)
+            print(f"  [WARNING] Invalid CV_FOLD_SEED env var value: '{os.environ['CV_FOLD_SEED']}', using default seed={random_state}", flush=True)
 
     # Convert labels if needed
     data = data.copy()
     if 'Healing Phase Abs' in data.columns:
-        if data['Healing Phase Abs'].dtype == 'object':
+        if data['Healing Phase Abs'].dtype in ['object', 'str'] or pd.api.types.is_string_dtype(data['Healing Phase Abs']):
             data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
 
-    # Group patients by their majority class
-    patient_classes = {}
+    labels = data['Healing Phase Abs'].values
+    groups = data['Patient#'].values
+
+    # Print class distribution per patient for diagnostics
     unique_patients = data['Patient#'].unique()
-
+    patient_classes = {}
     for patient in unique_patients:
-        patient_data = data[data['Patient#'] == patient]
-        # Assign patient to their majority class
-        majority_class = patient_data['Healing Phase Abs'].mode()[0]
-        patient_classes[patient] = majority_class
+        majority_class = data[data['Patient#'] == patient]['Healing Phase Abs'].mode()[0]
+        patient_classes[majority_class] = patient_classes.get(majority_class, 0) + 1
 
-    # Stratify patients by class
-    class_patients = {0: [], 1: [], 2: []}
-    for patient, cls in patient_classes.items():
-        class_patients[cls].append(patient)
-
-    # Check if stratification is feasible
     vprint("\n" + "=" * 80, level=1)
     vprint("STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK", level=1)
     vprint("=" * 80, level=1)
-    for cls, patients in class_patients.items():
-        vprint(f"Class {cls}: {len(patients)} patients", level=1)
-        if len(patients) < n_folds:
-            vprint(f"  ⚠ WARNING: Class {cls} has fewer patients ({len(patients)}) than folds ({n_folds})", level=1)
-            vprint(f"  Some folds will have 0 patients from this class in validation set", level=1)
+    for cls in [0, 1, 2]:
+        vprint(f"Class {cls}: {patient_classes.get(cls, 0)} patients", level=1)
     vprint("=" * 80 + "\n", level=1)
 
-    # Shuffle patients within each class
-    for cls in class_patients:
-        np.random.shuffle(class_patients[cls])
+    sgkf = StratifiedGroupKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
 
-    # Create folds
-    folds = [[] for _ in range(n_folds)]
-
-    # Distribute patients from each class across folds
-    for cls, patients in class_patients.items():
-        patients_per_fold = len(patients) // n_folds
-        remainder = len(patients) % n_folds
-
-        start_idx = 0
-        for fold_idx in range(n_folds):
-            # Add one extra patient to some folds if there's remainder
-            fold_size = patients_per_fold + (1 if fold_idx < remainder else 0)
-            end_idx = start_idx + fold_size
-            folds[fold_idx].extend(patients[start_idx:end_idx])
-            start_idx = end_idx
-
-    # Create train/valid splits for each fold
     fold_splits = []
-    for fold_idx in range(n_folds):
-        valid_patients = np.array(folds[fold_idx])
-        train_patients = np.array([p for i, fold in enumerate(folds) if i != fold_idx for p in fold])
+    for fold_idx, (train_idx, valid_idx) in enumerate(sgkf.split(data, labels, groups)):
+        train_patients = np.unique(groups[train_idx])
+        valid_patients = np.unique(groups[valid_idx])
 
         # Validate the split
-        train_data = data[data['Patient#'].isin(train_patients)]
-        valid_data = data[data['Patient#'].isin(valid_patients)]
+        train_data = data.iloc[train_idx]
+        valid_data = data.iloc[valid_idx]
 
-        # Check class balance
         train_dist = train_data['Healing Phase Abs'].value_counts(normalize=True)
         valid_dist = valid_data['Healing Phase Abs'].value_counts(normalize=True)
 
-        # Calculate max distribution difference
+        # Check class balance
         max_diff = max(abs(train_dist.get(cls, 0) - valid_dist.get(cls, 0)) for cls in [0, 1, 2])
 
-        # Check all classes present
-        train_classes = set(train_data['Healing Phase Abs'].unique())
-        valid_classes = set(valid_data['Healing Phase Abs'].unique())
-        all_classes = {0, 1, 2}
-
-        if len(train_classes) < 3 or len(valid_classes) < 3:
-            missing_train = all_classes - train_classes
-            missing_valid = all_classes - valid_classes
-            vprint(f"⚠ WARNING: Fold {fold_idx + 1} missing classes:", level=1)
-            if missing_train:
-                vprint(f"  Train set missing: {missing_train} (may cause training issues)", level=1)
-            if missing_valid:
-                vprint(f"  Valid set missing: {missing_valid} (may affect validation metrics)", level=1)
-            vprint(f"  Cause: Insufficient patients in minority class for {n_folds}-fold CV", level=1)
-        elif max_diff > max_imbalance:
-            vprint(f"⚠ Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
+        if max_diff > max_imbalance:
+            vprint(f"  Warning: Fold {fold_idx + 1} has class imbalance {max_diff:.3f} (threshold: {max_imbalance})", level=1)
 
         fold_splits.append((train_patients, valid_patients))
 
@@ -230,53 +189,132 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
     thermal_rgb_folder = data_paths['thermal_rgb_folder']
 
     def process_single_sample(filename, bb_coords, modality_name):
-        """Process a single image sample using py_function"""
-        def _process_image(filename_tensor, bb_coords_tensor, modality_tensor):
-            try:
-                # Convert tensors to numpy/python types
-                filename_str = filename_tensor.numpy().decode('utf-8')
-                bb_coords_float = bb_coords_tensor.numpy()
-                modality_str = modality_tensor.numpy().decode('utf-8')
-                
-                base_folders = {
-                    'depth_rgb': image_folder,
-                    'depth_map': depth_folder,
-                    'thermal_rgb': thermal_rgb_folder,
-                    'thermal_map': thermal_folder
-                }
-                
-                img_path = os.path.join(base_folders[modality_str], filename_str)
-                img_tensor = load_and_preprocess_image(
-                    img_path,
-                    bb_coords_float,
-                    modality_str,
-                    target_size=(image_size, image_size),
-                    augment=is_training  # Enable augmentation for training data only
-                )
-                
-                # Convert TensorFlow tensor to numpy array
-                if isinstance(img_tensor, tf.Tensor):
-                    img_array = img_tensor.numpy()
-                else:
-                    img_array = np.array(img_tensor)
-                
-                return img_array
-            
-            except Exception as e:
-                vprint(f"Error in _process_image: {str(e)}", level=1)
-                vprint(f"Error type: {type(e)}", level=1)
-                import traceback
-                traceback.print_exc()
-                return np.zeros((image_size, image_size, 3), dtype=np.float32)
+        """Process a single image sample using GPU-accelerated tf.io (replaces PIL/py_function)"""
+        # Build file path using tf.case for conditional logic
+        img_path = tf.case([
+            (tf.equal(modality_name, 'depth_rgb'), lambda: tf.strings.join([image_folder, '/', filename])),
+            (tf.equal(modality_name, 'depth_map'), lambda: tf.strings.join([depth_folder, '/', filename])),
+            (tf.equal(modality_name, 'thermal_rgb'), lambda: tf.strings.join([thermal_rgb_folder, '/', filename])),
+            (tf.equal(modality_name, 'thermal_map'), lambda: tf.strings.join([thermal_folder, '/', filename])),
+        ], default=lambda: tf.strings.join([image_folder, '/', filename]), exclusive=True)
 
-        processed_image = tf.py_function(
-            _process_image,
-            [filename, bb_coords, modality_name],
-            tf.float32
+        # GPU-accelerated JPEG decode
+        img_raw = tf.io.read_file(img_path)
+        img = tf.io.decode_jpeg(img_raw, channels=3)
+        img = tf.cast(img, tf.float32)
+
+        # Extract bounding box coordinates
+        xmin = tf.cast(bb_coords[0], tf.int32)
+        ymin = tf.cast(bb_coords[1], tf.int32)
+        xmax = tf.cast(bb_coords[2], tf.int32)
+        ymax = tf.cast(bb_coords[3], tf.int32)
+
+        # Get image dimensions
+        img_shape = tf.shape(img)
+        img_height = img_shape[0]
+        img_width = img_shape[1]
+
+        # Apply modality-specific bounding box adjustments
+        def adjust_depth_map_bb(xmin, ymin, xmax, ymax):
+            # Replicate adjust_bounding_box logic from image_processing.py
+            fov_error = 3
+            fov_min_h = 69  # min(87, 69)
+            fov_min_v = 42  # min(58, 42)
+
+            xmin_adj = tf.cast(tf.cast(xmin, tf.float32) * (1.0 - tf.cast(fov_error, tf.float32)/tf.cast(fov_min_h, tf.float32)), tf.int32)
+            ymin_adj = tf.cast(tf.cast(ymin, tf.float32) * (1.0 - tf.cast(fov_error, tf.float32)/tf.cast(fov_min_v, tf.float32)), tf.int32)
+            xmax_adj = tf.cast(tf.cast(xmax, tf.float32) * (1.0 + tf.cast(fov_error, tf.float32)/tf.cast(fov_min_h, tf.float32)), tf.int32)
+            ymax_adj = tf.cast(tf.cast(ymax, tf.float32) * (1.0 + tf.cast(fov_error, tf.float32)/tf.cast(fov_min_v, tf.float32)), tf.int32)
+
+            return xmin_adj, ymin_adj, xmax_adj, ymax_adj
+
+        def adjust_thermal_map_bb(xmin, ymin, xmax, ymax):
+            return xmin - 30, ymin - 30, xmax + 30, ymax + 30
+
+        # Conditional bounding box adjustment
+        xmin, ymin, xmax, ymax = tf.case([
+            (tf.equal(modality_name, 'depth_map'), lambda: adjust_depth_map_bb(xmin, ymin, xmax, ymax)),
+            (tf.equal(modality_name, 'thermal_map'), lambda: adjust_thermal_map_bb(xmin, ymin, xmax, ymax)),
+        ], default=lambda: (xmin, ymin, xmax, ymax))
+
+        # Ensure coordinates are within bounds
+        xmin = tf.maximum(0, tf.minimum(xmin, img_width - 1))
+        xmax = tf.maximum(xmin + 1, tf.minimum(xmax, img_width))
+        ymin = tf.maximum(0, tf.minimum(ymin, img_height - 1))
+        ymax = tf.maximum(ymin + 1, tf.minimum(ymax, img_height))
+
+        # Crop to bounding box
+        crop_height = ymax - ymin
+        crop_width = xmax - xmin
+        cropped_img = tf.image.crop_to_bounding_box(img, ymin, xmin, crop_height, crop_width)
+
+        # Resize with aspect ratio preservation and padding
+        # Calculate target dimensions maintaining aspect ratio
+        original_height = tf.cast(crop_height, tf.float32)
+        original_width = tf.cast(crop_width, tf.float32)
+        aspect_ratio = original_width / original_height
+
+        target_size_float = tf.cast(image_size, tf.float32)
+        new_width = tf.cond(
+            aspect_ratio > 1.0,
+            lambda: target_size_float,
+            lambda: target_size_float * aspect_ratio
         )
-        # Set the shape that was lost during py_function
-        processed_image.set_shape((image_size, image_size, 3))
-        return processed_image
+        new_height = tf.cond(
+            aspect_ratio > 1.0,
+            lambda: target_size_float / aspect_ratio,
+            lambda: target_size_float
+        )
+
+        new_width = tf.cast(tf.maximum(new_width, 1.0), tf.int32)
+        new_height = tf.cast(tf.maximum(new_height, 1.0), tf.int32)
+
+        # Resize
+        resized_img = tf.image.resize(cropped_img, [new_height, new_width], method='lanczos3')
+
+        # Pad to target size
+        pad_height = image_size - new_height
+        pad_width = image_size - new_width
+        pad_top = pad_height // 2
+        pad_bottom = pad_height - pad_top
+        pad_left = pad_width // 2
+        pad_right = pad_width - pad_left
+
+        padded_img = tf.pad(resized_img, [[pad_top, pad_bottom], [pad_left, pad_right], [0, 0]], constant_values=0)
+
+        # Normalize based on modality and backbone.
+        # EfficientNet variants (B0-B3) have a built-in Rescaling(1/255) layer that
+        # expects raw [0, 255] float input. Dividing by 255 here would cause double
+        # normalization, squishing all pixel values to [0, 0.004] — destroying features.
+        # SimpleCNN has NO built-in normalization, so it needs [0, 1] input.
+        _rgb_has_builtin_rescaling = RGB_BACKBONE.startswith('EfficientNet')
+        _map_has_builtin_rescaling = MAP_BACKBONE.startswith('EfficientNet')
+
+        def _normalize_rgb(img):
+            if _rgb_has_builtin_rescaling:
+                return img  # Keep [0, 255] — EfficientNet normalizes internally
+            return img / 255.0
+
+        def _normalize_map(img):
+            if _map_has_builtin_rescaling:
+                return img  # Keep [0, 255] — EfficientNet normalizes internally
+            # SimpleCNN: normalize to [0, 1] using per-image max
+            return tf.cond(tf.reduce_max(img) != 0,
+                           lambda: img / tf.reduce_max(img),
+                           lambda: img / 255.0)
+
+        normalized_img = tf.case([
+            (tf.logical_or(tf.equal(modality_name, 'depth_rgb'), tf.equal(modality_name, 'thermal_rgb')),
+             lambda: _normalize_rgb(padded_img)),
+            (tf.logical_or(tf.equal(modality_name, 'depth_map'), tf.equal(modality_name, 'thermal_map')),
+             lambda: _normalize_map(padded_img)),
+        ], default=lambda: _normalize_rgb(padded_img))
+
+        # Ensure shape
+        normalized_img = tf.reshape(normalized_img, (image_size, image_size, 3))
+        normalized_img.set_shape((image_size, image_size, 3))
+
+        return normalized_img
 
     def load_and_preprocess_single_sample(row):
         features = {}
@@ -357,16 +395,37 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Initialize dataset from DataFrame
     dataset = df_to_dataset(best_matching_df)
-    
+
     # Apply preprocessing to each sample
     dataset = dataset.map(
         load_and_preprocess_single_sample,
         num_parallel_calls=tf.data.AUTOTUNE
-        # num_parallel_calls=4
     )
-    
+
     # Calculate how many samples we need
     n_samples = len(best_matching_df)
+
+    # SAFEGUARD: Auto-reduce batch size when it exceeds the dataset size
+    # A batch_size >= n_samples means only 1 gradient update per epoch, which
+    # makes learning extremely slow (especially at low learning rates).
+    # Minimum 4 steps/epoch ensures meaningful training progress.
+    MIN_STEPS_PER_EPOCH = 4
+    if is_training and batch_size > n_samples // MIN_STEPS_PER_EPOCH:
+        # Get number of GPUs for divisibility
+        try:
+            num_gpus = max(1, len(tf.config.list_physical_devices('GPU')))
+        except Exception:
+            num_gpus = 1
+        # Target batch size that gives at least MIN_STEPS_PER_EPOCH steps
+        new_batch_size = max(num_gpus, (n_samples // MIN_STEPS_PER_EPOCH // num_gpus) * num_gpus)
+        print(f"\n{'!'*80}")
+        print(f"WARNING: GLOBAL_BATCH_SIZE ({batch_size}) is too large for {n_samples} training samples!")
+        print(f"  This would give only {max(1, n_samples // batch_size)} step(s) per epoch, causing extremely slow learning.")
+        print(f"  Auto-reducing batch size: {batch_size} → {new_batch_size} ({n_samples // new_batch_size} steps/epoch)")
+        print(f"  To fix permanently, set GLOBAL_BATCH_SIZE <= {new_batch_size} in production_config.py")
+        print(f"{'!'*80}\n")
+        batch_size = new_batch_size
+
     steps = int(np.ceil(n_samples / batch_size))  # Keras 3 requires int for steps
     k = steps * batch_size  # Total number of samples needed
     
@@ -388,17 +447,39 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     os.makedirs(cache_dir, exist_ok=True)
     dataset = dataset.cache(os.path.join(cache_dir, cache_filename))
-    
+
     with tf.device('/CPU:0'):
         pre_aug_dataset = dataset
         pre_aug_dataset = pre_aug_dataset.batch(batch_size)
-    
+
     if is_training:
         dataset = dataset.shuffle(buffer_size=1000 if len(best_matching_df) > 1000 else len(best_matching_df), reshuffle_each_iteration=True)
         dataset = dataset.repeat()
-    
-    # Batch the dataset
-    dataset = dataset.batch(batch_size)
+        # For training with repeat(), drop_remainder=True is safe (data cycles infinitely)
+        dataset = dataset.batch(batch_size, drop_remainder=True)
+    else:
+        # For validation (no repeat): keep all samples (drop_remainder=False)
+        # MirroredStrategy.experimental_distribute_dataset handles uneven last batches
+        # by auto-padding. drop_remainder=True was silently discarding validation samples
+        # (e.g., 627 samples / 64 batch = 576 evaluated, 51 dropped → biased metrics).
+        import math
+
+        try:
+            num_gpus = len(tf.config.list_physical_devices('GPU'))
+            if num_gpus == 0:
+                num_gpus = 1
+        except:
+            num_gpus = 1
+
+        effective_val_batch_size = min(batch_size, n_samples)
+        effective_val_batch_size = (effective_val_batch_size // num_gpus) * num_gpus
+        effective_val_batch_size = max(effective_val_batch_size, num_gpus)
+
+        vprint(f"  Validation batch size adjusted: {batch_size} → {effective_val_batch_size} "
+               f"(n_samples={n_samples}, num_gpus={num_gpus})", level=2)
+
+        dataset = dataset.batch(effective_val_batch_size, drop_remainder=False)
+        steps = math.ceil(n_samples / effective_val_batch_size)
 
     # Apply augmentation after batching
     if is_training:
@@ -407,7 +488,6 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
             dataset = dataset.map(
                 augmentation_fn,
                 num_parallel_calls=tf.data.AUTOTUNE,
-                # num_parallel_calls=4
                 )
         # else:                                         #TODO: Add back default augmentations
         #     # Fall back to regular augmentation
@@ -418,7 +498,7 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
 
     # Prefetch for better performance
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
-    # dataset = dataset.prefetch(2)
+
     return dataset, pre_aug_dataset, steps
 # First, add this helper function near the start of your prepare_cached_datasets function
 def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=False):
@@ -468,6 +548,168 @@ def check_split_validity(train_data, valid_data, max_ratio_diff=0.3, verbose=Fal
         print(f"Maximum ratio difference: {max_diff:.3f}")
     return True
 
+def _preprocess_for_loo(data):
+    """Lightweight metadata preprocessing for LOO influence filtering.
+
+    Applies the same transformations as preprocess_split() but on the full
+    dataset (before train/val split). Fitting on all data is acceptable here
+    because this is only used to identify harmful patterns, not for production
+    RF predictions.
+
+    Returns:
+        X: DataFrame of features (same rows as input data)
+        y: Series of 3-class labels
+    """
+    df = data.copy()
+
+    # Drop image columns
+    image_cols = ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                  'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                  'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
+    df = df.drop(columns=[c for c in image_cols if c in df.columns])
+
+    # Feature engineering (mirrors preprocess_split)
+    df['BMI'] = df['Weight (Kg)'] / ((df['Height (cm)'] / 100) ** 2)
+    df['Age above 60'] = (df['Age'] > 60).astype(int)
+    df['Age Bin'] = pd.cut(df['Age'], bins=range(0, int(df['Age'].max()) + 20, 20),
+                           right=False, labels=range(len(range(0, int(df['Age'].max()) + 20, 20)) - 1))
+    df['Weight Bin'] = pd.cut(df['Weight (Kg)'], bins=range(0, int(df['Weight (Kg)'].max()) + 20, 20),
+                              right=False, labels=range(len(range(0, int(df['Weight (Kg)'].max()) + 20, 20)) - 1))
+    df['Height Bin'] = pd.cut(df['Height (cm)'], bins=range(0, int(df['Height (cm)'].max()) + 10, 10),
+                              right=False, labels=range(len(range(0, int(df['Height (cm)'].max()) + 10, 10)) - 1))
+
+    # Categorical encoding with fixed categories
+    _FIXED_CATEGORIES = {
+        'Sex (F:0, M:1)': ['F', 'M'],
+        'Side (Left:0, Right:1)': ['Left', 'Right'],
+        'Foot Aspect': ['Dorsal', 'Lateral', 'Medial', 'Plantar'],
+        'Odor': ['NoOdor', 'Unpleasant'],
+        'Type of Pain Grouped': [
+            'ChronicPain', 'GeneralAches', 'LocalizedPain', 'NoPain',
+            'PhantomAndUnusualSensations', 'PressureAndMovement',
+            'SharpAndIntensePain', 'ShootingPain', 'ThrobbingPain',
+        ],
+    }
+    for col, cats in _FIXED_CATEGORIES.items():
+        if col in df.columns:
+            df[col] = pd.Categorical(df[col], categories=cats).codes
+
+    # Other categorical mappings
+    categorical_mappings = {
+        'Location Grouped (Hallux:1,Toes,Middle,Heel,Ankle:5)': {'ankle': 4, 'Heel': 3, 'middle': 2, 'toes': 1, 'Hallux': 0},
+        'Dressing Grouped': {'NoDressing': 0, 'BandAid': 1, 'BasicDressing': 1, 'AbsorbantDressing': 2, 'Antiseptic': 3, 'AdvanceMethod': 4, 'other': 4},
+        'Exudate Appearance (Serous:1,Haemoserous,Bloody,Thick:4)': {'Serous': 0, 'Haemoserous': 1, 'Bloody': 2, 'Thick': 3}
+    }
+    for col, mapping in categorical_mappings.items():
+        if col in df.columns:
+            df[col] = df[col].map(mapping)
+
+    # Drop features (same list as preprocess_split)
+    features_to_drop = [
+        'ID', 'Location', 'Healing Phase', 'Phase Confidence (%)', 'DFU#', 'Appt#',
+        'Appt Days', 'Type of Pain2', 'Type of Pain_Grouped2', 'Type of Pain',
+        'Dressing',
+        'No Offloading', 'Offloading: Therapeutic Footwear',
+        'Offloading: Scotcast Boot or RCW', 'Offloading: Half Shoes or Sandals',
+        'Offloading: Total Contact Cast', 'Offloading: Crutches, Walkers or Wheelchairs',
+        'Offloading Score'
+    ]
+    df = df.drop(columns=[c for c in features_to_drop if c in df.columns])
+
+    y = df['Healing Phase Abs']
+    X = df.drop(['Patient#', 'Healing Phase Abs'], axis=1, errors='ignore')
+
+    # Keep only numeric columns (drop any remaining string columns not handled by encoding)
+    X = X.select_dtypes(include=[np.number])
+
+    imputer = KNNImputer(n_neighbors=5)
+    X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns, index=X.index)
+    scaler = StandardScaler()
+    X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
+
+    # No feature selection in LOO — use all features so the influence ranking
+    # isn't tied to a specific MI-selected subset (which differs between LOO
+    # and the main RF's per-split MI selection).
+
+    return X, y
+
+
+def rf_loo_influence_filter(X_unique, y_unique, seed, n_folds=3, min_influence=0.001,
+                            max_removal_pct=30, min_per_class=30):
+    """LOO influence filtering for RF metadata classifier (direct 3-class).
+
+    For each unique pattern, removes it, computes OOF Kappa on remaining
+    patterns, compares to baseline. Patterns whose removal improves
+    Kappa are flagged as harmful.
+
+    Returns:
+        patterns_to_remove: set of indices into X_unique
+        influence_scores: array of per-pattern scores
+        baseline_kappa: OOF Kappa before removal
+    """
+    from sklearn.model_selection import KFold as SKFold
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import cohen_kappa_score
+
+    N = len(X_unique)
+
+    def _compute_oof_kappa(X, y):
+        from src.utils.production_config import (
+            RF_N_ESTIMATORS, RF_CLASS_WEIGHT,
+            RF_MAX_DEPTH, RF_MIN_SAMPLES_LEAF, RF_MIN_SAMPLES_SPLIT
+        )
+        n_f = min(n_folds, len(X))
+        if n_f < 2:
+            return 0.0
+        kf = SKFold(n_splits=n_f, shuffle=True, random_state=seed)
+        preds = np.zeros(len(X), dtype=int)
+        for tr, val in kf.split(X):
+            rf = RandomForestClassifier(
+                n_estimators=RF_N_ESTIMATORS, random_state=seed,
+                max_depth=RF_MAX_DEPTH,
+                min_samples_leaf=RF_MIN_SAMPLES_LEAF,
+                min_samples_split=RF_MIN_SAMPLES_SPLIT,
+                class_weight='balanced', n_jobs=-1)
+            rf.fit(X[tr], y[tr])
+            preds[val] = rf.predict(X[val])
+        return cohen_kappa_score(y, preds)
+
+    import time as _time
+    print(f"  Computing baseline OOF Kappa ({N} patterns, {n_folds}-fold)...")
+    t_base = _time.time()
+    baseline_kappa = _compute_oof_kappa(X_unique, y_unique)
+    print(f"  Baseline OOF Kappa: {baseline_kappa:.4f} ({_time.time() - t_base:.1f}s)")
+    influence_scores = np.zeros(N)
+    t0 = _time.time()
+    for i in range(N):
+        mask = np.ones(N, dtype=bool)
+        mask[i] = False
+        loo_kappa = _compute_oof_kappa(X_unique[mask], y_unique[mask])
+        influence_scores[i] = loo_kappa - baseline_kappa
+        if (i + 1) % 25 == 0 or i == N - 1:
+            elapsed = _time.time() - t0
+            eta = elapsed / (i + 1) * (N - i - 1)
+            print(f"  LOO progress: {i+1}/{N} ({elapsed:.0f}s elapsed, ~{eta:.0f}s remaining)")
+
+    # Select harmful patterns per class with safety limits
+    patterns_to_remove = set()
+    for cls in [0, 1, 2]:
+        cls_mask = y_unique == cls
+        cls_indices = np.where(cls_mask)[0]
+        cls_count = len(cls_indices)
+        max_removable = max(0, cls_count - min_per_class)
+        max_removable = min(max_removable, int(cls_count * max_removal_pct / 100))
+
+        cls_harmful = [(idx, influence_scores[idx]) for idx in cls_indices
+                       if influence_scores[idx] > min_influence]
+        cls_harmful.sort(key=lambda x: -x[1])
+
+        for idx, _ in cls_harmful[:max_removable]:
+            patterns_to_remove.add(idx)
+
+    return patterns_to_remove, influence_scores, baseline_kappa
+
+
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
                           batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1, image_size=128,
                           train_patients=None, valid_patients=None, for_shape_inference=False):
@@ -501,6 +743,59 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     if 'Healing Phase Abs' in data.columns:
         data['Healing Phase Abs'] = data['Healing Phase Abs'].astype(str)
         data['Healing Phase Abs'] = data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
+
+    # --- LOO Influence Filtering (applied to full dataset before split) ---
+    from src.utils.production_config import (USE_RF_LOO_FILTERING, RF_LOO_MIN_INFLUENCE,
+                                              RF_LOO_MAX_REMOVAL_PCT, RF_LOO_MIN_PATTERNS_PER_CLASS)
+    if USE_RF_LOO_FILTERING and 'metadata' in selected_modalities and not for_shape_inference:
+        vprint("Running LOO influence filtering on full dataset...", level=1)
+
+        # Lightweight preprocessing to get RF features
+        X_loo, y_loo = _preprocess_for_loo(data)
+
+        # Deduplicate by feature vectors
+        X_loo_str = X_loo.astype(str).apply(lambda row: '||'.join(row), axis=1)
+        unique_mask = ~X_loo_str.duplicated(keep='first')
+        unique_indices = np.where(unique_mask)[0]
+        X_unique = X_loo.iloc[unique_indices].values
+        y_unique = y_loo.values[unique_indices]
+
+        # Build reverse mapping: unique_pos → original row indices
+        str_to_upos = {}
+        for u_pos, u_idx in enumerate(unique_indices):
+            str_to_upos[X_loo_str.iloc[u_idx]] = u_pos
+        loo_group_map = {}
+        for orig_idx in range(len(X_loo)):
+            u_pos = str_to_upos[X_loo_str.iloc[orig_idx]]
+            loo_group_map.setdefault(u_pos, []).append(orig_idx)
+
+        vprint(f"LOO: {len(data)} rows -> {len(X_unique)} unique patterns", level=2)
+
+        patterns_to_remove, influence_scores, baseline_kappa = rf_loo_influence_filter(
+            X_unique, y_unique, seed,
+            min_influence=RF_LOO_MIN_INFLUENCE,
+            max_removal_pct=RF_LOO_MAX_REMOVAL_PCT,
+            min_per_class=RF_LOO_MIN_PATTERNS_PER_CLASS,
+        )
+
+        if patterns_to_remove:
+            rows_to_remove = set()
+            for u_pos in patterns_to_remove:
+                rows_to_remove.update(loo_group_map[u_pos])
+
+            keep_mask = ~data.index.isin(rows_to_remove)
+            removed_rows = len(data) - keep_mask.sum()
+            vprint(f"LOO filter: removing {len(patterns_to_remove)}/{len(X_unique)} harmful patterns "
+                   f"({removed_rows}/{len(data)} rows), baseline Kappa={baseline_kappa:.4f}", level=1)
+
+            for cls, name in [(0, 'I'), (1, 'P'), (2, 'R')]:
+                cls_removed = sum(1 for u_pos in patterns_to_remove if y_unique[u_pos] == cls)
+                cls_total = int((y_unique == cls).sum())
+                vprint(f"  {name}: {cls_removed}/{cls_total} patterns removed", level=2)
+
+            data = data[keep_mask].reset_index(drop=True)
+        else:
+            vprint(f"LOO filter: no harmful patterns found (baseline Kappa={baseline_kappa:.4f})", level=2)
 
     # Use pre-computed patient splits if provided (k-fold CV), otherwise try to load/generate
     if train_patients is None or valid_patients is None:
@@ -679,8 +974,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
         # Choose sampling strategy
         if not mix:
-            # Import SAMPLING_STRATEGY config parameter
-            from src.utils.production_config import SAMPLING_STRATEGY
+            # Import config parameters
+            from src.utils.production_config import SAMPLING_STRATEGY, FREQUENCY_WEIGHT_NORMALIZATION, USE_FREQUENCY_BASED_WEIGHTS
 
             # Print original distribution with ordered classes
             counts = Counter(y_alpha)
@@ -697,12 +992,19 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             # Inverse frequency for each class (no capping)
             alpha_values = [1.0/class_frequencies[i] for i in [0, 1, 2]]  # Keep ordered
 
-            # Normalize to sum=3.0 (as recommended)
+            # Normalize to sum=FREQUENCY_WEIGHT_NORMALIZATION
             alpha_sum = sum(alpha_values)
-            alpha_values = [alpha/alpha_sum * 3.0 for alpha in alpha_values]
+            alpha_values = [alpha/alpha_sum * FREQUENCY_WEIGHT_NORMALIZATION for alpha in alpha_values]
 
             # Apply selected sampling strategy
-            if SAMPLING_STRATEGY == 'combined':
+            if SAMPLING_STRATEGY == 'none':
+                # No resampling — use original imbalanced distribution as-is
+                vprint("No sampling applied (using original distribution)...", level=2)
+                resampled_df = df.copy()
+                resampled_df = resampled_df.reset_index(drop=True)
+                return resampled_df, alpha_values
+
+            elif SAMPLING_STRATEGY == 'combined':
                 # Combined sampling: undersample majority, then oversample minority
                 # Balances to MIDDLE class count (fewer duplicates than pure oversampling)
                 vprint("Using combined sampling (under + over)...", level=2)
@@ -900,59 +1202,29 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 for class_idx in [0, 1, 2]:
                     print(f"Class {class_idx}: {final_counts[class_idx]}")
 
-            # Recalculate alpha values from BALANCED distribution
-            # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
-            total_resampled = len(y_resampled)
-            balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
-            alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
-            alpha_sum_balanced = sum(alpha_values_balanced)
-            alpha_values_balanced = [alpha/alpha_sum_balanced * 3.0 for alpha in alpha_values_balanced]
+            if USE_FREQUENCY_BASED_WEIGHTS:
+                # Use alpha_values from ORIGINAL distribution (calculated at start of function)
+                # This applies class weighting ON TOP of the balanced sampling
+                vprint(f"\nUsing frequency-based weights from ORIGINAL distribution:", level=2)
+                vprint(f"Alpha values [I, P, R]: {[round(a, 3) for a in alpha_values]}", level=2)
+                vprint("(These weights emphasize minority classes even after resampling)", level=2)
+                return resampled_df, alpha_values
+            else:
+                # Recalculate alpha values from BALANCED distribution
+                # After oversampling, classes are balanced, so alpha should be approximately [1, 1, 1]
+                total_resampled = len(y_resampled)
+                balanced_frequencies = {cls: count/total_resampled for cls, count in final_counts.items()}
+                alpha_values_balanced = [1.0/balanced_frequencies[i] for i in [0, 1, 2]]
+                alpha_sum_balanced = sum(alpha_values_balanced)
+                alpha_values_balanced = [alpha/alpha_sum_balanced * FREQUENCY_WEIGHT_NORMALIZATION for alpha in alpha_values_balanced]
 
-            vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
-            vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
+                vprint(f"\nAlpha values after oversampling [I, P, R]: {[round(a, 3) for a in alpha_values_balanced]}", level=2)
+                vprint("(Should be close to [1, 1, 1] since data is balanced)", level=2)
 
-            return resampled_df, alpha_values_balanced
-    if 'metadata' in selected_modalities:
-        # Calculate class weights for Random Forest models
-        unique_cases = train_data[['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']].drop_duplicates().copy()
-        vprint(f"\nUnique cases: {len(unique_cases)} (before oversampling)", level=2)
-
-        # Create binary labels on unique cases
-        unique_cases['label_bin1'] = (unique_cases['Healing Phase Abs'] > 0).astype(int)
-        unique_cases['label_bin2'] = (unique_cases['Healing Phase Abs'] > 1).astype(int)
-
-        # Print true class distributions
-        vprint("\nTrue binary label distributions (unique cases):", level=2)
-        if get_verbosity() == 2:
-            print("Binary1:", unique_cases['label_bin1'].value_counts())
-            print("Binary2:", unique_cases['label_bin2'].value_counts())
-        
-        # Calculate weights using only unique cases
-        class_weights_binary1 = compute_class_weight(
-            class_weight='balanced',
-            classes=np.array([0, 1]),
-            y=unique_cases['label_bin1']
-        )
-        class_weight_dict_binary1 = dict(zip([0, 1], class_weights_binary1))
-        
-        class_weights_binary2 = compute_class_weight(
-            class_weight='balanced',
-            classes=np.array([0, 1]),
-            y=unique_cases['label_bin2']
-        )
-        class_weight_dict_binary2 = dict(zip([0, 1], class_weights_binary2))
-        
-        # print("\nClass weights (based on unique cases):")
-        # print("Binary1:", class_weight_dict_binary1)
-        # print("Binary2:", class_weight_dict_binary2)   
-    else:
-        class_weight_dict_binary1=None
-        class_weight_dict_binary2=None
-    
+                return resampled_df, alpha_values_balanced
     train_data, alpha_values = apply_mixed_sampling_to_df(train_data, apply_sampling=True, mix=False)
-    
-    def preprocess_split(split_data, is_training=True, class_weight_dict_binary1=None, 
-                            class_weight_dict_binary2=None, rf_model1=None, rf_model2=None, imputation_data=None):
+
+    def preprocess_split(split_data, is_training=True, rf_model=None, imputation_data=None):
             """Preprocess data with proper handling of metadata and image columns"""
             # Create a copy of the data
             split_data = split_data.copy()
@@ -986,12 +1258,28 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 metadata_df['Height Bin'] = pd.cut(metadata_df['Height (cm)'], bins=range(0, int(metadata_df['Height (cm)'].max()) + 10, 10), right=False, labels=range(len(range(0, int(metadata_df['Height (cm)'].max()) + 10, 10)) - 1))
                 source_df['Height Bin'] = pd.cut(source_df['Height (cm)'], bins=range(0, int(source_df['Height (cm)'].max()) + 10, 10), right=False, labels=range(len(range(0, int(source_df['Height (cm)'].max()) + 10, 10)) - 1))
                 
-                # Handle categorical columns
+                # Handle categorical columns with FIXED category lists
+                # Using fixed lists ensures consistent codes between train/val splits
+                # (pd.Categorical without fixed categories assigns codes based on which
+                # values are present, causing train/val mismatch when categories differ)
                 categorical_columns = ['Sex (F:0, M:1)', 'Side (Left:0, Right:1)', 'Foot Aspect', 'Odor', 'Type of Pain Grouped']
+                _FIXED_CATEGORIES = {
+                    'Sex (F:0, M:1)': ['F', 'M'],
+                    'Side (Left:0, Right:1)': ['Left', 'Right'],
+                    'Foot Aspect': ['Dorsal', 'Lateral', 'Medial', 'Plantar'],
+                    'Odor': ['NoOdor', 'Unpleasant'],
+                    'Type of Pain Grouped': [
+                        'ChronicPain', 'GeneralAches', 'LocalizedPain', 'NoPain',
+                        'PhantomAndUnusualSensations', 'PressureAndMovement',
+                        'SharpAndIntensePain', 'ShootingPain', 'ThrobbingPain',
+                    ],
+                }
                 for col in categorical_columns:
                     if col in metadata_df.columns:
-                        metadata_df[col] = pd.Categorical(metadata_df[col]).codes
-                        source_df[col] = pd.Categorical(source_df[col]).codes
+                        cats = _FIXED_CATEGORIES.get(col)
+                        # Values not in the fixed list get code -1, handled by KNNImputer
+                        metadata_df[col] = pd.Categorical(metadata_df[col], categories=cats).codes
+                        source_df[col] = pd.Categorical(source_df[col], categories=cats).codes
                 
                 # Other categorical mappings
                 categorical_mappings = {
@@ -1008,8 +1296,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 features_to_drop = [
                     'ID', 'Location', 'Healing Phase', 'Phase Confidence (%)', 'DFU#', 'Appt#',
                     'Appt Days', 'Type of Pain2', 'Type of Pain_Grouped2', 'Type of Pain', 
-                    'Peri-Ulcer Temperature (°C)', 'Wound Centre Temperature (°C)', 'Dressing',
-                    'Dressing Grouped', "No Offloading", "Offloading: Therapeutic Footwear", 
+                    'Dressing', 
+                    "No Offloading", "Offloading: Therapeutic Footwear", 
                     "Offloading: Scotcast Boot or RCW", "Offloading: Half Shoes or Sandals", 
                     "Offloading: Total Contact Cast", "Offloading: Crutches, Walkers or Wheelchairs", 
                     "Offloading Score"
@@ -1030,13 +1318,15 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 metadata_df = metadata_df.drop(columns=[col for col in features_to_drop if col in metadata_df.columns])
                 source_df = source_df.drop(columns=[col for col in features_to_drop if col in source_df.columns])
                 # Impute missing values
-                columns_to_impute = [col for col in metadata_df.columns if col not in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
-                                                                        'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
-                                                                        'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']+['Healing Phase Abs']]
+                columns_to_impute = [col for col in metadata_df.columns if col not in [
+                    'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                    'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                    'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax',
+                    'Healing Phase Abs', 'Patient#']]
                 
                 # numeric_columns = split_data.select_dtypes(include=[np.number]).columns
                 # Use k=3 for better performance (validated: Kappa 0.201 vs 0.176 with k=5)
-                imputer = KNNImputer(n_neighbors=3)
+                imputer = KNNImputer(n_neighbors=5)
                 source_df[columns_to_impute] = imputer.fit_transform(source_df[columns_to_impute])
                 metadata_df[columns_to_impute] = imputer.transform(metadata_df[columns_to_impute])
                 
@@ -1052,207 +1342,156 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 source_df[columns_to_impute] = scaler.fit_transform(source_df[columns_to_impute])
                 metadata_df[columns_to_impute] = scaler.transform(metadata_df[columns_to_impute])
 
-                # Feature selection: Select top k features using Mutual Information (validated: k=40)
-                # This is done on TRAINING data only to avoid data leakage
-                if is_training:
-                    from sklearn.feature_selection import mutual_info_classif
+                # Feature selection: Select top k features using Mutual Information
+                # Controlled by RF_FEATURE_SELECTION in production_config.py
+                from src.utils.production_config import RF_FEATURE_SELECTION, RF_FEATURE_SELECTION_K
+                if RF_FEATURE_SELECTION:
+                    if is_training:
+                        from sklearn.feature_selection import mutual_info_classif
 
-                    # CRITICAL: Exclude identifiers before feature selection (prevent data leakage)
-                    # These columns are needed for tracking but should NOT be used as ML features
-                    exclude_from_selection = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
-                    feature_candidates = [col for col in columns_to_impute if col not in exclude_from_selection]
+                        exclude_from_selection = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                        feature_candidates = [col for col in columns_to_impute if col not in exclude_from_selection]
 
-                    # Compute MI on training data (using only valid feature candidates)
-                    X_train_fs = source_df[feature_candidates].values
+                        X_train_fs = source_df[feature_candidates].values
+                        y_train_raw = source_df['Healing Phase Abs']
 
-                    # Handle labels: might be strings ('I', 'P', 'R') or numeric (0, 1, 2) after oversampling
-                    y_train_raw = source_df['Healing Phase Abs']
+                        if y_train_raw.dtype in ['object', 'str'] or pd.api.types.is_string_dtype(y_train_raw):
+                            y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
+                        else:
+                            y_train_fs = y_train_raw.values
 
-                    # Convert to numeric if needed
-                    if y_train_raw.dtype == object or y_train_raw.dtype.name == 'string':
-                        # String labels: map to numeric
-                        y_train_fs = y_train_raw.map({'I': 0, 'P': 1, 'R': 2}).values
+                        if np.isnan(y_train_fs).any():
+                            nan_count = np.isnan(y_train_fs).sum()
+                            unique_vals = source_df['Healing Phase Abs'].unique()
+                            raise ValueError(
+                                f"Feature selection failed: {nan_count} NaN values in labels!\n"
+                                f"Unique label values: {unique_vals}\n"
+                                f"Label dtype: {source_df['Healing Phase Abs'].dtype}\n"
+                                f"This indicates a data preprocessing bug that must be fixed."
+                            )
+
+                        mi_scores = mutual_info_classif(X_train_fs, y_train_fs, random_state=42)
+
+                        k_features = RF_FEATURE_SELECTION_K
+                        top_k_indices = np.argsort(mi_scores)[-k_features:]
+                        selected_features = [feature_candidates[i] for i in top_k_indices]
+
+                        vprint(f"Feature selection: {len(feature_candidates)} → {k_features} features", level=2)
+                        vprint(f"Top 5 features: {[feature_candidates[i] for i in np.argsort(mi_scores)[-5:][::-1]]}", level=2)
+
+                        _selected_features_cache[run] = selected_features
                     else:
-                        # Already numeric
-                        y_train_fs = y_train_raw.values
+                        selected_features = _selected_features_cache[run]
+                        vprint(f"Using {len(selected_features)} features from training selection", level=2)
 
-                    # CRITICAL: Validate no NaN - crash if found (don't hide errors!)
-                    if np.isnan(y_train_fs).any():
-                        nan_count = np.isnan(y_train_fs).sum()
-                        unique_vals = source_df['Healing Phase Abs'].unique()
-                        raise ValueError(
-                            f"Feature selection failed: {nan_count} NaN values in labels!\n"
-                            f"Unique label values: {unique_vals}\n"
-                            f"Label dtype: {source_df['Healing Phase Abs'].dtype}\n"
-                            f"This indicates a data preprocessing bug that must be fixed."
-                        )
-
-                    mi_scores = mutual_info_classif(X_train_fs, y_train_fs, random_state=42)
-
-                    # Select top 40 features (validated in Phase 2)
-                    k_features = 40
-                    top_k_indices = np.argsort(mi_scores)[-k_features:]
-                    selected_features = [feature_candidates[i] for i in top_k_indices]
-
-                    vprint(f"Feature selection: {len(feature_candidates)} → {k_features} features", level=2)
-                    vprint(f"Top 5 features: {[feature_candidates[i] for i in np.argsort(mi_scores)[-5:][::-1]]}", level=2)
-
-                    # Store selected features in module-level cache for validation split
-                    _selected_features_cache[run] = selected_features
+                    keep_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                    available_keep_cols = [col for col in keep_cols if col in source_df.columns]
+                    source_df = source_df[available_keep_cols + selected_features]
+                    metadata_df = metadata_df[available_keep_cols + selected_features]
+                    columns_to_impute = selected_features
                 else:
-                    # Use same features selected from training
-                    selected_features = _selected_features_cache[run]
-                    vprint(f"Using {len(selected_features)} features from training selection", level=2)
+                    vprint("Feature selection: DISABLED (using all features)", level=2)
 
-                # Apply feature selection to both source and metadata dataframes
-                # Keep Patient#, Appt#, DFU#, Healing Phase Abs for processing (if they exist)
-                keep_cols = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
-                # Only keep columns that actually exist (Appt# and DFU# may have been dropped in features_to_drop)
-                available_keep_cols = [col for col in keep_cols if col in source_df.columns]
-                source_df = source_df[available_keep_cols + selected_features]
-                metadata_df = metadata_df[available_keep_cols + selected_features]
-                columns_to_impute = selected_features  # Update for subsequent processing
+                # Random Forest processing (sklearn RandomForestClassifier)
+                from sklearn.ensemble import RandomForestClassifier
 
-                # Random Forest processing
-                if is_training:
-                    try:
-                        import tensorflow_decision_forests as tfdf
-                        vprint("Using TensorFlow Decision Forests", level=2)
-                        
-                        # Create models with Bayesian-optimized hyperparameters (validated Kappa=0.205)
-                        # Optimized via end-to-end 3-class Kappa maximization
-                        rf_model1 = tfdf.keras.RandomForestModel(
-                            num_trees=646,      # Optimized from 500 (Bayesian search)
-                            max_depth=14,       # Optimized from 10 (deeper trees capture patterns)
-                            min_examples=19,    # Optimized from 10 (more conservative splitting)
-                            task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42 + run * (run + 3),
-                            verbose=0
-                        )
-                        rf_model2 = tfdf.keras.RandomForestModel(
-                            num_trees=646,
-                            max_depth=14,
-                            min_examples=19,
-                            task=tfdf.keras.Task.CLASSIFICATION,
-                            random_seed=42 + run * (run + 3),
-                            verbose=0
-                        )
-                        
-                        # Prepare features for RF
-                        train_df = metadata_df.copy()
-                        
-                        # Create binary labels and verify their values
-                        train_df['label_bin1'] = (train_df['Healing Phase Abs'] > 0).astype(int)
-                        train_df['label_bin2'] = (train_df['Healing Phase Abs'] > 1).astype(int)
-                        
-                        # # Print value counts to verify
-                        # print("\nLabel binary 1 distribution:", train_df['label_bin1'].value_counts())
-                        # print("Label binary 2 distribution:", train_df['label_bin2'].value_counts())
-                        # print("\nClass weights 1:", class_weight_dict_binary1)
-                        # print("Class weights 2:", class_weight_dict_binary2)
-                        
-                        # Add weights with explicit mapping
-                        train_df['weight1'] = train_df['label_bin1'].apply(lambda x: class_weight_dict_binary1[x])
-                        train_df['weight2'] = train_df['label_bin2'].apply(lambda x: class_weight_dict_binary2[x])
-                        
-                        # # Print weight distribution to verify
-                        # print("\nWeight1 unique values:", train_df['weight1'].unique())
-                        # print("Weight2 unique values:", train_df['weight2'].unique())
-                        
-                        # Remove identifiers and labels (keep for tracking but don't train on them)
-                        cols_to_drop = ['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs']
+                # Prepare features
+                X = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
+                y = metadata_df['Healing Phase Abs']
 
-                        # Create datasets
-                        dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                            train_df.drop(columns=cols_to_drop + ['label_bin2', 'weight2'], errors='ignore'),
-                            label='label_bin1',
-                            weight='weight1'
-                        )
-
-                        dataset2 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                            train_df.drop(columns=cols_to_drop + ['label_bin1', 'weight1'], errors='ignore'),
-                            label='label_bin2',
-                            weight='weight2'
-                        )
-                        
-                        # Train models
-                        rf_model1.fit(dataset1)
-                        rf_model2.fit(dataset2)
-                    except ImportError:
-                        vprint("Using Scikit-learn RandomForestClassifier")
-                        from sklearn.ensemble import RandomForestClassifier
-                        # Bayesian-optimized hyperparameters (validated Kappa=0.205 ± 0.057)
-                        # Optimized via end-to-end 3-class Kappa maximization
-                        rf_model1 = RandomForestClassifier(
-                            n_estimators=646,       # Optimized from 500 (Bayesian search)
-                            max_depth=14,           # Optimized from 10 (deeper trees capture patterns)
-                            min_samples_split=19,   # Optimized from 10 (more conservative splitting)
-                            min_samples_leaf=2,     # Optimized (prevents overfitting on leaves)
-                            max_features='log2',    # Optimized from 'sqrt' (better feature diversity)
-                            random_state=42 + run * (run + 3),
-                            class_weight=class_weight_dict_binary1,
-                            n_jobs=-1
-                        )
-                        rf_model2 = RandomForestClassifier(
-                            n_estimators=646,
-                            max_depth=14,
-                            min_samples_split=19,
-                            min_samples_leaf=2,
-                            max_features='log2',
-                            random_state=42 + run * (run + 3),
-                            class_weight=class_weight_dict_binary2,
-                            n_jobs=-1
-                        )
-                        # Prepare features for RF (drop identifiers - keep for tracking but don't train on them)
-                        X = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
-                        # y = split_data['Healing Phase Abs'].map({'I': 0, 'P': 1, 'R': 2})
-                        y = metadata_df['Healing Phase Abs']
-                        y_bin1 = (y > 0).astype(int)
-                        y_bin2 = (y > 1).astype(int)
-                        # Train RF models
-                        rf_model1.fit(X, y_bin1)
-                        rf_model2.fit(X, y_bin2)    
-                try:
-                    import tensorflow_decision_forests as tfdf
-                    dataset1 = tfdf.keras.pd_dataframe_to_tf_dataset(
-                        metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore'),
-                        label=None  # No label needed for prediction
+                def _make_rf():
+                    """Create RF with config-driven hyperparameters."""
+                    from src.utils.production_config import (
+                        RF_N_ESTIMATORS, RF_CLASS_WEIGHT,
+                        RF_MAX_DEPTH, RF_MIN_SAMPLES_LEAF, RF_MIN_SAMPLES_SPLIT
+                    )
+                    cw = RF_CLASS_WEIGHT
+                    if cw == 'frequency':
+                        # Convert alpha_values (from enclosing scope) to sklearn dict
+                        cw = {i: alpha_values[i] for i in range(3)}
+                    return RandomForestClassifier(
+                        n_estimators=RF_N_ESTIMATORS,
+                        max_depth=RF_MAX_DEPTH,
+                        min_samples_leaf=RF_MIN_SAMPLES_LEAF,
+                        min_samples_split=RF_MIN_SAMPLES_SPLIT,
+                        random_state=42 + run * (run + 3),
+                        class_weight=cw,
+                        n_jobs=-1,
                     )
 
-                    # Get predictions
-                    with tf.device('/CPU:0'):
-                        pred1 = rf_model1.predict(dataset1)
-                        pred2 = rf_model2.predict(dataset1)
-                    # with tf.device('/CPU:0'):
-                    #     prob1 = rf_predict_function(rf_model1, dataset1)
-                    #     prob2 = rf_predict_function(rf_model2, dataset1)
-                        # # Get probabilities for positive class (class 1)
-                        prob1 = np.squeeze(pred1)
-                        prob2 = np.squeeze(pred2)
-                except ImportError:
-                    dataset = metadata_df.drop(['Patient#', 'Appt#', 'DFU#', 'Healing Phase Abs'], axis=1, errors='ignore')
-                    # dataset_pd = tf_to_pd(dataset)
-                    prob1 = rf_model1.predict_proba(dataset)[:, 1]
-                    prob2 = rf_model2.predict_proba(dataset)[:, 1]
-                
-                # Calculate final probabilities (unnormalized)
-                prob_I_unnorm = 1 - prob1
-                prob_P_unnorm = prob1 * (1 - prob2)
-                prob_R_unnorm = prob2
+                if is_training:
+                    # OUT-OF-FOLD RF predictions on DEDUPLICATED training data.
+                    # Deduplication removes both image-row duplicates (~4.8x per case)
+                    # and oversampling duplicates, preventing OOF leak (99% → ~65% OOF acc).
+                    # Predictions are mapped back to ALL rows to preserve image alignment.
+                    from sklearn.model_selection import KFold as SKFold
+                    from src.utils.production_config import RF_OOF_FOLDS
 
-                # CRITICAL FIX: Normalize probabilities to sum to 1.0
-                # Bug: prob_I + prob_P + prob_R = 1 + prob2(1 - prob1) != 1.0
-                # Without normalization, fusion gets Kappa=-0.007 (worse than random!)
-                total = prob_I_unnorm + prob_P_unnorm + prob_R_unnorm
-                prob_I = prob_I_unnorm / total
-                prob_P = prob_P_unnorm / total
-                prob_R = prob_R_unnorm / total
+                    # Deduplicate: group rows with identical feature vectors
+                    X_str = X.astype(str).apply(lambda row: '||'.join(row), axis=1)
+                    unique_mask = ~X_str.duplicated(keep='first')
+                    unique_indices = np.where(unique_mask)[0]
+                    X_unique = X.iloc[unique_indices].values
+                    y_unique = y.values[unique_indices]
+
+                    # Build reverse mapping: unique_pos → list of original row indices
+                    str_to_unique_pos = {}
+                    for u_pos, u_idx in enumerate(unique_indices):
+                        str_to_unique_pos[X_str.iloc[u_idx]] = u_pos
+                    group_map = {}
+                    for orig_idx in range(len(X)):
+                        u_pos = str_to_unique_pos[X_str.iloc[orig_idx]]
+                        group_map.setdefault(u_pos, []).append(orig_idx)
+
+                    vprint(f"RF dedup: {len(X)} rows → {len(X_unique)} unique patterns", level=2)
+
+                    # OOF on unique rows only (direct 3-class RF)
+                    n_internal_folds = min(RF_OOF_FOLDS, len(X_unique))
+                    kf = SKFold(n_splits=n_internal_folds, shuffle=True,
+                                random_state=42 + run * (run + 3))
+
+                    probs_unique_oof = np.zeros((len(X_unique), 3))
+
+                    vprint(f"RF out-of-fold predictions ({n_internal_folds}-fold on {len(X_unique)} unique rows)", level=2)
+                    for fold_idx, (tr_idx, oof_idx) in enumerate(kf.split(X_unique)):
+                        rf_fold = _make_rf()
+                        rf_fold.fit(X_unique[tr_idx], y_unique[tr_idx])
+                        probs_unique_oof[oof_idx] = rf_fold.predict_proba(X_unique[oof_idx])
+
+                    # Map OOF predictions back to all rows (preserves image alignment)
+                    probs = np.zeros((len(X), 3))
+                    for u_pos, orig_idxs in group_map.items():
+                        for oi in orig_idxs:
+                            probs[oi] = probs_unique_oof[u_pos]
+
+                    # Train final RF on ALL unique data (used for validation predictions)
+                    rf_model = _make_rf()
+                    rf_model.fit(X_unique, y_unique)
+                else:
+                    # Validation: predict with the final RF model (true out-of-sample)
+                    probs = rf_model.predict_proba(X.values)
+
+                # Extract per-class probabilities (already sum to 1.0)
+                prob_I = probs[:, 0]
+                prob_P = probs[:, 1]
+                prob_R = probs[:, 2]
+
+                # --- Pure RF standalone metrics ---
+                rf_preds = np.argmax(probs, axis=1)
+                rf_true = y.values if hasattr(y, 'values') else y
+                from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score
+                rf_acc = accuracy_score(rf_true, rf_preds)
+                rf_f1 = f1_score(rf_true, rf_preds, average='macro')
+                rf_kappa = cohen_kappa_score(rf_true, rf_preds, weights='quadratic')
+                split_label = "TRAIN (out-of-fold)" if is_training else "VALIDATION"
+                vprint(f"\n  RF standalone metrics ({split_label}):", level=2)
+                vprint(f"    Accuracy: {rf_acc:.4f}  |  F1-macro: {rf_f1:.4f}  |  Kappa: {rf_kappa:.4f}", level=2)
 
                 # Store RF probabilities in the DataFrame
                 split_data['rf_prob_I'] = prob_I
                 split_data['rf_prob_P'] = prob_P
                 split_data['rf_prob_R'] = prob_R
-            
+
             metadata_columns = [col for col in split_data.columns if col not in [
                 'Healing Phase Abs',
                 'depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
@@ -1262,15 +1501,15 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 'Patient#', 'Appt#', 'DFU#'
             ]]
             split_data = split_data.drop(columns=metadata_columns)
-            
-            return split_data, rf_model1, rf_model2
+
+            return split_data, rf_model
 
     # Preprocess both splits
     source_data = train_data.copy()
     del train_data
-    train_data, rf_model1, rf_model2 = preprocess_split(source_data, is_training=True, class_weight_dict_binary1=class_weight_dict_binary1, class_weight_dict_binary2=class_weight_dict_binary2)
-    valid_data, _, _ = preprocess_split(valid_data, is_training=False, rf_model1=rf_model1, rf_model2=rf_model2, imputation_data=source_data)
-    del rf_model1, rf_model2
+    train_data, rf_model = preprocess_split(source_data, is_training=True)
+    valid_data, _ = preprocess_split(valid_data, is_training=False, rf_model=rf_model, imputation_data=source_data)
+    del rf_model
 
     # FEATURE NORMALIZATION - Apply StandardScaler to numeric metadata features
     # This is CRITICAL for training convergence (proven by Phase 9 debugging)
@@ -1347,7 +1586,155 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
         image_size=image_size,
         fold_id=run)  # CRITICAL: Pass fold/run ID to ensure unique cache per fold
     
+    # Save diagnostic samples (1 per class) for manual inspection
+    if not for_shape_inference:
+        _save_diagnostic_samples(pre_aug_dataset, train_data, selected_modalities, run,
+                                 data1, image_size)
+
     return train_dataset, pre_aug_dataset, valid_dataset, steps_per_epoch, validation_steps, alpha_values
+
+
+def _save_diagnostic_samples(pre_aug_dataset, train_df, selected_modalities, fold,
+                             original_df, image_size):
+    """Save 1 training sample per class to results/visualizations for manual inspection.
+
+    Produces a composite PNG showing all image modalities side-by-side plus a
+    companion .txt file with the sample identifiers, target label, RF probabilities,
+    and raw metadata from the original CSV.
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    vis_dir = output_paths['visualizations']
+    diag_dir = os.path.join(vis_dir, 'diagnostic_samples')
+    os.makedirs(diag_dir, exist_ok=True)
+
+    class_names = {0: 'I', 1: 'P', 2: 'R'}
+    image_modalities = [m for m in selected_modalities if m != 'metadata']
+    found = {}  # class_idx -> (features_dict, label_array)
+
+    try:
+        for batch_features, batch_labels in pre_aug_dataset:
+            batch_size_actual = batch_labels.shape[0]
+            for i in range(batch_size_actual):
+                cls = int(tf.argmax(batch_labels[i]).numpy())
+                if cls not in found:
+                    found[cls] = {k: v[i].numpy() for k, v in batch_features.items()}, batch_labels[i].numpy()
+                if len(found) == 3:
+                    break
+            if len(found) == 3:
+                break
+
+        if not found:
+            print("  [diagnostic] No samples found in pre_aug_dataset, skipping diagnostic save.")
+            return
+
+        for cls_idx in sorted(found.keys()):
+            feats, label_onehot = found[cls_idx]
+            cls_name = class_names.get(cls_idx, str(cls_idx))
+            sample_id = feats.get('sample_id', None)
+
+            # Extract patient identifiers
+            if sample_id is not None:
+                patient = int(sample_id[0])
+                appt = int(sample_id[1])
+                dfu = int(sample_id[2])
+                id_str = f"P{patient:03d}_A{appt:02d}_D{dfu}"
+            else:
+                patient = appt = dfu = None
+                id_str = "unknown"
+
+            tag = f"fold{fold+1}_class{cls_name}_{id_str}"
+
+            # --- Save composite image ---
+            n_imgs = max(len(image_modalities), 1)
+            fig, axes = plt.subplots(1, n_imgs, figsize=(4 * n_imgs, 4))
+            if n_imgs == 1:
+                axes = [axes]
+
+            for ax_idx, mod in enumerate(image_modalities):
+                key = f'{mod}_input'
+                if key in feats:
+                    img = feats[key]
+                    # For display: if values are in [0,255] (EfficientNet path), scale to [0,1]
+                    if img.max() > 1.5:
+                        img = img / 255.0
+                    img = np.clip(img, 0, 1)
+                    axes[ax_idx].imshow(img)
+                    axes[ax_idx].set_title(mod, fontsize=10)
+                else:
+                    axes[ax_idx].text(0.5, 0.5, f'{mod}\n(not in data)',
+                                      ha='center', va='center', transform=axes[ax_idx].transAxes)
+                axes[ax_idx].axis('off')
+
+            fig.suptitle(f"Class {cls_name} ({id_str}) — fold {fold+1}", fontsize=12)
+            plt.tight_layout()
+            img_path = os.path.join(diag_dir, f'{tag}.png')
+            fig.savefig(img_path, dpi=150, bbox_inches='tight')
+            plt.close(fig)
+
+            # --- Write metadata text file ---
+            txt_path = os.path.join(diag_dir, f'{tag}.txt')
+            with open(txt_path, 'w') as f:
+                f.write(f"=== DIAGNOSTIC SAMPLE: {tag} ===\n\n")
+                f.write(f"Target label: {cls_name} (one-hot: {label_onehot})\n")
+                f.write(f"Patient#: {patient}, Appt#: {appt}, DFU#: {dfu}\n\n")
+
+                # RF probabilities
+                if 'metadata_input' in feats:
+                    md = feats['metadata_input']
+                    f.write(f"RF probabilities fed to model: I={md[0]:.4f}, P={md[1]:.4f}, R={md[2]:.4f}\n\n")
+
+                # Image tensor stats
+                for mod in image_modalities:
+                    key = f'{mod}_input'
+                    if key in feats:
+                        t = feats[key]
+                        f.write(f"{mod} tensor: shape={t.shape}, "
+                                f"min={t.min():.4f}, max={t.max():.4f}, mean={t.mean():.4f}\n")
+                f.write("\n")
+
+                # Image filenames from train_df
+                if patient is not None:
+                    match = train_df[
+                        (train_df['Patient#'] == patient) &
+                        (train_df['Appt#'] == appt) &
+                        (train_df['DFU#'] == dfu)
+                    ]
+                    if not match.empty:
+                        row = match.iloc[0]
+                        for mod in image_modalities:
+                            if mod in row.index:
+                                f.write(f"{mod} filename: {row[mod]}\n")
+                        f.write("\n")
+
+                # Raw metadata from original (un-preprocessed) DataFrame
+                if patient is not None and original_df is not None:
+                    orig_match = original_df[
+                        (original_df['Patient#'] == patient) &
+                        (original_df['Appt#'] == appt) &
+                        (original_df['DFU#'] == dfu)
+                    ]
+                    if not orig_match.empty:
+                        f.write("--- Raw metadata (from original CSV) ---\n")
+                        orig_row = orig_match.iloc[0]
+                        for col in orig_row.index:
+                            # Skip image/BB columns (already shown above)
+                            if col in ['depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map',
+                                       'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
+                                       'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']:
+                                continue
+                            f.write(f"  {col}: {orig_row[col]}\n")
+
+            vprint(f"  [diagnostic] Saved class {cls_name} sample: {img_path}", level=1)
+
+        print(f"  Diagnostic samples saved to {diag_dir}/ ({len(found)} classes)")
+
+    except Exception as e:
+        print(f"  [diagnostic] Warning: Could not save diagnostic samples: {e}")
+
+
 class BatchVisualizationCallback(tf.keras.callbacks.Callback):
     def __init__(self, dataset, modalities, freq=5, max_samples=5, run=1, save_dir='batch_visualizations'):
         """

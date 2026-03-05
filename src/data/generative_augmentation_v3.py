@@ -92,7 +92,7 @@ class GeneratedImageCounter:
         self.total_count = 0
         self.phase_counts = {'I': 0, 'P': 0, 'R': 0}
         self.lock = threading.Lock()
-        self.print_interval = 50  # Print summary every N images
+        self.print_interval = 100  # Print summary every N images (reduced to show progress more frequently)
 
     def increment(self, phase, batch_size=1):
         """Increment counter for a specific phase and optionally print update"""
@@ -173,11 +173,14 @@ class AugmentationConfig:
             'depth_rgb': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.6},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
-                    'saturation': {'enabled': True, 'range': (0.6, 1.4)},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.15},
+                    'prob': 0.5,
+                    # max_delta is multiplied by 255 in apply_pixel_augmentation_rgb
+                    # 0.1 * 255 = ±25.5 pixel values = ±10% brightness shift (suitable for medical images)
+                    'brightness': {'enabled': True, 'max_delta': 0.1},
+                    'contrast': {'enabled': True, 'range': (0.8, 1.2)},
+                    'saturation': {'enabled': True, 'range': (0.8, 1.2)},
+                    # stddev is multiplied by 255: 0.03 * 255 = 7.65 pixel noise (light noise)
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.03},
                 },
                 'generative_augmentations': {
                     'enabled': USE_GENERATIVE_AUGMENTATION  # Master switch from production_config
@@ -186,11 +189,11 @@ class AugmentationConfig:
             'thermal_rgb': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.6},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
-                    'saturation': {'enabled': True, 'range': (0.6, 1.4)},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.15},
+                    'prob': 0.5,
+                    'brightness': {'enabled': True, 'max_delta': 0.1},
+                    'contrast': {'enabled': True, 'range': (0.8, 1.2)},
+                    'saturation': {'enabled': True, 'range': (0.8, 1.2)},
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.03},
                 },
                 'generative_augmentations': {
                     'enabled': False  # Controlled by depth_rgb setting
@@ -199,11 +202,11 @@ class AugmentationConfig:
             'thermal_map': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.4},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
+                    'prob': 0.5,
+                    'brightness': {'enabled': True, 'max_delta': 0.08},
+                    'contrast': {'enabled': True, 'range': (0.85, 1.15)},
                     'saturation': {'enabled': False},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.1},
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.02},
                 },
                 'generative_augmentations': {
                     'enabled': False  # Map modalities not using generative aug
@@ -212,11 +215,11 @@ class AugmentationConfig:
             'depth_map': {
                 'regular_augmentations': {
                     'enabled': USE_GENERAL_AUGMENTATION,  # Controlled by production_config
-                    'prob': 0.6,
-                    'brightness': {'enabled': True, 'max_delta': 0.4},
-                    'contrast': {'enabled': True, 'range': (0.6, 1.4)},
+                    'prob': 0.5,
+                    'brightness': {'enabled': True, 'max_delta': 0.08},
+                    'contrast': {'enabled': True, 'range': (0.85, 1.15)},
                     'saturation': {'enabled': False},
-                    'gaussian_noise': {'enabled': True, 'stddev': 0.1},
+                    'gaussian_noise': {'enabled': True, 'stddev': 0.02},
                 },
                 'generative_augmentations': {
                     'enabled': False  # Map modalities not using generative aug
@@ -266,22 +269,26 @@ def augment_image(image, modality, seed, config):
     if seed_val is None:
         seed_val = 42
 
-    # Try augmentation - run on CPU to avoid deterministic GPU issues with AdjustContrastv2
+    # Apply GPU-accelerated augmentation
+    # NOTE: Removed CPU device placement - all tf.image ops are GPU-compatible
+    # If deterministic behavior is required, set TF_DETERMINISTIC_OPS=1 environment variable
     try:
-        settings = config.modality_settings[modality]['regular_augmentations']
-        with tf.device('/CPU:0'):
-            if modality in ['depth_rgb', 'thermal_rgb']:
-                augmented = tf.map_fn(
-                    lambda x: apply_pixel_augmentation_rgb(x, seed_val, settings),
-                    image,
-                    fn_output_signature=tf.float32
-                )
-            else:
-                augmented = tf.map_fn(
-                    lambda x: apply_pixel_augmentation_map(x, seed_val, settings),
-                    image,
-                    fn_output_signature=tf.float32
-                )
+        if modality in ['depth_rgb', 'thermal_rgb']:
+            # Spatial augmentations for RGB medical images
+            # (preserves wound color signal: flips, rotation, zoom, cutout)
+            augmented = tf.map_fn(
+                lambda x: apply_spatial_augmentation_rgb(x, seed_val),
+                image,
+                fn_output_signature=tf.float32
+            )
+        else:
+            # Spatial + mild pixel augmentations for map images
+            # (maps encode sensor data — spatial diversity + light sensor noise)
+            augmented = tf.map_fn(
+                lambda x: apply_spatial_augmentation_map(x, seed_val),
+                image,
+                fn_output_signature=tf.float32
+            )
 
         augmented = tf.ensure_shape(augmented, [
             None,
@@ -305,11 +312,13 @@ def apply_pixel_augmentation_rgb(image, seed, settings):
     if tf.random.uniform([], seed=seed) < settings['prob']:
         if tf.random.uniform([], seed=seed) < 0.6:
             if settings['brightness']['enabled']:
+                # Scale max_delta from [0,1] range to [0,255] range (images are float32 in [0,255])
                 image = tf.image.random_brightness(
                     image,
-                    settings['brightness']['max_delta'],
+                    settings['brightness']['max_delta'] * 255.0,
                     seed=seed
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.6:
             if settings['contrast']['enabled']:
@@ -319,6 +328,7 @@ def apply_pixel_augmentation_rgb(image, seed, settings):
                     settings['contrast']['range'][1],
                     seed=seed+1
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.4:
             if settings['saturation']['enabled']:
@@ -328,34 +338,166 @@ def apply_pixel_augmentation_rgb(image, seed, settings):
                     settings['saturation']['range'][1],
                     seed=seed+2
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.3:
             if settings['gaussian_noise']['enabled']:
+                # Scale stddev from [0,1] range to [0,255] range (images are float32 in [0,255])
                 noise = tf.random.normal(
                     shape=tf.shape(image),
                     mean=0.0,
-                    stddev=settings['gaussian_noise']['stddev'],
+                    stddev=settings['gaussian_noise']['stddev'] * 255.0,
                     seed=seed+3
                 )
-                image = tf.clip_by_value(image + noise, 0.0, 1.0)
+                image = tf.clip_by_value(image + noise, 0.0, 255.0)
 
     return image
 
 
 @tf.function(reduce_retracing=True)
+def apply_spatial_augmentation_rgb(image, seed):
+    """Apply spatial augmentations for medical wound RGB images.
+
+    DFU wound classification relies on wound COLOR: redness (inflammatory),
+    pink granulation (proliferative), pale scarring (remodeling). Traditional
+    pixel augmentations (brightness, saturation jitter) corrupt this critical
+    color signal. Spatial augmentations create meaningful geometric diversity
+    while preserving the discriminative color information.
+
+    Applied transforms:
+      - Horizontal flip (50%): wounds have no canonical left-right orientation
+      - Vertical flip (30%): wound patches have no canonical up-down
+      - 90-degree rotation (40%): wounds appear at arbitrary angles
+      - Random zoom crop (50%): simulates scale/distance variation
+      - Random cutout (25%): forces model to use full wound area
+    """
+    if len(tf.shape(image)) != 3:
+        return image
+
+    h = tf.shape(image)[0]
+    w = tf.shape(image)[1]
+
+    # 1. Horizontal flip (50%) — wounds have no canonical left-right orientation
+    image = tf.image.random_flip_left_right(image)
+
+    # 2. Vertical flip (30%) — wound patches have no canonical up-down
+    if tf.random.uniform([]) < 0.3:
+        image = tf.image.flip_up_down(image)
+
+    # 3. Random 90-degree rotation (40%) — wounds can appear at any angle
+    if tf.random.uniform([]) < 0.4:
+        k = tf.random.uniform([], minval=1, maxval=4, dtype=tf.int32)
+        image = tf.image.rot90(image, k=k)
+
+    # 4. Random zoom crop (50%) — crop 80-95% then resize back (simulates zoom)
+    if tf.random.uniform([]) < 0.5:
+        crop_frac = tf.random.uniform([], 0.80, 0.95)
+        crop_h = tf.maximum(tf.cast(tf.cast(h, tf.float32) * crop_frac, tf.int32), 1)
+        crop_w = tf.maximum(tf.cast(tf.cast(w, tf.float32) * crop_frac, tf.int32), 1)
+        image = tf.image.random_crop(image, [crop_h, crop_w, 3])
+        image = tf.image.resize(image, [h, w])
+
+    # 5. Random cutout (25%) — erase small patch, forces model to use full wound area
+    if tf.random.uniform([]) < 0.25:
+        erase_frac_h = tf.random.uniform([], 0.05, 0.15)
+        erase_frac_w = tf.random.uniform([], 0.05, 0.15)
+        eh = tf.maximum(tf.cast(tf.cast(h, tf.float32) * erase_frac_h, tf.int32), 1)
+        ew = tf.maximum(tf.cast(tf.cast(w, tf.float32) * erase_frac_w, tf.int32), 1)
+        top = tf.random.uniform([], 0, tf.maximum(h - eh, 1), dtype=tf.int32)
+        left = tf.random.uniform([], 0, tf.maximum(w - ew, 1), dtype=tf.int32)
+
+        # Build keep mask: True everywhere except the erased rectangle
+        rows = tf.range(h)
+        cols = tf.range(w)
+        row_in = tf.logical_and(rows >= top, rows < top + eh)
+        col_in = tf.logical_and(cols >= left, cols < left + ew)
+        erase_mask = tf.logical_and(
+            tf.expand_dims(row_in, 1),
+            tf.expand_dims(col_in, 0)
+        )
+        keep_mask = tf.cast(tf.logical_not(erase_mask), tf.float32)
+        keep_mask = tf.expand_dims(keep_mask, -1)  # [H, W, 1]
+        image = image * keep_mask
+
+    image = tf.clip_by_value(image, 0.0, 255.0)
+    return image
+
+
+@tf.function(reduce_retracing=True)
+def apply_spatial_augmentation_map(image, seed):
+    """Apply augmentations for depth/thermal MAP images.
+
+    Maps encode sensor measurements (depth distance, thermal temperature) as
+    pixel intensity. Unlike RGB wounds where color IS the diagnostic signal,
+    map values represent physical quantities — mild intensity jitter simulates
+    sensor calibration differences, while spatial augmentations provide
+    geometric diversity.
+
+    Applied transforms:
+      - Horizontal flip (50%): wound position is arbitrary
+      - Vertical flip (30%): wound patches have no canonical up-down
+      - 90-degree rotation (40%): wounds appear at arbitrary angles
+      - Random zoom crop (40%): simulates distance/scale variation
+      - Mild brightness jitter (30%, ±5%): simulates sensor calibration noise
+      - Light gaussian noise (30%, σ=5px): simulates sensor measurement noise
+    """
+    if len(tf.shape(image)) != 3:
+        return image
+
+    h = tf.shape(image)[0]
+    w = tf.shape(image)[1]
+
+    # 1. Horizontal flip (50%)
+    image = tf.image.random_flip_left_right(image)
+
+    # 2. Vertical flip (30%)
+    if tf.random.uniform([]) < 0.3:
+        image = tf.image.flip_up_down(image)
+
+    # 3. Random 90-degree rotation (40%)
+    if tf.random.uniform([]) < 0.4:
+        k = tf.random.uniform([], minval=1, maxval=4, dtype=tf.int32)
+        image = tf.image.rot90(image, k=k)
+
+    # 4. Random zoom crop (40%) — crop 85-95% then resize back
+    if tf.random.uniform([]) < 0.4:
+        crop_frac = tf.random.uniform([], 0.85, 0.95)
+        crop_h = tf.maximum(tf.cast(tf.cast(h, tf.float32) * crop_frac, tf.int32), 1)
+        crop_w = tf.maximum(tf.cast(tf.cast(w, tf.float32) * crop_frac, tf.int32), 1)
+        image = tf.image.random_crop(image, [crop_h, crop_w, 3])
+        image = tf.image.resize(image, [h, w])
+
+    # 5. Mild brightness jitter (30%) — simulates sensor calibration differences
+    # ±5% = ±12.75 pixel values (conservative for sensor data)
+    if tf.random.uniform([]) < 0.3:
+        delta = tf.random.uniform([], -0.05, 0.05) * 255.0
+        image = image + delta
+
+    # 6. Light gaussian noise (30%) — simulates sensor measurement noise
+    if tf.random.uniform([]) < 0.3:
+        noise = tf.random.normal(shape=tf.shape(image), mean=0.0, stddev=5.0)
+        image = image + noise
+
+    image = tf.clip_by_value(image, 0.0, 255.0)
+    return image
+
+
+@tf.function(reduce_retracing=True)
 def apply_pixel_augmentation_map(image, seed, settings):
-    """Apply map-specific augmentations based on settings"""
+    """Apply map-specific augmentations based on settings (LEGACY — kept for backward compatibility)"""
     if len(tf.shape(image)) != 3:
         return image
 
     if tf.random.uniform([], seed=seed) < settings['prob']:
         if tf.random.uniform([], seed=seed) < 0.6:
             if settings['brightness']['enabled']:
+                # Scale max_delta from [0,1] range to [0,255] range (images are float32 in [0,255])
                 image = tf.image.random_brightness(
                     image,
-                    settings['brightness']['max_delta'],
+                    settings['brightness']['max_delta'] * 255.0,
                     seed=seed
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.4:
             if settings['contrast']['enabled']:
@@ -365,6 +507,7 @@ def apply_pixel_augmentation_map(image, seed, settings):
                     settings['contrast']['range'][1],
                     seed=seed+1
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.3:
             # Note: Saturation is typically disabled for map images in your config
@@ -375,16 +518,18 @@ def apply_pixel_augmentation_map(image, seed, settings):
                     settings['saturation']['range'][1],
                     seed=seed+2
                 )
+                image = tf.clip_by_value(image, 0.0, 255.0)
 
         if tf.random.uniform([], seed=seed) < 0.5:
             if settings['gaussian_noise']['enabled']:
+                # Scale stddev from [0,1] range to [0,255] range (images are float32 in [0,255])
                 noise = tf.random.normal(
                     shape=tf.shape(image),
                     mean=0.0,
-                    stddev=settings['gaussian_noise']['stddev'] * 0.5,  # Reduced intensity
+                    stddev=settings['gaussian_noise']['stddev'] * 0.5 * 255.0,  # Reduced intensity, scaled to [0,255]
                     seed=seed+3
                 )
-                image = tf.clip_by_value(image + noise, 0.0, 1.0)
+                image = tf.clip_by_value(image + noise, 0.0, 255.0)
 
     return image
 
@@ -433,8 +578,9 @@ class GenerativeAugmentationManagerSDXL:
             base_model_id = "stabilityai/stable-diffusion-xl-base-1.0"
 
             # Determine dtype based on available hardware
+            # CRITICAL: Must use bfloat16 to match training dtype, otherwise VAE produces NaN
             if torch.cuda.is_available():
-                weight_dtype = torch.float16  # Use fp16 for inference on GPU
+                weight_dtype = torch.bfloat16  # Use bf16 for inference on GPU (matches training)
             else:
                 weight_dtype = torch.float32
 
@@ -498,15 +644,30 @@ class GenerativeAugmentationManagerSDXL:
                 scheduler=noise_scheduler,
             )
 
-            # Move to device and optimize
-            self.pipeline = self.pipeline.to(self.device)
             self.pipeline.set_progress_bar_config(disable=True)
 
-            # Enable memory optimizations
+            # Enable aggressive memory optimizations for SDXL
             if hasattr(self.pipeline, 'enable_attention_slicing'):
-                self.pipeline.enable_attention_slicing()
+                self.pipeline.enable_attention_slicing(slice_size="auto")
 
-            print(f"  SDXL model loaded successfully on {self.device}")
+            # Enable VAE slicing to reduce memory during decoding
+            if hasattr(self.pipeline, 'enable_vae_slicing'):
+                self.pipeline.enable_vae_slicing()
+
+            # Enable VAE tiling for even lower memory (may be slightly slower)
+            if hasattr(self.pipeline, 'enable_vae_tiling'):
+                self.pipeline.enable_vae_tiling()
+
+            # Load entire model to GPU for maximum speed
+            # SDXL base model (~7GB) + training data fits comfortably in 24GB GPU
+            # Sequential CPU offload was causing 6x slowdown (30s vs 5s per batch)
+            self.pipeline = self.pipeline.to(self.device)
+            print(f"  SDXL model loaded on {self.device} (full GPU mode for max speed)")
+
+            # Note: If OOM occurs, uncomment below to enable CPU offload (slower but uses less memory)
+            # if hasattr(self.pipeline, 'enable_sequential_cpu_offload'):
+            #     self.pipeline.enable_sequential_cpu_offload()
+            #     print(f"  SDXL model loaded with sequential CPU offload (low memory mode)")
 
         except Exception as e:
             print(f"Error loading SDXL model: {str(e)}")
@@ -557,8 +718,8 @@ class GenerativeAugmentationManagerSDXL:
         try:
             with self.lock:  # Thread-safe generation
                 with torch.no_grad():
-                    # Use autocast for memory efficiency
-                    with torch.autocast(device_type='cuda', dtype=torch.float16):
+                    # Use autocast for memory efficiency (bfloat16 matches training dtype)
+                    with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                         output = self.pipeline(
                             prompt=[prompt] * batch_size,
                             negative_prompt=[negative_prompt] * batch_size,
@@ -613,7 +774,8 @@ class GenerativeAugmentationManagerSDXL:
         # Decode phase string if it's a TensorFlow tensor
         try:
             phase_str = self.current_phase if isinstance(self.current_phase, str) else self.current_phase.numpy().decode('utf-8')
-        except:
+        except (AttributeError, UnicodeDecodeError) as e:
+            print(f"  [WARNING] Failed to decode phase tensor in should_generate: {type(e).__name__}: {e}", flush=True)
             return False
 
         if phase_str not in GENERATIVE_AUG_PHASES:
@@ -648,8 +810,8 @@ class GenerativeAugmentationManagerSDXL:
                     for i, _ in enumerate(gpus):
                         try:
                             tf.config.experimental.reset_memory_stats(f'GPU:{i}')
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"  [WARNING] Failed to reset GPU:{i} memory stats during cleanup: {type(e).__name__}: {e}", flush=True)
 
 
 def create_enhanced_augmentation_fn(gen_manager, config):
@@ -667,6 +829,9 @@ def create_enhanced_augmentation_fn(gen_manager, config):
     Returns:
         Augmentation function that can be applied to batched datasets
     """
+    # Track how many generated sample images have been saved (max 3)
+    _saved_gen_samples = [0]
+
     def apply_augmentation(features, label):
         def augment_batch(features_dict, label_tensor):
             output_features = {}
@@ -696,75 +861,88 @@ def create_enhanced_augmentation_fn(gen_manager, config):
 
                     # Apply generative augmentation only if gen_manager is available
                     if gen_manager is not None:
-                        def decode_phase(phase_tensor):
-                            return phase_tensor.numpy().decode('utf-8')
-
-                        gen_manager.current_phase = tf.py_function(decode_phase, [current_phase], tf.string)
-
-                        if gen_manager.should_generate(modality):
+                        # All generation logic runs inside tf.py_function for reliable eager execution.
+                        # Python if-statements in the outer scope are evaluated during TF graph tracing,
+                        # where .numpy() fails on symbolic tensors, causing should_generate() to
+                        # silently return False and exclude generation from the graph entirely.
+                        def maybe_generate_and_mix(images_batch, phase_tensor, modality_str):
+                            """Generate synthetic images and mix into batch (runs eagerly via py_function)"""
                             try:
-                                def generate_images_wrapper(phase_tensor, modality_str, batch_size_val, target_height, target_width):
+                                images = images_batch.numpy().copy()
+                                modality_raw = modality_str.numpy().decode('utf-8')
+                                phase = phase_tensor.numpy().decode('utf-8')
+                                bs = images.shape[0]
+
+                                # Set current phase as string for should_generate check
+                                gen_manager.current_phase = phase
+
+                                # Create mask (0=real, 1=generated)
+                                mask = np.zeros(bs, dtype=np.float32)
+
+                                if not gen_manager.should_generate(modality_raw):
+                                    return images, mask
+
+                                # Calculate how many images we actually need BEFORE generating
+                                mix_ratio = np.random.uniform(
+                                    config.generative_settings['mix_ratio_range'][0],
+                                    config.generative_settings['mix_ratio_range'][1]
+                                )
+                                num_to_replace = max(1, int(bs * mix_ratio))
+
+                                height, width = images.shape[1], images.shape[2]
+                                generated = gen_manager.generate_images(
+                                    modality_raw, phase,
+                                    batch_size=num_to_replace,
+                                    target_height=height,
+                                    target_width=width
+                                )
+                                if generated is None:
+                                    return images, mask
+
+                                gen_np = generated.numpy() if hasattr(generated, 'numpy') else np.array(generated)
+                                num_to_replace = min(num_to_replace, len(gen_np))
+
+                                # Save first 3 generated images for visual verification
+                                if _saved_gen_samples[0] < 3:
                                     try:
-                                        phase = phase_tensor.numpy().decode('utf-8')
-                                        modality_raw = modality_str.numpy().decode('utf-8')
-                                        batch_size_int = int(batch_size_val.numpy())
-                                        height = int(target_height.numpy())
-                                        width = int(target_width.numpy())
+                                        from PIL import Image
+                                        save_dir = os.path.join('results', 'visualizations')
+                                        os.makedirs(save_dir, exist_ok=True)
+                                        for si in range(min(len(gen_np), 3 - _saved_gen_samples[0])):
+                                            _saved_gen_samples[0] += 1
+                                            img = (gen_np[si] * 255).clip(0, 255).astype(np.uint8)
+                                            save_path = os.path.join(save_dir, f'gen{_saved_gen_samples[0]}.png')
+                                            Image.fromarray(img).save(save_path)
+                                            print(f"  Saved generated sample: {save_path} (phase: {phase}, modality: {modality_raw})", flush=True)
+                                    except Exception as save_err:
+                                        print(f"  Warning: Could not save generated sample: {save_err}")
 
-                                        # Generate images directly at target size
-                                        generated = gen_manager.generate_images(
-                                            modality_raw, phase,
-                                            batch_size=batch_size_int,
-                                            target_height=height,
-                                            target_width=width
-                                        )
-                                        if generated is None:
-                                            return np.zeros([batch_size_int, height, width, 3], dtype=np.float32)
+                                # Replace random indices with generated images
+                                indices = np.random.choice(bs, size=num_to_replace, replace=False)
+                                for i, idx in enumerate(indices):
+                                    if i < len(gen_np):
+                                        images[idx] = gen_np[i]
+                                        mask[idx] = 1.0
 
-                                        return generated.numpy()
-
-                                    except Exception as e:
-                                        print(f"Error in generate_images_wrapper: {str(e)}")
-                                        return np.zeros([batch_size_int, height, width, 3], dtype=np.float32)
-
-                                modality_tensor = tf.constant(modality, dtype=tf.string)
-                                height = tf.shape(value)[1]
-                                width = tf.shape(value)[2]
-
-                                generated = tf.py_function(
-                                    func=generate_images_wrapper,
-                                    inp=[current_phase, modality_tensor, batch_size, height, width],
-                                    Tout=tf.float32
-                                )
-                                generated.set_shape([None, value.shape[1], value.shape[2], 3])
-
-                                mix_ratio = tf.random.uniform([],
-                                    minval=config.generative_settings['mix_ratio_range'][0],
-                                    maxval=config.generative_settings['mix_ratio_range'][1]
-                                )
-
-                                num_to_replace = tf.cast(
-                                    tf.cast(batch_size, tf.float32) * mix_ratio,
-                                    tf.int32
-                                )
-
-                                # Get random indices to replace
-                                indices = tf.random.shuffle(tf.range(batch_size))[:num_to_replace]
-                                updates = tf.gather(generated, tf.range(tf.minimum(num_to_replace, tf.shape(generated)[0])))
-                                indices_2d = tf.expand_dims(indices[:tf.shape(updates)[0]], 1)
-
-                                # Replace real images with generated ones
-                                value = tf.tensor_scatter_nd_update(value, indices_2d, updates)
-
-                                # Mark these indices as generated (should NOT be augmented)
-                                generated_indices_mask = tf.tensor_scatter_nd_update(
-                                    generated_indices_mask,
-                                    indices_2d,
-                                    tf.ones([tf.shape(updates)[0]], dtype=tf.bool)
-                                )
+                                return images, mask
 
                             except Exception as e:
                                 print(f"Error in generative augmentation: {str(e)}")
+                                import traceback
+                                traceback.print_exc()
+                                return images_batch.numpy(), np.zeros(images_batch.shape[0], dtype=np.float32)
+
+                        modality_tensor = tf.constant(modality, dtype=tf.string)
+                        result_images, gen_mask = tf.py_function(
+                            func=maybe_generate_and_mix,
+                            inp=[value, current_phase, modality_tensor],
+                            Tout=[tf.float32, tf.float32]
+                        )
+                        result_images.set_shape(value.shape)
+                        gen_mask.set_shape([None])
+
+                        value = result_images
+                        generated_indices_mask = tf.cast(gen_mask, tf.bool)
 
                     # Apply regular augmentations ONLY to real images (not generated ones)
                     if modality in config.modality_settings and config.modality_settings[modality]['regular_augmentations']['enabled']:

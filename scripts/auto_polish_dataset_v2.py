@@ -6,13 +6,13 @@ filtering thresholds:
 
 PHASE 1: Misclassification Detection (Run Once)
 - Tests each modality individually (default: metadata, depth_rgb, depth_map, thermal_map)
-- Runs training N times per modality (e.g., 10) with different random seeds
+- Runs training N times per modality (e.g., 3) with different random seeds
 - Accumulates misclassification counts (max count depends on track_misclass mode and cv_folds):
   * track_misclass='valid': max = N (each sample in validation once per run)
   * track_misclass='train': max = N × (cv_folds - 1)
   * track_misclass='both': max = N × cv_folds (tracked from both train and validation)
 - Creates comprehensive misclassification profile
-- Time: ~30-60 minutes for N=10 runs per modality (e.g., 40 runs total for 4 modalities)
+- Time: ~10-20 minutes for N=3 runs per modality (e.g., 12 runs total for 4 modalities)
 
 PHASE 2: Bayesian Threshold Optimization
 - Uses Bayesian optimization to find optimal thresholds
@@ -20,14 +20,14 @@ PHASE 2: Bayesian Threshold Optimization
 - For each candidate threshold combination:
   * Filters dataset based on thresholds
   * Trains metadata with cv_folds=3, n_runs=1
-  * Evaluates combined score: 0.4×macro_f1 + 0.4×min_f1 + 0.2×kappa
+  * Evaluates combined score: 0.35×macro_f1 + 0.30×min_f1 + 0.25×kappa + 0.10×retention
 - Finds best thresholds in ~20 evaluations
 - Time: ~1-2 hours for 20 evaluations with cv_folds=3
 
 Key Advantages:
 - Much fewer total runs than iterative approach (30 vs 50+)
 - Systematically explores threshold space instead of arbitrary reduction
-- Balances speed (Phase 1: n_runs=10) with precision (Phase 2: Bayesian)
+- Balances speed (Phase 1: n_runs=3) with precision (Phase 2: Bayesian)
 - Safety constraint: rejects thresholds that filter >50% of data
 
 Usage:
@@ -37,11 +37,11 @@ Usage:
     # Run both phases with all modalities combined in Phase 2
     python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb+depth_map+thermal_map
 
-    # Run Phase 1 with 100 runs per modality (400 total for 4 modalities)
+    # Run Phase 1 with 100 runs (uses INCLUDED_COMBINATIONS from production_config.py)
     python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-n-runs 100
 
-    # Run Phase 1 with custom modalities (e.g., only metadata and depth_rgb)
-    python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
+    # Phase 1 modalities are controlled via INCLUDED_COMBINATIONS in production_config.py:
+    #   INCLUDED_COMBINATIONS = [('metadata',), ('metadata', 'depth_rgb')]  # tests 2 configs
 
     # Just Phase 2 (if Phase 1 already completed) with combined modalities
     python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb --phase2-only
@@ -128,9 +128,8 @@ class BayesianDatasetPolisher:
                  min_f1_per_class=0.42,
                  min_macro_f1=0.48,
                  min_kappa=0.35,
-                 phase1_n_runs=10,
+                 phase1_n_runs=3,
                  phase1_cv_folds=1,
-                 phase1_modalities=None,
                  phase1_data_percentage=100,
                  phase2_cv_folds=3,
                  phase2_n_evaluations=20,
@@ -140,7 +139,8 @@ class BayesianDatasetPolisher:
                  min_f1_threshold=0.25,
                  min_samples_per_class=30,
                  max_class_imbalance_ratio=5.0,
-                 min_minority_retention=0.90,
+                 min_minority_retention=0.85,
+                 min_total_retention=0.60,
                  device_mode='single',
                  custom_gpus=None,
                  min_gpu_memory=8.0,
@@ -154,9 +154,8 @@ class BayesianDatasetPolisher:
             min_f1_per_class: Minimum F1 score for each class
             min_macro_f1: Minimum macro F1 score
             min_kappa: Minimum Cohen's Kappa
-            phase1_n_runs: Number of runs per modality in Phase 1 for misclass detection (default: 10)
+            phase1_n_runs: Number of runs per modality in Phase 1 for misclass detection (default: 3)
             phase1_cv_folds: CV folds in Phase 1 (default: 1 for speed)
-            phase1_modalities: List of modalities to test individually in Phase 1 (default: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'])
             phase1_data_percentage: Percentage of data to use in Phase 1 (default: 100)
             phase2_cv_folds: CV folds in Phase 2 for evaluation (default: 3)
             phase2_n_evaluations: Number of Bayesian optimization iterations (default: 20)
@@ -166,9 +165,12 @@ class BayesianDatasetPolisher:
             min_f1_threshold: Hard constraint - reject if any class F1 < this (default: 0.25)
             min_samples_per_class: Hard constraint - reject if any class < this many samples (default: 30)
             max_class_imbalance_ratio: Hard constraint - reject if largest/smallest class ratio > this (default: 5.0)
-            min_minority_retention: Target retention for the minority (rarest) class (default: 0.90).
+            min_minority_retention: Target retention for the minority (rarest) class (default: 0.85).
                                     Other classes are adjusted to achieve a balanced dataset.
                                     Optimization skipped if this cannot be achieved.
+            min_total_retention: Minimum combined dataset retention at search space lower bounds (default: 0.60).
+                                If per-class balance bounds would result in <65% total retention, non-rarest
+                                class bounds are raised proportionally to meet this floor.
             device_mode: GPU mode - 'cpu', 'single', 'multi', or 'custom' (default: 'single')
             custom_gpus: List of GPU IDs for 'custom' mode (e.g., [0, 1])
             min_gpu_memory: Minimum GPU memory in GB (default: 8.0)
@@ -180,7 +182,6 @@ class BayesianDatasetPolisher:
         self.min_kappa = min_kappa
         self.phase1_n_runs = phase1_n_runs
         self.phase1_cv_folds = phase1_cv_folds
-        self.phase1_modalities = phase1_modalities if phase1_modalities is not None else ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
         self.phase1_data_percentage = phase1_data_percentage
         self.phase2_cv_folds = phase2_cv_folds
         self.phase2_n_evaluations = phase2_n_evaluations
@@ -191,6 +192,7 @@ class BayesianDatasetPolisher:
         self.min_samples_per_class = min_samples_per_class
         self.max_class_imbalance_ratio = max_class_imbalance_ratio
         self.min_minority_retention = min_minority_retention
+        self.min_total_retention = min_total_retention
 
         # GPU configuration
         self.device_mode = device_mode
@@ -211,23 +213,180 @@ class BayesianDatasetPolisher:
         self.best_score = -np.inf
         self.phase1_baseline = None  # Will store baseline metrics from Phase 1
 
+    def _get_checkpoint_path(self):
+        """Get path for Phase 2 checkpoint file."""
+        saved_dir = Path(self.directory) / 'results' / 'misclassifications_saved'
+        saved_dir.mkdir(parents=True, exist_ok=True)
+        return saved_dir / 'phase2_checkpoint.json'
+
+    def _get_best_thresholds_path(self):
+        """Get path for best thresholds file."""
+        saved_dir = Path(self.directory) / 'results' / 'misclassifications_saved'
+        saved_dir.mkdir(parents=True, exist_ok=True)
+        return saved_dir / 'best_thresholds.json'
+
+    def _save_checkpoint(self):
+        """Save current optimization state to checkpoint file after each evaluation."""
+        checkpoint_path = self._get_checkpoint_path()
+
+        convert = self._convert_to_native
+
+        checkpoint = {
+            'timestamp': datetime.now().isoformat(),
+            'completed_evaluations': len(self.optimization_history),
+            'total_planned_evaluations': self.phase2_n_evaluations,
+            'best_thresholds': convert(self.best_thresholds),
+            'best_score': float(self.best_score) if self.best_score != -np.inf else None,
+            'best_metrics': None,
+            'phase1_baseline': convert(self.phase1_baseline) if self.phase1_baseline else None,
+            'original_dataset_size': int(self.original_dataset_size) if self.original_dataset_size else None,
+            'optimization_history': convert(self.optimization_history),
+            'log_file': str(self.phase2_log_file) if hasattr(self, 'phase2_log_file') else None
+        }
+
+        # Find best metrics from history
+        if self.best_thresholds:
+            for entry in reversed(self.optimization_history):
+                if entry.get('thresholds') == self.best_thresholds and 'metrics' in entry:
+                    checkpoint['best_metrics'] = convert(entry['metrics'])
+                    break
+
+        # Write atomically (write to temp, then rename)
+        tmp_path = checkpoint_path.with_suffix('.tmp')
+        with open(tmp_path, 'w') as f:
+            json.dump(checkpoint, f, indent=2)
+        tmp_path.rename(checkpoint_path)
+
+        # Also update best_thresholds.json when we have a best
+        if self.best_thresholds:
+            self._save_best_thresholds(checkpoint.get('best_metrics'))
+
+    @classmethod
+    def _convert_to_native(cls, obj):
+        """Recursively convert numpy types to native Python types for JSON serialization."""
+        if isinstance(obj, dict):
+            return {k: cls._convert_to_native(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [cls._convert_to_native(item) for item in obj]
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return obj
+
+    def _save_best_thresholds(self, best_metrics=None):
+        """Save current best thresholds to a simple JSON file."""
+        best_path = self._get_best_thresholds_path()
+
+        best_file = {
+            'thresholds': self.best_thresholds,
+            'score': float(self.best_score),
+            'metrics': best_metrics,
+            'phase1_baseline_modality': self.phase1_baseline.get('modality', 'unknown') if self.phase1_baseline else None,
+            'production_config_settings': (
+                f"USE_CORE_DATA = True, "
+                f"THRESHOLD_I = {self.best_thresholds['I']}, "
+                f"THRESHOLD_P = {self.best_thresholds['P']}, "
+                f"THRESHOLD_R = {self.best_thresholds['R']}"
+            ),
+            'command': "python src/main.py --mode search --cv_folds 5 --device-mode multi",
+            'timestamp': datetime.now().isoformat()
+        }
+
+        best_file = self._convert_to_native(best_file)
+
+        tmp_path = best_path.with_suffix('.tmp')
+        with open(tmp_path, 'w') as f:
+            json.dump(best_file, f, indent=2)
+        tmp_path.rename(best_path)
+
+    def _load_checkpoint(self):
+        """
+        Load Phase 2 checkpoint if it exists.
+
+        Returns:
+            dict or None: Checkpoint data, or None if no checkpoint exists.
+        """
+        checkpoint_path = self._get_checkpoint_path()
+        if not checkpoint_path.exists():
+            return None
+
+        try:
+            with open(checkpoint_path) as f:
+                checkpoint = json.load(f)
+
+            completed = checkpoint.get('completed_evaluations', 0)
+            if completed == 0:
+                return None
+
+            print(f"\n💾 Found Phase 2 checkpoint: {completed} evaluations completed")
+            print(f"   Best so far: {checkpoint.get('best_thresholds')} (score: {checkpoint.get('best_score', 'N/A')})")
+            return checkpoint
+
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"⚠️  Could not load checkpoint: {e}")
+            return None
+
+    def _append_scoring_to_log(self, eval_num, threshold_dict, metrics, score, penalties,
+                                filtered_size, is_new_best=False):
+        """Append scoring summary to the Phase 2 log file after each evaluation."""
+        if not hasattr(self, 'phase2_log_file'):
+            return
+
+        lines = []
+        lines.append(f"\n{'─'*80}")
+        lines.append(f"SCORING SUMMARY — Evaluation {eval_num}")
+        lines.append(f"{'─'*80}")
+        lines.append(f"Thresholds: I={threshold_dict['I']}, P={threshold_dict['P']}, R={threshold_dict['R']}")
+        lines.append(f"Retention: {filtered_size}/{self.original_dataset_size} "
+                      f"({filtered_size/self.original_dataset_size*100:.1f}%)")
+        lines.append(f"Accuracy:    {metrics.get('accuracy', 0.0):.4f}")
+        lines.append(f"Macro F1:    {metrics.get('macro_f1', 0.0):.4f}")
+        lines.append(f"Weighted F1: {metrics.get('weighted_f1', 0.0):.4f}")
+
+        f1_per_class = metrics.get('f1_per_class', {})
+        lines.append(f"Per-class F1: I={f1_per_class.get('I', 0.0):.4f}, "
+                      f"P={f1_per_class.get('P', 0.0):.4f}, "
+                      f"R={f1_per_class.get('R', 0.0):.4f}")
+        lines.append(f"Kappa:       {metrics.get('kappa', 0.0):.4f}")
+
+        if self.phase1_baseline:
+            lines.append(f"Deltas vs baseline:")
+            lines.append(f"  Δ Macro F1: {metrics.get('macro_f1', 0) - self.phase1_baseline['macro_f1']:+.4f}")
+            lines.append(f"  Δ Kappa:    {metrics.get('kappa', 0) - self.phase1_baseline['kappa']:+.4f}")
+
+        if penalties:
+            total_pen = sum(penalties.values())
+            if total_pen > 0:
+                pen_str = ', '.join(f'{k}:{v:.3f}' for k, v in penalties.items() if v > 0)
+                lines.append(f"Penalties: {total_pen:.4f} ({pen_str})")
+
+        lines.append(f"Combined Score: {score:.4f}")
+        if is_new_best:
+            lines.append(f"*** NEW BEST SCORE ***")
+        lines.append(f"{'─'*80}\n")
+
+        with open(self.phase2_log_file, 'a') as f:
+            f.write('\n'.join(lines) + '\n')
+
     def _calculate_phase2_batch_size(self):
         """
         Calculate appropriate batch size for Phase 2 based on weighted image modalities.
 
-        Phase 1 tests ONE modality at a time with GLOBAL_BATCH_SIZE.
-        Phase 2 tests MULTIPLE modalities simultaneously, requiring proportional reduction.
-
-        Modality weights (based on memory usage):
-        - depth_rgb: 1.0 (full RGB image)
-        - depth_map: 0.6 (single channel)
-        - thermal_map: 0.6 (single channel)
-        - thermal_rgb: 1.0 (full RGB image)
+        Controlled by PHASE2_BATCH_SIZE_ADJUSTMENT in production_config.py.
+        When disabled, uses GLOBAL_BATCH_SIZE as-is.
 
         Returns:
-            int: Adjusted batch size for Phase 2
+            int: Batch size for Phase 2
         """
-        from src.utils.production_config import GLOBAL_BATCH_SIZE
+        from src.utils.production_config import GLOBAL_BATCH_SIZE, PHASE2_BATCH_SIZE_ADJUSTMENT
+
+        if not PHASE2_BATCH_SIZE_ADJUSTMENT:
+            print(f"\n  Phase 2 batch size: {GLOBAL_BATCH_SIZE} (PHASE2_BATCH_SIZE_ADJUSTMENT = False)")
+            return GLOBAL_BATCH_SIZE
 
         # Define memory weights for each modality type
         MODALITY_WEIGHTS = {
@@ -238,15 +397,12 @@ class BayesianDatasetPolisher:
             'metadata': 0.0       # Negligible memory (exclude from calculation)
         }
 
-        # Calculate total weighted units
         image_modalities = [m for m in self.modalities if m != 'metadata']
         total_weight = sum(MODALITY_WEIGHTS.get(m, 1.0) for m in image_modalities)
 
         if total_weight == 0:
-            # Metadata only - use full batch size
             return GLOBAL_BATCH_SIZE
 
-        # Divide batch size by total weighted units to maintain similar memory usage
         adjusted_batch_size = max(16, int(GLOBAL_BATCH_SIZE / total_weight))
 
         print(f"\n{'='*80}")
@@ -260,7 +416,6 @@ class BayesianDatasetPolisher:
             print(f"    - {m}: {weight} units")
         print(f"  Total weight: {total_weight:.1f} units")
         print(f"  Adjusted batch size: {GLOBAL_BATCH_SIZE} / {total_weight:.1f} = {adjusted_batch_size}")
-        print(f"  Memory reduction: ~{total_weight:.1f}x less per batch")
         print(f"{'='*80}\n")
 
         return adjusted_batch_size
@@ -286,25 +441,24 @@ class BayesianDatasetPolisher:
 
         return None
 
-    def calculate_min_thresholds_for_retention(self, target_retention=0.90):
+    def calculate_min_thresholds_for_retention(self, target_retention=0.85):
         """
-        Calculate minimum thresholds for balanced dataset after filtering.
+        Calculate minimum thresholds using grid search over per-class retention constraints.
 
-        The target_retention is applied to the RAREST class (typically R).
-        Other classes get lower retention rates calculated to achieve perfect balance.
+        Uses a fast grid search (no training, just sample counting) to find the exact
+        valid region where:
+        - Rarest class keeps >= target_retention (default 85%)
+        - Other classes keep >= 50%
+        - Total dataset retention >= min_total_retention (default 60%)
 
-        Example with original counts I=203, P=368, R=76 and target_retention=0.90:
-        - R (rarest): keeps 90% → 68 samples (target for balance)
-        - I: needs to keep 68/203 = 33.5% to match R
-        - P: needs to keep 68/368 = 18.5% to match R
-
-        This ensures the filtered dataset is perfectly balanced.
+        The search space bounds are set to the min/max of the valid region,
+        and a pre-training retention check handles the few invalid corner cases.
 
         Args:
             target_retention: Fraction of samples to retain for the RAREST class (0.0-1.0)
 
         Returns:
-            dict: Minimum thresholds like {'I': 52, 'P': 55, 'R': 48} or None if impossible
+            dict: Minimum thresholds like {'I': 12, 'P': 14, 'R': 26} or None if impossible
             dict: Retention info with stats for each class
         """
         misclass_file = self._find_misclass_file()
@@ -328,91 +482,124 @@ class BayesianDatasetPolisher:
             'D' + best_matching['DFU#'].astype(str)
         )
         original_counts = best_matching.groupby('Healing Phase Abs')['Sample_ID'].nunique().to_dict()
-        # Also get total image counts per class (for display purposes)
         image_counts = best_matching.groupby('Healing Phase Abs').size().to_dict()
+        total_original = sum(original_counts.get(phase, 0) for phase in ['I', 'P', 'R'])
 
         # Get max misclass count per sample (handling duplicates)
         max_misclass = df.groupby(['Sample_ID', 'True_Label'])['Misclass_Count'].max().reset_index()
 
-        # Find the rarest class and calculate balanced target counts
         rarest_class = min(original_counts, key=original_counts.get)
         rarest_count = original_counts[rarest_class]
-        target_count_balanced = int(np.ceil(rarest_count * target_retention))
 
-        print(f"\n  📊 Balancing Strategy:")
+        # Per-class minimum retention: rarest gets target_retention, others get 50%
+        min_class_retention = {}
+        for phase in ['I', 'P', 'R']:
+            if phase == rarest_class:
+                min_class_retention[phase] = target_retention
+            else:
+                min_class_retention[phase] = 0.50
+
+        print(f"\n  📊 Grid Search Strategy:")
         print(f"     Rarest class: {rarest_class} ({rarest_count} samples)")
-        print(f"     Target after {target_retention*100:.0f}% retention: {target_count_balanced} samples per class")
-
-        # Calculate target retention for each class to achieve balance
-        target_retentions = {}
+        print(f"     Per-class retention floors:")
         for phase in ['I', 'P', 'R']:
             orig = original_counts.get(phase, 0)
-            if orig > 0:
-                # How much of this class do we need to keep to match target_count_balanced?
-                target_retentions[phase] = min(1.0, target_count_balanced / orig)
-            else:
-                target_retentions[phase] = 1.0
+            min_keep = int(np.ceil(orig * min_class_retention[phase]))
+            print(f"       {phase}: >={min_class_retention[phase]*100:.0f}% ({min_keep}/{orig} samples)")
+        print(f"     Total retention floor: >={self.min_total_retention*100:.0f}% ({int(np.ceil(total_original * self.min_total_retention))}/{total_original} samples)")
 
-        print(f"     Calculated retention rates for balance:")
+        # Build per-class retention lookup tables (threshold -> retained count)
+        retention_tables = {}
+        per_class_bounds = {}
         for phase in ['I', 'P', 'R']:
-            print(f"       {phase}: {target_retentions[phase]*100:.1f}% of {original_counts.get(phase, 0)} → ~{int(original_counts.get(phase, 0) * target_retentions[phase])} samples")
+            orig = original_counts.get(phase, 0)
+            counts = max_misclass[max_misclass['True_Label'] == phase]['Misclass_Count'].values
+            not_in_misclass = orig - len(counts)
 
-        min_thresholds = {}
+            table = {}
+            max_t = int(counts.max()) + 1 if len(counts) > 0 else 2
+            for t in range(1, max_t + 1):
+                table[t] = int(np.sum(counts < t)) + not_in_misclass
+            retention_tables[phase] = table
+
+            # Find per-class threshold range (satisfying per-class retention floor)
+            min_keep = int(np.ceil(orig * min_class_retention[phase]))
+            low = None
+            for t in range(1, max_t + 1):
+                if table[t] >= min_keep:
+                    low = t
+                    break
+            if low is None:
+                low = max_t
+            per_class_bounds[phase] = (low, max_t)
+
+        upper_bound = max(b[1] for b in per_class_bounds.values())
+
+        # Grid search: find all combinations meeting total retention floor
+        target_total_samples = int(np.ceil(total_original * self.min_total_retention))
+        valid_combos = []
+        grid_size = 1
+        for phase in ['I', 'P', 'R']:
+            grid_size *= (per_class_bounds[phase][1] - per_class_bounds[phase][0] + 1)
+
+        for t_I in range(per_class_bounds['I'][0], per_class_bounds['I'][1] + 1):
+            for t_P in range(per_class_bounds['P'][0], per_class_bounds['P'][1] + 1):
+                for t_R in range(per_class_bounds['R'][0], per_class_bounds['R'][1] + 1):
+                    total_ret = (retention_tables['I'].get(t_I, 0) +
+                                 retention_tables['P'].get(t_P, 0) +
+                                 retention_tables['R'].get(t_R, 0))
+                    if total_ret >= target_total_samples:
+                        valid_combos.append((t_I, t_P, t_R, total_ret))
+
+        print(f"\n  Grid search: {grid_size} combinations tested")
+        print(f"  Valid (>={self.min_total_retention*100:.0f}% total retention): {len(valid_combos)}")
+
+        if not valid_combos:
+            print(f"\n  ❌ No valid threshold combinations found!")
+            return None, None
+
+        # Extract actual valid ranges from grid search results
+        min_thresholds = {
+            'I': min(v[0] for v in valid_combos),
+            'P': min(v[1] for v in valid_combos),
+            'R': min(v[2] for v in valid_combos),
+        }
+
+        box_total = 1
+        for phase in ['I', 'P', 'R']:
+            box_total *= (upper_bound - min_thresholds[phase] + 1)
+        invalid_in_box = box_total - len(valid_combos)
+
+        print(f"  Valid ranges: I=[{min_thresholds['I']},{upper_bound}], "
+              f"P=[{min_thresholds['P']},{upper_bound}], "
+              f"R=[{min_thresholds['R']},{upper_bound}]")
+        if invalid_in_box > 0:
+            print(f"  Invalid corner cases in box: {invalid_in_box}/{box_total} ({invalid_in_box/box_total*100:.1f}%)")
+            print(f"  (Pre-training retention check will skip these)")
+
+        lowest = min(valid_combos, key=lambda v: v[3])
+        print(f"  Lowest valid retention: I={lowest[0]}, P={lowest[1]}, R={lowest[2]} "
+              f"-> {lowest[3]}/{total_original} ({lowest[3]/total_original*100:.1f}%)")
+
+        # Build retention_info for display
         retention_info = {}
-
         for phase in ['I', 'P', 'R']:
-            phase_data = max_misclass[max_misclass['True_Label'] == phase]
-            original_count = original_counts.get(phase, 0)
-            phase_target_retention = target_retentions[phase]
+            orig = original_counts.get(phase, 0)
+            counts = max_misclass[max_misclass['True_Label'] == phase]['Misclass_Count'].values
+            t = min_thresholds[phase]
+            not_in_misclass = orig - len(counts)
+            retained = int(np.sum(counts < t)) + not_in_misclass
+            retention_pct = retained / orig * 100 if orig > 0 else 0
 
-            if original_count == 0 or len(phase_data) == 0:
-                min_thresholds[phase] = 1  # Default to 1 if no data
-                retention_info[phase] = {
-                    'original': 0,
-                    'min_threshold': 1,
-                    'retained': 0,
-                    'retention_pct': 0.0,
-                    'target_retention': phase_target_retention
-                }
-                continue
-
-            counts = phase_data['Misclass_Count'].values
-            min_to_keep = int(np.ceil(original_count * phase_target_retention))
-
-            # Find the minimum threshold that keeps at least min_to_keep samples
-            # Threshold T keeps samples where count < T, so we need: original - (count >= T) >= min_to_keep
-            # Equivalently: (count >= T) <= original - min_to_keep = max_to_exclude
-            max_to_exclude = original_count - min_to_keep
-
-            # Sort counts descending - the first max_to_exclude samples can be excluded
-            sorted_counts = np.sort(counts)[::-1]
-
-            if max_to_exclude <= 0:
-                # Cannot exclude any samples - need threshold higher than max count
-                min_threshold = int(counts.max()) + 1
-            elif max_to_exclude >= len(sorted_counts):
-                # Can exclude all samples - threshold of 1 would work but let's be reasonable
-                min_threshold = int(counts.min())
-            else:
-                # The threshold should be: sorted_counts[max_to_exclude - 1] + 1
-                # This excludes exactly max_to_exclude samples (those with highest counts)
-                # But we want AT LEAST target_retention, so threshold >= that value
-                min_threshold = int(sorted_counts[max_to_exclude - 1]) + 1
-
-            # Calculate actual retention at this threshold
-            retained = np.sum(counts < min_threshold)
-            retention_pct = retained / original_count * 100 if original_count > 0 else 0
-
-            min_thresholds[phase] = min_threshold
             retention_info[phase] = {
-                'original': original_count,
+                'original': orig,
                 'original_images': image_counts.get(phase, 0),
-                'min_threshold': min_threshold,
+                'min_threshold': t,
                 'retained': retained,
                 'retention_pct': retention_pct,
-                'target_retention': phase_target_retention,
-                'count_range': (int(counts.min()), int(counts.max())),
-                'count_median': float(np.median(counts))
+                'target_retention': min_class_retention[phase],
+                'count_range': (int(counts.min()), int(counts.max())) if len(counts) > 0 else (0, 0),
+                'count_median': float(np.median(counts)) if len(counts) > 0 else 0.0
             }
 
         return min_thresholds, retention_info
@@ -632,9 +819,9 @@ class BayesianDatasetPolisher:
         Formula: improvement_score + retention_bonus - penalties
 
         Improvement Score (focuses on beating baseline):
-        - 40% weighted F1 improvement (handles class imbalance)
+        - 35% macro F1 improvement (treats all classes equally)
         - 30% min F1 improvement (no class left behind)
-        - 20% kappa improvement (inter-rater reliability)
+        - 25% kappa improvement (best metric for ordinal imbalance)
         - 10% data retention bonus (prefer less aggressive filtering)
 
         Penalties (smooth, integrated for Bayesian optimization):
@@ -653,19 +840,19 @@ class BayesianDatasetPolisher:
             tuple: (final_score, penalties_dict)
         """
         # Extract current metrics
-        weighted_f1 = metrics.get('weighted_f1', 0.0)
+        macro_f1 = metrics.get('macro_f1', 0.0)
         min_f1 = min(metrics['f1_per_class'].values())
         kappa = metrics['kappa']
 
         # Calculate improvement over baseline (if available)
         if self.phase1_baseline is not None:
             # Improvement-based scoring: maximize delta from baseline
-            improvement_weighted_f1 = weighted_f1 - self.phase1_baseline['weighted_f1']
+            improvement_macro_f1 = macro_f1 - self.phase1_baseline['macro_f1']
             improvement_min_f1 = min_f1 - self.phase1_baseline['min_f1']
             improvement_kappa = kappa - self.phase1_baseline['kappa']
         else:
             # Fallback if no baseline: use absolute scores (less ideal)
-            improvement_weighted_f1 = weighted_f1
+            improvement_macro_f1 = macro_f1
             improvement_min_f1 = min_f1
             improvement_kappa = kappa
 
@@ -677,11 +864,11 @@ class BayesianDatasetPolisher:
             retention_bonus = 0.0
 
         # Improvement-based score
-        # Weights: 40% weighted F1, 30% min F1, 20% kappa, 10% retention
+        # Weights: 35% macro F1, 30% min F1, 25% kappa, 10% retention
         base_score = (
-            0.4 * improvement_weighted_f1 +
-            0.3 * improvement_min_f1 +
-            0.2 * improvement_kappa +
+            0.35 * improvement_macro_f1 +
+            0.30 * improvement_min_f1 +
+            0.25 * improvement_kappa +
             retention_bonus
         )
 
@@ -807,9 +994,18 @@ class BayesianDatasetPolisher:
             print(f"Dataset: {actual_dataset_size} samples ({self.phase1_data_percentage}% of {self.original_dataset_size})")
             print(f"Min after filtering: {min_samples} samples ({self.min_dataset_fraction*100:.0f}%)")
 
-        total_runs = self.phase1_n_runs * len(self.phase1_modalities)
-        print(f"Testing {len(self.phase1_modalities)} modalities individually: {self.phase1_modalities}")
-        print(f"Running {self.phase1_n_runs} runs per modality (total {total_runs} runs)")
+        # Read Phase 1 combinations from INCLUDED_COMBINATIONS in config
+        from src.utils.production_config import INCLUDED_COMBINATIONS
+        phase1_combinations = INCLUDED_COMBINATIONS
+        if not phase1_combinations:
+            print("Error: INCLUDED_COMBINATIONS is empty in production_config.py")
+            return False
+
+        total_runs = self.phase1_n_runs * len(phase1_combinations)
+        print(f"Testing {len(phase1_combinations)} configurations from INCLUDED_COMBINATIONS:")
+        for combo in phase1_combinations:
+            print(f"  - {'+'.join(combo)}")
+        print(f"Running {self.phase1_n_runs} runs per configuration (total {total_runs} runs)")
 
         # Calculate maximum possible misclassification count based on tracking mode
         if self.track_misclass == 'valid':
@@ -855,27 +1051,41 @@ class BayesianDatasetPolisher:
 
         try:
             import re
-            # Loop through each modality individually
-            total_runs = self.phase1_n_runs * len(self.phase1_modalities)
+            # Tell fresh-mode cleanup to preserve misclassification CSVs (they accumulate across runs)
+            os.environ['PRESERVE_MISCLASS_DATA'] = '1'
+
+            # Loop through each combination from INCLUDED_COMBINATIONS
+            total_runs = self.phase1_n_runs * len(phase1_combinations)
             run_counter = 0
 
-            for modality_name in self.phase1_modalities:
+            for combo_tuple in phase1_combinations:
+                combo_label = '+'.join(combo_tuple)
+                # Build the tuple string for config, e.g. ('metadata', 'depth_rgb')
+                combo_str = '(' + ', '.join(f"'{m}'" for m in combo_tuple) + ',)'
                 print(f"\n{'='*70}")
-                print(f"Testing modality: {modality_name} ({self.phase1_n_runs} runs)")
+                print(f"Testing: {combo_label} ({self.phase1_n_runs} runs)")
                 print(f"{'='*70}")
 
-                # Update config for this specific modality
+                # Update config for this specific combination
+                with open(config_path, 'r') as f:
+                    current_config = f.read()
                 modified_config = re.sub(
                     r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
-                    f"INCLUDED_COMBINATIONS = [\n    ('{modality_name}',),  # Temporary: Phase 1 detection\n]",
-                    original_config
+                    f"INCLUDED_COMBINATIONS = [\n    {combo_str},  # Temporary: Phase 1 detection\n]",
+                    current_config
+                )
+                # Phase 1 needs the full unfiltered dataset for misclassification detection
+                modified_config = re.sub(
+                    r'USE_CORE_DATA\s*=\s*(True|False)',
+                    'USE_CORE_DATA = False',
+                    modified_config
                 )
                 with open(config_path, 'w') as f:
                     f.write(modified_config)
 
-                # Run multiple times with different seeds for this modality
+                # Run multiple times with different seeds for this combination
                 for run_idx in tqdm(range(1, self.phase1_n_runs + 1),
-                                   desc=f"Phase 1 Progress ({modality_name})",
+                                   desc=f"Phase 1 Progress ({combo_label})",
                                    unit="run",
                                    total=self.phase1_n_runs,
                                    position=0,
@@ -919,7 +1129,7 @@ class BayesianDatasetPolisher:
                         '--mode', 'search',
                         '--cv_folds', str(self.phase1_cv_folds),
                         '--data_percentage', str(self.phase1_data_percentage),
-                        '--verbosity', '0',
+                        '--verbosity', '2',
                         '--resume_mode', 'fresh',  # Force fresh training for each run
                         '--track-misclass', self.track_misclass,  # Control which dataset to track from
                         '--device-mode', self.device_mode,
@@ -949,7 +1159,7 @@ class BayesianDatasetPolisher:
                         # Append separator showing which modality/run is starting
                         with open(detailed_log, 'a') as log_f:
                             log_f.write(f"\n{'='*80}\n")
-                            log_f.write(f"MODALITY: {modality_name} | RUN: {run_idx}/{self.phase1_n_runs}\n")
+                            log_f.write(f"MODALITY: {combo_label} | RUN: {run_idx}/{self.phase1_n_runs}\n")
                             log_f.write(f"{'='*80}\n")
 
                         # Show output in real-time AND append to log file
@@ -958,11 +1168,11 @@ class BayesianDatasetPolisher:
                         os.chdir(original_cwd)
 
                     if return_code != 0:
-                        print(f"\n❌ Training failed on {modality_name} run {run_idx}")
+                        print(f"\n❌ Training failed on {combo_label} run {run_idx}")
                         return False
 
                     # After each run completes, update baseline file
-                    print(f"\n📊 Updating baseline after {modality_name} run {run_idx}...")
+                    print(f"\n📊 Updating baseline after {combo_label} run {run_idx}...")
                     self._update_baseline_continuously()
 
             # Clear environment variable
@@ -985,6 +1195,13 @@ class BayesianDatasetPolisher:
                 print(f"\n💾 Saved Phase 1 misclassification data:")
                 print(f"   - frequent_misclassifications_saved.csv (total)")
 
+                # Also save to misclassifications_saved/ directory (safe from cleanup_for_resume_mode)
+                safe_dir = os.path.join(self.result_dir, 'misclassifications_saved')
+                os.makedirs(safe_dir, exist_ok=True)
+                safe_copy = os.path.join(safe_dir, 'frequent_misclassifications_saved.csv')
+                shutil.copy2(misclass_file, safe_copy)
+                print(f"   - Backup: {safe_copy}")
+
                 # Also save per-modality files for later analysis
                 misclass_files = glob.glob(os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_*.csv'))
                 saved_modality_files = []
@@ -996,6 +1213,8 @@ class BayesianDatasetPolisher:
                     saved_name = base_name.replace('.csv', '_saved.csv')
                     saved_path = os.path.join(output_paths['misclassifications'], saved_name)
                     shutil.copy2(f, saved_path)
+                    # Also copy to safe directory
+                    shutil.copy2(f, os.path.join(safe_dir, saved_name))
                     saved_modality_files.append(saved_name)
 
                 for name in saved_modality_files:
@@ -1030,11 +1249,12 @@ class BayesianDatasetPolisher:
             with open(config_path, 'w') as f:
                 f.write(original_config)
             backup_path.unlink(missing_ok=True)
+            os.environ.pop('PRESERVE_MISCLASS_DATA', None)
 
     def _update_baseline_continuously(self):
         """
-        Continuously update the baseline file as each modality completes.
-        This allows monitoring progress during Phase 1.
+        Continuously update the baseline file as each run completes during Phase 1.
+        Keeps the BEST performance (by Kappa) for each modality combination across all runs.
         """
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
@@ -1067,9 +1287,14 @@ class BayesianDatasetPolisher:
                         f1_R = float(row.get('R F1-score (Mean)', 0.0))
                         new_baselines[modality] = {
                             'modality': modality,
+                            'accuracy': float(row.get('Accuracy (Mean)', 0.0)),
+                            'accuracy_std': float(row.get('Accuracy (Std)', 0.0)),
                             'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                            'macro_f1_std': float(row.get('Macro Avg F1-score (Std)', 0.0)),
                             'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                            'weighted_f1_std': float(row.get('Weighted Avg F1-score (Std)', 0.0)),
                             'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                            'kappa_std': float(row.get("Cohen's Kappa (Std)", 0.0)),
                             'f1_I': f1_I,
                             'f1_P': f1_P,
                             'f1_R': f1_R,
@@ -1079,8 +1304,17 @@ class BayesianDatasetPolisher:
                 except Exception as e:
                     pass
 
-        # Merge with existing baselines (new results take precedence)
-        existing_baselines.update(new_baselines)
+        # Merge: only update if new result is BETTER (by Kappa) than existing
+        for modality, new_entry in new_baselines.items():
+            existing_entry = existing_baselines.get(modality)
+            if existing_entry is None:
+                existing_baselines[modality] = new_entry
+            else:
+                # Keep the better result (higher Kappa, tiebreak by macro_f1)
+                old_score = (existing_entry.get('kappa', 0), existing_entry.get('macro_f1', 0))
+                new_score = (new_entry.get('kappa', 0), new_entry.get('macro_f1', 0))
+                if new_score > old_score:
+                    existing_baselines[modality] = new_entry
 
         if existing_baselines:
             with open(baseline_file, 'w') as f:
@@ -1088,21 +1322,32 @@ class BayesianDatasetPolisher:
 
     def _save_phase1_baseline(self):
         """
-        Save Phase 1 baseline metrics to a dedicated JSON file.
+        Save Phase 1 baseline metrics to a dedicated JSON file and CSV.
 
         This prevents Phase 2 from accidentally using filtered results as baseline.
-        Saves all individual modality baselines from the CSV file.
+        Preserves all modality baselines accumulated during Phase 1 by _update_baseline_continuously()
+        (which keeps the best run per modality), and marks the best overall modality combination.
         """
         from src.utils.config import get_output_paths
+        import shutil
         output_paths = get_output_paths(self.result_dir)
         baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
 
+        # Start from the accumulated baselines (built up by _update_baseline_continuously)
+        # This contains ALL modalities tested with their BEST run results
+        baselines = {}
+        if os.path.exists(baseline_file):
+            try:
+                with open(baseline_file, 'r') as f:
+                    baselines = json.load(f)
+            except:
+                pass
+
+        # Also read the current CSV to pick up any final updates (keep-best logic)
         csv_files = [
             os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv'),
             os.path.join(self.result_dir, 'csv', 'modality_combination_results.csv')
         ]
-
-        baselines = {}
 
         for csv_file in csv_files:
             if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0:
@@ -1113,35 +1358,91 @@ class BayesianDatasetPolisher:
                         f1_I = float(row.get('I F1-score (Mean)', 0.0))
                         f1_P = float(row.get('P F1-score (Mean)', 0.0))
                         f1_R = float(row.get('R F1-score (Mean)', 0.0))
-                        baselines[modality] = {
+                        new_entry = {
                             'modality': modality,
+                            'accuracy': float(row.get('Accuracy (Mean)', 0.0)),
+                            'accuracy_std': float(row.get('Accuracy (Std)', 0.0)),
                             'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
+                            'macro_f1_std': float(row.get('Macro Avg F1-score (Std)', 0.0)),
                             'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
+                            'weighted_f1_std': float(row.get('Weighted Avg F1-score (Std)', 0.0)),
                             'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
+                            'kappa_std': float(row.get("Cohen's Kappa (Std)", 0.0)),
                             'f1_I': f1_I,
                             'f1_P': f1_P,
                             'f1_R': f1_R,
                             'min_f1': min(f1_I, f1_P, f1_R)
                         }
+                        # Only update if better than existing
+                        existing = baselines.get(modality)
+                        if existing is None:
+                            baselines[modality] = new_entry
+                        else:
+                            old_score = (existing.get('kappa', 0), existing.get('macro_f1', 0))
+                            new_score = (new_entry['kappa'], new_entry['macro_f1'])
+                            if new_score > old_score:
+                                baselines[modality] = new_entry
                     break  # Use first valid CSV file
                 except Exception as e:
                     continue
 
         if baselines:
+            # Clear any previous best_overall flags
+            for entry in baselines.values():
+                entry.pop('best_overall', None)
+
+            # Find the best modality by Kappa (primary), then macro_f1 (tiebreak)
+            best_modality = max(baselines.keys(),
+                                key=lambda m: (baselines[m].get('kappa', 0), baselines[m].get('macro_f1', 0)))
+            baselines[best_modality]['best_overall'] = True
+
             with open(baseline_file, 'w') as f:
                 json.dump(baselines, f, indent=2)
             print(f"\n💾 Saved Phase 1 baseline metrics: {baseline_file}")
-            print(f"   Baselines for {len(baselines)} modalities preserved")
+            print(f"   Best performance for {len(baselines)} modality combinations preserved")
+            print(f"   Best overall: {best_modality} (Kappa={baselines[best_modality]['kappa']:.4f})")
 
-            # Also copy the CSV to misclassifications_saved folder (never gets deleted)
-            import shutil
-            csv_source = os.path.join(self.result_dir, 'csv', 'modality_results_averaged.csv')
+            # Save to misclassifications_saved/ (safe from cleanup_for_resume_mode)
             saved_dir = os.path.join(self.result_dir, 'misclassifications_saved')
             os.makedirs(saved_dir, exist_ok=True)
+            shutil.copy2(baseline_file, os.path.join(saved_dir, 'phase1_baseline.json'))
+
+            # Build comprehensive CSV with all modalities' best results
             csv_backup = os.path.join(saved_dir, 'phase1_modality_results.csv')
-            if os.path.exists(csv_source):
-                shutil.copy2(csv_source, csv_backup)
-                print(f"   CSV backup: {csv_backup}")
+            fieldnames = [
+                'Modalities', 'Best Overall',
+                'Accuracy (Mean)', 'Accuracy (Std)',
+                'Macro Avg F1-score (Mean)', 'Macro Avg F1-score (Std)',
+                'Weighted Avg F1-score (Mean)', 'Weighted Avg F1-score (Std)',
+                'I F1-score (Mean)', 'P F1-score (Mean)', 'R F1-score (Mean)',
+                "Cohen's Kappa (Mean)", "Cohen's Kappa (Std)"
+            ]
+            import csv
+            with open(csv_backup, 'w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                # Sort: best overall first, then by Kappa descending
+                sorted_modalities = sorted(baselines.keys(),
+                    key=lambda m: (baselines[m].get('best_overall', False), baselines[m].get('kappa', 0)),
+                    reverse=True)
+                for modality in sorted_modalities:
+                    entry = baselines[modality]
+                    writer.writerow({
+                        'Modalities': modality,
+                        'Best Overall': 'YES' if entry.get('best_overall', False) else '',
+                        'Accuracy (Mean)': entry.get('accuracy', 0.0),
+                        'Accuracy (Std)': entry.get('accuracy_std', 0.0),
+                        'Macro Avg F1-score (Mean)': entry.get('macro_f1', 0.0),
+                        'Macro Avg F1-score (Std)': entry.get('macro_f1_std', 0.0),
+                        'Weighted Avg F1-score (Mean)': entry.get('weighted_f1', 0.0),
+                        'Weighted Avg F1-score (Std)': entry.get('weighted_f1_std', 0.0),
+                        'I F1-score (Mean)': entry.get('f1_I', 0.0),
+                        'P F1-score (Mean)': entry.get('f1_P', 0.0),
+                        'R F1-score (Mean)': entry.get('f1_R', 0.0),
+                        "Cohen's Kappa (Mean)": entry.get('kappa', 0.0),
+                        "Cohen's Kappa (Std)": entry.get('kappa_std', 0.0),
+                    })
+            print(f"   CSV with all modalities: {csv_backup}")
 
     def _load_baseline_from_previous_run(self):
         """
@@ -1156,18 +1457,23 @@ class BayesianDatasetPolisher:
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
         baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+        # Also check misclassifications_saved/ (survives cleanup)
+        saved_baseline = os.path.join(self.directory, 'results', 'misclassifications_saved', 'phase1_baseline.json')
         if not os.path.exists(baseline_file):
-            return None
+            if os.path.exists(saved_baseline):
+                baseline_file = saved_baseline
+            else:
+                return None
 
         try:
             with open(baseline_file, 'r') as f:
                 baselines = json.load(f)
 
-            # Return the best baseline (highest weighted F1) from all Phase 1 results
+            # Return the best baseline (highest Kappa, tiebreak macro_f1) from all Phase 1 results
             # This is what we compare Phase 2 optimization against
             if baselines:
                 all_baselines = list(baselines.values())
-                return max(all_baselines, key=lambda x: x['weighted_f1'])
+                return max(all_baselines, key=lambda x: (x.get('kappa', 0), x.get('macro_f1', 0)))
 
             return None
 
@@ -1180,17 +1486,16 @@ class BayesianDatasetPolisher:
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
 
-        # Try saved file first (Phase 1 locked data), fallback to total file
-        misclass_saved = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
-        misclass_total = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
-
-        if os.path.exists(misclass_saved):
-            misclass_file = misclass_saved
-        elif os.path.exists(misclass_total):
-            misclass_file = misclass_total
-        else:
-            print("\n⚠️  No misclassification file found")
-            return
+        # Try _find_misclass_file which checks both misclassifications/ and misclassifications_saved/
+        misclass_file = self._find_misclass_file()
+        if misclass_file is None:
+            # Fallback to total file
+            misclass_total = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_total.csv')
+            if os.path.exists(misclass_total):
+                misclass_file = misclass_total
+            else:
+                print("\n⚠️  No misclassification file found")
+                return
 
         df = pd.read_csv(misclass_file)
 
@@ -1218,6 +1523,10 @@ class BayesianDatasetPolisher:
 
         import glob
         saved_csv_files = glob.glob(os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_*_saved.csv'))
+        # Also check misclassifications_saved/ (survives cleanup)
+        if not saved_csv_files:
+            saved_dir = os.path.join(self.directory, 'results', 'misclassifications_saved')
+            saved_csv_files = glob.glob(os.path.join(saved_dir, 'frequent_misclassifications_*_saved.csv'))
 
         if not saved_csv_files:
             print("  (No Phase 1 baseline data found - Phase 1 may have been skipped)")
@@ -1237,21 +1546,28 @@ class BayesianDatasetPolisher:
         if baseline_from_json:
             # Display ALL baselines from the JSON file with full detail
             baseline_file = os.path.join(output_paths['misclassifications'], 'phase1_baseline.json')
+            if not os.path.exists(baseline_file):
+                baseline_file = os.path.join(self.directory, 'results', 'misclassifications_saved', 'phase1_baseline.json')
 
             try:
                 with open(baseline_file, 'r') as f:
                     all_baselines = json.load(f)
 
-                # Display all modalities with full metrics
-                for modality, baseline in all_baselines.items():
-                    print(f"\n  {modality}:")
+                # Display all modalities with full metrics, sorted by Kappa descending
+                sorted_modalities = sorted(all_baselines.keys(),
+                    key=lambda m: all_baselines[m].get('kappa', 0), reverse=True)
+                for modality in sorted_modalities:
+                    baseline = all_baselines[modality]
+                    is_best = baseline.get('best_overall', False)
+                    label = f"  {modality}" + (" << BEST" if is_best else "")
+                    print(f"\n{label}:")
+                    print(f"    Accuracy: {baseline.get('accuracy', 0.0):.4f}")
                     print(f"    Macro F1: {baseline['macro_f1']:.4f}")
                     print(f"    Weighted F1: {baseline['weighted_f1']:.4f}")
                     f1_I = baseline.get('f1_I', 0.0)
                     f1_P = baseline.get('f1_P', 0.0)
                     f1_R = baseline.get('f1_R', 0.0)
                     print(f"    Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}")
-                    print(f"    Min F1: {baseline['min_f1']:.4f}")
                     print(f"    Kappa: {baseline['kappa']:.4f}")
 
             except:
@@ -1263,7 +1579,11 @@ class BayesianDatasetPolisher:
             f1_P = self.phase1_baseline.get('f1_P', 0.0)
             f1_R = self.phase1_baseline.get('f1_R', 0.0)
             print(f"\n  📊 Using best baseline for optimization: {self.phase1_baseline['modality']}")
-            print(f"     Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}, Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}")
+            print(f"     Accuracy: {self.phase1_baseline.get('accuracy', 0.0):.4f}, "
+                  f"Macro F1: {self.phase1_baseline['macro_f1']:.4f}, "
+                  f"Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}")
+            print(f"     Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}, "
+                  f"Kappa: {self.phase1_baseline['kappa']:.4f}")
             return
 
         # Try to read performance from CSV files
@@ -1287,25 +1607,34 @@ class BayesianDatasetPolisher:
                         matching_rows = df[df['Modalities'].str.contains(modality, case=False, na=False)]
                         if len(matching_rows) > 0:
                             row = matching_rows.iloc[0]
+                            f1_I_val = float(row.get('I F1-score (Mean)', 0.0))
+                            f1_P_val = float(row.get('P F1-score (Mean)', 0.0))
+                            f1_R_val = float(row.get('R F1-score (Mean)', 0.0))
                             baseline = {
                                 'modality': modality,
+                                'accuracy': float(row.get('Accuracy (Mean)', 0.0)),
                                 'macro_f1': float(row.get('Macro Avg F1-score (Mean)', 0.0)),
                                 'weighted_f1': float(row.get('Weighted Avg F1-score (Mean)', 0.0)),
                                 'kappa': float(row.get("Cohen's Kappa (Mean)", 0.0)),
-                                'min_f1': min(
-                                    float(row.get('I F1-score (Mean)', 0.0)),
-                                    float(row.get('P F1-score (Mean)', 0.0)),
-                                    float(row.get('R F1-score (Mean)', 0.0))
-                                )
+                                'f1_I': f1_I_val,
+                                'f1_P': f1_P_val,
+                                'f1_R': f1_R_val,
+                                'min_f1': min(f1_I_val, f1_P_val, f1_R_val)
                             }
                             candidate_baselines.append(baseline)
 
-                    # Select best baseline (highest weighted F1 for clinical relevance)
+                    # Select best baseline (highest Kappa, tiebreak by macro_f1)
                     if candidate_baselines:
-                        self.phase1_baseline = max(candidate_baselines, key=lambda x: x['weighted_f1'])
+                        self.phase1_baseline = max(candidate_baselines,
+                            key=lambda x: (x.get('kappa', 0), x.get('macro_f1', 0)))
                         print(f"\n  📊 Using best Phase 1 baseline: {self.phase1_baseline['modality']}")
-                        print(f"     Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}, " +
-                              f"Min F1: {self.phase1_baseline['min_f1']:.4f}, " +
+                        print(f"     Accuracy: {self.phase1_baseline.get('accuracy', 0.0):.4f}, "
+                              f"Macro F1: {self.phase1_baseline.get('macro_f1', 0.0):.4f}, "
+                              f"Weighted F1: {self.phase1_baseline['weighted_f1']:.4f}")
+                        f1_I = self.phase1_baseline.get('f1_I', 0.0)
+                        f1_P = self.phase1_baseline.get('f1_P', 0.0)
+                        f1_R = self.phase1_baseline.get('f1_R', 0.0)
+                        print(f"     Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}, "
                               f"Kappa: {self.phase1_baseline['kappa']:.4f}")
 
                     # Display all modalities tested
@@ -1359,9 +1688,10 @@ class BayesianDatasetPolisher:
         # Verify Phase 1 saved misclassification file exists
         from src.utils.config import get_output_paths
         output_paths = get_output_paths(self.result_dir)
-        misclass_file = os.path.join(output_paths['misclassifications'], 'frequent_misclassifications_saved.csv')
-        if not os.path.exists(misclass_file):
-            print(f"\n❌ ERROR: Phase 1 misclassification file not found: {misclass_file}")
+        misclass_file = self._find_misclass_file()
+        if misclass_file is None:
+            print(f"\n❌ ERROR: Phase 1 misclassification file not found in any location.")
+            print("   Checked: results/misclassifications/ and results/misclassifications_saved/")
             print("   Phase 1 must complete successfully before running Phase 2.")
             print("   Run without --phase2-only to execute both phases.\n")
             return False, None
@@ -1497,7 +1827,7 @@ class BayesianDatasetPolisher:
             return True, None
 
         # Define search space with automatic minimum bounds
-        # Minimum = threshold to keep 90% retention
+        # Minimum = threshold ensuring ≥85% rarest-class retention AND ≥65% total retention
         # Maximum = max observed misclass count + 1 (no filtering at upper bound)
         max_count_overall = max(info['count_range'][1] for info in retention_info.values())
         upper_bound = max_count_overall + 1
@@ -1509,17 +1839,21 @@ class BayesianDatasetPolisher:
         ]
 
         print(f"\n{'='*70}")
-        print(f"SEARCH SPACE (auto-calculated for balanced dataset)")
+        print(f"SEARCH SPACE (auto-calculated, {self.min_total_retention*100:.0f}% total retention floor)")
         print(f"{'='*70}")
         for phase in ['P', 'I', 'R']:
             info = retention_info[phase]
             class_target = info.get('target_retention', target_retention)
             print(f"  {phase}: {min_thresholds[phase]}-{upper_bound} (min threshold for {class_target*100:.1f}% retention)")
+        # Show combined retention at lower bounds
+        total_orig = sum(retention_info[p]['original'] for p in ['I', 'P', 'R'])
+        total_at_lower = sum(retention_info[p]['retained'] for p in ['I', 'P', 'R'])
+        print(f"  Combined retention at lower bounds: {total_at_lower}/{total_orig} ({total_at_lower/total_orig*100:.1f}%)")
 
         print(f"\nOptimization Settings:")
         print(f"  Evaluations: {self.phase2_n_evaluations}")
         print(f"  CV folds per evaluation: {self.phase2_cv_folds}")
-        print(f"  Score: 0.4×Δweighted_f1 + 0.3×Δmin_f1 + 0.2×Δkappa + 0.1×retention - penalties")
+        print(f"  Score: 0.35×Δmacro_f1 + 0.30×Δmin_f1 + 0.25×Δkappa + 0.10×retention - penalties")
         print(f"  (Δ = improvement over baseline; focuses on clinical applicability)")
         print(f"\nSoft Constraints (smooth penalties guide optimizer):")
         print(f"  Dataset size: Target ≥{self.min_dataset_fraction*100:.0f}% of original (heavy exp penalty)")
@@ -1556,8 +1890,26 @@ class BayesianDatasetPolisher:
             print(f"Dataset after filtering: {filtered_size}/{self.original_dataset_size} samples " +
                   f"({filtered_size/self.original_dataset_size*100:.1f}%)")
 
-            # No hard rejection - let penalty guide the optimizer
-            # Train and evaluate (even if below min_size, penalty will handle it)
+            # Pre-training retention check: skip expensive training if below total retention floor
+            retention_ratio = filtered_size / self.original_dataset_size if self.original_dataset_size else 1.0
+            if retention_ratio < self.min_total_retention:
+                print(f"⏭️  Skipping training: {retention_ratio*100:.1f}% retention "
+                      f"< {self.min_total_retention*100:.0f}% floor")
+                # Smooth penalty proportional to how far below the floor (GP can learn from this)
+                shortfall = self.min_total_retention - retention_ratio
+                penalty_score = -5.0 * (1.0 + shortfall * 10)
+                self.optimization_history.append({
+                    'evaluation': eval_num,
+                    'thresholds': threshold_dict,
+                    'score': penalty_score,
+                    'filtered_size': filtered_size,
+                    'rejected': True,
+                    'rejection_reason': f'Below {self.min_total_retention*100:.0f}% retention floor'
+                })
+                self._save_checkpoint()
+                return -penalty_score
+
+            # Train and evaluate
             metrics = self.train_with_thresholds(threshold_dict, eval_num=eval_num)
 
             if metrics is None:
@@ -1571,6 +1923,7 @@ class BayesianDatasetPolisher:
                     'rejected': True,
                     'failed': True
                 })
+                self._save_checkpoint()
                 return -penalty_score
 
             # Check hard constraints
@@ -1586,6 +1939,7 @@ class BayesianDatasetPolisher:
                     'rejected': True,
                     'rejection_reason': rejection_reason
                 })
+                self._save_checkpoint()
                 return -penalty_score
 
             # Calculate score with penalties (including dataset size penalty)
@@ -1593,11 +1947,29 @@ class BayesianDatasetPolisher:
             score, penalties = self.calculate_combined_score(metrics, threshold_dict, filtered_size)
 
             # Calculate improvements for display
+            accuracy = metrics.get('accuracy', 0.0)
+            macro_f1 = metrics.get('macro_f1', 0.0)
             weighted_f1 = metrics.get('weighted_f1', 0.0)
-            min_f1 = min(metrics['f1_per_class'].values())
+            f1_I = metrics['f1_per_class'].get('I', 0.0)
+            f1_P = metrics['f1_per_class'].get('P', 0.0)
+            f1_R = metrics['f1_per_class'].get('R', 0.0)
             kappa = metrics['kappa']
 
             print(f"Results:")
+            print(f"  Accuracy: {accuracy:.4f}", end='')
+            if self.phase1_baseline:
+                delta = accuracy - self.phase1_baseline.get('accuracy', 0.0)
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
+            print(f"  Macro F1: {macro_f1:.4f}", end='')
+            if self.phase1_baseline:
+                delta = macro_f1 - self.phase1_baseline['macro_f1']
+                print(f" (Δ{delta:+.4f})")
+            else:
+                print()
+
             print(f"  Weighted F1: {weighted_f1:.4f}", end='')
             if self.phase1_baseline:
                 delta = weighted_f1 - self.phase1_baseline['weighted_f1']
@@ -1605,12 +1977,7 @@ class BayesianDatasetPolisher:
             else:
                 print()
 
-            print(f"  Min F1: {min_f1:.4f}", end='')
-            if self.phase1_baseline:
-                delta = min_f1 - self.phase1_baseline['min_f1']
-                print(f" (Δ{delta:+.4f})")
-            else:
-                print()
+            print(f"  Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}")
 
             print(f"  Kappa: {kappa:.4f}", end='')
             if self.phase1_baseline:
@@ -1627,7 +1994,8 @@ class BayesianDatasetPolisher:
             print(f"  Combined Score: {score:.4f}")
 
             # Track best
-            if score > self.best_score:
+            is_new_best = score > self.best_score
+            if is_new_best:
                 self.best_score = score
                 self.best_thresholds = threshold_dict
                 print(f"  ✨ New best score!")
@@ -1641,21 +2009,94 @@ class BayesianDatasetPolisher:
                 'rejected': False
             })
 
+            # Save checkpoint and scoring to log after each evaluation
+            self._save_checkpoint()
+            self._append_scoring_to_log(eval_num, threshold_dict, metrics, score,
+                                        penalties, filtered_size, is_new_best)
+
             # Return negative for minimization
             return -score
 
-        # Run Bayesian optimization
-        print(f"\n🔍 Starting Bayesian optimization...\n")
-        print(f"📋 Training outputs will be logged to:")
-        print(f"   (Log file will be created on first evaluation)\n")
+        # Check for checkpoint to resume from
+        x0, y0, n_completed = None, None, 0
+        checkpoint = self._load_checkpoint()
+        if checkpoint and checkpoint.get('optimization_history'):
+            history = checkpoint['optimization_history']
+            n_completed = len(history)
 
-        result = gp_minimize(
-            objective,
-            search_space,
-            n_calls=self.phase2_n_evaluations,
-            random_state=self.base_random_seed,
-            verbose=False
-        )
+            # Restore state from checkpoint
+            self.optimization_history = history
+            if checkpoint.get('best_thresholds'):
+                self.best_thresholds = checkpoint['best_thresholds']
+            if checkpoint.get('best_score') is not None:
+                self.best_score = checkpoint['best_score']
+
+            # Build x0, y0 for warm-starting gp_minimize
+            # search_space order is [P, I, R] — must match search_space dimensions
+            # Filter out points outside current search space bounds (bounds may have changed)
+            x0 = []
+            y0 = []
+            skipped = 0
+            for entry in history:
+                if not entry.get('rejected') and not entry.get('failed'):
+                    t = entry['thresholds']
+                    point = [t['P'], t['I'], t['R']]
+                    # Check if point is within current search space bounds
+                    in_bounds = all(
+                        dim.low <= val <= dim.high
+                        for val, dim in zip(point, search_space)
+                    )
+                    if in_bounds:
+                        x0.append(point)
+                        y0.append(-entry['score'])
+                    else:
+                        skipped += 1
+
+            if skipped > 0:
+                print(f"   Filtered out {skipped} prior evaluations (outside new search space bounds)")
+
+            if not x0:
+                x0, y0 = None, None
+                n_completed = 0
+            else:
+                print(f"   Resuming with {len(x0)} prior evaluations as warm-start")
+                print(f"   Will run {self.phase2_n_evaluations - n_completed} new evaluations "
+                      f"(of {self.phase2_n_evaluations} total)\n")
+
+            # Resume log file if path was saved
+            if checkpoint.get('log_file') and os.path.exists(checkpoint['log_file']):
+                self.phase2_log_file = Path(checkpoint['log_file'])
+                print(f"   Resuming log file: {self.phase2_log_file}")
+
+        remaining = self.phase2_n_evaluations - n_completed
+        if remaining <= 0:
+            print(f"\n✅ All {self.phase2_n_evaluations} evaluations already completed (from checkpoint)")
+            return True, self.best_thresholds
+
+        # Run Bayesian optimization
+        if n_completed > 0:
+            print(f"\n🔍 Resuming Bayesian optimization ({n_completed} done, {remaining} remaining)...\n")
+        else:
+            print(f"\n🔍 Starting Bayesian optimization...\n")
+        if hasattr(self, 'phase2_log_file'):
+            print(f"📋 Training outputs logged to: {self.phase2_log_file}\n")
+        else:
+            print(f"📋 Training outputs will be logged to:")
+            print(f"   (Log file will be created on first evaluation)\n")
+
+        gp_kwargs = {
+            'func': objective,
+            'dimensions': search_space,
+            'n_calls': remaining,
+            'random_state': self.base_random_seed,
+            'verbose': False,
+        }
+        if x0 and y0:
+            gp_kwargs['x0'] = x0
+            gp_kwargs['y0'] = y0
+            gp_kwargs['n_initial_points'] = 0  # Skip random phase — prior points seed the GP
+
+        result = gp_minimize(**gp_kwargs)
 
         print(f"\n{'='*70}")
         print(f"✅ PHASE 2 COMPLETE")
@@ -1745,9 +2186,18 @@ class BayesianDatasetPolisher:
             score, penalties = self.calculate_combined_score(metrics, threshold_dict, filtered_size)
             balance_score = self.get_class_balance_score(threshold_dict)
             penalty_str = f", Penalties: {sum(penalties.values()):.2f}" if sum(penalties.values()) > 0 else ""
-            print(f"Score: {score:.4f} (Balance: {balance_score:.3f}, Min F1: {min(metrics['f1_per_class'].values()):.3f}{penalty_str})")
+            f1_I = metrics['f1_per_class'].get('I', 0.0)
+            f1_P = metrics['f1_per_class'].get('P', 0.0)
+            f1_R = metrics['f1_per_class'].get('R', 0.0)
+            print(f"  Accuracy: {metrics.get('accuracy', 0.0):.4f}, "
+                  f"Macro F1: {metrics.get('macro_f1', 0.0):.4f}, "
+                  f"Weighted F1: {metrics.get('weighted_f1', 0.0):.4f}")
+            print(f"  Per-class F1: I={f1_I:.4f}, P={f1_P:.4f}, R={f1_R:.4f}, "
+                  f"Kappa: {metrics.get('kappa', 0.0):.4f}")
+            print(f"  Score: {score:.4f} (Balance: {balance_score:.3f}{penalty_str})")
 
-            if score > self.best_score:
+            is_new_best = score > self.best_score
+            if is_new_best:
                 self.best_score = score
                 self.best_thresholds = threshold_dict
                 print(f"✨ New best!")
@@ -1759,6 +2209,11 @@ class BayesianDatasetPolisher:
                 'score': score,
                 'filtered_size': filtered_size
             })
+
+            # Save checkpoint and scoring to log after each evaluation
+            self._save_checkpoint()
+            self._append_scoring_to_log(eval_num, threshold_dict, metrics, score,
+                                        penalties, filtered_size, is_new_best)
 
         # Write completion message to log file
         if hasattr(self, 'phase2_log_file'):
@@ -1809,17 +2264,43 @@ class BayesianDatasetPolisher:
             # Build the modality tuple string, e.g., "('metadata', 'depth_rgb')"
             modality_tuple = "(" + ", ".join(f"'{m}'" for m in self.modalities) + ",)"
 
-            # Modify INCLUDED_COMBINATIONS
+            # Modify INCLUDED_COMBINATIONS (read current file to preserve any external edits)
+            with open(config_path, 'r') as f:
+                current_config = f.read()
             modified_config = re.sub(
                 r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
                 f"INCLUDED_COMBINATIONS = [\n    {modality_tuple},  # Temporary: Phase 2 evaluation\n]",
-                original_config
+                current_config
             )
 
             # Modify GLOBAL_BATCH_SIZE for Phase 2
             modified_config = re.sub(
                 r'GLOBAL_BATCH_SIZE\s*=\s*\d+',
                 f"GLOBAL_BATCH_SIZE = {adjusted_batch_size}",
+                modified_config
+            )
+
+            # Enable core data filtering with the trial thresholds
+            # (--threshold_I/P/R CLI args were removed from main.py; thresholds
+            #  are now read exclusively from production_config.py via USE_CORE_DATA)
+            modified_config = re.sub(
+                r'USE_CORE_DATA\s*=\s*(True|False)',
+                'USE_CORE_DATA = True',
+                modified_config
+            )
+            modified_config = re.sub(
+                r'THRESHOLD_I\s*=\s*\d+',
+                f"THRESHOLD_I = {thresholds['I']}",
+                modified_config
+            )
+            modified_config = re.sub(
+                r'THRESHOLD_P\s*=\s*\d+',
+                f"THRESHOLD_P = {thresholds['P']}",
+                modified_config
+            )
+            modified_config = re.sub(
+                r'THRESHOLD_R\s*=\s*\d+',
+                f"THRESHOLD_R = {thresholds['R']}",
                 modified_config
             )
 
@@ -1834,9 +2315,6 @@ class BayesianDatasetPolisher:
                 '--data_percentage', str(self.phase2_data_percentage),
                 '--verbosity', '0',  # Minimal output during optimization
                 '--resume_mode', 'fresh',  # Force fresh training for each evaluation
-                '--threshold_I', str(thresholds['I']),
-                '--threshold_P', str(thresholds['P']),
-                '--threshold_R', str(thresholds['R']),
                 '--device-mode', self.device_mode,
                 '--min-gpu-memory', str(self.min_gpu_memory)
             ]
@@ -2015,36 +2493,40 @@ class BayesianDatasetPolisher:
         output_paths = get_output_paths(self.result_dir)
         results_file = os.path.join(output_paths['misclassifications'], 'bayesian_optimization_results.json')
 
-        # Convert numpy types to native Python types for JSON serialization
-        def convert_to_native(obj):
-            """Recursively convert numpy types to native Python types."""
-            if isinstance(obj, dict):
-                return {k: convert_to_native(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_to_native(item) for item in obj]
-            elif isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            else:
-                return obj
+        convert = self._convert_to_native
 
         results = {
             'timestamp': datetime.now().isoformat(),
             'phase1_n_runs': self.phase1_n_runs,
             'phase2_n_evaluations': self.phase2_n_evaluations,
-            'best_thresholds': convert_to_native(self.best_thresholds),
+            'best_thresholds': convert(self.best_thresholds),
             'best_score': float(self.best_score),
-            'optimization_history': convert_to_native(self.optimization_history),
+            'phase1_baseline': convert(self.phase1_baseline) if self.phase1_baseline else None,
+            'optimization_history': convert(self.optimization_history),
             'original_dataset_size': int(self.original_dataset_size) if self.original_dataset_size else None
         }
 
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2)
 
+        # Also save a copy to misclassifications_saved (survives restarts)
+        saved_dir = Path(self.directory) / 'results' / 'misclassifications_saved'
+        saved_dir.mkdir(parents=True, exist_ok=True)
+        saved_results = saved_dir / 'bayesian_optimization_results.json'
+        with open(saved_results, 'w') as f:
+            json.dump(results, f, indent=2)
+
+        # Final save of best_thresholds.json
+        if self.best_thresholds:
+            best_metrics = None
+            for entry in reversed(self.optimization_history):
+                if entry.get('thresholds') == self.best_thresholds and 'metrics' in entry:
+                    best_metrics = convert(entry['metrics'])
+                    break
+            self._save_best_thresholds(best_metrics)
+
         print(f"\n📊 Results saved to: {results_file}")
+        print(f"   Also saved to: {saved_results}")
 
 
 def main():
@@ -2062,11 +2544,11 @@ Examples:
   # Run both phases with all modalities combined in Phase 2
   python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb+depth_map+thermal_map
 
-  # Just Phase 1 with 100 runs per modality (400 total)
+  # Just Phase 1 with 100 runs (uses INCLUDED_COMBINATIONS from production_config.py)
   python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-n-runs 100
 
-  # Phase 1 with custom modalities (only metadata and depth_rgb)
-  python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata --phase1-only --phase1-modalities metadata depth_rgb
+  # Phase 1 modalities are set via INCLUDED_COMBINATIONS in production_config.py:
+  #   INCLUDED_COMBINATIONS = [('metadata',), ('metadata', 'depth_rgb')]
 
   # Just Phase 2 with combined modalities (if Phase 1 already done)
   python scripts/auto_polish_dataset_v2.py --phase2-modalities metadata+depth_rgb --phase2-only
@@ -2099,11 +2581,8 @@ GPU Configuration:
     parser.add_argument('--phase2-only', action='store_true',
                         help='Run only Phase 2 (threshold optimization)')
 
-    parser.add_argument('--phase1-n-runs', type=int, default=10,
-                        help='Number of runs per modality in Phase 1 (default: 10)')
-
-    parser.add_argument('--phase1-modalities', nargs='+', default=['metadata', 'depth_rgb', 'depth_map', 'thermal_map'],
-                        help='Modalities to test individually in Phase 1 (default: metadata depth_rgb depth_map thermal_map)')
+    parser.add_argument('--phase1-n-runs', type=int, default=3,
+                        help='Number of runs per modality in Phase 1 (default: 3)')
 
     parser.add_argument('--phase1-data-percentage', type=int, default=100,
                         help='Percentage of data to use in Phase 1 (default: 100)')
@@ -2111,10 +2590,10 @@ GPU Configuration:
     parser.add_argument('--phase1-cv-folds', type=int, default=1,
                         help='Number of CV folds in Phase 1 (default: 1)')
 
-    parser.add_argument('--track-misclass', type=str, choices=['both', 'valid', 'train'], default='valid',
+    parser.add_argument('--track-misclass', type=str, choices=['both', 'valid', 'train'], default='both',
                         help='Which dataset to track misclassifications from: '
-                             'both (train+valid), valid (recommended - faster), train (not recommended). '
-                             'Default: valid')
+                             'both (train+valid, default), valid (faster), train (not recommended). '
+                             'Default: both')
 
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')
@@ -2128,12 +2607,15 @@ GPU Configuration:
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
 
-    parser.add_argument('--min-minority-retention', type=float, default=0.90,
-                        help='Target retention for the MINORITY (rarest) class (default: 0.90). '
+    parser.add_argument('--min-minority-retention', type=float, default=0.85,
+                        help='Target retention for the MINORITY (rarest) class (default: 0.85). '
                              'Other classes get lower retention rates calculated to achieve '
-                             'a perfectly balanced dataset. For example, with I=203, P=368, R=76 '
-                             'and 90%% retention: R keeps 68 samples, I keeps 68/203=33.5%%, '
-                             'P keeps 68/368=18.5%%. Optimization is skipped if this cannot be achieved.')
+                             'a balanced dataset. Optimization is skipped if this cannot be achieved.')
+
+    parser.add_argument('--min-total-retention', type=float, default=0.60,
+                        help='Minimum combined dataset retention at search space lower bounds (default: 0.60). '
+                             'If per-class balance bounds would result in less total retention, non-rarest '
+                             'class bounds are raised proportionally to meet this floor.')
 
     # GPU configuration flags
     parser.add_argument('--device-mode', type=str, choices=['cpu', 'single', 'multi', 'custom'],
@@ -2148,31 +2630,30 @@ GPU Configuration:
 
     args = parser.parse_args()
 
-    # Parse phase2-modalities (e.g., "metadata+depth_rgb" -> ['metadata', 'depth_rgb'])
+    # Parse phase2 modalities (e.g., "metadata+depth_rgb" -> ['metadata', 'depth_rgb'])
     phase2_modalities = [m.strip() for m in args.phase2_modalities.split('+')]
 
     valid_modalities = {'metadata', 'depth_rgb', 'depth_map', 'thermal_map'}
     invalid = set(phase2_modalities) - valid_modalities
     if invalid:
-        print(f"❌ Error: Invalid modalities: {invalid}")
+        print(f"Error: Invalid modalities in --phase2-modalities: {invalid}")
         print(f"   Valid options: {valid_modalities}")
         sys.exit(1)
-
     if not phase2_modalities:
-        print("❌ Error: --phase2-modalities cannot be empty")
+        print("Error: --phase2-modalities cannot be empty")
         sys.exit(1)
 
     polisher = BayesianDatasetPolisher(
         modalities=phase2_modalities,
         phase1_n_runs=args.phase1_n_runs,
         phase1_cv_folds=args.phase1_cv_folds,
-        phase1_modalities=args.phase1_modalities,
         phase1_data_percentage=args.phase1_data_percentage,
         phase2_n_evaluations=args.n_evaluations,
         phase2_cv_folds=args.phase2_cv_folds,
         phase2_data_percentage=args.phase2_data_percentage,
         min_dataset_fraction=args.min_dataset_fraction,
         min_minority_retention=args.min_minority_retention,
+        min_total_retention=args.min_total_retention,
         device_mode=args.device_mode,
         custom_gpus=args.custom_gpus,
         min_gpu_memory=args.min_gpu_memory,
@@ -2212,11 +2693,13 @@ GPU Configuration:
             print("="*70)
             print(f"\nOptimal thresholds: {best_thresholds}")
             print(f"Optimization score: {polisher.best_score:.4f}")
-            print(f"\n💡 Use these thresholds for final training:")
-            print(f"   python src/main.py --mode search --cv_folds 5 \\")
-            print(f"       --threshold_I {best_thresholds['I']} \\")
-            print(f"       --threshold_P {best_thresholds['P']} \\")
-            print(f"       --threshold_R {best_thresholds['R']}")
+            print(f"\n💡 To use these thresholds for final training, update production_config.py:")
+            print(f"   USE_CORE_DATA = True")
+            print(f"   THRESHOLD_I = {best_thresholds['I']}")
+            print(f"   THRESHOLD_P = {best_thresholds['P']}")
+            print(f"   THRESHOLD_R = {best_thresholds['R']}")
+            print(f"\n   Then run:")
+            print(f"   python src/main.py --mode search --cv_folds 5")
 
     sys.exit(0)
 
