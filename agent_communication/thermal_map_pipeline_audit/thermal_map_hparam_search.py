@@ -206,7 +206,7 @@ def build_model(cfg: SearchConfig):
             x = BatchNormalization(name=f'head_bn_{i}')(x)
         x = Dropout(cfg.head_dropout, name=f'head_drop_{i}')(x)
 
-    output = Dense(3, activation='softmax', name='output')(x)
+    output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
     model = Model(inputs=inp, outputs=output)
 
     return model, base_model
@@ -610,6 +610,9 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     best_s1_epoch = int(np.argmax(s1_kappas)) + 1 if s1_kappas else 0
     print(f"  Stage 1 best: val_kappa={best_s1_kappa:.4f} at epoch {best_s1_epoch}/{len(s1_kappas)}")
 
+    # Save Stage 1 weights in case Stage 2 doesn't improve
+    s1_weights = model.get_weights()
+
     # Stage 2: Fine-tuning
     best_s2_kappa = 0.0
     ran_stage2 = False
@@ -677,6 +680,11 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         best_s2_epoch = int(np.argmax(s2_kappas)) + 1 if s2_kappas else 0
         print(f"  Stage 2 best: val_kappa={best_s2_kappa:.4f} at epoch {best_s2_epoch}/{len(s2_kappas)}")
         ran_stage2 = True
+
+        # If Stage 2 didn't improve, restore Stage 1 weights
+        if best_s2_kappa < best_s1_kappa:
+            print(f"  Stage 2 did NOT improve (s2={best_s2_kappa:.4f} < s1={best_s1_kappa:.4f}). Restoring S1 weights.")
+            model.set_weights(s1_weights)
 
     # Post-training evaluation
     y_true_v = []
