@@ -301,10 +301,10 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 # When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
 # Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
 # If CSV missing: prints warning and continues with unfiltered data
-USE_CORE_DATA = os.environ.get('OVERRIDE_USE_CORE_DATA', 'False').lower() == 'true'
-THRESHOLD_I = int(os.environ.get('OVERRIDE_THRESHOLD_I', 9))
-THRESHOLD_P = int(os.environ.get('OVERRIDE_THRESHOLD_P', 16))
-THRESHOLD_R = int(os.environ.get('OVERRIDE_THRESHOLD_R', 16))
+USE_CORE_DATA = os.environ.get('OVERRIDE_USE_CORE_DATA', 'false').lower() == 'true'
+THRESHOLD_I = int(os.environ['OVERRIDE_THRESHOLD_I']) if 'OVERRIDE_THRESHOLD_I' in os.environ else None
+THRESHOLD_P = int(os.environ['OVERRIDE_THRESHOLD_P']) if 'OVERRIDE_THRESHOLD_P' in os.environ else None
+THRESHOLD_R = int(os.environ['OVERRIDE_THRESHOLD_R']) if 'OVERRIDE_THRESHOLD_R' in os.environ else None
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)
