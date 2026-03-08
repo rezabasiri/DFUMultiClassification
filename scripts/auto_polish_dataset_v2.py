@@ -1040,17 +1040,9 @@ class BayesianDatasetPolisher:
                     shutil.rmtree(item_path)
         os.makedirs(misclass_dir, exist_ok=True)
 
-        # Temporarily override INCLUDED_COMBINATIONS
-        config_path = project_root / 'src' / 'utils' / 'production_config.py'
-        backup_path = project_root / 'src' / 'utils' / 'production_config.py.backup'
-
-        with open(config_path, 'r') as f:
-            original_config = f.read()
-        with open(backup_path, 'w') as f:
-            f.write(original_config)
-
+        # Use environment variables to override production_config settings
+        # (crash-safe: env vars die with the process, no file modification needed)
         try:
-            import re
             # Tell fresh-mode cleanup to preserve misclassification CSVs (they accumulate across runs)
             os.environ['PRESERVE_MISCLASS_DATA'] = '1'
 
@@ -1060,28 +1052,13 @@ class BayesianDatasetPolisher:
 
             for combo_tuple in phase1_combinations:
                 combo_label = '+'.join(combo_tuple)
-                # Build the tuple string for config, e.g. ('metadata', 'depth_rgb')
-                combo_str = '(' + ', '.join(f"'{m}'" for m in combo_tuple) + ',)'
                 print(f"\n{'='*70}")
                 print(f"Testing: {combo_label} ({self.phase1_n_runs} runs)")
                 print(f"{'='*70}")
 
-                # Update config for this specific combination
-                with open(config_path, 'r') as f:
-                    current_config = f.read()
-                modified_config = re.sub(
-                    r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
-                    f"INCLUDED_COMBINATIONS = [\n    {combo_str},  # Temporary: Phase 1 detection\n]",
-                    current_config
-                )
-                # Phase 1 needs the full unfiltered dataset for misclassification detection
-                modified_config = re.sub(
-                    r'USE_CORE_DATA\s*=\s*(True|False)',
-                    'USE_CORE_DATA = False',
-                    modified_config
-                )
-                with open(config_path, 'w') as f:
-                    f.write(modified_config)
+                # Set env var overrides (read by production_config.py at import time)
+                os.environ['OVERRIDE_INCLUDED_COMBO'] = '+'.join(combo_tuple)
+                os.environ['OVERRIDE_USE_CORE_DATA'] = 'false'  # Phase 1 needs full unfiltered dataset
 
                 # Run multiple times with different seeds for this combination
                 for run_idx in tqdm(range(1, self.phase1_n_runs + 1),
@@ -1248,12 +1225,9 @@ class BayesianDatasetPolisher:
             return True
 
         finally:
-            # Restore config
-            with open(backup_path, 'r') as f:
-                original_config = f.read()
-            with open(config_path, 'w') as f:
-                f.write(original_config)
-            backup_path.unlink(missing_ok=True)
+            # Clean up env var overrides
+            os.environ.pop('OVERRIDE_INCLUDED_COMBO', None)
+            os.environ.pop('OVERRIDE_USE_CORE_DATA', None)
             os.environ.pop('PRESERVE_MISCLASS_DATA', None)
 
     def _update_baseline_continuously(self):
@@ -2251,66 +2225,19 @@ class BayesianDatasetPolisher:
         # Clean up from previous evaluation
         cleanup_for_resume_mode('from_data')
 
-        # Temporarily override config
-        config_path = project_root / 'src' / 'utils' / 'production_config.py'
-        backup_path = project_root / 'src' / 'utils' / 'production_config.py.backup'
-
-        with open(config_path, 'r') as f:
-            original_config = f.read()
-        with open(backup_path, 'w') as f:
-            f.write(original_config)
-
+        # Use environment variables to override production_config settings
+        # (crash-safe: env vars die with the process, no file modification needed)
         try:
-            import re
-
             # Calculate adjusted batch size for Phase 2
             adjusted_batch_size = self._calculate_phase2_batch_size()
 
-            # Build the modality tuple string, e.g., "('metadata', 'depth_rgb')"
-            modality_tuple = "(" + ", ".join(f"'{m}'" for m in self.modalities) + ",)"
-
-            # Modify INCLUDED_COMBINATIONS (read current file to preserve any external edits)
-            with open(config_path, 'r') as f:
-                current_config = f.read()
-            modified_config = re.sub(
-                r'INCLUDED_COMBINATIONS\s*=\s*\[[\s\S]*?\n\]',
-                f"INCLUDED_COMBINATIONS = [\n    {modality_tuple},  # Temporary: Phase 2 evaluation\n]",
-                current_config
-            )
-
-            # Modify GLOBAL_BATCH_SIZE for Phase 2
-            modified_config = re.sub(
-                r'GLOBAL_BATCH_SIZE\s*=\s*\d+',
-                f"GLOBAL_BATCH_SIZE = {adjusted_batch_size}",
-                modified_config
-            )
-
-            # Enable core data filtering with the trial thresholds
-            # (--threshold_I/P/R CLI args were removed from main.py; thresholds
-            #  are now read exclusively from production_config.py via USE_CORE_DATA)
-            modified_config = re.sub(
-                r'USE_CORE_DATA\s*=\s*(True|False)',
-                'USE_CORE_DATA = True',
-                modified_config
-            )
-            modified_config = re.sub(
-                r'THRESHOLD_I\s*=\s*\d+',
-                f"THRESHOLD_I = {thresholds['I']}",
-                modified_config
-            )
-            modified_config = re.sub(
-                r'THRESHOLD_P\s*=\s*\d+',
-                f"THRESHOLD_P = {thresholds['P']}",
-                modified_config
-            )
-            modified_config = re.sub(
-                r'THRESHOLD_R\s*=\s*\d+',
-                f"THRESHOLD_R = {thresholds['R']}",
-                modified_config
-            )
-
-            with open(config_path, 'w') as f:
-                f.write(modified_config)
+            # Set env var overrides (read by production_config.py at import time)
+            os.environ['OVERRIDE_INCLUDED_COMBO'] = '+'.join(self.modalities)
+            os.environ['OVERRIDE_BATCH_SIZE'] = str(adjusted_batch_size)
+            os.environ['OVERRIDE_USE_CORE_DATA'] = 'true'
+            os.environ['OVERRIDE_THRESHOLD_I'] = str(thresholds['I'])
+            os.environ['OVERRIDE_THRESHOLD_P'] = str(thresholds['P'])
+            os.environ['OVERRIDE_THRESHOLD_R'] = str(thresholds['R'])
 
             # Run training with thresholds - use fresh mode for clean evaluation
             cmd = [
@@ -2429,12 +2356,13 @@ class BayesianDatasetPolisher:
             return metrics
 
         finally:
-            # Restore config
-            with open(backup_path, 'r') as f:
-                original_config = f.read()
-            with open(config_path, 'w') as f:
-                f.write(original_config)
-            backup_path.unlink(missing_ok=True)
+            # Clean up env var overrides
+            os.environ.pop('OVERRIDE_INCLUDED_COMBO', None)
+            os.environ.pop('OVERRIDE_BATCH_SIZE', None)
+            os.environ.pop('OVERRIDE_USE_CORE_DATA', None)
+            os.environ.pop('OVERRIDE_THRESHOLD_I', None)
+            os.environ.pop('OVERRIDE_THRESHOLD_P', None)
+            os.environ.pop('OVERRIDE_THRESHOLD_R', None)
 
     def extract_metrics_from_files(self):
         """Extract performance metrics from CSV files."""

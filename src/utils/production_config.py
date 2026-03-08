@@ -20,13 +20,15 @@ Categories:
 - File I/O
 """
 
+import os
+
 # =============================================================================
 # Training Parameters
 # =============================================================================
 
 # Core training hyperparameters
 IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas (16 per GPU; reduced from 600 to get ~17 steps/epoch with ~516 training samples instead of 1)
+GLOBAL_BATCH_SIZE = int(os.environ.get('OVERRIDE_BATCH_SIZE', 64))  # Total batch size across all GPU replicas
 PHASE2_BATCH_SIZE_ADJUSTMENT = False  # Auto-adjust batch size in Phase 2 based on modality count/weight (can reduce batch size too aggressively)
 N_EPOCHS = 200  # Full training epochs
 
@@ -299,10 +301,10 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 # When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
 # Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
 # If CSV missing: prints warning and continues with unfiltered data
-USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
-THRESHOLD_I = 9  # Inflammatory class threshold (Bayesian-optimized)
-THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
-THRESHOLD_R = 16  # Remodeling class threshold (higher to protect minority class)
+USE_CORE_DATA = os.environ.get('OVERRIDE_USE_CORE_DATA', 'False').lower() == 'true'
+THRESHOLD_I = int(os.environ.get('OVERRIDE_THRESHOLD_I', 9))
+THRESHOLD_P = int(os.environ.get('OVERRIDE_THRESHOLD_P', 16))
+THRESHOLD_R = int(os.environ.get('OVERRIDE_THRESHOLD_R', 16))
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)
@@ -522,12 +524,17 @@ MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
 EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
-INCLUDED_COMBINATIONS = [
-    ('metadata',),
-    ('metadata', 'depth_rgb', 'thermal_map',),
-    ('depth_rgb', 'thermal_map',),
-    ('metadata', 'thermal_map',),
-]
+# Can be overridden via OVERRIDE_INCLUDED_COMBO env var (e.g. "metadata+depth_rgb")
+_combo_override = os.environ.get('OVERRIDE_INCLUDED_COMBO')
+if _combo_override:
+    INCLUDED_COMBINATIONS = [tuple(_combo_override.split('+'))]
+else:
+    INCLUDED_COMBINATIONS = [
+        ('metadata',),
+        ('metadata', 'depth_rgb', 'thermal_map',),
+        ('depth_rgb', 'thermal_map',),
+        ('metadata', 'thermal_map',),
+    ]
 
 # Results file naming
 RESULTS_CSV_FILENAME = 'modality_combination_results.csv'  # Output CSV filename
