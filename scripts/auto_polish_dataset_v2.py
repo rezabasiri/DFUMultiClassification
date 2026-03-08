@@ -1090,9 +1090,13 @@ class BayesianDatasetPolisher:
                                 except Exception:
                                     pass
 
-                    # Set random seeds for each run to get diverse patient fold splits
-                    # Run 1: use default seed (42) to match standalone/audit baselines
-                    # Run 2+: use different seeds for diversity
+                    # SEED STRATEGY (terminology: "run" = this loop, "fold" = CV fold inside main.py):
+                    # Each run sets ONE seed that controls EVERYTHING for that run:
+                    #   - Patient fold splits (via create_patient_folds reading CV_FOLD_SEED)
+                    #   - RF training, SMOTE, shuffling (via training_utils passing fold_seed)
+                    # All folds within a run share the same seed — only patient splits differ.
+                    # Run 1: seed=42 (default, matches standalone/audit baselines)
+                    # Run 2+: seed=base_random_seed + run_counter (for diversity)
                     if run_idx == 1:
                         # Clear any leftover seed override — let pipeline use its default (42)
                         os.environ.pop('CROSS_VAL_RANDOM_SEED', None)

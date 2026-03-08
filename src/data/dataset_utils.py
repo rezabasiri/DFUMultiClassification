@@ -711,12 +711,22 @@ def rf_loo_influence_filter(X_unique, y_unique, seed, n_folds=3, min_influence=0
 
 
 def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage=0.8,
-                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None, run=0, max_split_diff=0.1, image_size=128,
+                          batch_size=32, cache_dir=None, gen_manager=None, aug_config=None,
+                          run=0, fold_seed=None, max_split_diff=0.1, image_size=128,
                           train_patients=None, valid_patients=None, for_shape_inference=False):
     """
     Prepare cached datasets with proper metadata handling based on selected modalities.
 
     Args:
+        run: Iteration index (0-based). Used for file naming (patient splits, cache files).
+             In k-fold CV this is the fold index; in single-split mode it's the run index.
+        fold_seed: Deterministic seed for this iteration. Controls RF random_state,
+                   data shuffling, and oversampling.
+                   In k-fold CV: same seed for all folds within a run (set via CV_FOLD_SEED
+                   env var or defaults to 42). Different runs use different seeds.
+                   In single-split mode: each iteration gets a unique seed.
+                   Defaults to 42 + run * (run + 3) if not provided.
+                   Can be overridden by CROSS_VAL_RANDOM_SEED env var.
         max_split_diff: Maximum allowed class distribution difference between train/val (default 0.1)
                        Use higher values (e.g., 0.3) for small datasets with few patients
         image_size: Target image size for preprocessing (default: 128)
@@ -727,6 +737,8 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
     # Allow environment variable to override random seed for multi-run scenarios
     if 'CROSS_VAL_RANDOM_SEED' in os.environ:
         seed = int(os.environ['CROSS_VAL_RANDOM_SEED'])
+    elif fold_seed is not None:
+        seed = fold_seed
     else:
         seed = 42 + run * (run + 3)
 
@@ -1018,7 +1030,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                 undersampler = RandomUnderSampler(
                     sampling_strategy=intermediate_target,
-                    random_state=42 + run * (run + 3)
+                    random_state=seed
                 )
                 X_under, y_under = undersampler.fit_resample(X, y)
 
@@ -1038,7 +1050,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                 oversampler = RandomOverSampler(
                     sampling_strategy=final_target,
-                    random_state=42 + run * (run + 3)
+                    random_state=seed
                 )
                 X_resampled, y_resampled = oversampler.fit_resample(X_under, y_under)
 
@@ -1056,7 +1068,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
 
                 undersampler = RandomUnderSampler(
                     sampling_strategy=intermediate_target,
-                    random_state=42 + run * (run + 3)
+                    random_state=seed
                 )
                 X_under, y_under = undersampler.fit_resample(X, y)
 
@@ -1079,7 +1091,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 # Fill NaN with column median (SMOTE can't handle NaN)
                 X_under_numeric = X_under_numeric.fillna(X_under_numeric.median())
 
-                oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
+                oversampler = SMOTE(random_state=seed, k_neighbors=5)
                 X_resampled_numeric, y_resampled = oversampler.fit_resample(X_under_numeric, y_under)
 
                 # Reconstruct X_resampled with synthetic values for new samples
@@ -1135,7 +1147,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 if sampling_strategy_under:
                     undersampler = RandomUnderSampler(
                         sampling_strategy=sampling_strategy_under,
-                        random_state=42 + run * (run + 3)
+                        random_state=seed
                     )
                     X_temp, y_temp = undersampler.fit_resample(X, y)
                 else:
@@ -1145,7 +1157,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 if sampling_strategy_over:
                     oversampler = RandomOverSampler(
                         sampling_strategy=sampling_strategy_over,
-                        random_state=42 + run * (run + 3)
+                        random_state=seed
                     )
                     X_resampled, y_resampled = oversampler.fit_resample(X_temp, y_temp)
                 else:
@@ -1172,7 +1184,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                 # Fill NaN with column median (SMOTE can't handle NaN)
                 X_numeric = X_numeric.fillna(X_numeric.median())
 
-                oversampler = SMOTE(random_state=42 + run * (run + 3), k_neighbors=5)
+                oversampler = SMOTE(random_state=seed, k_neighbors=5)
                 X_resampled_numeric, y_resampled = oversampler.fit_resample(X_numeric, y)
 
                 # Reconstruct X_resampled with synthetic IDs for new samples
@@ -1188,7 +1200,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
             else:  # 'random' or default
                 # Simple random duplication (original baseline method)
                 vprint("Using simple random oversampling...", level=2)
-                oversampler = RandomOverSampler(random_state=42 + run * (run + 3))
+                oversampler = RandomOverSampler(random_state=seed)
                 X_resampled, y_resampled = oversampler.fit_resample(X, y)
 
             resampled_df = pd.DataFrame(X_resampled, columns=X.columns)
@@ -1414,7 +1426,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                         max_depth=RF_MAX_DEPTH,
                         min_samples_leaf=RF_MIN_SAMPLES_LEAF,
                         min_samples_split=RF_MIN_SAMPLES_SPLIT,
-                        random_state=42 + run * (run + 3),
+                        random_state=seed,
                         class_weight=cw,
                         n_jobs=-1,
                     )
@@ -1448,7 +1460,7 @@ def prepare_cached_datasets(data1, selected_modalities, train_patient_percentage
                     # OOF on unique rows only (direct 3-class RF)
                     n_internal_folds = min(RF_OOF_FOLDS, len(X_unique))
                     kf = SKFold(n_splits=n_internal_folds, shuffle=True,
-                                random_state=42 + run * (run + 3))
+                                random_state=seed)
 
                     probs_unique_oof = np.zeros((len(X_unique), 3))
 

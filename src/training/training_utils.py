@@ -979,7 +979,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         else:
             iteration_name = f"Run {iteration_idx + 1}/{num_iterations}"
 
-        # For backwards compatibility, maintain "run" variable for file naming
+        # NOTE on terminology:
+        #   "run" = one invocation of main.py (controlled by polish script's run_idx)
+        #   "fold" = one iteration within k-fold CV (0..cv_folds-1)
+        # In k-fold CV mode, iteration_idx is the fold index.
+        # In single-split mode, iteration_idx is the run index.
+        # Variable named `run` for backward compat with file naming (pred_run1_..., etc).
         run = iteration_idx
         # Clean up after each modality combination
         try:
@@ -987,11 +992,26 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             clear_cache_files()
         except Exception as e:
             vprint(f"Error clearing memory stats: {str(e)}", level=2)
-        # Reset random seeds for next iteration
-        random.seed(42 + run * (run + 3))
-        tf.random.set_seed(42 + run * (run + 3))
-        np.random.seed(42 + run * (run + 3))
-        os.environ['PYTHONHASHSEED'] = str(42 + run * (run + 3))
+
+        # Seed strategy:
+        # - K-fold CV: ALL folds within a run use the SAME seed. The seed is set once
+        #   per run (main.py invocation) via CV_FOLD_SEED env var or defaults to 42.
+        #   Different runs get different seeds (set by polish script). The only thing
+        #   that changes between folds is the patient split, not the random state.
+        # - Single-split mode: each iteration gets a unique seed from the formula.
+        if cv_folds > 1:
+            # K-fold CV: use the run-level seed (same for all folds in this run)
+            if 'CV_FOLD_SEED' in os.environ:
+                fold_seed = int(os.environ['CV_FOLD_SEED'])
+            else:
+                fold_seed = 42  # default run seed
+        else:
+            # Single-split mode: each iteration gets a unique seed
+            fold_seed = 42 + run * (run + 3)
+        random.seed(fold_seed)
+        tf.random.set_seed(fold_seed)
+        np.random.seed(fold_seed)
+        os.environ['PYTHONHASHSEED'] = str(fold_seed)
 
         vprint(f"\n{iteration_name}", level=1)
 
@@ -1159,6 +1179,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             gen_manager=gen_manager,
             aug_config=aug_config,
             run=run,
+            fold_seed=fold_seed,
             image_size=image_size,
             train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
             valid_patients=fold_valid_patients
