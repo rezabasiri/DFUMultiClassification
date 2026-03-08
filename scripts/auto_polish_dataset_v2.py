@@ -1113,14 +1113,19 @@ class BayesianDatasetPolisher:
                                 except Exception:
                                     pass
 
-                    # Set different random seeds for each run to get diverse patient fold splits
-                    if self.phase1_cv_folds <= 1:
-                        # Single-split mode: set seed for data splitting within the run
-                        os.environ['CROSS_VAL_RANDOM_SEED'] = str(self.base_random_seed + run_counter)
+                    # Set random seeds for each run to get diverse patient fold splits
+                    # Run 1: use default seed (42) to match standalone/audit baselines
+                    # Run 2+: use different seeds for diversity
+                    if run_idx == 1:
+                        # Clear any leftover seed override — let pipeline use its default (42)
+                        os.environ.pop('CROSS_VAL_RANDOM_SEED', None)
+                        os.environ.pop('CV_FOLD_SEED', None)
                     else:
-                        # CV mode: set seed for fold generation to get different patient splits each run
-                        os.environ['CV_FOLD_SEED'] = str(self.base_random_seed + run_counter)
-                        # Each fold within the run still uses its deterministic seed (42 + fold_idx * (fold_idx + 3))
+                        seed = self.base_random_seed + run_counter
+                        if self.phase1_cv_folds <= 1:
+                            os.environ['CROSS_VAL_RANDOM_SEED'] = str(seed)
+                        else:
+                            os.environ['CV_FOLD_SEED'] = str(seed)
 
                     # ALWAYS use fresh mode for Phase 1 runs - ensures clean training each time
                     # NOTE: Don't pass threshold parameters - Phase 1 needs full dataset for misclassification detection

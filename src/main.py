@@ -1667,7 +1667,7 @@ def create_current_get_focal_ordinal_loss(ordinal_weight, gamma, alpha):
         return create_focal_ordinal_loss2(ordinal_weight, gamma, alpha)
     return current_get_focal_ordinal_loss
 
-def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_folds=3):
+def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_folds=5):
     """
     Perform grid search over loss function parameters.
     Uses parameter values from production_config.py for consistency.
@@ -1774,14 +1774,14 @@ def perform_grid_search(data_percentage=100, train_patient_percentage=0.8, cv_fo
         vprint(f"Best F1 Weighted: {best_score:.4f}", level=1)
     
     return best_params, results_file
-def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outlier_filtered_data=None, target_fold=None):
+def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outlier_filtered_data=None, target_fold=None):
     """
     Test all modality combinations and save results to CSV.
 
     Args:
         data_percentage: Percentage of data to use (1-100)
         train_patient_percentage: Percentage of patients for training (ignored if cv_folds > 1)
-        cv_folds: Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
+        cv_folds: Number of k-fold CV folds (default: 5). Set to 0 or 1 for single split.
         outlier_filtered_data: Optional dict mapping combo_key -> filtered_df from outlier detection.
                               If provided, prepare_dataset will use filtered data instead of best_matching.csv.
 
@@ -2114,7 +2114,7 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=3, outli
 
     vprint(f"{'='*80}\n", level=0)
 
-def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=3, target_fold=None):
+def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_folds=5, target_fold=None):
     """
     Combined main function that can run either modality search or specialized evaluation.
 
@@ -2122,7 +2122,7 @@ def main(mode='search', data_percentage=100, train_patient_percentage=0.8, cv_fo
         mode (str): Either 'search' or 'specialized' to determine which analysis to run
         data_percentage (float): Percentage of data to use
         train_patient_percentage (float): Percentage of patients to use for training (ignored if cv_folds > 1)
-        cv_folds (int): Number of k-fold CV folds (default: 3). Set to 0 or 1 for single split.
+        cv_folds (int): Number of k-fold CV folds (default: 5). Set to 0 or 1 for single split.
         target_fold (int): If set, only run this specific fold (1-indexed). Others loaded from disk.
 
     Configuration (from production_config.py):
@@ -2413,7 +2413,7 @@ Examples:
   python src/main.py --mode search --data_percentage 10 --cv_folds 1
 
   # Run with 3-fold cross-validation
-  python src/main.py --mode search --cv_folds 3
+  python src/main.py --mode search --cv_folds 5
 
   # Filter out low-memory GPUs (require 12GB+)
   python src/main.py --mode search --min-gpu-memory 12.0
@@ -2581,8 +2581,8 @@ Configuration:
         automatically spawns each fold as a separate subprocess with --fold N.
         This prevents TF/CUDA resource accumulation across folds.
 
-        Normal usage: just set --cv_folds 3 (orchestrator handles the rest)
-        Manual single fold (advanced): --fold 2 --cv_folds 3 --resume_mode auto
+        Normal usage: just set --cv_folds 5 (orchestrator handles the rest)
+        Manual single fold (advanced): --fold 2 --cv_folds 5 --resume_mode auto
         (default: None - orchestrator auto-spawns subprocesses per fold)"""
     )
 
