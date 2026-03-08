@@ -1,15 +1,14 @@
 {
-  "name": "B1_R6_ft_top40_30ep",
-  "backbone": "DenseNet121",
+  "name": "BASELINE",
+  "backbone": "EfficientNetB0",
   "freeze": "frozen",
   "head_units": [
-    256,
-    64
+    128
   ],
   "head_dropout": 0.3,
   "head_use_bn": true,
   "head_l2": 0.0,
-  "learning_rate": 0.003,
+  "learning_rate": 0.001,
   "stage1_epochs": 50,
   "early_stop_patience": 15,
   "reduce_lr_patience": 7,
@@ -22,13 +21,13 @@
   "label_smoothing": 0.0,
   "use_augmentation": true,
   "use_mixup": false,
-  "mixup_alpha": 0.0,
+  "mixup_alpha": 0.2,
   "image_size": 256,
   "optimizer": "adam",
-  "weight_decay": 0.0,
+  "weight_decay": 0.0001,
   "finetune_lr": 1e-05,
   "finetune_epochs": 30,
-  "unfreeze_pct": 0.4,
+  "unfreeze_pct": 0.2,
   "freeze_bn_in_stage2": false,
   "n_folds": 5,
   "fold": 0
