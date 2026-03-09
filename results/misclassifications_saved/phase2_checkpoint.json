@@ -1,0 +1,196 @@
+{
+  "timestamp": "2026-03-09T15:36:42.005808",
+  "completed_evaluations": 7,
+  "total_planned_evaluations": 30,
+  "best_thresholds": {
+    "P": 46,
+    "I": 47,
+    "R": 60
+  },
+  "best_score": 0.1308494026550044,
+  "best_metrics": {
+    "f1_per_class": {
+      "I": 0.6233609668580002,
+      "P": 0.6634583568761574,
+      "R": 0.4900622575910391
+    },
+    "macro_f1": 0.5922938604417323,
+    "weighted_f1": 0.6338396702246016,
+    "kappa": 0.4965272054722932,
+    "accuracy": 0.63114322742213
+  },
+  "phase1_baseline": {
+    "modality": "metadata",
+    "accuracy": 0.5805598856760894,
+    "accuracy_std": 0.0754528398382164,
+    "macro_f1": 0.5395645487265102,
+    "macro_f1_std": 0.0708542799990915,
+    "weighted_f1": 0.5821964224310089,
+    "weighted_f1_std": 0.0725634426276668,
+    "kappa": 0.3330565519676887,
+    "kappa_std": 0.0756901781950679,
+    "f1_I": 0.4629296153197809,
+    "f1_P": 0.6514172207638615,
+    "f1_R": 0.504346810095888,
+    "min_f1": 0.4629296153197809,
+    "best_overall": true
+  },
+  "original_dataset_size": 648,
+  "optimization_history": [
+    {
+      "evaluation": 1,
+      "thresholds": {
+        "P": 58,
+        "I": 37,
+        "R": 61
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.5045847622803217,
+          "P": 0.5600396313663443,
+          "R": 0.4066106619486775
+        },
+        "macro_f1": 0.4904116851984478,
+        "weighted_f1": 0.5256523964736161,
+        "kappa": 0.3771216032426309,
+        "accuracy": 0.5167145394309915
+      },
+      "score": 3.578953468307694e-05,
+      "filtered_size": 543,
+      "rejected": false
+    },
+    {
+      "evaluation": 2,
+      "thresholds": {
+        "P": 55,
+        "I": 44,
+        "R": 60
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.5854565579207397,
+          "P": 0.6476042358722511,
+          "R": 0.4053475464833581
+        },
+        "macro_f1": 0.5461361134254497,
+        "weighted_f1": 0.615615541458542,
+        "kappa": 0.456363014715184,
+        "accuracy": 0.6132588381333385
+      },
+      "score": 0.03636227974553412,
+      "filtered_size": 532,
+      "rejected": false
+    },
+    {
+      "evaluation": 3,
+      "thresholds": {
+        "P": 53,
+        "I": 41,
+        "R": 60
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.5402919915529565,
+          "P": 0.6695667673629642,
+          "R": 0.4729971845171805
+        },
+        "macro_f1": 0.5609519811443671,
+        "weighted_f1": 0.6267492252636381,
+        "kappa": 0.4492914748851779,
+        "accuracy": 0.6125890748604019
+      },
+      "score": 0.10148537320365346,
+      "filtered_size": 507,
+      "rejected": false
+    },
+    {
+      "evaluation": 4,
+      "thresholds": {
+        "P": 56,
+        "I": 33,
+        "R": 61
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.4990675515211644,
+          "P": 0.6653507144435744,
+          "R": 0.4279679323354022
+        },
+        "macro_f1": 0.5307953994333803,
+        "weighted_f1": 0.6053052901561192,
+        "kappa": 0.3992648854252988,
+        "accuracy": 0.5893971681666658
+      },
+      "score": 0.0350926444337802,
+      "filtered_size": 504,
+      "rejected": false
+    },
+    {
+      "evaluation": 5,
+      "thresholds": {
+        "P": 60,
+        "I": 31,
+        "R": 61
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.4562024144215625,
+          "P": 0.6323879838722788,
+          "R": 0.3901652819635337
+        },
+        "macro_f1": 0.4929185600857917,
+        "weighted_f1": 0.5776342097777228,
+        "kappa": 0.367915802586503,
+        "accuracy": 0.5631991953546893
+      },
+      "score": -0.018404204794283972,
+      "filtered_size": 543,
+      "rejected": false
+    },
+    {
+      "evaluation": 6,
+      "thresholds": {
+        "P": 55,
+        "I": 49,
+        "R": 60
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.5518520712084901,
+          "P": 0.5001058205508929,
+          "R": 0.4405142395224474
+        },
+        "macro_f1": 0.4974907104272768,
+        "weighted_f1": 0.511660730910627,
+        "kappa": 0.4092281899744032,
+        "accuracy": 0.5151242128785126
+      },
+      "score": 0.04587996824626517,
+      "filtered_size": 554,
+      "rejected": false
+    },
+    {
+      "evaluation": 7,
+      "thresholds": {
+        "P": 46,
+        "I": 47,
+        "R": 60
+      },
+      "metrics": {
+        "f1_per_class": {
+          "I": 0.6233609668580002,
+          "P": 0.6634583568761574,
+          "R": 0.4900622575910391
+        },
+        "macro_f1": 0.5922938604417323,
+        "weighted_f1": 0.6338396702246016,
+        "kappa": 0.4965272054722932,
+        "accuracy": 0.63114322742213
+      },
+      "score": 0.1308494026550044,
+      "filtered_size": 449,
+      "rejected": false
+    }
+  ],
+  "log_file": "/workspace/DFUMultiClassification/results/misclassifications_saved/phase2_optimization_20260309_005017.log"
+}

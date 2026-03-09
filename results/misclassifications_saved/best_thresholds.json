@@ -1,0 +1,23 @@
+{
+  "thresholds": {
+    "P": 46,
+    "I": 47,
+    "R": 60
+  },
+  "score": 0.1308494026550044,
+  "metrics": {
+    "f1_per_class": {
+      "I": 0.6233609668580002,
+      "P": 0.6634583568761574,
+      "R": 0.4900622575910391
+    },
+    "macro_f1": 0.5922938604417323,
+    "weighted_f1": 0.6338396702246016,
+    "kappa": 0.4965272054722932,
+    "accuracy": 0.63114322742213
+  },
+  "phase1_baseline_modality": "metadata",
+  "production_config_settings": "USE_CORE_DATA = True, THRESHOLD_I = 47, THRESHOLD_P = 46, THRESHOLD_R = 60",
+  "command": "python src/main.py --mode search --cv_folds 5 --device-mode multi",
+  "timestamp": "2026-03-09T15:36:42.006401"
+}

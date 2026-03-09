@@ -1,0 +1,116 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold4.log
+[LOG] Started at: 2026-03-09 14:50:23
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 1 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected GPU 0: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+Enabled mixed precision (mixed_float16)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 5-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 64
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+  Core data filtering: thresholds I=47, P=46, R=60
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=47, P=46, R=60
+
+Excluded samples per class:
+  Class I: 33 samples
+  Class P: 157 samples
+  Class R: 9 samples
+
+Total unique samples to exclude: 199
+
+Dataset size (rows): 3108 -> 2052 (66.0%)
+Unique samples: 648 -> 449 (removed 199)
+
+Class distribution after filtering:
+  Class I: 705 rows
+  Class P: 1058 rows
+  Class R: 289 rows
+============================================================
+
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 49: early stopping
+Restoring model weights from the end of the best epoch: 34.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 16.
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 15.
+Epoch 42: early stopping
+Restoring model weights from the end of the best epoch: 22.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.62      0.63      0.63       120
+           P       0.60      0.64      0.62       150
+           R       0.57      0.40      0.47        42
+
+    accuracy                           0.61       312
+   macro avg       0.60      0.56      0.57       312
+weighted avg       0.60      0.61      0.60       312
+
+Cohen's Kappa: 0.4749
+Warning: No predictions to save for run 4 (train). Skipping...
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb+thermal_map
+  Accuracy: 0.6396 ± 0.0550
+  F1 Macro: 0.5987
+  Kappa: 0.5037
+
+Total combinations tested: 1
+================================================================================
+

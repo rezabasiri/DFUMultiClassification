@@ -1,0 +1,458 @@
+📝 Logging to: results/misclassifications/optimization_run_20260308_091829.log
+
+
+🚀 Starting Phase 1: Misclassification Detection
+
+
+======================================================================
+PHASE 1: MISCLASSIFICATION DETECTION
+======================================================================
+Dataset: 648 samples (100% of 648)
+Min after filtering: 324 samples (50%)
+Testing 4 configurations from INCLUDED_COMBINATIONS:
+  - metadata
+  - metadata+depth_rgb+thermal_map
+  - depth_rgb+thermal_map
+  - metadata+thermal_map
+Running 3 runs per configuration (total 12 runs)
+Misclassification counts: max=15 (mode=both, runs=3, folds=5)
+CV folds=5, verbosity=silent
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+================================================================================
+
+
+======================================================================
+Testing: metadata (3 runs)
+======================================================================
+Phase 1 Progress (metadata):   0%|                                                                                                             | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after metadata run 1...
+Phase 1 Progress (metadata):  33%|#################################3                                                                  | 1/3 [04:17<08:35, 257.91s/run]
+📊 Updating baseline after metadata run 2...
+Phase 1 Progress (metadata):  67%|##################################################################6                                 | 2/3 [08:36<04:18, 258.43s/run]
+📊 Updating baseline after metadata run 3...
+Phase 1 Progress (metadata): 100%|####################################################################################################| 3/3 [12:55<00:00, 258.72s/run]Phase 1 Progress (metadata): 100%|####################################################################################################| 3/3 [12:55<00:00, 258.59s/run]
+
+======================================================================
+Testing: metadata+depth_rgb+thermal_map (3 runs)
+======================================================================
+Phase 1 Progress (metadata+depth_rgb+thermal_map):   0%|                                                                                       | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after metadata+depth_rgb+thermal_map run 1...
+Phase 1 Progress (metadata+depth_rgb+thermal_map):  33%|########################3                                                | 1/3 [2:18:09<4:36:18, 8289.20s/run]
+📊 Updating baseline after metadata+depth_rgb+thermal_map run 2...
+Phase 1 Progress (metadata+depth_rgb+thermal_map):  67%|################################################6                        | 2/3 [4:50:59<2:26:47, 8807.76s/run]
+📊 Updating baseline after metadata+depth_rgb+thermal_map run 3...
+Phase 1 Progress (metadata+depth_rgb+thermal_map): 100%|###########################################################################| 3/3 [7:23:48<00:00, 8972.59s/run]Phase 1 Progress (metadata+depth_rgb+thermal_map): 100%|###########################################################################| 3/3 [7:23:48<00:00, 8876.23s/run]
+
+======================================================================
+Testing: depth_rgb+thermal_map (3 runs)
+======================================================================
+Phase 1 Progress (depth_rgb+thermal_map):   0%|                                                                                                | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after depth_rgb+thermal_map run 1...
+Phase 1 Progress (depth_rgb+thermal_map):  33%|###########################3                                                      | 1/3 [1:20:39<2:41:18, 4839.00s/run]
+📊 Updating baseline after depth_rgb+thermal_map run 2...
+Phase 1 Progress (depth_rgb+thermal_map):  67%|######################################################6                           | 2/3 [2:38:46<1:19:09, 4749.96s/run]
+📊 Updating baseline after depth_rgb+thermal_map run 3...
+Phase 1 Progress (depth_rgb+thermal_map): 100%|####################################################################################| 3/3 [3:58:38<00:00, 4769.28s/run]Phase 1 Progress (depth_rgb+thermal_map): 100%|####################################################################################| 3/3 [3:58:38<00:00, 4772.97s/run]
+
+======================================================================
+Testing: metadata+thermal_map (3 runs)
+======================================================================
+Phase 1 Progress (metadata+thermal_map):   0%|                                                                                                 | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after metadata+thermal_map run 1...
+Phase 1 Progress (metadata+thermal_map):  33%|###########################6                                                       | 1/3 [1:17:25<2:34:50, 4645.47s/run]
+📊 Updating baseline after metadata+thermal_map run 2...
+Phase 1 Progress (metadata+thermal_map):  67%|#######################################################3                           | 2/3 [2:33:04<1:16:22, 4582.88s/run]
+📊 Updating baseline after metadata+thermal_map run 3...
+Phase 1 Progress (metadata+thermal_map): 100%|#####################################################################################| 3/3 [3:56:21<00:00, 4771.91s/run]Phase 1 Progress (metadata+thermal_map): 100%|#####################################################################################| 3/3 [3:56:21<00:00, 4727.13s/run]
+
+======================================================================
+✅ PHASE 1 COMPLETE
+======================================================================
+
+💾 Saved Phase 1 misclassification data:
+   - frequent_misclassifications_saved.csv (total)
+   - Backup: /workspace/DFUMultiClassification/results/misclassifications_saved/frequent_misclassifications_saved.csv
+   - frequent_misclassifications_metadata_saved.csv
+   - frequent_misclassifications_depth_rgb_metadata_thermal_map_saved.csv
+   - frequent_misclassifications_depth_rgb_thermal_map_saved.csv
+   - frequent_misclassifications_metadata_thermal_map_saved.csv
+🔒 Locked Phase 1 data - Phase 2 training won't contaminate counts
+
+Misclassification Summary:
+  Total unique misclassified samples: 646
+  Max count observed: 60
+
+  By class:
+    I: 203 samples, counts 2-60, median=30.0
+    P: 368 samples, counts 18-60, median=45.0
+    R: 75 samples, counts 1-60, median=38.0
+
+💾 Saved Phase 1 baseline metrics: /workspace/DFUMultiClassification/results/misclassifications/phase1_baseline.json
+   Best performance for 4 modality combinations preserved
+   Best overall: metadata (Kappa=0.3331)
+   CSV with all modalities: /workspace/DFUMultiClassification/results/misclassifications_saved/phase1_modality_results.csv
+
+======================================================================
+PHASE 1 BASELINE PERFORMANCE (Before Optimization)
+======================================================================
+
+  metadata << BEST:
+    Accuracy: 0.5806
+    Macro F1: 0.5396
+    Weighted F1: 0.5822
+    Per-class F1: I=0.4629, P=0.6514, R=0.5043
+    Kappa: 0.3331
+
+  metadata+thermal_map:
+    Accuracy: 0.4085
+    Macro F1: 0.3843
+    Weighted F1: 0.3888
+    Per-class F1: I=0.4859, P=0.3228, R=0.3444
+    Kappa: 0.2825
+
+  metadata+depth_rgb+thermal_map:
+    Accuracy: 0.4881
+    Macro F1: 0.4572
+    Weighted F1: 0.4967
+    Per-class F1: I=0.4531, P=0.5396, R=0.3791
+    Kappa: 0.2797
+
+  depth_rgb+thermal_map:
+    Accuracy: 0.4600
+    Macro F1: 0.4165
+    Weighted F1: 0.4578
+    Per-class F1: I=0.4433, P=0.4982, R=0.3079
+    Kappa: 0.2385
+
+  📊 Using best baseline for optimization: metadata
+     Accuracy: 0.5806, Macro F1: 0.5396, Weighted F1: 0.5822
+     Per-class F1: I=0.4629, P=0.6514, R=0.5043, Kappa: 0.3331
+
+🚀 Starting Phase 2: Bayesian Threshold Optimization
+
+
+======================================================================
+PHASE 2: BAYESIAN THRESHOLD OPTIMIZATION
+======================================================================
+
+  📊 Grid Search Strategy:
+     Rarest class: R (76 samples)
+     Per-class retention floors:
+       I: >=50% (102/204 samples)
+       P: >=50% (184/368 samples)
+       R: >=85% (65/76 samples)
+     Total retention floor: >=60% (389/648 samples)
+
+  Grid search: 992 combinations tested
+  Valid (>=60% total retention): 991
+  Valid ranges: I=[31,61], P=[46,61], R=[60,61]
+  Invalid corner cases in box: 1/992 (0.1%)
+  (Pre-training retention check will skip these)
+  Lowest valid retention: I=32, P=46, R=60 -> 389/648 (60.0%)
+
+======================================================================
+AUTOMATIC THRESHOLD CALCULATION (Balanced Dataset Strategy)
+======================================================================
+  Minority class retention target: 85%
+
+  Class I:
+    Original samples: 204 (893 images)
+    Target retention for balance: 50.0%
+    Misclass count range: 2-60, median=30.0
+    Min threshold for retention: 31
+    Actual retention at this threshold: 106/204 (52.0%) ≈ 464 images
+
+  Class P:
+    Original samples: 368 (1880 images)
+    Target retention for balance: 50.0%
+    Misclass count range: 18-60, median=45.0
+    Min threshold for retention: 46
+    Actual retention at this threshold: 211/368 (57.3%) ≈ 1077 images
+
+  Class R:
+    Original samples: 76 (335 images)
+    Target retention for balance: 85.0%
+    Misclass count range: 1-60, median=38.0
+    Min threshold for retention: 60
+    Actual retention at this threshold: 67/76 (88.2%) ≈ 295 images
+
+======================================================================
+SEARCH SPACE (auto-calculated, 60% total retention floor)
+======================================================================
+  P: 46-61 (min threshold for 50.0% retention)
+  I: 31-61 (min threshold for 50.0% retention)
+  R: 60-61 (min threshold for 85.0% retention)
+  Combined retention at lower bounds: 384/648 (59.3%)
+
+Optimization Settings:
+  Evaluations: 30
+  CV folds per evaluation: 5
+  Score: 0.35×Δmacro_f1 + 0.30×Δmin_f1 + 0.25×Δkappa + 0.10×retention - penalties
+  (Δ = improvement over baseline; focuses on clinical applicability)
+
+Soft Constraints (smooth penalties guide optimizer):
+  Dataset size: Target ≥50% of original (heavy exp penalty)
+  Min F1 per class: Target ≥0.25 (exponential penalty)
+  Min samples per class: Target ≥30 (linear penalty)
+  Max class imbalance: Target ≤5.0x (linear penalty)
+
+All constraints are soft - optimizer learns from violations!
+
+
+======================================================================
+PHASE 1 BASELINE PERFORMANCE (Before Optimization)
+======================================================================
+
+  metadata << BEST:
+    Accuracy: 0.5806
+    Macro F1: 0.5396
+    Weighted F1: 0.5822
+    Per-class F1: I=0.4629, P=0.6514, R=0.5043
+    Kappa: 0.3331
+
+  metadata+thermal_map:
+    Accuracy: 0.4085
+    Macro F1: 0.3843
+    Weighted F1: 0.3888
+    Per-class F1: I=0.4859, P=0.3228, R=0.3444
+    Kappa: 0.2825
+
+  metadata+depth_rgb+thermal_map:
+    Accuracy: 0.4881
+    Macro F1: 0.4572
+    Weighted F1: 0.4967
+    Per-class F1: I=0.4531, P=0.5396, R=0.3791
+    Kappa: 0.2797
+
+  depth_rgb+thermal_map:
+    Accuracy: 0.4600
+    Macro F1: 0.4165
+    Weighted F1: 0.4578
+    Per-class F1: I=0.4433, P=0.4982, R=0.3079
+    Kappa: 0.2385
+
+  📊 Using best baseline for optimization: metadata
+     Accuracy: 0.5806, Macro F1: 0.5396, Weighted F1: 0.5822
+     Per-class F1: I=0.4629, P=0.6514, R=0.5043, Kappa: 0.3331
+
+🔍 Starting Bayesian optimization...
+
+📋 Training outputs will be logged to:
+   (Log file will be created on first evaluation)
+
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 1/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=58, I=37, R=61
+Dataset after filtering: 543/648 samples (83.8%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 10 files deleted
+  Predictions: 60 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.5167 (Δ-0.0638)
+  Macro F1: 0.4904 (Δ-0.0492)
+  Weighted F1: 0.5257 (Δ-0.0565)
+  Per-class F1: I=0.5046, P=0.5600, R=0.4066
+  Kappa: 0.3771 (Δ+0.0441)
+  Retention: 543/648 (83.8%)
+  Penalties: 0.061 (min_f1:0.06)
+  Combined Score: 0.0000
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 2/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=55, I=44, R=60
+Dataset after filtering: 532/648 samples (82.1%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.6133 (Δ+0.0327)
+  Macro F1: 0.5461 (Δ+0.0066)
+  Weighted F1: 0.6156 (Δ+0.0334)
+  Per-class F1: I=0.5855, P=0.6476, R=0.4053
+  Kappa: 0.4564 (Δ+0.1233)
+  Retention: 532/648 (82.1%)
+  Penalties: 0.062 (min_f1:0.06)
+  Combined Score: 0.0364
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 3/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=53, I=41, R=60
+Dataset after filtering: 507/648 samples (78.2%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.6126 (Δ+0.0320)
+  Macro F1: 0.5610 (Δ+0.0214)
+  Weighted F1: 0.6267 (Δ+0.0446)
+  Per-class F1: I=0.5403, P=0.6696, R=0.4730
+  Kappa: 0.4493 (Δ+0.1162)
+  Retention: 507/648 (78.2%)
+  Penalties: 0.016 (min_f1:0.02)
+  Combined Score: 0.1015
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 4/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=56, I=33, R=61
+Dataset after filtering: 504/648 samples (77.8%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.5894 (Δ+0.0088)
+  Macro F1: 0.5308 (Δ-0.0088)
+  Weighted F1: 0.6053 (Δ+0.0231)
+  Per-class F1: I=0.4991, P=0.6654, R=0.4280
+  Kappa: 0.3993 (Δ+0.0662)
+  Retention: 504/648 (77.8%)
+  Penalties: 0.046 (min_f1:0.05)
+  Combined Score: 0.0351
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 5/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=60, I=31, R=61
+Dataset after filtering: 543/648 samples (83.8%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.5632 (Δ-0.0174)
+  Macro F1: 0.4929 (Δ-0.0466)
+  Weighted F1: 0.5776 (Δ-0.0046)
+  Per-class F1: I=0.4562, P=0.6324, R=0.3902
+  Kappa: 0.3679 (Δ+0.0349)
+  Retention: 543/648 (83.8%)
+  Penalties: 0.073 (min_f1:0.07)
+  Combined Score: -0.0184
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 6/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=55, I=49, R=60
+Dataset after filtering: 554/648 samples (85.5%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.5151 (Δ-0.0654)
+  Macro F1: 0.4975 (Δ-0.0421)
+  Weighted F1: 0.5117 (Δ-0.0705)
+  Per-class F1: I=0.5519, P=0.5001, R=0.4405
+  Kappa: 0.4092 (Δ+0.0762)
+  Retention: 554/648 (85.5%)
+  Penalties: 0.037 (min_f1:0.04)
+  Combined Score: 0.0459
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 7/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=46, I=47, R=60
+Dataset after filtering: 449/648 samples (69.3%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.6311 (Δ+0.0506)
+  Macro F1: 0.5923 (Δ+0.0527)
+  Weighted F1: 0.6338 (Δ+0.0516)
+  Per-class F1: I=0.6234, P=0.6635, R=0.4901
+  Kappa: 0.4965 (Δ+0.1635)
+  Retention: 449/648 (69.3%)
+  Penalties: 0.006 (min_f1:0.01)
+  Combined Score: 0.1308
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 8/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=47, I=60, R=60
+Dataset after filtering: 497/648 samples (76.7%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
