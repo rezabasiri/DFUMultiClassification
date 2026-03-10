@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold4.log
-[LOG] Started at: 2026-03-09 14:50:23
+[LOG] Started at: 2026-03-10 21:13:01
 
 
 ================================================================================
@@ -44,73 +44,31 @@ Will test 1 custom combinations
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-  Core data filtering: thresholds I=47, P=46, R=60
+  Core data filtering: thresholds I=54, P=56, R=61
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=47, P=46, R=60
+Thresholds: I=54, P=56, R=61
 
 Excluded samples per class:
-  Class I: 33 samples
-  Class P: 157 samples
-  Class R: 9 samples
+  Class I: 17 samples
+  Class P: 53 samples
+  Class R: 0 samples
 
-Total unique samples to exclude: 199
+Total unique samples to exclude: 70
 
-Dataset size (rows): 3108 -> 2052 (66.0%)
-Unique samples: 648 -> 449 (removed 199)
+Dataset size (rows): 3108 -> 2737 (88.1%)
+Unique samples: 648 -> 578 (removed 70)
 
 Class distribution after filtering:
-  Class I: 705 rows
-  Class P: 1058 rows
-  Class R: 289 rows
+  Class I: 791 rows
+  Class P: 1611 rows
+  Class R: 335 rows
 ============================================================
 
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
-Epoch 49: early stopping
-Restoring model weights from the end of the best epoch: 34.
-Epoch 16: early stopping
-Restoring model weights from the end of the best epoch: 1.
-Epoch 31: early stopping
-Restoring model weights from the end of the best epoch: 16.
-Epoch 30: early stopping
-Restoring model weights from the end of the best epoch: 15.
-Epoch 42: early stopping
-Restoring model weights from the end of the best epoch: 22.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
-  saveable.load_own_variables(weights_store.get(inner_path))
-
-Run 4 Results for metadata+depth_rgb+thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.62      0.63      0.63       120
-           P       0.60      0.64      0.62       150
-           R       0.57      0.40      0.47        42
-
-    accuracy                           0.61       312
-   macro avg       0.60      0.56      0.57       312
-weighted avg       0.60      0.61      0.60       312
-
-Cohen's Kappa: 0.4749
-Warning: No predictions to save for run 4 (train). Skipping...
-
-All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
-
-================================================================================
-FINAL SUMMARY - BEST MODALITY COMBINATIONS
-================================================================================
-
-Best by Accuracy:
-  Modalities: metadata+depth_rgb+thermal_map
-  Accuracy: 0.6396 ± 0.0550
-  F1 Macro: 0.5987
-  Kappa: 0.5037
-
-Total combinations tested: 1
-================================================================================
-
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.

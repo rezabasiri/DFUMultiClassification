@@ -1161,9 +1161,9 @@ class BayesianDatasetPolisher:
                     print(f"\n📊 Updating baseline after {combo_label} run {run_idx}...")
                     self._update_baseline_continuously()
 
-            # Clear environment variable
-            if 'CROSS_VAL_RANDOM_SEED' in os.environ:
-                del os.environ['CROSS_VAL_RANDOM_SEED']
+            # Clear seed env vars so Phase 2 uses default seed (42)
+            os.environ.pop('CROSS_VAL_RANDOM_SEED', None)
+            os.environ.pop('CV_FOLD_SEED', None)
 
             print(f"\n{'='*70}")
             print(f"✅ PHASE 1 COMPLETE")
@@ -2524,8 +2524,8 @@ GPU Configuration:
     parser.add_argument('--phase1-data-percentage', type=int, default=100,
                         help='Percentage of data to use in Phase 1 (default: 100)')
 
-    parser.add_argument('--phase1-cv-folds', type=int, default=1,
-                        help='Number of CV folds in Phase 1 (default: 1)')
+    parser.add_argument('--phase1-cv-folds', type=int, default=5,
+                        help='Number of CV folds in Phase 1 (default: 5)')
 
     parser.add_argument('--track-misclass', type=str, choices=['both', 'valid', 'train'], default='both',
                         help='Which dataset to track misclassifications from: '
@@ -2538,13 +2538,13 @@ GPU Configuration:
     parser.add_argument('--phase2-data-percentage', type=int, default=100,
                         help='Percentage of data to use in Phase 2 (default: 100)')
 
-    parser.add_argument('--phase2-cv-folds', type=int, default=3,
-                        help='Number of CV folds in Phase 2 (default: 3)')
+    parser.add_argument('--phase2-cv-folds', type=int, default=5,
+                        help='Number of CV folds in Phase 2 (default: 5)')
 
     parser.add_argument('--min-dataset-fraction', type=float, default=0.5,
                         help='Minimum fraction of dataset to keep (default: 0.5)')
 
-    parser.add_argument('--min-minority-retention', type=float, default=0.85,
+    parser.add_argument('--min-minority-retention', type=float, default=0.75,
                         help='Target retention for the MINORITY (rarest) class (default: 0.85). '
                              'Other classes get lower retention rates calculated to achieve '
                              'a balanced dataset. Optimization is skipped if this cannot be achieved.')

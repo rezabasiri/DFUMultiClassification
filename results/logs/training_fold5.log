@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold5.log
-[LOG] Started at: 2026-03-09 15:13:05
+[LOG] Started at: 2026-03-10 19:23:37
 
 
 ================================================================================
@@ -44,25 +44,25 @@ Will test 1 custom combinations
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-  Core data filtering: thresholds I=47, P=46, R=60
+  Core data filtering: thresholds I=49, P=46, R=60
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=47, P=46, R=60
+Thresholds: I=49, P=46, R=60
 
 Excluded samples per class:
-  Class I: 33 samples
+  Class I: 26 samples
   Class P: 157 samples
   Class R: 9 samples
 
-Total unique samples to exclude: 199
+Total unique samples to exclude: 192
 
-Dataset size (rows): 3108 -> 2052 (66.0%)
-Unique samples: 648 -> 449 (removed 199)
+Dataset size (rows): 3108 -> 2085 (67.1%)
+Unique samples: 648 -> 456 (removed 192)
 
 Class distribution after filtering:
-  Class I: 705 rows
+  Class I: 738 rows
   Class P: 1058 rows
   Class R: 289 rows
 ============================================================
@@ -70,16 +70,16 @@ Class distribution after filtering:
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
-Epoch 47: early stopping
-Restoring model weights from the end of the best epoch: 32.
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 18.
 Epoch 16: early stopping
 Restoring model weights from the end of the best epoch: 1.
 Epoch 36: early stopping
 Restoring model weights from the end of the best epoch: 21.
-Epoch 42: early stopping
-Restoring model weights from the end of the best epoch: 27.
-Epoch 50: early stopping
-Restoring model weights from the end of the best epoch: 30.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 96: early stopping
+Restoring model weights from the end of the best epoch: 76.
 Epoch 11: early stopping
 Restoring model weights from the end of the best epoch: 1.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
@@ -88,15 +88,15 @@ Restoring model weights from the end of the best epoch: 1.
 Run 5 Results for metadata+depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.73      0.58      0.65       189
-           P       0.59      0.67      0.63       243
-           R       0.50      0.53      0.51        78
+           I       0.63      0.67      0.65       120
+           P       0.67      0.53      0.59       113
+           R       0.33      0.56      0.42        27
 
-    accuracy                           0.62       510
-   macro avg       0.61      0.59      0.60       510
-weighted avg       0.63      0.62      0.62       510
+    accuracy                           0.60       260
+   macro avg       0.55      0.58      0.55       260
+weighted avg       0.62      0.60      0.60       260
 
-Cohen's Kappa: 0.5718
+Cohen's Kappa: 0.3309
 Warning: No predictions to save for run 5 (train). Skipping...
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
@@ -107,9 +107,9 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: metadata+depth_rgb+thermal_map
-  Accuracy: 0.6311 ± 0.0498
-  F1 Macro: 0.5923
-  Kappa: 0.4965
+  Accuracy: 0.6041 ± 0.0483
+  F1 Macro: 0.5711
+  Kappa: 0.4631
 
 Total combinations tested: 1
 ================================================================================

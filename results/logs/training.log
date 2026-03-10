@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
-[LOG] Started at: 2026-03-09 15:36:48
+[LOG] Started at: 2026-03-10 19:50:01
 
 
 ================================================================================
@@ -27,5 +27,13 @@ Fold 2/5 completed successfully.
 ================================================================================
 FOLD 3/5 - Starting in isolated subprocess
 Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode single --min-gpu-memory 8.0 --fold 3 --resume_mode auto
+================================================================================
+
+
+Fold 3/5 completed successfully.
+
+================================================================================
+FOLD 4/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode single --min-gpu-memory 8.0 --fold 4 --resume_mode auto
 ================================================================================
 
