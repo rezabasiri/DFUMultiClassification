@@ -1,0 +1,3725 @@
+Logging to: /workspace/DFUMultiClassification/agent_communication/fusion_pipeline_audit/logs/fusion_hparam_search_20260307_194955.log
+================================================================================
+FUSION HYPERPARAMETER SEARCH (metadata + depth_rgb + thermal_map)
+  Strategy: Top-3 R1 carry-forward with independent R2-R7 branches
+================================================================================
+Loaded 3108 samples for fusion: metadata + depth_rgb + thermal_map
+RESUME MODE — found 61 completed configs: ['R1_lr5e-05', 'R1_lr1e-04', 'R1_lr3e-04', 'R1_lr5e-04', 'R1_lr1e-03', 'R1_lr3e-03', 'B1_R2_ep100_pat15', 'B1_R2_ep200_pat20', 'B1_R2_ep200_pat30', 'B1_R2_ep300_pat25', 'B1_R3_prob_concat', 'B1_R3_feature_concat', 'B1_R3_feature_concat_attn', 'B1_R3_gated', 'B1_R3_hybrid', 'B1_R4_head_none', 'B1_R4_head_32', 'B1_R4_head_64', 'B1_R4_head_64_32', 'B1_R4_head_128_64', 'B1_R4_drop01_bn', 'B1_R4_drop03_bn', 'B1_R4_drop05_bn', 'B1_R4_drop03_nobn', 'B1_R5_temp0.5', 'B1_R5_temp0.75', 'B1_R5_temp1.0', 'B1_R5_temp1.5', 'B1_R5_temp2.0', 'B1_R5_meta_no_scale', 'B1_R5_meta_mild', 'B1_R5_meta_default', 'B1_R5_meta_strong', 'B1_R6_rf100_d6', 'B1_R6_rf200_d8', 'B1_R6_rf300_d10', 'B1_R6_rf200_d12', 'B1_R6_rf200_d8_k20', 'B1_R6_rf200_d8_k60', 'B1_R7_no_ft', 'B1_R7_ft_top10_50ep', 'B1_R7_ft_top20_50ep', 'B1_R7_ft_top20_50ep_lr', 'B2_R2_ep100_pat15', 'B2_R2_ep200_pat20', 'B2_R2_ep200_pat30', 'B2_R2_ep300_pat25', 'B2_R3_prob_concat', 'B2_R3_feature_concat', 'B2_R3_feature_concat_attn', 'B2_R3_gated', 'B2_R3_hybrid', 'B2_R4_head_none', 'B2_R4_head_32', 'B2_R4_head_64', 'B2_R4_head_64_32', 'B2_R4_head_128_64', 'B2_R4_drop01_bn', 'B2_R4_drop03_bn', 'B2_R4_drop05_bn', 'B2_R4_drop03_nobn']
+
+################################################################################
+ROUND 1: FUSION LEARNING RATE (STAGE1_LR)
+################################################################################
+
+  SKIP (cached): R1_lr5e-05 -> kappa=0.0000
+
+  SKIP (cached): R1_lr1e-04 -> kappa=0.1615
+
+  SKIP (cached): R1_lr3e-04 -> kappa=0.2319
+
+  SKIP (cached): R1_lr5e-04 -> kappa=0.2629
+
+  SKIP (cached): R1_lr1e-03 -> kappa=0.2406
+
+  SKIP (cached): R1_lr3e-03 -> kappa=0.2447
+
+  BEST from this round: R1_lr5e-04 (kappa=0.2629, s1_kappa=0.2631)
+
+  BEST from this round: R1_lr3e-03 (kappa=0.2447, s1_kappa=0.2447)
+
+  BEST from this round: R1_lr1e-03 (kappa=0.2406, s1_kappa=0.2414)
+
+  TOP-3 R1 BRANCHES selected:
+    Branch 1: R1_lr5e-04 -> kappa=0.2629 (stage1_lr=0.0005)
+    Branch 2: R1_lr3e-03 -> kappa=0.2447 (stage1_lr=0.003)
+    Branch 3: R1_lr1e-03 -> kappa=0.2406 (stage1_lr=0.001)
+
+################################################################################
+BRANCH B1: lr5e-04 (R1 kappa=0.2629)
+################################################################################
+
+============================================================
+  B1 — ROUND 2: FUSION TRAINING EPOCHS
+============================================================
+
+  SKIP (cached): B1_R2_ep100_pat15 -> kappa=0.2649
+
+  SKIP (cached): B1_R2_ep200_pat20 -> kappa=0.2518
+
+  SKIP (cached): B1_R2_ep200_pat30 -> kappa=0.2427
+
+  SKIP (cached): B1_R2_ep300_pat25 -> kappa=0.2532
+
+  BEST from this round: B1_R2_ep100_pat15 (kappa=0.2649, s1_kappa=0.2649)
+
+============================================================
+  B1 — ROUND 3: FUSION STRATEGY
+============================================================
+
+  SKIP (cached): B1_R3_prob_concat -> kappa=0.2414
+
+  SKIP (cached): B1_R3_feature_concat -> kappa=0.2803
+
+  SKIP (cached): B1_R3_feature_concat_attn -> kappa=0.2193
+
+  SKIP (cached): B1_R3_gated -> kappa=0.1676
+
+  SKIP (cached): B1_R3_hybrid -> kappa=0.2339
+
+  BEST from this round: B1_R3_feature_concat (kappa=0.2803, s1_kappa=0.2803)
+
+============================================================
+  B1 — ROUND 4: FUSION HEAD ARCHITECTURE
+============================================================
+
+  SKIP (cached): B1_R4_head_none -> kappa=0.2740
+
+  SKIP (cached): B1_R4_head_32 -> kappa=0.2290
+
+  SKIP (cached): B1_R4_head_64 -> kappa=0.2457
+
+  SKIP (cached): B1_R4_head_64_32 -> kappa=0.2208
+
+  SKIP (cached): B1_R4_head_128_64 -> kappa=0.2151
+
+  SKIP (cached): B1_R4_drop01_bn -> kappa=0.2386
+
+  SKIP (cached): B1_R4_drop03_bn -> kappa=0.2514
+
+  SKIP (cached): B1_R4_drop05_bn -> kappa=0.2326
+
+  SKIP (cached): B1_R4_drop03_nobn -> kappa=0.2561
+
+  BEST from this round: B1_R4_head_none (kappa=0.2740, s1_kappa=0.2740)
+
+============================================================
+  B1 — ROUND 5: STRATEGY-SPECIFIC PARAMETERS
+============================================================
+
+  SKIP (cached): B1_R5_temp0.5 -> kappa=0.2613
+
+  SKIP (cached): B1_R5_temp0.75 -> kappa=0.2650
+
+  SKIP (cached): B1_R5_temp1.0 -> kappa=0.2880
+
+  SKIP (cached): B1_R5_temp1.5 -> kappa=0.2800
+
+  SKIP (cached): B1_R5_temp2.0 -> kappa=0.2657
+
+  SKIP (cached): B1_R5_meta_no_scale -> kappa=0.2621
+
+  SKIP (cached): B1_R5_meta_mild -> kappa=0.2885
+
+  SKIP (cached): B1_R5_meta_default -> kappa=0.2929
+
+  SKIP (cached): B1_R5_meta_strong -> kappa=0.2643
+
+  BEST from this round: B1_R5_meta_default (kappa=0.2929, s1_kappa=0.2929)
+
+============================================================
+  B1 — ROUND 6: RF HYPERPARAMETERS
+============================================================
+
+  SKIP (cached): B1_R6_rf100_d6 -> kappa=0.2452
+
+  SKIP (cached): B1_R6_rf200_d8 -> kappa=0.2573
+
+  SKIP (cached): B1_R6_rf300_d10 -> kappa=0.2596
+
+  SKIP (cached): B1_R6_rf200_d12 -> kappa=0.2673
+
+  SKIP (cached): B1_R6_rf200_d8_k20 -> kappa=0.2565
+
+  SKIP (cached): B1_R6_rf200_d8_k60 -> kappa=0.2440
+
+  BEST from this round: B1_R6_rf200_d12 (kappa=0.2673, s1_kappa=0.2650)
+
+============================================================
+  B1 — ROUND 7: STAGE 2 FINE-TUNING IN FUSION
+============================================================
+
+  SKIP (cached): B1_R7_no_ft -> kappa=0.2785
+
+  SKIP (cached): B1_R7_ft_top10_50ep -> kappa=0.2536
+
+  SKIP (cached): B1_R7_ft_top20_50ep -> kappa=0.2785
+
+  SKIP (cached): B1_R7_ft_top20_50ep_lr -> kappa=0.3103
+
+  BEST from this round: B1_R7_ft_top20_50ep_lr (kappa=0.3103, s1_kappa=0.2758)
+
+################################################################################
+BRANCH B2: lr3e-03 (R1 kappa=0.2447)
+################################################################################
+
+============================================================
+  B2 — ROUND 2: FUSION TRAINING EPOCHS
+============================================================
+
+  SKIP (cached): B2_R2_ep100_pat15 -> kappa=0.2404
+
+  SKIP (cached): B2_R2_ep200_pat20 -> kappa=0.2472
+
+  SKIP (cached): B2_R2_ep200_pat30 -> kappa=0.2078
+
+  SKIP (cached): B2_R2_ep300_pat25 -> kappa=0.2159
+
+  BEST from this round: B2_R2_ep200_pat20 (kappa=0.2472, s1_kappa=0.2472)
+
+============================================================
+  B2 — ROUND 3: FUSION STRATEGY
+============================================================
+
+  SKIP (cached): B2_R3_prob_concat -> kappa=0.2354
+
+  SKIP (cached): B2_R3_feature_concat -> kappa=0.2171
+
+  SKIP (cached): B2_R3_feature_concat_attn -> kappa=0.2066
+
+  SKIP (cached): B2_R3_gated -> kappa=0.1170
+
+  SKIP (cached): B2_R3_hybrid -> kappa=0.2112
+
+  BEST from this round: B2_R3_prob_concat (kappa=0.2354, s1_kappa=0.2354)
+
+============================================================
+  B2 — ROUND 4: FUSION HEAD ARCHITECTURE
+============================================================
+
+  SKIP (cached): B2_R4_head_none -> kappa=0.2418
+
+  SKIP (cached): B2_R4_head_32 -> kappa=0.2186
+
+  SKIP (cached): B2_R4_head_64 -> kappa=0.1798
+
+  SKIP (cached): B2_R4_head_64_32 -> kappa=0.1885
+
+  SKIP (cached): B2_R4_head_128_64 -> kappa=0.1934
+
+  SKIP (cached): B2_R4_drop01_bn -> kappa=0.1635
+
+  SKIP (cached): B2_R4_drop03_bn -> kappa=0.1728
+
+  SKIP (cached): B2_R4_drop05_bn -> kappa=0.1771
+
+  SKIP (cached): B2_R4_drop03_nobn -> kappa=0.1692
+
+  BEST from this round: B2_R4_head_none (kappa=0.2418, s1_kappa=0.2418)
+
+============================================================
+  B2 — ROUND 5: STRATEGY-SPECIFIC PARAMETERS
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_temp0.5
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=0.5, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb (standalone config)
+    backbone=EfficientNetB0, head=[128], lr=0.001, epochs=50+30ft
+    aug=True, mixup=False(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=30, finetune_lr=1e-05, unfreeze_pct=0.2
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+    Trainable weights: 6/320 (backbone frozen)
+Epoch 17: early stopping
+Restoring model weights from the end of the best epoch: 2.
+    Stage 1 best: val_kappa=0.2175 at epoch 2/17
+    Stage 2: unfreezing top 20% (48/239 layers)
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+    Stage 2 best: val_kappa=0.1879 at epoch 2/12
+    Stage 2 did NOT improve (s2=0.1879 < s1=0.2175). Restoring S1 weights.
+    Pre-train POST-EVAL: kappa=0.2175, acc=0.4213, f1=0.3885 (n=553)
+
+  PRE-TRAINING: thermal_map (standalone config)
+    backbone=EfficientNetB2, head=[128, 32], lr=0.003, epochs=50+50ft
+    aug=True, mixup=True(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=50, finetune_lr=1e-05, unfreeze_pct=0.5
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+    Trainable weights: 10/454 (backbone frozen)
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 10.
+    Stage 1 best: val_kappa=0.2931 at epoch 22/25
+    Stage 2: unfreezing top 50% (171/341 layers, BN frozen)
+Epoch 13: early stopping
+Restoring model weights from the end of the best epoch: 3.
+    Stage 2 best: val_kappa=0.3252 at epoch 3/13
+    Pre-train POST-EVAL: kappa=0.3252, acc=0.3743, f1=0.3795 (n=553)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Fusion best: val_kappa=0.2128 at epoch 11/31
+
+  POST-EVAL: kappa=0.2128, acc=0.3237, f1=0.3275
+  Confusion matrix:
+[[ 75  18  51]
+ [126  55 170]
+ [  8   1  49]]
+  Time: 826s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_temp0.75
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=0.75, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 5.
+  Fusion best: val_kappa=0.2203 at epoch 6/25
+
+  POST-EVAL: kappa=0.2217, acc=0.2966, f1=0.2994
+  Confusion matrix:
+[[ 83  13  48]
+ [135  36 180]
+ [  8   5  45]]
+  Time: 255s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_temp1.0
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2361 at epoch 13/33
+
+  POST-EVAL: kappa=0.2361, acc=0.3544, f1=0.3495
+  Confusion matrix:
+[[ 88  26  30]
+ [167  72 112]
+ [  8  14  36]]
+  Time: 325s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_temp1.5
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.5, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Fusion best: val_kappa=0.2166 at epoch 3/23
+
+  POST-EVAL: kappa=0.2166, acc=0.2875, f1=0.2911
+  Confusion matrix:
+[[ 79  26  39]
+ [162  36 153]
+ [  8   6  44]]
+  Time: 238s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_temp2.0
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=2.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2060 at epoch 13/33
+
+  POST-EVAL: kappa=0.2060, acc=0.3183, f1=0.3125
+  Confusion matrix:
+[[ 95  14  35]
+ [184  45 122]
+ [ 13   9  36]]
+  Time: 325s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_meta_no_scale
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 1.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Fusion best: val_kappa=0.2324 at epoch 3/23
+
+  POST-EVAL: kappa=0.2324, acc=0.3092, f1=0.3063
+  Confusion matrix:
+[[ 96  23  25]
+ [199  40 112]
+ [ 11  12  35]]
+  Time: 239s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_meta_mild
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 6.
+  Fusion best: val_kappa=0.2193 at epoch 6/26
+
+  POST-EVAL: kappa=0.2193, acc=0.3942, f1=0.3835
+  Confusion matrix:
+[[ 63  38  43]
+ [102 110 139]
+ [  6   7  45]]
+  Time: 263s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_meta_default
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 5.
+  Fusion best: val_kappa=0.2603 at epoch 5/25
+
+  POST-EVAL: kappa=0.2610, acc=0.3363, f1=0.3379
+  Confusion matrix:
+[[ 98  18  28]
+ [198  45 108]
+ [  9   6  43]]
+  Time: 257s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R5_meta_strong
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[2.0, 4.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Fusion best: val_kappa=0.2208 at epoch 3/23
+
+  POST-EVAL: kappa=0.2208, acc=0.2875, f1=0.2817
+  Confusion matrix:
+[[ 97  15  32]
+ [191  23 137]
+ [ 14   5  39]]
+  Time: 239s
+
+  BEST from this round: B2_R5_meta_default (kappa=0.2610, s1_kappa=0.2603)
+
+============================================================
+  B2 — ROUND 6: RF HYPERPARAMETERS
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R6_rf100_d6
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=100, max_depth=6, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.0787, acc=0.3562, f1=0.3331 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 28: early stopping
+Restoring model weights from the end of the best epoch: 8.
+  Fusion best: val_kappa=0.2379 at epoch 8/28
+
+  POST-EVAL: kappa=0.2379, acc=0.4159, f1=0.3977
+  Confusion matrix:
+[[ 73  35  36]
+ [111 120 120]
+ [  5  16  37]]
+  Time: 310s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R6_rf200_d8
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf100_d6_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 6.
+  Fusion best: val_kappa=0.2447 at epoch 6/26
+
+  POST-EVAL: kappa=0.2454, acc=0.3128, f1=0.3125
+  Confusion matrix:
+[[ 92  17  35]
+ [173  36 142]
+ [ 10   3  45]]
+  Time: 295s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R6_rf300_d10
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 29: early stopping
+Restoring model weights from the end of the best epoch: 9.
+  Fusion best: val_kappa=0.2289 at epoch 9/29
+
+  POST-EVAL: kappa=0.2289, acc=0.3110, f1=0.3074
+  Confusion matrix:
+[[ 95  17  32]
+ [184  39 128]
+ [ 11   9  38]]
+  Time: 321s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R6_rf200_d12
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf300_d10_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1545, acc=0.5009, f1=0.4062 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 5.
+  Fusion best: val_kappa=0.2583 at epoch 5/25
+
+  POST-EVAL: kappa=0.2583, acc=0.3436, f1=0.3440
+  Confusion matrix:
+[[ 91  31  22]
+ [186  62 103]
+ [  8  13  37]]
+  Time: 283s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R6_rf200_d8_k20
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=20
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d12_l3_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1192, acc=0.4358, f1=0.3896 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 29: early stopping
+Restoring model weights from the end of the best epoch: 9.
+  Fusion best: val_kappa=0.2303 at epoch 9/29
+
+  POST-EVAL: kappa=0.2303, acc=0.3092, f1=0.3120
+  Confusion matrix:
+[[ 82  16  46]
+ [150  41 160]
+ [  6   4  48]]
+  Time: 319s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R6_rf200_d8_k60
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=60
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k20
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1944, acc=0.4159, f1=0.3868 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Fusion best: val_kappa=0.2451 at epoch 11/31
+
+  POST-EVAL: kappa=0.2408, acc=0.5208, f1=0.4464
+  Confusion matrix:
+[[ 45  70  29]
+ [ 55 208  88]
+ [  2  21  35]]
+  Time: 337s
+
+  BEST from this round: B2_R6_rf200_d12 (kappa=0.2583, s1_kappa=0.2583)
+
+============================================================
+  B2 — ROUND 7: STAGE 2 FINE-TUNING IN FUSION
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R7_no_ft
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=0.0, stage2_epochs=0, unfreeze_pct=0.0
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k60
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1545, acc=0.5009, f1=0.4062 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
+  Fusion best: val_kappa=0.2406 at epoch 7/27
+
+  POST-EVAL: kappa=0.2406, acc=0.3761, f1=0.3693
+  Confusion matrix:
+[[ 78  32  34]
+ [130  91 130]
+ [  7  12  39]]
+  Time: 301s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R7_ft_top10_50ep
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=50, unfreeze_pct=0.1
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1545, acc=0.5009, f1=0.4062 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 38: early stopping
+Restoring model weights from the end of the best epoch: 18.
+  Fusion best: val_kappa=0.1975 at epoch 18/38
+  Stage 2: unfreezing top 10% (34/340 layers, BN frozen)
+  Stage 2: unfreezing top 10% (24/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2317 at epoch 1/11
+
+  POST-EVAL: kappa=0.2309, acc=0.3924, f1=0.3850
+  Confusion matrix:
+[[ 79  39  26]
+ [154 100  97]
+ [ 11   9  38]]
+  Time: 488s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R7_ft_top20_50ep
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1545, acc=0.5009, f1=0.4062 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Fusion best: val_kappa=0.2403 at epoch 3/23
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2617 at epoch 1/11
+
+  POST-EVAL: kappa=0.2609, acc=0.3201, f1=0.3196
+  Confusion matrix:
+[[ 95  19  30]
+ [179  39 133]
+ [  9   6  43]]
+  Time: 363s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B2_R7_ft_top20_50ep_lr
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.003, stage1_epochs=200
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1545, acc=0.5009, f1=0.4062 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
+  Fusion best: val_kappa=0.2181 at epoch 7/27
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 17.
+  Stage 2 best: val_kappa=0.2490 at epoch 17/27
+
+  POST-EVAL: kappa=0.2490, acc=0.3599, f1=0.3605
+  Confusion matrix:
+[[ 82  26  36]
+ [147  71 133]
+ [  8   4  46]]
+  Time: 544s
+
+  BEST from this round: B2_R7_ft_top20_50ep (kappa=0.2609, s1_kappa=0.2403)
+
+################################################################################
+BRANCH B3: lr1e-03 (R1 kappa=0.2406)
+################################################################################
+
+============================================================
+  B3 — ROUND 2: FUSION TRAINING EPOCHS
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R2_ep100_pat15
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d12_l3_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 10.
+  Fusion best: val_kappa=0.2725 at epoch 10/25
+
+  POST-EVAL: kappa=0.2725, acc=0.3635, f1=0.3633
+  Confusion matrix:
+[[ 76  42  26]
+ [138  82 131]
+ [  6   9  43]]
+  Time: 287s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R2_ep200_pat20
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+  Fusion best: val_kappa=0.2561 at epoch 12/32
+
+  POST-EVAL: kappa=0.2561, acc=0.3092, f1=0.3083
+  Confusion matrix:
+[[ 99  16  29]
+ [204  30 117]
+ [  8   8  42]]
+  Time: 316s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R2_ep200_pat30
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Fusion best: val_kappa=0.2510 at epoch 11/41
+
+  POST-EVAL: kappa=0.2501, acc=0.4033, f1=0.3891
+  Confusion matrix:
+[[ 57  56  31]
+ [110 121 120]
+ [  3  10  45]]
+  Time: 393s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R2_ep300_pat25
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=300
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 8.
+  Fusion best: val_kappa=0.2453 at epoch 8/33
+
+  POST-EVAL: kappa=0.2453, acc=0.3671, f1=0.3655
+  Confusion matrix:
+[[ 72  47  25]
+ [145  89 117]
+ [  9   7  42]]
+  Time: 324s
+
+  BEST from this round: B3_R2_ep100_pat15 (kappa=0.2725, s1_kappa=0.2725)
+
+============================================================
+  B3 — ROUND 3: FUSION STRATEGY
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R3_prob_concat
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 21.
+  Fusion best: val_kappa=0.2501 at epoch 21/41
+
+  POST-EVAL: kappa=0.2501, acc=0.4105, f1=0.3960
+  Confusion matrix:
+[[ 73  39  32]
+ [116 115 120]
+ [  6  13  39]]
+  Time: 393s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R3_feature_concat
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+  Fusion best: val_kappa=0.2602 at epoch 15/35
+
+  POST-EVAL: kappa=0.2602, acc=0.4141, f1=0.3983
+  Confusion matrix:
+[[ 77  47  20]
+ [136 117  98]
+ [  9  14  35]]
+  Time: 340s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R3_feature_concat_attn
+  fusion_strategy=feature_concat_attn, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 47/805 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 6.
+  Fusion best: val_kappa=0.1982 at epoch 6/26
+
+  POST-EVAL: kappa=0.1982, acc=0.4575, f1=0.4261
+  Confusion matrix:
+[[ 98  33  13]
+ [190 135  26]
+ [ 18  20  20]]
+  Time: 268s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R3_gated
+  fusion_strategy=gated, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 18/776 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 29: early stopping
+Restoring model weights from the end of the best epoch: 9.
+  Fusion best: val_kappa=0.1162 at epoch 9/29
+
+  POST-EVAL: kappa=0.1162, acc=0.2134, f1=0.2019
+  Confusion matrix:
+[[ 14  41  89]
+ [ 16  46 289]
+ [  0   0  58]]
+  Time: 290s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R3_hybrid
+  fusion_strategy=hybrid, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+  Fusion best: val_kappa=0.2452 at epoch 12/32
+
+  POST-EVAL: kappa=0.2460, acc=0.3689, f1=0.3654
+  Confusion matrix:
+[[ 87  31  26]
+ [166  79 106]
+ [ 10  10  38]]
+  Time: 316s
+
+  BEST from this round: B3_R3_feature_concat (kappa=0.2602, s1_kappa=0.2602)
+
+============================================================
+  B3 — ROUND 4: FUSION HEAD ARCHITECTURE
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_head_none
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 40: early stopping
+Restoring model weights from the end of the best epoch: 20.
+  Fusion best: val_kappa=0.2640 at epoch 20/40
+
+  POST-EVAL: kappa=0.2640, acc=0.4159, f1=0.4013
+  Confusion matrix:
+[[100  26  18]
+ [169  98  84]
+ [ 15  11  32]]
+  Time: 384s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_head_32
+  fusion_strategy=feature_concat, head=[32], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 18/778 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 40: early stopping
+Restoring model weights from the end of the best epoch: 20.
+  Fusion best: val_kappa=0.2145 at epoch 20/40
+
+  POST-EVAL: kappa=0.2145, acc=0.3978, f1=0.3869
+  Confusion matrix:
+[[ 80  39  25]
+ [152 104  95]
+ [ 15   7  36]]
+  Time: 384s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_head_64
+  fusion_strategy=feature_concat, head=[64], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 18/778 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 55: early stopping
+Restoring model weights from the end of the best epoch: 35.
+  Fusion best: val_kappa=0.2591 at epoch 35/55
+
+  POST-EVAL: kappa=0.2591, acc=0.3942, f1=0.3908
+  Confusion matrix:
+[[ 81  33  30]
+ [150  94 107]
+ [  7   8  43]]
+  Time: 512s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_head_64_32
+  fusion_strategy=feature_concat, head=[64, 32], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 22/784 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 62: early stopping
+Restoring model weights from the end of the best epoch: 42.
+  Fusion best: val_kappa=0.2397 at epoch 42/62
+
+  POST-EVAL: kappa=0.2397, acc=0.3599, f1=0.3581
+  Confusion matrix:
+[[ 68  48  28]
+ [136  88 127]
+ [  8   7  43]]
+  Time: 572s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_head_128_64
+  fusion_strategy=feature_concat, head=[128, 64], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 22/784 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 57: early stopping
+Restoring model weights from the end of the best epoch: 37.
+  Fusion best: val_kappa=0.2520 at epoch 37/57
+
+  POST-EVAL: kappa=0.2494, acc=0.3816, f1=0.3795
+  Confusion matrix:
+[[ 73  44  27]
+ [143  94 114]
+ [  9   5  44]]
+  Time: 527s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_drop01_bn
+  fusion_strategy=feature_concat, head=[64], head_drop=0.1, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 18/778 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Fusion best: val_kappa=0.2268 at epoch 11/31
+
+  POST-EVAL: kappa=0.2268, acc=0.4756, f1=0.4313
+  Confusion matrix:
+[[ 58  59  27]
+ [ 99 170  82]
+ [  6  17  35]]
+  Time: 305s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_drop03_bn
+  fusion_strategy=feature_concat, head=[64], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 18/778 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+  Fusion best: val_kappa=0.2287 at epoch 15/35
+
+  POST-EVAL: kappa=0.2287, acc=0.3508, f1=0.3490
+  Confusion matrix:
+[[ 85  25  34]
+ [156  68 127]
+ [ 11   6  41]]
+  Time: 334s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_drop05_bn
+  fusion_strategy=feature_concat, head=[64], head_drop=0.5, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 18/778 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 42: early stopping
+Restoring model weights from the end of the best epoch: 22.
+  Fusion best: val_kappa=0.2490 at epoch 22/42
+
+  POST-EVAL: kappa=0.2490, acc=0.3779, f1=0.3728
+  Confusion matrix:
+[[ 70  43  31]
+ [123  96 132]
+ [  7   8  43]]
+  Time: 401s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R4_drop03_nobn
+  fusion_strategy=feature_concat, head=[64], head_drop=0.3, head_bn=False
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 43: early stopping
+Restoring model weights from the end of the best epoch: 23.
+  Fusion best: val_kappa=0.2105 at epoch 40/43
+
+  POST-EVAL: kappa=0.2067, acc=0.3797, f1=0.3703
+  Confusion matrix:
+[[ 63  36  45]
+ [107 104 140]
+ [  5  10  43]]
+  Time: 410s
+
+  BEST from this round: B3_R4_head_none (kappa=0.2640, s1_kappa=0.2640)
+
+============================================================
+  B3 — ROUND 5: STRATEGY-SPECIFIC PARAMETERS
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_temp0.5
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=0.5, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 42: early stopping
+Restoring model weights from the end of the best epoch: 22.
+  Fusion best: val_kappa=0.2434 at epoch 22/42
+
+  POST-EVAL: kappa=0.2442, acc=0.4286, f1=0.4065
+  Confusion matrix:
+[[ 70  42  32]
+ [116 130 105]
+ [  4  17  37]]
+  Time: 401s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_temp0.75
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=0.75, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2477 at epoch 13/33
+
+  POST-EVAL: kappa=0.2477, acc=0.3960, f1=0.3856
+  Confusion matrix:
+[[ 73  42  29]
+ [120 106 125]
+ [  9   9  40]]
+  Time: 323s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_temp1.0
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2709 at epoch 13/33
+
+  POST-EVAL: kappa=0.2701, acc=0.4539, f1=0.4254
+  Confusion matrix:
+[[ 81  43  20]
+ [133 139  79]
+ [  7  20  31]]
+  Time: 322s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_temp1.5
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.5, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 5.
+  Fusion best: val_kappa=0.2645 at epoch 5/25
+
+  POST-EVAL: kappa=0.2645, acc=0.4738, f1=0.4310
+  Confusion matrix:
+[[ 66  49  29]
+ [ 78 164 109]
+ [  3  23  32]]
+  Time: 254s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_temp2.0
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=2.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+  Fusion best: val_kappa=0.2535 at epoch 15/35
+
+  POST-EVAL: kappa=0.2535, acc=0.3870, f1=0.3800
+  Confusion matrix:
+[[ 90  28  26]
+ [162  87 102]
+ [ 10  11  37]]
+  Time: 340s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_meta_no_scale
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 1.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+  Fusion best: val_kappa=0.2641 at epoch 12/32
+
+  POST-EVAL: kappa=0.2640, acc=0.4412, f1=0.4147
+  Confusion matrix:
+[[ 67  50  27]
+ [ 94 140 117]
+ [  6  15  37]]
+  Time: 315s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_meta_mild
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 36: early stopping
+Restoring model weights from the end of the best epoch: 16.
+  Fusion best: val_kappa=0.2909 at epoch 16/36
+
+  POST-EVAL: kappa=0.2909, acc=0.3599, f1=0.3625
+  Confusion matrix:
+[[ 87  22  35]
+ [136  63 152]
+ [  5   4  49]]
+  Time: 341s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_meta_default
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 10.
+  Fusion best: val_kappa=0.2723 at epoch 10/30
+
+  POST-EVAL: kappa=0.2737, acc=0.3237, f1=0.3192
+  Confusion matrix:
+[[103  10  31]
+ [187  33 131]
+ [  8   7  43]]
+  Time: 297s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R5_meta_strong
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[2.0, 4.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+  Fusion best: val_kappa=0.2512 at epoch 12/32
+
+  POST-EVAL: kappa=0.2512, acc=0.4304, f1=0.4142
+  Confusion matrix:
+[[ 73  44  27]
+ [125 125 101]
+ [  9   9  40]]
+  Time: 314s
+
+  BEST from this round: B3_R5_meta_mild (kappa=0.2909, s1_kappa=0.2909)
+
+============================================================
+  B3 — ROUND 6: RF HYPERPARAMETERS
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R6_rf100_d6
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=100, max_depth=6, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.0787, acc=0.3562, f1=0.3331 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 10.
+  Fusion best: val_kappa=0.2543 at epoch 10/30
+
+  POST-EVAL: kappa=0.2572, acc=0.3345, f1=0.3336
+  Confusion matrix:
+[[ 94   9  41]
+ [161  44 146]
+ [  7   4  47]]
+  Time: 325s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R6_rf200_d8
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf100_d6_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2727 at epoch 13/33
+
+  POST-EVAL: kappa=0.2727, acc=0.3671, f1=0.3619
+  Confusion matrix:
+[[101  14  29]
+ [170  62 119]
+ [ 10   8  40]]
+  Time: 352s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R6_rf300_d10
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 10.
+  Fusion best: val_kappa=0.2995 at epoch 10/30
+
+  POST-EVAL: kappa=0.3002, acc=0.3743, f1=0.3720
+  Confusion matrix:
+[[ 99  18  27]
+ [156  64 131]
+ [  9   5  44]]
+  Time: 328s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R6_rf200_d12
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf300_d10_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1545, acc=0.5009, f1=0.4062 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2789 at epoch 13/33
+
+  POST-EVAL: kappa=0.2730, acc=0.3942, f1=0.3877
+  Confusion matrix:
+[[ 94  24  26]
+ [158  85 108]
+ [ 10   9  39]]
+  Time: 352s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R6_rf200_d8_k20
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=20
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d12_l3_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1192, acc=0.4358, f1=0.3896 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2708 at epoch 13/33
+
+  POST-EVAL: kappa=0.2708, acc=0.4231, f1=0.4102
+  Confusion matrix:
+[[ 86  30  28]
+ [140 110 101]
+ [  7  13  38]]
+  Time: 350s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R6_rf200_d8_k60
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=60
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k20
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1944, acc=0.4159, f1=0.3868 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 36: early stopping
+Restoring model weights from the end of the best epoch: 16.
+  Fusion best: val_kappa=0.2658 at epoch 16/36
+
+  POST-EVAL: kappa=0.2689, acc=0.4105, f1=0.4041
+  Confusion matrix:
+[[ 82  28  34]
+ [126 100 125]
+ [  8   5  45]]
+  Time: 378s
+
+  BEST from this round: B3_R6_rf300_d10 (kappa=0.3002, s1_kappa=0.2995)
+
+============================================================
+  B3 — ROUND 7: STAGE 2 FINE-TUNING IN FUSION
+============================================================
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R7_no_ft
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=0.0, stage2_epochs=0, unfreeze_pct=0.0
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d8_l5_k60
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 36: early stopping
+Restoring model weights from the end of the best epoch: 16.
+  Fusion best: val_kappa=0.2640 at epoch 16/36
+
+  POST-EVAL: kappa=0.2640, acc=0.3779, f1=0.3715
+  Confusion matrix:
+[[100  23  21]
+ [183  74  94]
+ [ 12  11  35]]
+  Time: 377s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R7_ft_top10_50ep
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=50, unfreeze_pct=0.1
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+  Fusion best: val_kappa=0.2720 at epoch 12/32
+  Stage 2: unfreezing top 10% (34/340 layers, BN frozen)
+  Stage 2: unfreezing top 10% (24/238 layers, BN frozen)
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.2766 at epoch 2/12
+
+  POST-EVAL: kappa=0.2711, acc=0.3526, f1=0.3506
+  Confusion matrix:
+[[ 99  18  27]
+ [177  54 120]
+ [ 11   5  42]]
+  Time: 440s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R7_ft_top20_50ep
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+  Fusion best: val_kappa=0.2877 at epoch 15/35
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2690 at epoch 1/11
+  Fusion Stage 2 did NOT improve (s2=0.2690 < s1=0.2877). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.2886, acc=0.4521, f1=0.4293
+  Confusion matrix:
+[[ 77  44  23]
+ [115 136 100]
+ [  6  15  37]]
+  Time: 466s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: B3_R7_ft_top20_50ep_lr
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+  Fusion best: val_kappa=0.2800 at epoch 13/33
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 best: val_kappa=0.3087 at epoch 2/12
+
+  POST-EVAL: kappa=0.3087, acc=0.4123, f1=0.4071
+  Confusion matrix:
+[[ 98  21  25]
+ [150  87 114]
+ [  9   6  43]]
+  Time: 468s
+
+  BEST from this round: B3_R7_ft_top20_50ep_lr (kappa=0.3087, s1_kappa=0.2800)
+
+################################################################################
+TOP 3 SELECTION: 5-FOLD VALIDATION OF BEST CONFIGS (CROSS-BRANCH)
+################################################################################
+  Selected TOP3 #1: B1_R7_ft_top20_50ep_lr -> kappa=0.3103
+  Selected TOP3 #2: B3_R7_ft_top20_50ep_lr -> kappa=0.3087
+  Selected TOP3 #3: B3_R6_rf300_d10 -> kappa=0.3002
+
+Top 3 configs by fold-0 kappa (cross-branch):
+  1. B1_R7_ft_top20_50ep_lr -> kappa=0.3103
+  2. B3_R7_ft_top20_50ep_lr -> kappa=0.3087
+  3. B3_R6_rf300_d10 -> kappa=0.3002
+
+  BEST from this round: B1_R7_ft_top20_50ep_lr (kappa=0.3103, s1_kappa=0.2758)
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_1_fold1
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0005, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf300_d10_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1545, acc=0.5009, f1=0.4062 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 24.
+  Fusion best: val_kappa=0.2578 at epoch 24/44
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
+  Stage 2 best: val_kappa=0.2564 at epoch 4/14
+  Fusion Stage 2 did NOT improve (s2=0.2564 < s1=0.2578). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.2585, acc=0.3635, f1=0.3622
+  Confusion matrix:
+[[ 85  27  32]
+ [143  73 135]
+ [  9   6  43]]
+  Time: 601s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_1_fold2
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0005, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=1
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.756, 0.386, 1.858]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3766, acc=0.6814, f1=0.6075 (n=816)
+
+  PRE-TRAINING: depth_rgb (standalone config)
+    backbone=EfficientNetB0, head=[128], lr=0.001, epochs=50+30ft
+    aug=True, mixup=False(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=30, finetune_lr=1e-05, unfreeze_pct=0.2
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.756, 0.386, 1.858]
+    Trainable weights: 6/320 (backbone frozen)
+Epoch 43: early stopping
+Restoring model weights from the end of the best epoch: 28.
+    Stage 1 best: val_kappa=0.3295 at epoch 28/43
+    Stage 2: unfreezing top 20% (48/239 layers)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+    Stage 2 best: val_kappa=0.3091 at epoch 1/11
+    Stage 2 did NOT improve (s2=0.3091 < s1=0.3295). Restoring S1 weights.
+    Pre-train POST-EVAL: kappa=0.3220, acc=0.5907, f1=0.4985 (n=816)
+
+  PRE-TRAINING: thermal_map (standalone config)
+    backbone=EfficientNetB2, head=[128, 32], lr=0.003, epochs=50+50ft
+    aug=True, mixup=True(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=50, finetune_lr=1e-05, unfreeze_pct=0.5
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.756, 0.386, 1.858]
+    Trainable weights: 10/454 (backbone frozen)
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+    Stage 1 best: val_kappa=0.2698 at epoch 17/32
+    Stage 2: unfreezing top 50% (171/341 layers, BN frozen)
+Epoch 13: early stopping
+Restoring model weights from the end of the best epoch: 3.
+    Stage 2 best: val_kappa=0.2763 at epoch 3/13
+    Pre-train POST-EVAL: kappa=0.2763, acc=0.3137, f1=0.2979 (n=816)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 51: early stopping
+Restoring model weights from the end of the best epoch: 31.
+  Fusion best: val_kappa=0.3094 at epoch 31/51
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3028 at epoch 1/11
+  Fusion Stage 2 did NOT improve (s2=0.3028 < s1=0.3094). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.3043, acc=0.5110, f1=0.4553
+  Confusion matrix:
+[[ 98  90  24]
+ [137 276 133]
+ [  4  11  43]]
+  Time: 1368s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_1_fold3
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0005, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=2
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.752, 0.333, 1.914]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3282, acc=0.5842, f1=0.5572 (n=683)
+
+  PRE-TRAINING: depth_rgb (standalone config)
+    backbone=EfficientNetB0, head=[128], lr=0.001, epochs=50+30ft
+    aug=True, mixup=False(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=30, finetune_lr=1e-05, unfreeze_pct=0.2
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.752, 0.333, 1.914]
+    Trainable weights: 6/320 (backbone frozen)
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 6.
+    Stage 1 best: val_kappa=0.3325 at epoch 6/21
+    Stage 2: unfreezing top 20% (48/239 layers)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+    Stage 2 best: val_kappa=0.2948 at epoch 1/11
+    Stage 2 did NOT improve (s2=0.2948 < s1=0.3325). Restoring S1 weights.
+    Pre-train POST-EVAL: kappa=0.3314, acc=0.5198, f1=0.5062 (n=683)
+
+  PRE-TRAINING: thermal_map (standalone config)
+    backbone=EfficientNetB2, head=[128, 32], lr=0.003, epochs=50+50ft
+    aug=True, mixup=True(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=50, finetune_lr=1e-05, unfreeze_pct=0.5
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.752, 0.333, 1.914]
+    Trainable weights: 10/454 (backbone frozen)
+Epoch 22: early stopping
+Restoring model weights from the end of the best epoch: 7.
+    Stage 1 best: val_kappa=0.2356 at epoch 7/22
+    Stage 2: unfreezing top 50% (171/341 layers, BN frozen)
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
+    Stage 2 best: val_kappa=0.2433 at epoch 4/14
+    Pre-train POST-EVAL: kappa=0.2486, acc=0.3880, f1=0.3807 (n=683)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
+  Fusion best: val_kappa=0.2740 at epoch 26/46
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2760 at epoch 1/11
+
+  POST-EVAL: kappa=0.2741, acc=0.4319, f1=0.4316
+  Confusion matrix:
+[[150  50  29]
+ [222  99  59]
+ [ 13  15  46]]
+  Time: 1172s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_1_fold4
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0005, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=3
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.681, 0.309, 2.01]
+
+  METADATA (RF) PRE-EVAL: kappa=0.2076, acc=0.4887, f1=0.4175 (n=620)
+
+  PRE-TRAINING: depth_rgb (standalone config)
+    backbone=EfficientNetB0, head=[128], lr=0.001, epochs=50+30ft
+    aug=True, mixup=False(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=30, finetune_lr=1e-05, unfreeze_pct=0.2
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.681, 0.309, 2.01]
+    Trainable weights: 6/320 (backbone frozen)
+Epoch 20: early stopping
+Restoring model weights from the end of the best epoch: 5.
+    Stage 1 best: val_kappa=0.3612 at epoch 5/20
+    Stage 2: unfreezing top 20% (48/239 layers)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+    Stage 2 best: val_kappa=0.3642 at epoch 1/11
+    Pre-train POST-EVAL: kappa=0.3642, acc=0.5306, f1=0.5005 (n=620)
+
+  PRE-TRAINING: thermal_map (standalone config)
+    backbone=EfficientNetB2, head=[128, 32], lr=0.003, epochs=50+50ft
+    aug=True, mixup=True(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=50, finetune_lr=1e-05, unfreeze_pct=0.5
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.681, 0.309, 2.01]
+    Trainable weights: 10/454 (backbone frozen)
+Restoring model weights from the end of the best epoch: 36.
+    Stage 1 best: val_kappa=0.3171 at epoch 36/50
+    Stage 2: unfreezing top 50% (171/341 layers, BN frozen)
+Epoch 28: early stopping
+Restoring model weights from the end of the best epoch: 18.
+    Stage 2 best: val_kappa=0.3408 at epoch 18/28
+    Pre-train POST-EVAL: kappa=0.3408, acc=0.3952, f1=0.3791 (n=620)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 57: early stopping
+Restoring model weights from the end of the best epoch: 37.
+  Fusion best: val_kappa=0.3267 at epoch 37/57
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3087 at epoch 1/11
+  Fusion Stage 2 did NOT improve (s2=0.3087 < s1=0.3267). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.3267, acc=0.4258, f1=0.4210
+  Confusion matrix:
+[[127  22  41]
+ [132  70 131]
+ [ 18  12  67]]
+  Time: 1531s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_1_fold5
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0005, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=12, leaf=3, split=5, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=4
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.717, 0.345, 1.937]
+
+  METADATA (RF) PRE-EVAL: kappa=0.2204, acc=0.5940, f1=0.4936 (n=436)
+
+  PRE-TRAINING: depth_rgb (standalone config)
+    backbone=EfficientNetB0, head=[128], lr=0.001, epochs=50+30ft
+    aug=True, mixup=False(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=30, finetune_lr=1e-05, unfreeze_pct=0.2
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.717, 0.345, 1.937]
+    Trainable weights: 6/320 (backbone frozen)
+Epoch 24: early stopping
+Restoring model weights from the end of the best epoch: 9.
+    Stage 1 best: val_kappa=0.2707 at epoch 9/24
+    Stage 2: unfreezing top 20% (48/239 layers)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+    Stage 2 best: val_kappa=0.2627 at epoch 1/11
+    Stage 2 did NOT improve (s2=0.2627 < s1=0.2707). Restoring S1 weights.
+    Pre-train POST-EVAL: kappa=0.2707, acc=0.4541, f1=0.4328 (n=436)
+
+  PRE-TRAINING: thermal_map (standalone config)
+    backbone=EfficientNetB2, head=[128, 32], lr=0.003, epochs=50+50ft
+    aug=True, mixup=True(0.2), img_size=256, schedule=plateau, warmup=0
+    Stage 2: finetune_epochs=50, finetune_lr=1e-05, unfreeze_pct=0.5
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+    Alpha values (sum=3.0): [0.717, 0.345, 1.937]
+    Trainable weights: 10/454 (backbone frozen)
+Epoch 28: early stopping
+Restoring model weights from the end of the best epoch: 13.
+    Stage 1 best: val_kappa=0.2527 at epoch 17/28
+    Stage 2: unfreezing top 50% (171/341 layers, BN frozen)
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+    Stage 2 best: val_kappa=0.2712 at epoch 2/12
+    Pre-train POST-EVAL: kappa=0.2712, acc=0.3509, f1=0.3446 (n=436)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 28: early stopping
+Restoring model weights from the end of the best epoch: 8.
+  Fusion best: val_kappa=0.2678 at epoch 8/28
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2441 at epoch 1/11
+  Fusion Stage 2 did NOT improve (s2=0.2441 < s1=0.2678). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.2678, acc=0.3899, f1=0.3836
+  Confusion matrix:
+[[ 69  33  16]
+ [121  72  77]
+ [  8  11  29]]
+  Time: 1107s
+
+  BEST from this round: B3_R7_ft_top20_50ep_lr (kappa=0.3087, s1_kappa=0.2800)
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_2_fold1
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf200_d12_l3_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
+  Fusion best: val_kappa=0.2691 at epoch 26/46
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2299 at epoch 3/11
+  Fusion Stage 2 did NOT improve (s2=0.2299 < s1=0.2691). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.2691, acc=0.4575, f1=0.4369
+  Confusion matrix:
+[[ 86  33  25]
+ [138 131  82]
+ [  9  13  36]]
+  Time: 601s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_2_fold2
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=1
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.756, 0.386, 1.858]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3100, acc=0.6054, f1=0.5611 (n=816)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 1)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 1)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 53: early stopping
+Restoring model weights from the end of the best epoch: 33.
+  Fusion best: val_kappa=0.3069 at epoch 33/53
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2961 at epoch 1/11
+  Fusion Stage 2 did NOT improve (s2=0.2961 < s1=0.3069). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.3069, acc=0.5576, f1=0.5148
+  Confusion matrix:
+[[124  84   4]
+ [207 301  38]
+ [ 10  18  30]]
+  Time: 629s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_2_fold3
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=2
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.752, 0.333, 1.914]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3330, acc=0.5432, f1=0.5381 (n=683)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 2)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 2)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 24.
+  Fusion best: val_kappa=0.2883 at epoch 24/44
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.2921 at epoch 1/11
+
+  POST-EVAL: kappa=0.2902, acc=0.4436, f1=0.4459
+  Confusion matrix:
+[[150  45  34]
+ [216 101  63]
+ [ 11  11  52]]
+  Time: 591s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_2_fold4
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=3
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.681, 0.309, 2.01]
+
+  METADATA (RF) PRE-EVAL: kappa=0.2478, acc=0.4339, f1=0.3983 (n=620)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 3)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 3)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 64: early stopping
+Restoring model weights from the end of the best epoch: 44.
+  Fusion best: val_kappa=0.3569 at epoch 44/64
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 best: val_kappa=0.3116 at epoch 1/11
+  Fusion Stage 2 did NOT improve (s2=0.3116 < s1=0.3569). Restoring S1 weights.
+
+  POST-EVAL: kappa=0.3569, acc=0.4468, f1=0.4437
+  Confusion matrix:
+[[101  62  27]
+ [101 118 114]
+ [  7  32  58]]
+  Time: 770s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_2_fold5
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=5e-06, stage2_epochs=50, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=4
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.717, 0.345, 1.937]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3221, acc=0.6032, f1=0.5291 (n=436)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 4)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 4)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 58: early stopping
+Restoring model weights from the end of the best epoch: 38.
+  Fusion best: val_kappa=0.3051 at epoch 47/58
+  Stage 2: unfreezing top 20% (68/340 layers, BN frozen)
+  Stage 2: unfreezing top 20% (48/238 layers, BN frozen)
+Epoch 15: early stopping
+Restoring model weights from the end of the best epoch: 5.
+  Stage 2 best: val_kappa=0.3166 at epoch 5/15
+
+  POST-EVAL: kappa=0.3164, acc=0.4060, f1=0.4042
+  Confusion matrix:
+[[ 64  39  15]
+ [101  77  92]
+ [  6   6  36]]
+  Time: 772s
+
+  BEST from this round: B3_R6_rf300_d10 (kappa=0.3002, s1_kappa=0.2995)
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_3_fold1
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1413, acc=0.3978, f1=0.3673 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 51: early stopping
+Restoring model weights from the end of the best epoch: 31.
+  Fusion best: val_kappa=0.2600 at epoch 31/51
+
+  POST-EVAL: kappa=0.2600, acc=0.4412, f1=0.4192
+  Confusion matrix:
+[[ 86  33  25]
+ [141 125  85]
+ [  8  17  33]]
+  Time: 483s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_3_fold2
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=1
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.756, 0.386, 1.858]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3100, acc=0.6054, f1=0.5611 (n=816)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 1)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 1)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 30: early stopping
+Restoring model weights from the end of the best epoch: 10.
+  Fusion best: val_kappa=0.2607 at epoch 10/30
+
+  POST-EVAL: kappa=0.2608, acc=0.5196, f1=0.4504
+  Confusion matrix:
+[[ 97  87  28]
+ [144 291 111]
+ [  5  17  36]]
+  Time: 292s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_3_fold3
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=2
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.752, 0.333, 1.914]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3330, acc=0.5432, f1=0.5381 (n=683)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 2)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 2)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 66: early stopping
+Restoring model weights from the end of the best epoch: 46.
+  Fusion best: val_kappa=0.2941 at epoch 46/66
+
+  POST-EVAL: kappa=0.2941, acc=0.4802, f1=0.4767
+  Confusion matrix:
+[[118  85  26]
+ [165 163  52]
+ [  7  20  47]]
+  Time: 580s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_3_fold4
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=3
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.681, 0.309, 2.01]
+
+  METADATA (RF) PRE-EVAL: kappa=0.2478, acc=0.4339, f1=0.3983 (n=620)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 3)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 3)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 29: early stopping
+Restoring model weights from the end of the best epoch: 9.
+  Fusion best: val_kappa=0.3354 at epoch 9/29
+
+  POST-EVAL: kappa=0.3319, acc=0.4919, f1=0.4631
+  Confusion matrix:
+[[ 89  76  25]
+ [ 59 173 101]
+ [  7  47  43]]
+  Time: 289s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: TOP3_3_fold5
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, stage1_epochs=100
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=300, max_depth=10, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=4
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.717, 0.345, 1.937]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3221, acc=0.6032, f1=0.5291 (n=436)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 4)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 4)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 14/772 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 92: early stopping
+Restoring model weights from the end of the best epoch: 72.
+  Fusion best: val_kappa=0.3177 at epoch 72/92
+
+  POST-EVAL: kappa=0.3177, acc=0.4564, f1=0.4460
+  Confusion matrix:
+[[66 35 17]
+ [97 98 75]
+ [ 6  7 35]]
+  Time: 873s
+
+################################################################################
+BASELINE: 5-FOLD CV WITH DEFAULT PARAMETERS
+################################################################################
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: BASELINE_fold1
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0001, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=0
+================================================================================
+  Cleaning old fusion cache: fusion_meta_depth_rgb_thermal_map_256_aug_rf300_d10_l5_k40
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.715, 0.35, 1.934]
+
+  METADATA (RF) PRE-EVAL: kappa=0.1499, acc=0.3870, f1=0.3611 (n=553)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 0)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 0)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 67: early stopping
+Restoring model weights from the end of the best epoch: 47.
+  Fusion best: val_kappa=0.1946 at epoch 47/67
+
+  POST-EVAL: kappa=0.1946, acc=0.3472, f1=0.3416
+  Confusion matrix:
+[[ 61  43  40]
+ [114  90 147]
+ [  8   9  41]]
+  Time: 646s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: BASELINE_fold2
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0001, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=1
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.756, 0.386, 1.858]
+
+  METADATA (RF) PRE-EVAL: kappa=0.2880, acc=0.5760, f1=0.5590 (n=816)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 1)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 1)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 50: early stopping
+Restoring model weights from the end of the best epoch: 30.
+  Fusion best: val_kappa=0.2230 at epoch 30/50
+
+  POST-EVAL: kappa=0.2230, acc=0.3897, f1=0.3697
+  Confusion matrix:
+[[110  49  53]
+ [168 164 214]
+ [  8   6  44]]
+  Time: 481s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: BASELINE_fold3
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0001, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=2
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.752, 0.333, 1.914]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3961, acc=0.5549, f1=0.5560 (n=683)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 2)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 2)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 49: early stopping
+Restoring model weights from the end of the best epoch: 29.
+  Fusion best: val_kappa=0.0982 at epoch 32/49
+
+  POST-EVAL: kappa=0.0973, acc=0.2723, f1=0.2736
+  Confusion matrix:
+[[ 85   6 138]
+ [112  40 228]
+ [  8   5  61]]
+  Time: 476s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: BASELINE_fold4
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0001, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=3
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.681, 0.309, 2.01]
+
+  METADATA (RF) PRE-EVAL: kappa=0.2354, acc=0.4258, f1=0.4131 (n=620)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 3)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 3)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 24: early stopping
+Restoring model weights from the end of the best epoch: 4.
+  Fusion best: val_kappa=0.1960 at epoch 4/24
+
+  POST-EVAL: kappa=0.1960, acc=0.4032, f1=0.2750
+  Confusion matrix:
+[[184   6   0]
+ [267  66   0]
+ [ 47  50   0]]
+  Time: 275s
+
+================================================================================
+CONFIG [FUSION metadata+depth_rgb+thermal_map]: BASELINE_fold5
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0001, stage1_epochs=200
+  stage2_lr=1e-05, stage2_epochs=0, unfreeze_pct=0.2
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, fusion_query_l2=0.001
+  meta_query_scale=0.8, image_query_scale=1.5
+  rf: n_est=200, max_depth=8, leaf=5, split=10, feat_k=40
+  loss=focal, gamma=2.0, alpha_sum=3.0
+  batch=64, lr_schedule=plateau, warmup=0
+  aug=True, mixup=False(0.2), img_size=256
+  fold=4
+================================================================================
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+  Alpha values (sum=3.0): [0.717, 0.345, 1.937]
+
+  METADATA (RF) PRE-EVAL: kappa=0.3243, acc=0.5757, f1=0.5089 (n=436)
+
+  PRE-TRAINING: depth_rgb — using cached weights (fold 4)
+
+  PRE-TRAINING: thermal_map — using cached weights (fold 4)
+  Transferred backbone weights for depth_rgb -> depth_rgb_efficientnetb0
+  Transferred backbone weights for thermal_map -> thermal_map_efficientnetb2
+  Transferred 2 pre-trained backbones to fusion model
+  Trainable weights: 16/774 (backbone frozen, fusion layers trainable)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 112: early stopping
+Restoring model weights from the end of the best epoch: 92.
+  Fusion best: val_kappa=0.2393 at epoch 92/112
+
+  POST-EVAL: kappa=0.2357, acc=0.3028, f1=0.3090
+  Confusion matrix:
+[[ 57  27  34]
+ [102  35 133]
+ [  5   3  40]]
+  Time: 1071s
+
+================================================================================
+FUSION SEARCH COMPLETE — SUMMARY
+================================================================================
+  R1: Fusion LR: R1_lr5e-04 -> kappa=0.2629
+
+  B1 (lr5e-04, R1 kappa=0.2629):
+    R2: B1_R2_ep100_pat15 -> kappa=0.2649
+    R3: B1_R3_feature_concat -> kappa=0.2803
+    R4: B1_R4_head_none -> kappa=0.2740
+    R5: B1_R5_meta_default -> kappa=0.2929
+    R6: B1_R6_rf200_d12 -> kappa=0.2673
+    R7: B1_R7_ft_top20_50ep_lr -> kappa=0.3103
+
+  B2 (lr3e-03, R1 kappa=0.2447):
+    R2: B2_R2_ep200_pat20 -> kappa=0.2472
+    R3: B2_R3_prob_concat -> kappa=0.2354
+    R4: B2_R4_head_none -> kappa=0.2418
+    R5: B2_R5_meta_default -> kappa=0.2610
+    R6: B2_R6_rf200_d12 -> kappa=0.2583
+    R7: B2_R7_ft_top20_50ep -> kappa=0.2609
+
+  B3 (lr1e-03, R1 kappa=0.2406):
+    R2: B3_R2_ep100_pat15 -> kappa=0.2725
+    R3: B3_R3_feature_concat -> kappa=0.2602
+    R4: B3_R4_head_none -> kappa=0.2640
+    R5: B3_R5_meta_mild -> kappa=0.2909
+    R6: B3_R6_rf300_d10 -> kappa=0.3002
+    R7: B3_R7_ft_top20_50ep_lr -> kappa=0.3087
+
+────────────────────────────────────────────────────────────
+TOP 3 CONFIGS — 5-FOLD RESULTS
+────────────────────────────────────────────────────────────
+
+  Rank   Config                           Fold0     Mean+/-Std
+  ------------------------------------------------------------
+  1      B3_R7_ft_top20_50ep_lr          0.3087 0.3079+/-0.0293
+  2      B3_R6_rf300_d10                 0.3002 0.2929+/-0.0292
+  3      B1_R7_ft_top20_50ep_lr          0.3103 0.2863+/-0.0254
+
+────────────────────────────────────────────────────────────
+DETAILED RESULTS
+────────────────────────────────────────────────────────────
+
+#1: B3_R7_ft_top20_50ep_lr (TOP3_2):
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, epochs=100
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, l2=0.001
+  meta_q=0.8, img_q=1.5
+  rf: n=300, depth=10, leaf=5, k=40
+  stage2: epochs=50, unfreeze=0.2
+  loss=focal, gamma=2.0, alpha_sum=3.0, label_smoothing=0.1
+
+  Fold        Kappa   Accuracy   F1 (macro)
+  ----------------------------------------
+  Fold 1     0.2691     0.4575       0.4369
+  Fold 2     0.3069     0.5576       0.5148
+  Fold 3     0.2902     0.4436       0.4459
+  Fold 4     0.3569     0.4468       0.4437
+  Fold 5     0.3164     0.4060       0.4042
+  ----------------------------------------
+  Mean       0.3079     0.4623       0.4491
+  Std        0.0293     0.0507       0.0361
+
+#2: B3_R6_rf300_d10 (TOP3_3):
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.001, epochs=100
+  meta_scale=[1.0, 2.0]
+  fusion_query_dim=64, l2=0.001
+  meta_q=0.8, img_q=1.5
+  rf: n=300, depth=10, leaf=5, k=40
+  stage2: epochs=0, unfreeze=0.2
+  loss=focal, gamma=2.0, alpha_sum=3.0, label_smoothing=0.1
+
+  Fold        Kappa   Accuracy   F1 (macro)
+  ----------------------------------------
+  Fold 1     0.2600     0.4412       0.4192
+  Fold 2     0.2608     0.5196       0.4504
+  Fold 3     0.2941     0.4802       0.4767
+  Fold 4     0.3319     0.4919       0.4631
+  Fold 5     0.3177     0.4564       0.4460
+  ----------------------------------------
+  Mean       0.2929     0.4779       0.4511
+  Std        0.0292     0.0274       0.0192
+
+#3: B1_R7_ft_top20_50ep_lr (TOP3_1):
+  fusion_strategy=feature_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0005, epochs=100
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, l2=0.001
+  meta_q=0.8, img_q=1.5
+  rf: n=200, depth=12, leaf=3, k=40
+  stage2: epochs=50, unfreeze=0.2
+  loss=focal, gamma=2.0, alpha_sum=3.0, label_smoothing=0.1
+
+  Fold        Kappa   Accuracy   F1 (macro)
+  ----------------------------------------
+  Fold 1     0.2585     0.3635       0.3622
+  Fold 2     0.3043     0.5110       0.4553
+  Fold 3     0.2741     0.4319       0.4316
+  Fold 4     0.3267     0.4258       0.4210
+  Fold 5     0.2678     0.3899       0.3836
+  ----------------------------------------
+  Mean       0.2863     0.4244       0.4108
+  Std        0.0254     0.0499       0.0335
+
+────────────────────────────────────────────────────────────
+
+BASELINE (defaults):
+  fusion_strategy=prob_concat, head=[], head_drop=0.3, head_bn=True
+  image_temperature=1.0, gate_hidden_dim=32
+  stage1_lr=0.0001, epochs=200
+  meta_scale=[1.5, 3.0]
+  fusion_query_dim=64, l2=0.001
+  meta_q=0.8, img_q=1.5
+  rf: n=200, depth=8, leaf=5, k=40
+  stage2: epochs=0, unfreeze=0.2
+  loss=focal, gamma=2.0, alpha_sum=3.0, label_smoothing=0.1
+
+  Fold        Kappa   Accuracy   F1 (macro)
+  ----------------------------------------
+  Fold 1     0.1946     0.3472       0.3416
+  Fold 2     0.2230     0.3897       0.3697
+  Fold 3     0.0973     0.2723       0.2736
+  Fold 4     0.1960     0.4032       0.2750
+  Fold 5     0.2357     0.3028       0.3090
+  ----------------------------------------
+  Mean       0.1893     0.3430       0.3138
+  Std        0.0486     0.0499       0.0375
+
+────────────────────────────────────────────────────────────
+STATISTICAL COMPARISON: #1 B3_R7_ft_top20_50ep_lr vs BASELINE
+────────────────────────────────────────────────────────────
+  Mean Kappa diff:    +0.1186  (0.1893 -> 0.3079)
+  Mean Accuracy diff: +0.1193  (0.3430 -> 0.4623)
+  Mean F1 diff:       +0.1353  (0.3138 -> 0.4491)
+
+  Paired t-test on kappa (n=5 folds):
+    t-statistic = 4.8642
+    p-value     = 0.0083
+    -> Statistically significant (p < 0.05): WINNER is better
+
+Results saved to: /workspace/DFUMultiClassification/agent_communication/fusion_pipeline_audit/fusion_search_results.csv
+
+  B3_R7_ft_top20_50ep_lr wins (kappa 0.3079 > 0.1893)
+Best config saved to: /workspace/DFUMultiClassification/agent_communication/fusion_pipeline_audit/fusion_best_config.json

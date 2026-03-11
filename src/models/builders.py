@@ -441,85 +441,53 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 # Single image modality - train classifier
                 output = Dense(3, activation='softmax', name='output', dtype='float32')(branches[0])
 
-        elif len(selected_modalities) == 2:
-            if has_metadata:
-                # MULTI-MODAL (2): Metadata + 1 Image
-                from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 1 image - concat fusion", level=2)
+        elif len(selected_modalities) >= 2 and has_metadata:
+            # FEATURE_CONCAT FUSION (validated by fusion hparam search)
+            # RF probs (3) + image features (N) → Dense(3)
+            # Much more expressive than prob_concat (RF probs + image probs → Dense(3))
+            from src.utils.verbosity import vprint
+            n_images = len(selected_modalities) - 1
+            vprint(f"Model: Metadata + {n_images} image(s) - feature_concat fusion", level=2)
 
-                rf_probs = branches[metadata_idx]
-                image_idx = 1 - metadata_idx
-                image_features = branches[image_idx]
-                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_features)
+            rf_probs = branches[metadata_idx]
+            image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
 
-                # Concat RF probs (3) + image probs (3) → Dense(3)
-                # 21 params — learns per-class weighting (e.g. trust RF for class R, images for class I)
-                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
+            if len(image_branches) > 1:
+                image_features = concatenate(image_branches, name='concat_image_features')
             else:
-                # Two image modalities
-                merged = concatenate(branches, name='concat_branches')
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
+                image_features = image_branches[0]
+
+            # Feature-level fusion: concat RF probs with raw image features
+            # (not image probs — preserves richer feature representation)
+            fused = concatenate([rf_probs, image_features], name='fusion_concat')
+            output = Dense(3, activation='softmax', name='output', dtype='float32',
+                           kernel_regularizer=tf.keras.regularizers.l2(0.001))(fused)
+
+        elif len(selected_modalities) == 2:
+            # Two image modalities (no metadata)
+            merged = concatenate(branches, name='concat_branches')
+            output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         elif len(selected_modalities) == 3:
-            if has_metadata:
-                # MULTI-MODAL (3): Metadata + 2 Images
-                from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 2 images - concat fusion", level=2)
-
-                rf_probs = branches[metadata_idx]
-                image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
-                image_merged = concatenate(image_branches, name='concat_images')
-                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
-
-                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
-            else:
-                # Three image modalities
-                merged = concatenate(branches, name='concat_branches')
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
+            # Three image modalities (no metadata)
+            merged = concatenate(branches, name='concat_branches')
+            output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         elif len(selected_modalities) == 4:
-            if has_metadata:
-                # MULTI-MODAL (4): Metadata + 3 Images
-                from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 3 images - concat fusion", level=2)
+            # Four image modalities (no metadata)
+            merged = concatenate(branches, name='concat_branches')
+            x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_3')(merged)
+            x = tf.keras.layers.BatchNormalization(name='final_BN_3')(x)
+            x = tf.keras.layers.Dropout(0.10, name='final_dropout_3')(x)
+            x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(x)
+            x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
+            x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
+            output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
 
-                rf_probs = branches[metadata_idx]
-                image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
-                image_merged = concatenate(image_branches, name='concat_images')
-                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
-
-                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
-            else:
-                # Four image modalities - original architecture
-                merged = concatenate(branches, name='concat_branches')
-                x = Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_3')(merged)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_3')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_3')(x)
-                x = Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), name='final_dense_4')(x)
-                x = tf.keras.layers.BatchNormalization(name='final_BN_4')(x)
-                x = tf.keras.layers.Dropout(0.10, name='final_dropout_4')(x)
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
-
-        elif len(selected_modalities) == 5:
-            if has_metadata:
-                # MULTI-MODAL (5): Metadata + 4 Images
-                from src.utils.verbosity import vprint
-                vprint("Model: Metadata + 4 images - concat fusion", level=2)
-
-                rf_probs = branches[metadata_idx]
-                image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
-                image_merged = concatenate(image_branches, name='concat_images')
-                image_probs = Dense(3, activation='softmax', name='image_classifier', dtype='float32')(image_merged)
-
-                fused = concatenate([rf_probs, image_probs], name='fusion_concat')
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(fused)
-            else:
-                # Five image modalities
-                merged = concatenate(branches, name='concat_branches')
-                output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
+        elif len(selected_modalities) >= 5:
+            # Five+ image modalities (no metadata)
+            merged = concatenate(branches, name='concat_branches')
+            output = Dense(3, activation='softmax', name='output', dtype='float32')(merged)
 
         model = Model(inputs=inputs, outputs=output)
 

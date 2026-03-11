@@ -20,13 +20,15 @@ Categories:
 - File I/O
 """
 
+import os
+
 # =============================================================================
 # Training Parameters
 # =============================================================================
 
 # Core training hyperparameters
 IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
-GLOBAL_BATCH_SIZE = 64  # Total batch size across all GPU replicas (16 per GPU; reduced from 600 to get ~17 steps/epoch with ~516 training samples instead of 1)
+GLOBAL_BATCH_SIZE = int(os.environ.get('OVERRIDE_BATCH_SIZE', 64))  # Total batch size across all GPU replicas
 PHASE2_BATCH_SIZE_ADJUSTMENT = False  # Auto-adjust batch size in Phase 2 based on modality count/weight (can reduce batch size too aggressively)
 N_EPOCHS = 200  # Full training epochs
 
@@ -66,40 +68,76 @@ MAP_BACKBONE = 'EfficientNetB2'
 # =============================================================================
 # Each modality can override the global defaults for backbone, head, loss, and
 # fine-tuning.  Values here are validated by standalone hparam searches:
-#   depth_rgb:   agent_communication/depth_rgb_pipeline_audit/
-#   depth_map:   agent_communication/depth_map_pipeline_audit/
-#   thermal_map: agent_communication/thermal_map_pipeline_audit/
+#   depth_rgb:   agent_communication/depth_rgb_pipeline_audit/depth_rgb_best_config.json
+#   thermal_map: agent_communication/thermal_map_pipeline_audit/thermal_map_best_config.json
+#   depth_map:   mirrors thermal_map setup (same modality type)
 #
 # Keys not present in a modality dict fall back to the global defaults above.
 
 MODALITY_CONFIGS = {
     'depth_rgb': {
-        'backbone': 'EfficientNetB2',   # validated: R4_lr1e3_b64_e100 (full-data search)
-        'head_units': [256, 64],         # two-layer head (search: [256, 64])
+        # validated: BASELINE config (depth_rgb_best_config.json)
+        'backbone': 'EfficientNetB0',
+        'head_units': [128],             # single-layer head
         'head_l2': 0.0,
         'label_smoothing': 0.0,
+        'learning_rate': 0.001,          # Stage 1 (frozen backbone) LR
+        'finetune_lr': 1e-5,            # Stage 2 fine-tuning LR
         'finetune_epochs': 30,
+        'unfreeze_pct': 0.2,            # top 20% backbone unfrozen in Stage 2
+        'freeze_bn_stage2': False,       # do NOT freeze BN in Stage 2
+        'use_mixup': False,
+        'mixup_alpha': 0.2,
+        'early_stop_patience': 15,
+        'reduce_lr_patience': 7,
     },
     'depth_map': {
-        'backbone': 'EfficientNetB2',   # validated: R3_focal_g2_l2_1e3
-        'head_units': 64,
-        'head_l2': 0.001,
+        # mirrors thermal_map setup (same modality type: map images)
+        'backbone': 'EfficientNetB2',
+        'head_units': [128, 32],         # two-layer head (matches thermal_map)
+        'head_l2': 0.0,
         'label_smoothing': 0.0,
-        'finetune_epochs': 30,
+        'learning_rate': 0.003,          # same as thermal_map
+        'finetune_lr': 1e-5,
+        'finetune_epochs': 50,
+        'unfreeze_pct': 0.5,            # top 50% backbone unfrozen (matches thermal_map)
+        'freeze_bn_stage2': True,        # freeze BN in Stage 2 (matches thermal_map)
+        'use_mixup': True,              # matches thermal_map
+        'mixup_alpha': 0.2,
+        'early_stop_patience': 15,
+        'reduce_lr_patience': 7,
     },
     'thermal_map': {
-        'backbone': 'EfficientNetB0',   # validated: BASELINE (full-data search, avg kappa 0.426)
-        'head_units': 128,
+        # validated: B3_R6_ft_top50_50ep (thermal_map_best_config.json)
+        'backbone': 'EfficientNetB2',
+        'head_units': [128, 32],         # two-layer head
         'head_l2': 0.0,
         'label_smoothing': 0.0,
-        'finetune_epochs': 30,
+        'learning_rate': 0.003,          # Stage 1 (frozen backbone) LR
+        'finetune_lr': 1e-5,
+        'finetune_epochs': 50,
+        'unfreeze_pct': 0.5,            # top 50% backbone unfrozen in Stage 2
+        'freeze_bn_stage2': True,        # freeze BN in Stage 2
+        'use_mixup': True,
+        'mixup_alpha': 0.2,
+        'early_stop_patience': 15,
+        'reduce_lr_patience': 7,
     },
     'thermal_rgb': {
-        'backbone': 'EfficientNetB2',   # mirrors depth_rgb backbone
-        'head_units': [256, 64],
+        # mirrors depth_rgb setup (same modality type: RGB images)
+        'backbone': 'EfficientNetB0',
+        'head_units': [128],
         'head_l2': 0.0,
         'label_smoothing': 0.0,
+        'learning_rate': 0.001,
+        'finetune_lr': 1e-5,
         'finetune_epochs': 30,
+        'unfreeze_pct': 0.2,
+        'freeze_bn_stage2': False,
+        'use_mixup': False,
+        'mixup_alpha': 0.2,
+        'early_stop_patience': 15,
+        'reduce_lr_patience': 7,
     },
 }
 
@@ -116,16 +154,24 @@ def get_modality_config(modality):
         'head_units': cfg.get('head_units', 256),
         'head_l2': cfg.get('head_l2', 0.0),
         'label_smoothing': cfg.get('label_smoothing', globals().get('LABEL_SMOOTHING', 0.0)),
+        'learning_rate': cfg.get('learning_rate', globals().get('PRETRAIN_LR', 1e-3)),
+        'finetune_lr': cfg.get('finetune_lr', globals().get('STAGE2_LR', 1e-5)),
         'finetune_epochs': cfg.get('finetune_epochs', globals().get('STAGE2_FINETUNE_EPOCHS', 50)),
+        'unfreeze_pct': cfg.get('unfreeze_pct', globals().get('STAGE2_UNFREEZE_PCT', 0.2)),
+        'freeze_bn_stage2': cfg.get('freeze_bn_stage2', True),
+        'use_mixup': cfg.get('use_mixup', False),
+        'mixup_alpha': cfg.get('mixup_alpha', 0.2),
+        'early_stop_patience': cfg.get('early_stop_patience', globals().get('EARLY_STOP_PATIENCE', 20)),
+        'reduce_lr_patience': cfg.get('reduce_lr_patience', globals().get('REDUCE_LR_PATIENCE', 10)),
     }
 
 # Fusion-specific training parameters
-PRETRAIN_LR = 1e-3  # Learning rate for Stage 1 head-only training (frozen backbone)
-STAGE1_LR = 1e-4  # Learning rate for Stage 1 fusion training (frozen image branch)
-STAGE2_LR = 1e-5  # Learning rate for Stage 2 fine-tuning (validated by depth_rgb hparam search: 1e-5 with 20% unfreeze)
+PRETRAIN_LR = 1e-3  # Default learning rate for Stage 1 head-only training (overridden by per-modality learning_rate)
+STAGE1_LR = 1e-3  # Learning rate for Stage 1 fusion training (frozen image branch); fusion best: 1e-3
+STAGE2_LR = 5e-6  # Learning rate for Stage 2 fusion fine-tuning (fusion best: 5e-6)
 FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
-STAGE1_EPOCHS = 50  # Stage 1 head-only training epochs (was 20; head needs more epochs to converge)
-STAGE2_FINETUNE_EPOCHS = 50  # Stage 2 fine-tuning epochs (validated by depth_rgb hparam search)
+STAGE1_EPOCHS = 100  # Stage 1 fusion training epochs (fusion best: 100; feature_concat needs more epochs to converge)
+STAGE2_FINETUNE_EPOCHS = 50  # Stage 2 fine-tuning epochs (fusion best: 50)
 STAGE2_UNFREEZE_PCT = 0.2  # Fraction of backbone to unfreeze in Stage 2 (0.2 = top 20%, validated by search)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
@@ -154,10 +200,11 @@ TRAINING_CLASS_WEIGHT_MODE = 'frequency'
 
 # --- Random Forest hyperparameters (independent of neural network) ---
 # Controls: RF model used to generate metadata probabilities fed into the neural network
-RF_N_ESTIMATORS = 200         # Number of trees (50 = more regularized, 300 = more capacity)
+# Validated by fusion hparam search: rf300_d10 (fusion_best_config.json)
+RF_N_ESTIMATORS = 300         # Number of trees (fusion best: 300)
 RF_CLASS_WEIGHT = 'frequency'  # 'balanced' (sklearn auto), 'frequency' (alpha values), or None
 RF_OOF_FOLDS = 5             # Internal OOF folds for training predictions
-RF_MAX_DEPTH = 8              # Limit tree depth (None = unlimited, try 6-12)
+RF_MAX_DEPTH = 10             # Limit tree depth (fusion best: 10)
 RF_MIN_SAMPLES_LEAF = 5       # Min samples per leaf (prevents memorizing rare patterns)
 RF_MIN_SAMPLES_SPLIT = 10     # Min samples to split a node
 
@@ -166,8 +213,9 @@ RF_FEATURE_SELECTION = True  # Enable/disable MI-based feature selection before 
 RF_FEATURE_SELECTION_K = 40  # Number of top features to keep (only used if RF_FEATURE_SELECTION=True)
 
 # Early stopping and learning rate
-EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (increased for longer training)
-REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (increased for longer training)
+# Standalone audits validated patience=15/7; fusion best uses 20/10
+EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (fusion training; standalone uses per-modality values)
+REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (fusion training; standalone uses per-modality values)
 
 # =============================================================================
 # Data Cleaning and Outlier Detection
@@ -253,10 +301,10 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 # When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
 # Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
 # If CSV missing: prints warning and continues with unfiltered data
-USE_CORE_DATA = False  # Use Bayesian-optimized core dataset with misclassification filtering
-THRESHOLD_I = 9  # Inflammatory class threshold (Bayesian-optimized)
-THRESHOLD_P = 16  # Proliferative class threshold (Bayesian-optimized)
-THRESHOLD_R = 16  # Remodeling class threshold (higher to protect minority class)
+USE_CORE_DATA = os.environ.get('OVERRIDE_USE_CORE_DATA', 'false').lower() == 'true'
+THRESHOLD_I = int(os.environ['OVERRIDE_THRESHOLD_I']) if 'OVERRIDE_THRESHOLD_I' in os.environ else None
+THRESHOLD_P = int(os.environ['OVERRIDE_THRESHOLD_P']) if 'OVERRIDE_THRESHOLD_P' in os.environ else None
+THRESHOLD_R = int(os.environ['OVERRIDE_THRESHOLD_R']) if 'OVERRIDE_THRESHOLD_R' in os.environ else None
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)
@@ -423,7 +471,7 @@ LABEL_SMOOTHING = 0.1  # Label smoothing for focal loss (validated by depth_rgb 
 #
 # IMPORTANT: Use --cv_folds flag (NOT this config) to control main training!
 #
-# --cv_folds N (command line, default: 3)
+# --cv_folds N (command line, default: 5)
 #   - Controls BOTH main training AND confidence filtering folds
 #   - Each fold runs in isolated subprocess to prevent memory leaks
 #   - Examples:
@@ -476,9 +524,17 @@ MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
 EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
 
 # Combinations to include (only used when MODALITY_SEARCH_MODE = 'custom')
-INCLUDED_COMBINATIONS = [
-    ('metadata', 'depth_rgb', 'thermal_map',),  
-] # e.g., [('metadata',), ('depth_rgb', 'thermal_rgb',)]
+# Can be overridden via OVERRIDE_INCLUDED_COMBO env var (e.g. "metadata+depth_rgb")
+_combo_override = os.environ.get('OVERRIDE_INCLUDED_COMBO')
+if _combo_override:
+    INCLUDED_COMBINATIONS = [tuple(_combo_override.split('+'))]
+else:
+    INCLUDED_COMBINATIONS = [
+        ('metadata',),
+        ('metadata', 'depth_rgb', 'thermal_map',),
+        ('depth_rgb', 'thermal_map',),
+        ('metadata', 'thermal_map',),
+    ]
 
 # Results file naming
 RESULTS_CSV_FILENAME = 'modality_combination_results.csv'  # Output CSV filename

@@ -38,6 +38,7 @@ from src.utils.production_config import (
     get_modality_config
 )
 from src.data.dataset_utils import prepare_cached_datasets, BatchVisualizationCallback, TrainingHistoryCallback
+from src.training.mixup import apply_mixup
 
 # Conditionally import generative augmentation module based on version
 if GENERATIVE_AUG_VERSION == 'v3':
@@ -74,15 +75,32 @@ def _resolve_training_params(selected_modalities):
     For multi-image fusion models, we pick the most conservative combination:
       label_smoothing = max across modalities (keeps the regularisation)
       finetune_epochs = max across modalities (shorter modalities benefit from early stopping)
+      unfreeze_pct = max across modalities (more unfreezing for the modality that needs it)
     """
     image_mods = [m for m in selected_modalities
                   if m in ('depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map')]
     if not image_mods:
-        return {'label_smoothing': LABEL_SMOOTHING, 'finetune_epochs': STAGE2_FINETUNE_EPOCHS}
+        return {
+            'label_smoothing': LABEL_SMOOTHING,
+            'finetune_epochs': STAGE2_FINETUNE_EPOCHS,
+            'unfreeze_pct': STAGE2_UNFREEZE_PCT,
+            'freeze_bn_stage2': True,
+            'early_stop_patience': EARLY_STOP_PATIENCE,
+            'reduce_lr_patience': REDUCE_LR_PATIENCE,
+        }
     configs = [get_modality_config(m) for m in image_mods]
+    is_fusion = len(selected_modalities) > 1
     return {
-        'label_smoothing': max(c['label_smoothing'] for c in configs),
+        # For fusion: use global LABEL_SMOOTHING (0.1, validated by fusion search)
+        # For standalone: use per-modality label_smoothing (0.0 for all modalities)
+        'label_smoothing': LABEL_SMOOTHING if is_fusion else max(c['label_smoothing'] for c in configs),
         'finetune_epochs': max(c['finetune_epochs'] for c in configs),
+        'unfreeze_pct': max(c['unfreeze_pct'] for c in configs),
+        # freeze BN if ANY modality wants it frozen (conservative)
+        'freeze_bn_stage2': any(c['freeze_bn_stage2'] for c in configs),
+        # For fusion: use global patience; for standalone: use per-modality
+        'early_stop_patience': EARLY_STOP_PATIENCE if is_fusion else max(c['early_stop_patience'] for c in configs),
+        'reduce_lr_patience': REDUCE_LR_PATIENCE if is_fusion else max(c['reduce_lr_patience'] for c in configs),
     }
 
 
@@ -97,7 +115,10 @@ def _get_pretrain_cache_path(image_modality, fold_num):
     cache_key = (f"{image_modality}_fold{fold_num}_img{IMAGE_SIZE}_data{DATA_PERCENTAGE}"
                  f"_outlier{OUTLIER_CONTAMINATION}"
                  f"_genaug{USE_GENERATIVE_AUGMENTATION}_{GENERATIVE_AUG_PROB}"
-                 f"_bb{mod_cfg['backbone']}_head{mod_cfg['head_units']}_l2{mod_cfg['head_l2']}")
+                 f"_bb{mod_cfg['backbone']}_head{mod_cfg['head_units']}_l2{mod_cfg['head_l2']}"
+                 f"_lr{mod_cfg['learning_rate']}_ftlr{mod_cfg['finetune_lr']}"
+                 f"_ftep{mod_cfg['finetune_epochs']}_unf{mod_cfg['unfreeze_pct']}"
+                 f"_fzbn{mod_cfg['freeze_bn_stage2']}_mixup{mod_cfg['use_mixup']}")
     config_hash = hashlib.md5(cache_key.encode()).hexdigest()[:12]
     os.makedirs(pretrain_cache_dir, exist_ok=True)
     return os.path.join(pretrain_cache_dir, f'pretrain_{image_modality}_fold{fold_num}_{config_hash}.weights.h5')
@@ -958,7 +979,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
         else:
             iteration_name = f"Run {iteration_idx + 1}/{num_iterations}"
 
-        # For backwards compatibility, maintain "run" variable for file naming
+        # NOTE on terminology:
+        #   "run" = one invocation of main.py (controlled by polish script's run_idx)
+        #   "fold" = one iteration within k-fold CV (0..cv_folds-1)
+        # In k-fold CV mode, iteration_idx is the fold index.
+        # In single-split mode, iteration_idx is the run index.
+        # Variable named `run` for backward compat with file naming (pred_run1_..., etc).
         run = iteration_idx
         # Clean up after each modality combination
         try:
@@ -966,11 +992,26 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             clear_cache_files()
         except Exception as e:
             vprint(f"Error clearing memory stats: {str(e)}", level=2)
-        # Reset random seeds for next iteration
-        random.seed(42 + run * (run + 3))
-        tf.random.set_seed(42 + run * (run + 3))
-        np.random.seed(42 + run * (run + 3))
-        os.environ['PYTHONHASHSEED'] = str(42 + run * (run + 3))
+
+        # Seed strategy:
+        # - K-fold CV: ALL folds within a run use the SAME seed. The seed is set once
+        #   per run (main.py invocation) via CV_FOLD_SEED env var or defaults to 42.
+        #   Different runs get different seeds (set by polish script). The only thing
+        #   that changes between folds is the patient split, not the random state.
+        # - Single-split mode: each iteration gets a unique seed from the formula.
+        if cv_folds > 1:
+            # K-fold CV: use the run-level seed (same for all folds in this run)
+            if 'CV_FOLD_SEED' in os.environ:
+                fold_seed = int(os.environ['CV_FOLD_SEED'])
+            else:
+                fold_seed = 42  # default run seed
+        else:
+            # Single-split mode: each iteration gets a unique seed
+            fold_seed = 42 + run * (run + 3)
+        random.seed(fold_seed)
+        tf.random.set_seed(fold_seed)
+        np.random.seed(fold_seed)
+        os.environ['PYTHONHASHSEED'] = str(fold_seed)
 
         vprint(f"\n{iteration_name}", level=1)
 
@@ -1138,6 +1179,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
             gen_manager=gen_manager,
             aug_config=aug_config,
             run=run,
+            fold_seed=fold_seed,
             image_size=image_size,
             train_patients=fold_train_patients,  # Pass pre-computed fold splits for k-fold CV
             valid_patients=fold_valid_patients
@@ -1422,19 +1464,20 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
                                                 layer.trainable = False
 
-                                        # Use same loss configuration as fusion
+                                        # Use per-modality config for loss, LR, patience
                                         pretrain_ordinal_weight = config.get('ordinal_weight', 0.0)
                                         pretrain_gamma = config.get('gamma', 2.0)
                                         pretrain_alpha = config.get('alpha', alpha_value)
                                         pretrain_mod_cfg = get_modality_config(image_modality)
+                                        pretrain_lr = pretrain_mod_cfg['learning_rate']
                                         pretrain_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
                                                                                gamma=pretrain_gamma, alpha=pretrain_alpha,
                                                                                label_smoothing=pretrain_mod_cfg['label_smoothing'])
                                         pretrain_macro_f1 = MacroF1Score(num_classes=3)
 
-                                        # Compile pre-training model
+                                        # Compile pre-training model with per-modality LR
                                         pretrain_model.compile(
-                                            optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
+                                            optimizer=Adam(learning_rate=pretrain_lr, clipnorm=1.0),
                                             loss=pretrain_loss,
                                             metrics=['accuracy', weighted_f1, weighted_acc, pretrain_macro_f1, CohenKappa(num_classes=3)],
                                             jit_compile=True
@@ -1442,6 +1485,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         pretrain_trainable = len(pretrain_model.trainable_weights)
                                         vprint(f"  Pre-training {image_modality} with frozen backbone ({pretrain_trainable} trainable weight tensors)", level=2)
+                                        vprint(f"  LR={pretrain_lr}, patience={pretrain_mod_cfg['early_stop_patience']}/{pretrain_mod_cfg['reduce_lr_patience']}", level=2)
 
                                         # Create filtered dataset for pre-training (only this image modality, not metadata)
                                         # Must filter from master datasets to get only the image modality input
@@ -1456,6 +1500,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         # NOTE: No sample_weight needed — focal loss alpha already handles class weighting
 
+                                        # Apply mixup if per-modality config enables it
+                                        if pretrain_mod_cfg['use_mixup']:
+                                            _mixup_alpha = pretrain_mod_cfg['mixup_alpha']
+                                            pretrain_train_dataset = pretrain_train_dataset.map(
+                                                lambda f, l: apply_mixup(f, l, alpha=_mixup_alpha),
+                                                num_parallel_calls=tf.data.AUTOTUNE)
+                                            vprint(f"  Mixup enabled (alpha={_mixup_alpha})", level=2)
+
                                         pretrain_train_dis = strategy.experimental_distribute_dataset(pretrain_train_dataset)
                                         pretrain_valid_dis = strategy.experimental_distribute_dataset(pretrain_valid_dataset)
 
@@ -1464,7 +1516,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         #  avoids extra validation pass from UnpaddedKappaCallback)
                                         pretrain_callbacks = [
                                             EarlyStopping(
-                                                patience=EARLY_STOP_PATIENCE,
+                                                patience=pretrain_mod_cfg['early_stop_patience'],
                                                 restore_best_weights=True,
                                                 monitor='val_cohen_kappa',
                                                 min_delta=0.001,
@@ -1473,7 +1525,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             ),
                                             ReduceLROnPlateau(
                                                 factor=0.50,
-                                                patience=REDUCE_LR_PATIENCE,
+                                                patience=pretrain_mod_cfg['reduce_lr_patience'],
                                                 monitor='val_cohen_kappa',
                                                 min_delta=0.0005,
                                                 min_lr=1e-8,
@@ -1517,8 +1569,97 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             verbose=pretrain_verbose
                                         )
 
-                                        # Report best kappa from pre-training
+                                        # Report best kappa from Stage 1 pre-training
                                         pretrain_best_kappa = max(pretrain_history.history.get('val_cohen_kappa', [0]))
+                                        vprint(f"  {image_modality} Stage 1 pre-training completed! Best val kappa: {pretrain_best_kappa:.4f}", level=1)
+
+                                        # --- PRE-TRAINING STAGE 2: Partial backbone fine-tuning ---
+                                        # Save S1 weights — restore if S2 doesn't improve
+                                        s1_weights_backup = pretrain_model.get_weights()
+                                        pretrain_ft_epochs = pretrain_mod_cfg['finetune_epochs']
+                                        if pretrain_ft_epochs > 0:
+                                            pretrain_ft_lr = pretrain_mod_cfg['finetune_lr']
+                                            pretrain_ft_unfreeze = pretrain_mod_cfg['unfreeze_pct']
+                                            pretrain_ft_freeze_bn = pretrain_mod_cfg['freeze_bn_stage2']
+
+                                            # Unfreeze top portion of backbone
+                                            for layer in pretrain_model.layers:
+                                                if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                                                    layer.trainable = True
+                                                    n_backbone_layers = len(layer.layers)
+                                                    freeze_until = int(n_backbone_layers * (1.0 - pretrain_ft_unfreeze))
+                                                    for sub_layer in layer.layers[:freeze_until]:
+                                                        sub_layer.trainable = False
+                                                    if pretrain_ft_freeze_bn:
+                                                        for sub_layer in layer.layers:
+                                                            if isinstance(sub_layer, tf.keras.layers.BatchNormalization):
+                                                                sub_layer.trainable = False
+                                                    unfrozen = n_backbone_layers - freeze_until
+                                                    vprint(f"  Stage 2: unfreezing top {pretrain_ft_unfreeze*100:.0f}% "
+                                                           f"({unfrozen}/{n_backbone_layers} layers, BN {'frozen' if pretrain_ft_freeze_bn else 'trainable'})", level=2)
+
+                                            ft_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=pretrain_ordinal_weight,
+                                                                             gamma=pretrain_gamma, alpha=pretrain_alpha,
+                                                                             label_smoothing=pretrain_mod_cfg['label_smoothing'])
+                                            ft_macro_f1 = MacroF1Score(num_classes=3)
+                                            pretrain_model.compile(
+                                                optimizer=Adam(learning_rate=pretrain_ft_lr, clipnorm=1.0),
+                                                loss=ft_loss,
+                                                metrics=['accuracy', weighted_f1, weighted_acc, ft_macro_f1, CohenKappa(num_classes=3)],
+                                                jit_compile=True
+                                            )
+
+                                            ft_trainable = len(pretrain_model.trainable_weights)
+                                            vprint(f"  Stage 2: LR={pretrain_ft_lr}, epochs={pretrain_ft_epochs}, {ft_trainable} trainable weight tensors", level=2)
+
+                                            ft_callbacks = [
+                                                EarlyStopping(
+                                                    patience=pretrain_mod_cfg['early_stop_patience'],
+                                                    restore_best_weights=True,
+                                                    monitor='val_cohen_kappa',
+                                                    min_delta=0.001,
+                                                    mode='max',
+                                                    verbose=1
+                                                ),
+                                                ReduceLROnPlateau(
+                                                    factor=0.50,
+                                                    patience=pretrain_mod_cfg['reduce_lr_patience'],
+                                                    monitor='val_cohen_kappa',
+                                                    min_delta=0.001,
+                                                    min_lr=1e-8,
+                                                    mode='max',
+                                                ),
+                                                tf.keras.callbacks.ModelCheckpoint(
+                                                    image_only_checkpoint,
+                                                    monitor='val_cohen_kappa',
+                                                    save_best_only=True,
+                                                    mode='max',
+                                                    save_weights_only=True
+                                                ),
+                                            ]
+
+                                            ft_history = pretrain_model.fit(
+                                                pretrain_train_dis,
+                                                epochs=pretrain_ft_epochs,
+                                                steps_per_epoch=steps_per_epoch,
+                                                validation_data=pretrain_valid_dis,
+                                                validation_steps=validation_steps,
+                                                callbacks=ft_callbacks,
+                                                verbose=pretrain_verbose
+                                            )
+
+                                            ft_best_kappa = max(ft_history.history.get('val_cohen_kappa', [0]))
+                                            vprint(f"  {image_modality} Stage 2 fine-tuning completed! Best val kappa: {ft_best_kappa:.4f}", level=1)
+
+                                            # If Stage 2 didn't improve over Stage 1, restore S1 weights
+                                            if ft_best_kappa < pretrain_best_kappa:
+                                                vprint(f"  Stage 2 did NOT improve (s2={ft_best_kappa:.4f} < s1={pretrain_best_kappa:.4f}). Restoring S1 weights.", level=1)
+                                                pretrain_model.set_weights(s1_weights_backup)
+                                                # Re-save S1 weights to checkpoint (overwrite S2's)
+                                                pretrain_model.save_weights(image_only_checkpoint)
+                                            else:
+                                                pretrain_best_kappa = ft_best_kappa
+
                                         vprint(f"  {image_modality} pre-training completed! Best val kappa: {pretrain_best_kappa:.4f}", level=1)
                                         vprint(f"  Checkpoint saved to: {image_only_checkpoint}", level=2)
 
@@ -1613,6 +1754,23 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             metrics=['accuracy', weighted_f1, weighted_acc, macro_f1, CohenKappa(num_classes=3)],
                             jit_compile=True
                         )
+                        # Apply mixup augmentation if any selected image modality enables it
+                        # For fusion: fusion best config has use_mixup=false, so this won't apply
+                        # For standalone image: uses per-modality use_mixup setting
+                        image_mods_selected = [m for m in selected_modalities
+                                               if m in ('depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map')]
+                        if image_mods_selected:
+                            # Use mixup if ANY selected image modality has it enabled
+                            any_mixup = any(get_modality_config(m)['use_mixup'] for m in image_mods_selected)
+                            if any_mixup and not is_fusion:
+                                _mix_alpha = max(get_modality_config(m)['mixup_alpha']
+                                                 for m in image_mods_selected
+                                                 if get_modality_config(m)['use_mixup'])
+                                train_dataset = train_dataset.map(
+                                    lambda f, l: apply_mixup(f, l, alpha=_mix_alpha),
+                                    num_parallel_calls=tf.data.AUTOTUNE)
+                                vprint(f"  Mixup enabled for standalone training (alpha={_mix_alpha})", level=2)
+
                         # Create distributed datasets
                         train_dataset_dis = strategy.experimental_distribute_dataset(train_dataset)
                         valid_dataset_dis = strategy.experimental_distribute_dataset(valid_dataset)
@@ -1727,7 +1885,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             if is_fusion and fusion_use_pretrained:
                                 # Pre-trained weights loaded. Keep backbone FROZEN during fusion.
                                 # Unfreezing causes BatchNorm stat disruption + overfitting with ~2K images.
-                                # Only train: projection head, image_classifier, fusion weights, metadata path.
+                                # Only train: projection head, fusion output layer, metadata path.
                                 for layer in model.layers:
                                     if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
                                         layer.trainable = False
@@ -1749,16 +1907,98 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                 vprint(f"  LR={STAGE1_LR}", level=2)
                                 vprint("=" * 80, level=2)
 
-                                # Use the standard callbacks (includes LR scheduling, all monitors, etc.)
+                                # Fusion Stage 1: train for STAGE1_EPOCHS (frozen backbone)
                                 history = model.fit(
                                     train_dataset_dis,
-                                    epochs=max_epochs,
+                                    epochs=STAGE1_EPOCHS,
                                     steps_per_epoch=steps_per_epoch,
                                     validation_data=valid_dataset_dis,
                                     validation_steps=validation_steps,
                                     callbacks=callbacks,
                                     verbose=fit_verbose
                                 )
+
+                                # Report fusion Stage 1 results
+                                fh = history.history
+                                fusion_s1_best_kappa = max(fh.get('val_cohen_kappa', [0]))
+                                if 'val_cohen_kappa' in fh and fh['val_cohen_kappa']:
+                                    best_fep = int(np.argmax(fh['val_cohen_kappa']))
+                                    vprint(f"  Fusion Stage 1 best: val_kappa={fusion_s1_best_kappa:.4f} at epoch {best_fep+1}/{len(fh['val_cohen_kappa'])}", level=2)
+
+                                # --- FUSION STAGE 2: Optional partial backbone unfreeze ---
+                                if STAGE2_FINETUNE_EPOCHS > 0:
+                                    # Save S1 weights — restore if S2 doesn't improve
+                                    fusion_s1_weights = model.get_weights()
+
+                                    for layer in model.layers:
+                                        if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
+                                            layer.trainable = True
+                                            n_backbone_layers = len(layer.layers)
+                                            freeze_until = int(n_backbone_layers * (1.0 - STAGE2_UNFREEZE_PCT))
+                                            for sub_layer in layer.layers[:freeze_until]:
+                                                sub_layer.trainable = False
+                                            # Keep BN frozen in fusion Stage 2
+                                            for sub_layer in layer.layers:
+                                                if isinstance(sub_layer, tf.keras.layers.BatchNormalization):
+                                                    sub_layer.trainable = False
+                                            unfrozen = n_backbone_layers - freeze_until
+                                            vprint(f"  Fusion Stage 2: unfreezing top {STAGE2_UNFREEZE_PCT*100:.0f}% "
+                                                   f"({unfrozen}/{n_backbone_layers} layers, BN frozen)", level=2)
+
+                                    fusion_s2_loss = get_focal_ordinal_loss(
+                                        num_classes=3, ordinal_weight=ordinal_weight,
+                                        gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
+                                    fusion_s2_macro_f1 = MacroF1Score(num_classes=3)
+                                    model.compile(
+                                        optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
+                                        loss=fusion_s2_loss,
+                                        metrics=['accuracy', weighted_f1, weighted_acc, fusion_s2_macro_f1, CohenKappa(num_classes=3)],
+                                        jit_compile=True
+                                    )
+
+                                    fs2_trainable = len(model.trainable_weights)
+                                    vprint(f"  Fusion Stage 2: LR={STAGE2_LR}, epochs={STAGE2_FINETUNE_EPOCHS}, "
+                                           f"{fs2_trainable} trainable weight tensors", level=2)
+
+                                    fusion_s2_callbacks = [
+                                        EarlyStopping(
+                                            patience=10,
+                                            restore_best_weights=True,
+                                            monitor='val_cohen_kappa',
+                                            min_delta=0.001,
+                                            mode='max',
+                                            verbose=1
+                                        ),
+                                        ReduceLROnPlateau(
+                                            factor=0.50,
+                                            patience=5,
+                                            monitor='val_cohen_kappa',
+                                            min_delta=0.001,
+                                            min_lr=1e-8,
+                                            mode='max',
+                                        ),
+                                        EpochMemoryCallback(strategy),
+                                        NaNMonitorCallback()
+                                    ]
+
+                                    fusion_s2_history = model.fit(
+                                        train_dataset_dis,
+                                        epochs=STAGE2_FINETUNE_EPOCHS,
+                                        steps_per_epoch=steps_per_epoch,
+                                        validation_data=valid_dataset_dis,
+                                        validation_steps=validation_steps,
+                                        callbacks=fusion_s2_callbacks,
+                                        verbose=fit_verbose
+                                    )
+
+                                    fs2h = fusion_s2_history.history
+                                    fusion_s2_best_kappa = max(fs2h.get('val_cohen_kappa', [0])) if 'val_cohen_kappa' in fs2h else 0
+                                    vprint(f"  Fusion Stage 2 best: val_kappa={fusion_s2_best_kappa:.4f}", level=2)
+
+                                    # If Stage 2 didn't improve, restore Stage 1 weights
+                                    if fusion_s2_best_kappa < fusion_s1_best_kappa:
+                                        vprint(f"  Fusion Stage 2 did NOT improve (s2={fusion_s2_best_kappa:.4f} < s1={fusion_s1_best_kappa:.4f}). Restoring S1 weights.", level=1)
+                                        model.set_weights(fusion_s1_weights)
 
                             else:
                                 # 2-STAGE TRAINING for image modalities (prevents overfitting with pretrained backbones)
@@ -1775,11 +2015,16 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             layer.trainable = False
                                             backbone_layers_frozen += len(layer.weights)
 
-                                    # Recompile with higher LR for head training
+                                    # Recompile with per-modality LR for head training
+                                    # For single-modality: use that modality's learning_rate
+                                    # For multi-image (no metadata): use max across modalities
+                                    standalone_lr = max(get_modality_config(m)['learning_rate']
+                                                        for m in selected_modalities
+                                                        if m in ('depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'))
                                     stage1_loss = get_focal_ordinal_loss(num_classes=3, ordinal_weight=ordinal_weight, gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
                                     stage1_macro_f1 = MacroF1Score(num_classes=3)
                                     model.compile(
-                                        optimizer=Adam(learning_rate=PRETRAIN_LR, clipnorm=1.0),
+                                        optimizer=Adam(learning_rate=standalone_lr, clipnorm=1.0),
                                         loss=stage1_loss,
                                         metrics=['accuracy', weighted_f1, weighted_acc, stage1_macro_f1, CohenKappa(num_classes=3)],
                                         jit_compile=True
@@ -1788,12 +2033,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     trainable_count = len(model.trainable_weights)
                                     vprint("=" * 80, level=2)
                                     vprint(f"STAGE 1: Frozen backbone, training head only ({trainable_count} weight tensors)", level=2)
-                                    vprint(f"  LR={PRETRAIN_LR}, epochs={STAGE1_EPOCHS}", level=2)
+                                    vprint(f"  LR={standalone_lr}, epochs={STAGE1_EPOCHS}", level=2)
                                     vprint("=" * 80, level=2)
 
                                     stage1_callbacks = [
                                         EarlyStopping(
-                                            patience=15,  # Allow convergence but stop if plateaued
+                                            patience=mod_train_params['early_stop_patience'],
                                             restore_best_weights=True,
                                             monitor='val_cohen_kappa',
                                             min_delta=0.001,
@@ -1802,7 +2047,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         ),
                                         ReduceLROnPlateau(
                                             factor=0.50,
-                                            patience=7,
+                                            patience=mod_train_params['reduce_lr_patience'],
                                             monitor='val_cohen_kappa',
                                             min_delta=0.001,
                                             min_lr=1e-6,
@@ -1836,6 +2081,11 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                         vprint(f"  train_loss: {s1h['loss'][best_epoch]:.4f}  train_acc: {s1h['accuracy'][best_epoch]:.4f}", level=2)
                                         vprint("=" * 80, level=2)
 
+                                    # Track Stage 1 best kappa for Stage 2 comparison
+                                    s1_best_kappa = max(s1h.get('val_cohen_kappa', [0])) if 'val_cohen_kappa' in s1h else 0
+                                    # Save Stage 1 weights backup — restore if Stage 2 doesn't improve
+                                    s1_weights_backup = model.get_weights()
+
                                     # Save Stage 1 checkpoint (best weights already restored by EarlyStopping)
                                     # so the post-training checkpoint load works
                                     stage1_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
@@ -1846,29 +2096,35 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                     # Validated by depth_rgb hparam search: unfreezing top 20% of backbone
                                     # with LR=1e-5 for 50 epochs improves kappa over frozen-only training.
                                     # Key: only unfreeze top layers (not all), use low LR, keep BN frozen.
+                                    eff_unfreeze_pct = mod_train_params['unfreeze_pct']
+                                    eff_freeze_bn = mod_train_params['freeze_bn_stage2']
                                     if eff_finetune_epochs > 0:
-                                        # Unfreeze top STAGE2_UNFREEZE_PCT of backbone layers
+                                        # Unfreeze top portion of backbone layers (per-modality config)
                                         for layer in model.layers:
                                             if hasattr(layer, 'layers'):  # Sub-model (EfficientNet)
                                                 layer.trainable = True
                                                 n_backbone_layers = len(layer.layers)
-                                                freeze_until = int(n_backbone_layers * (1.0 - STAGE2_UNFREEZE_PCT))
+                                                freeze_until = int(n_backbone_layers * (1.0 - eff_unfreeze_pct))
                                                 for sub_layer in layer.layers[:freeze_until]:
                                                     sub_layer.trainable = False
-                                                # Keep BatchNorm frozen to prevent stat disruption
-                                                for sub_layer in layer.layers:
-                                                    if isinstance(sub_layer, tf.keras.layers.BatchNormalization):
-                                                        sub_layer.trainable = False
+                                                if eff_freeze_bn:
+                                                    for sub_layer in layer.layers:
+                                                        if isinstance(sub_layer, tf.keras.layers.BatchNormalization):
+                                                            sub_layer.trainable = False
                                                 unfrozen = n_backbone_layers - freeze_until
-                                                vprint(f"  Stage 2: unfreezing top {STAGE2_UNFREEZE_PCT*100:.0f}% "
-                                                       f"({unfrozen}/{n_backbone_layers} layers, BN frozen)", level=2)
+                                                vprint(f"  Stage 2: unfreezing top {eff_unfreeze_pct*100:.0f}% "
+                                                       f"({unfrozen}/{n_backbone_layers} layers, BN {'frozen' if eff_freeze_bn else 'trainable'})", level=2)
 
+                                        # Per-modality fine-tuning LR (standalone: 1e-5, fusion: STAGE2_LR)
+                                        standalone_ft_lr = max(get_modality_config(m)['finetune_lr']
+                                                               for m in selected_modalities
+                                                               if m in ('depth_rgb', 'depth_map', 'thermal_rgb', 'thermal_map'))
                                         stage2_loss = get_focal_ordinal_loss(
                                             num_classes=3, ordinal_weight=ordinal_weight,
                                             gamma=gamma, alpha=alpha, label_smoothing=eff_label_smoothing)
                                         stage2_macro_f1 = MacroF1Score(num_classes=3)
                                         model.compile(
-                                            optimizer=Adam(learning_rate=STAGE2_LR, clipnorm=1.0),
+                                            optimizer=Adam(learning_rate=standalone_ft_lr, clipnorm=1.0),
                                             loss=stage2_loss,
                                             metrics=['accuracy', weighted_f1, weighted_acc, stage2_macro_f1, CohenKappa(num_classes=3)],
                                             jit_compile=True
@@ -1876,14 +2132,14 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
 
                                         s2_trainable = len(model.trainable_weights)
                                         vprint("=" * 80, level=2)
-                                        vprint(f"STAGE 2: Fine-tuning top {STAGE2_UNFREEZE_PCT*100:.0f}% backbone "
+                                        vprint(f"STAGE 2: Fine-tuning top {eff_unfreeze_pct*100:.0f}% backbone "
                                                f"({s2_trainable} weight tensors)", level=2)
-                                        vprint(f"  LR={STAGE2_LR}, epochs={eff_finetune_epochs}", level=2)
+                                        vprint(f"  LR={standalone_ft_lr}, epochs={eff_finetune_epochs}", level=2)
                                         vprint("=" * 80, level=2)
 
                                         stage2_callbacks = [
                                             EarlyStopping(
-                                                patience=15,
+                                                patience=mod_train_params['early_stop_patience'],
                                                 restore_best_weights=True,
                                                 monitor='val_cohen_kappa',
                                                 min_delta=0.001,
@@ -1892,7 +2148,7 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             ),
                                             ReduceLROnPlateau(
                                                 factor=0.50,
-                                                patience=7,
+                                                patience=mod_train_params['reduce_lr_patience'],
                                                 monitor='val_cohen_kappa',
                                                 min_delta=0.001,
                                                 min_lr=1e-8,
@@ -1912,8 +2168,9 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             verbose=fit_verbose
                                         )
 
-                                        # Print Stage 2 results
+                                        # Print Stage 2 results and compare with Stage 1
                                         s2h = stage2_history.history
+                                        s2_best_kappa = max(s2h.get('val_cohen_kappa', [0])) if 'val_cohen_kappa' in s2h else 0
                                         if 'val_cohen_kappa' in s2h and s2h['val_cohen_kappa']:
                                             best_s2_epoch = int(np.argmax(s2h['val_cohen_kappa']))
                                             vprint("=" * 80, level=2)
@@ -1921,7 +2178,12 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                                             vprint(f"  val_kappa: {s2h['val_cohen_kappa'][best_s2_epoch]:.4f}", level=2)
                                             vprint("=" * 80, level=2)
 
-                                        # Save Stage 2 checkpoint
+                                        # If Stage 2 didn't improve over Stage 1, restore S1 weights
+                                        if s2_best_kappa < s1_best_kappa:
+                                            vprint(f"  Stage 2 did NOT improve (s2={s2_best_kappa:.4f} < s1={s1_best_kappa:.4f}). Restoring S1 weights.", level=1)
+                                            model.set_weights(s1_weights_backup)
+
+                                        # Save best checkpoint (S1 or S2)
                                         stage2_ckpt_path = create_checkpoint_filename(selected_modalities, run+1, config_name)
                                         model.save_weights(stage2_ckpt_path)
                                         vprint(f"Saved Stage 2 best weights to {stage2_ckpt_path}", level=2)

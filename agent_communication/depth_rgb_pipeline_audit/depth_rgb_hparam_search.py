@@ -35,6 +35,7 @@ import csv
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict, Any, Tuple
 from copy import deepcopy
+import shutil
 
 # Ensure project root is on path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -44,6 +45,34 @@ os.chdir(PROJECT_ROOT)
 MODALITY = 'depth_rgb'
 MODALITY_LABEL = 'DEPTH RGB'
 AUDIT_DIR = os.path.join(PROJECT_ROOT, 'agent_communication', 'depth_rgb_pipeline_audit')
+WEIGHTS_DIR = os.path.join(AUDIT_DIR, 'weights')
+
+
+def save_model_weights(model, path_without_ext):
+    """Save model weights, trying .weights.h5 first then .h5 for Keras compat."""
+    os.makedirs(os.path.dirname(path_without_ext), exist_ok=True)
+    try:
+        fpath = path_without_ext + '.weights.h5'
+        model.save_weights(fpath)
+        print(f"  [WEIGHTS] Saved: {fpath}")
+        return fpath
+    except Exception:
+        fpath = path_without_ext + '.h5'
+        model.save_weights(fpath)
+        print(f"  [WEIGHTS] Saved: {fpath}")
+        return fpath
+
+
+def load_model_weights(model, path_without_ext):
+    """Load model weights, trying .weights.h5 first then .h5."""
+    for ext in ['.weights.h5', '.h5']:
+        fpath = path_without_ext + ext
+        if os.path.exists(fpath):
+            model.load_weights(fpath)
+            print(f"  [WEIGHTS] Loaded: {fpath}")
+            return fpath
+    return None
+
 
 # Set environment before TF import
 os.environ["OMP_NUM_THREADS"] = "2"
@@ -220,7 +249,7 @@ def build_model(cfg: SearchConfig):
             x = BatchNormalization(name=f'head_bn_{i}')(x)
         x = Dropout(cfg.head_dropout, name=f'head_drop_{i}')(x)
 
-    output = Dense(3, activation='softmax', name='output')(x)
+    output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
     model = Model(inputs=inp, outputs=output)
 
     return model, base_model
@@ -527,8 +556,13 @@ def apply_freeze_strategy(model, base_model, cfg: SearchConfig):
         raise ValueError(f"Unknown freeze strategy: {cfg.freeze}")
 
 
-def train_single_config(cfg: SearchConfig, data, fold_idx=0):
-    """Train a single configuration and return metrics."""
+def train_single_config(cfg: SearchConfig, data, fold_idx=0, save_weights_dir=None):
+    """Train a single configuration and return metrics.
+
+    Args:
+        save_weights_dir: If provided, save model weights to this directory
+            as {config_name}_fold{fold_idx} (without extension).
+    """
     print(f"\n{'='*80}")
     print(f"CONFIG: {cfg.name}")
     print(f"  backbone={cfg.backbone}, freeze={cfg.freeze}")
@@ -665,6 +699,9 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
     best_s1_epoch = int(np.argmax(s1_kappas)) + 1 if s1_kappas else 0
     print(f"  Stage 1 best: val_kappa={best_s1_kappa:.4f} at epoch {best_s1_epoch}/{len(s1_kappas)}")
 
+    # Save Stage 1 weights in case Stage 2 doesn't improve
+    s1_weights = model.get_weights()
+
     # Stage 2: Fine-tuning (only for frozen backbone configs)
     best_s2_kappa = 0.0
     ran_stage2 = False
@@ -734,6 +771,11 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         print(f"  Stage 2 best: val_kappa={best_s2_kappa:.4f} at epoch {best_s2_epoch}/{len(s2_kappas)}")
         ran_stage2 = True
 
+        # If Stage 2 didn't improve, restore Stage 1 weights
+        if best_s2_kappa < best_s1_kappa:
+            print(f"  Stage 2 did NOT improve (s2={best_s2_kappa:.4f} < s1={best_s1_kappa:.4f}). Restoring S1 weights.")
+            model.set_weights(s1_weights)
+
     # Post-training evaluation on validation set (using best weights)
     y_true_v = []
     y_pred_v = []
@@ -788,6 +830,7 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         'mixup_alpha': cfg.mixup_alpha,
         'image_size': cfg.image_size,
         'stage1_epochs': cfg.stage1_epochs,
+        'finetune_lr': cfg.finetune_lr,
         'finetune_epochs': cfg.finetune_epochs if ran_stage2 else 0,
         'unfreeze_pct': cfg.unfreeze_pct,
         'freeze_bn_in_stage2': cfg.freeze_bn_in_stage2,
@@ -803,6 +846,13 @@ def train_single_config(cfg: SearchConfig, data, fold_idx=0):
         'elapsed_seconds': elapsed,
         'n_val_samples': len(y_true_v),
     }
+
+    # Save weights if requested (before model deletion)
+    if save_weights_dir is not None:
+        # Use config name directly — it already includes fold info
+        # (e.g. BASELINE_fold1, TOP3_1_fold2)
+        weight_path = os.path.join(save_weights_dir, cfg.name)
+        save_model_weights(model, weight_path)
 
     # Cleanup
     del model, base_model, train_ds, valid_ds, pre_aug_ds
@@ -1070,6 +1120,7 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Sear
         mixup_alpha=float(best.get('mixup_alpha', 0.0)),
         image_size=int(best['image_size']),
         stage1_epochs=int(best['stage1_epochs']),
+        finetune_lr=float(best.get('finetune_lr', 1e-5)),
         finetune_epochs=int(best.get('finetune_epochs', 0)),
         unfreeze_pct=float(best.get('unfreeze_pct', 0.2)),
         freeze_bn_in_stage2=str(best.get('freeze_bn_in_stage2', 'False')).lower() in ('true', '1'),
@@ -1139,7 +1190,8 @@ def load_completed_results(filepath: str) -> List[Dict]:
 
 
 def run_round(round_name: str, configs: List[SearchConfig], data,
-              results_csv: str, completed: List[Dict]) -> List[Dict]:
+              results_csv: str, completed: List[Dict],
+              save_weights_dir=None) -> List[Dict]:
     """Run a round of configs, skipping any already completed.
 
     Args:
@@ -1148,6 +1200,7 @@ def run_round(round_name: str, configs: List[SearchConfig], data,
         data: DataFrame
         results_csv: Path to append results
         completed: List of already-completed result dicts (from CSV)
+        save_weights_dir: If provided, save model weights per config+fold
 
     Returns:
         List of result dicts for this round (cached + newly trained)
@@ -1162,7 +1215,8 @@ def run_round(round_name: str, configs: List[SearchConfig], data,
             print(f"\n  SKIP (cached): {cfg.name} → kappa={cached['post_eval_kappa']:.4f}")
             round_results.append(cached)
         else:
-            result = train_single_config(cfg, data, fold_idx=cfg.fold)
+            result = train_single_config(cfg, data, fold_idx=cfg.fold,
+                                          save_weights_dir=save_weights_dir)
             round_results.append(result)
             save_results([result], results_csv)
 
@@ -1350,8 +1404,9 @@ def main(fresh: bool = False):
     for i, r in enumerate(top3_results):
         print(f"  {i+1}. {r['name']} → kappa={r['post_eval_kappa']:.4f}")
 
-    # Run each top-3 config on all 5 folds
+    # Run each top-3 config on all 5 folds (save weights for later fusion use)
     N_FINAL_FOLDS = 5
+    os.makedirs(WEIGHTS_DIR, exist_ok=True)
     top3_fold_results = {}
     for rank, r in enumerate(top3_results):
         _, base_cfg = pick_best([r])
@@ -1363,7 +1418,8 @@ def main(fresh: bool = False):
             cfg.name = f"{tag}_fold{fold_idx+1}"
             cfg.fold = fold_idx
             fold_configs.append(cfg)
-        fold_results = run_round(tag, fold_configs, data, results_csv, completed)
+        fold_results = run_round(tag, fold_configs, data, results_csv, completed,
+                                  save_weights_dir=WEIGHTS_DIR)
         all_results.extend(fold_results)
         top3_fold_results[tag] = {
             'cfg': base_cfg,
@@ -1392,7 +1448,8 @@ def main(fresh: bool = False):
         cfg.name = f"BASELINE_fold{fold_idx+1}"
         cfg.fold = fold_idx
         baseline_configs.append(cfg)
-    baseline_results = run_round("BASELINE", baseline_configs, data, results_csv, completed)
+    baseline_results = run_round("BASELINE", baseline_configs, data, results_csv, completed,
+                                     save_weights_dir=WEIGHTS_DIR)
     all_results.extend(baseline_results)
 
     # ─── Summary ───

@@ -28,6 +28,7 @@
   "finetune_lr": 1e-05,
   "finetune_epochs": 30,
   "unfreeze_pct": 0.2,
+  "freeze_bn_in_stage2": false,
   "n_folds": 5,
   "fold": 0
 }

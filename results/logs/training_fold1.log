@@ -1,0 +1,125 @@
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
+[LOG] Started at: 2026-03-10 19:50:08
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 1 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected GPU 0: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+Enabled mixed precision (mixed_float16)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 5-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 64
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Csv Results: 12 files deleted
+  Tf Cache: 14 files deleted
+================================================================================
+
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+  Core data filtering: thresholds I=54, P=56, R=61
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=54, P=56, R=61
+
+Excluded samples per class:
+  Class I: 17 samples
+  Class P: 53 samples
+  Class R: 0 samples
+
+Total unique samples to exclude: 70
+
+Dataset size (rows): 3108 -> 2737 (88.1%)
+Unique samples: 648 -> 578 (removed 70)
+
+Class distribution after filtering:
+  Class I: 791 rows
+  Class P: 1611 rows
+  Class R: 335 rows
+============================================================
+
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 16.
+Restoring model weights from the end of the best epoch: 26.
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+Epoch 20: early stopping
+Restoring model weights from the end of the best epoch: 5.
+Epoch 49: early stopping
+Restoring model weights from the end of the best epoch: 29.
+Epoch 17: early stopping
+Restoring model weights from the end of the best epoch: 7.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 1 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.48      0.69      0.57       209
+           P       0.63      0.43      0.51       283
+           R       0.51      0.47      0.49        90
+
+    accuracy                           0.53       582
+   macro avg       0.54      0.53      0.52       582
+weighted avg       0.55      0.53      0.53       582
+
+Cohen's Kappa: 0.3452
+Warning: No predictions to save for run 1 (train). Skipping...
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+/workspace/DFUMultiClassification/src/main.py:2083: FutureWarning: The behavior of Series.idxmax with all-NA values, or any-NA and skipna=False, is deprecated. In a future version this will raise ValueError
+  best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
+================================================================================
+
