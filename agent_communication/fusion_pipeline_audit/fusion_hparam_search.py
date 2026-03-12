@@ -7,13 +7,15 @@ metadata + depth_rgb + thermal_map to maximize val_cohen_kappa.
 
 Uses Top-3 R1 carry-forward strategy (same as standalone audits):
   Round 1: Fusion learning rate (STAGE1_LR)          (6 configs)
-           -> Top-3 R1 winners each get their own independent R2-R7 branch
+           -> Top-3 R1 winners each get their own independent R2-R8 branch
   Round 2: Fusion training epochs                    (4 configs per branch)
   Round 3: Metadata confidence scaling               (6 configs per branch)
   Round 4: Cross-modal attention regularization      (4 configs per branch)
   Round 5: Metadata-image attention asymmetry        (4 configs per branch)
   Round 6: RF hyperparameters                        (6 configs per branch)
   Round 7: Stage 2 fine-tuning in fusion context     (4 configs per branch)
+  Round 8: Image feature projection dimension        (6 configs per branch)
+  Round 9: Fusion paradigms (baseline + residual + stacking) (~17 configs per branch)
   Top 3:   Best configs across ALL branches, 5-fold CV (15 folds)
   Baseline: Default parameters, 5-fold CV            (5 folds)
   Summary compares top configs against baseline with paired t-test.
@@ -245,6 +247,28 @@ class FusionSearchConfig:
     # - gated: learned per-class gate: gate * rf_probs + (1-gate) * image_probs.
     # - hybrid: RF probs (3) + image features (160) + image probs (3) → fusion head → Dense(3).
     fusion_strategy: str = "prob_concat"
+
+    # Image feature projection dimension (0 = disabled, no projection).
+    # When > 0, image features (e.g. 160-dim) are projected down to this dimension
+    # via Dense+BN+Dropout BEFORE concatenation with RF probs (3-dim).
+    # Addresses dimensionality mismatch: without projection, 160 image features
+    # overwhelm 3 metadata features in the fusion layer.
+    image_projection_dim: int = 0
+
+    # Residual fusion parameters (only used when fusion_strategy="residual")
+    # Alpha is a learnable scalar: output = softmax(log(RF) + alpha * correction(images))
+    # Small init means model starts nearly at RF-only performance.
+    residual_alpha_init: float = 0.01
+    residual_hidden_dim: int = 32  # Hidden layer size in correction network
+
+    # Stacking fusion parameters (only used when fusion_strategy="stacking")
+    # Instead of neural fusion, trains a simple scikit-learn meta-learner on the
+    # concatenated probability predictions from all modalities (9 features: 3 per modality).
+    # Meta-learner options: "logistic_regression", "rf", "gradient_boosting"
+    stacking_meta_learner: str = "logistic_regression"
+    stacking_lr_C: float = 1.0            # LogisticRegression regularization strength
+    stacking_rf_n_estimators: int = 100    # RF meta-learner number of trees
+    stacking_rf_max_depth: int = 4         # RF meta-learner max depth
 
     # Fusion head (layers between concat and final Dense(3) output)
     # Empty list = direct Dense(3) on concat (current behavior for prob_concat).
@@ -658,6 +682,25 @@ def build_fusion_model(cfg: FusionSearchConfig, image_input_shapes: dict, metada
                                 name='temperature_scale')(logits)
                 return tf.keras.layers.Softmax(name='image_classifier', dtype='float32')(scaled)
 
+        # === Optional image feature projection ===
+        # When image_projection_dim > 0, compress image features to a small dimension
+        # before fusion. This balances the 160:3 image:metadata ratio.
+        proj_dim = cfg.image_projection_dim
+        if proj_dim > 0:
+            orig_dim = image_features_concat.shape[-1]
+            print(f"  Image feature projection: {orig_dim} → {proj_dim} "
+                  f"(metadata=3, ratio {proj_dim/3:.1f}:1)")
+            image_features_projected = Dense(
+                proj_dim, activation='relu', kernel_initializer='he_normal',
+                kernel_regularizer=tf.keras.regularizers.l2(0.001),
+                name='fusion_image_projection')(image_features_concat)
+            image_features_projected = BatchNormalization(
+                name='fusion_image_proj_bn')(image_features_projected)
+            image_features_projected = Dropout(
+                0.3, name='fusion_image_proj_dropout')(image_features_projected)
+        else:
+            image_features_projected = image_features_concat
+
         # === Strategy dispatch ===
         strategy = cfg.fusion_strategy
 
@@ -669,13 +712,13 @@ def build_fusion_model(cfg: FusionSearchConfig, image_input_shapes: dict, metada
             output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
 
         elif strategy == 'feature_concat':
-            # Feature-level: concat [RF probs (3) + image features (128+32)] → head → Dense(3)
-            fused = concatenate([rf_probs, image_features_concat], name='fusion_concat')
+            # Feature-level: concat [RF probs (3) + projected image features] → head → Dense(3)
+            fused = concatenate([rf_probs, image_features_projected], name='fusion_concat')
             x = _build_fusion_head(fused, cfg)
             output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
 
         elif strategy == 'feature_concat_attn':
-            # Feature-level + cross-modal attention
+            # Feature-level + cross-modal attention (uses raw features for attention)
             branch_names = ['metadata'] + cfg.image_modalities
             branch_tensors = [rf_probs] + image_features_list
             attended = _build_cross_modal_attention(branch_tensors, branch_names, cfg)
@@ -686,7 +729,7 @@ def build_fusion_model(cfg: FusionSearchConfig, image_input_shapes: dict, metada
         elif strategy == 'gated':
             # Gated fusion: learn per-class gate between RF and image probs
             image_probs = _make_image_probs(image_features_concat, cfg.image_temperature)
-            gate_input = concatenate([rf_probs, image_features_concat], name='gate_input')
+            gate_input = concatenate([rf_probs, image_features_projected], name='gate_input')
             gate = Dense(cfg.gate_hidden_dim, activation='relu',
                          name='gate_hidden')(gate_input)
             gate = Dense(3, activation='sigmoid', name='gate_weights',
@@ -699,12 +742,51 @@ def build_fusion_model(cfg: FusionSearchConfig, image_input_shapes: dict, metada
             output = Add(name='output')([gated_rf, gated_img])
 
         elif strategy == 'hybrid':
-            # Hybrid: concat [RF probs + image features + image probs] → head → Dense(3)
+            # Hybrid: concat [RF probs + projected image features + image probs] → head → Dense(3)
             image_probs = _make_image_probs(image_features_concat, cfg.image_temperature)
-            fused = concatenate([rf_probs, image_features_concat, image_probs],
+            fused = concatenate([rf_probs, image_features_projected, image_probs],
                                 name='fusion_concat')
             x = _build_fusion_head(fused, cfg)
             output = Dense(3, activation='softmax', name='output', dtype='float32')(x)
+
+        elif strategy == 'residual':
+            # Residual fusion: output = softmax(log(RF) + alpha * correction(images))
+            #
+            # Instead of learning classification from scratch, start from the RF
+            # prediction and let images make small additive corrections in logit space.
+            # At initialization alpha ≈ 0.01, so the model starts at RF performance.
+            from src.models.builders import ResidualFusionGate
+
+            orig_dim = image_features_concat.shape[-1]
+            hidden_dim = cfg.residual_hidden_dim
+            alpha_init = cfg.residual_alpha_init
+            print(f"  Residual fusion: image features ({orig_dim}) -> "
+                  f"hidden({hidden_dim}) -> correction (3-dim), alpha_init={alpha_init}")
+
+            # Convert RF probs to logits (inverse softmax)
+            rf_logits = Lambda(
+                lambda p: tf.math.log(tf.clip_by_value(p, 1e-7, 1.0)),
+                name='rf_to_logits'
+            )(rf_probs)
+
+            # Image correction network: learns a small 3-class adjustment
+            x = Dense(hidden_dim, activation='relu', kernel_initializer='he_normal',
+                      kernel_regularizer=tf.keras.regularizers.l2(0.001),
+                      name='residual_hidden')(image_features_concat)
+            x = BatchNormalization(name='residual_bn')(x)
+            x = Dropout(0.3, name='residual_dropout')(x)
+            # tanh bounds correction to [-1, 1]
+            correction = Dense(3, activation='tanh',
+                               kernel_initializer=tf.keras.initializers.GlorotUniform(),
+                               name='residual_correction', dtype='float32')(x)
+
+            # Gated addition: rf_logits + alpha * correction
+            adjusted_logits = ResidualFusionGate(
+                alpha_init=alpha_init,
+                name='residual_gate'
+            )([rf_logits, correction])
+
+            output = tf.keras.layers.Softmax(name='output', dtype='float32')(adjusted_logits)
 
         else:
             raise ValueError(f"Unknown fusion_strategy: {strategy}")
@@ -857,9 +939,11 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0,
     modalities_str = '+'.join(['metadata'] + cfg.image_modalities)
     print(f"\n{'='*80}")
     print(f"CONFIG [FUSION {modalities_str}]: {cfg.name}")
-    print(f"  fusion_strategy={cfg.fusion_strategy}, head={cfg.fusion_head_units}, "
-          f"head_drop={cfg.fusion_head_dropout}, head_bn={cfg.fusion_head_bn}")
+    print(f"  fusion_strategy={cfg.fusion_strategy}, image_projection_dim={cfg.image_projection_dim}, "
+          f"head={cfg.fusion_head_units}, head_drop={cfg.fusion_head_dropout}, head_bn={cfg.fusion_head_bn}")
     print(f"  image_temperature={cfg.image_temperature}, gate_hidden_dim={cfg.gate_hidden_dim}")
+    if cfg.fusion_strategy == 'residual':
+        print(f"  residual_alpha_init={cfg.residual_alpha_init}, residual_hidden_dim={cfg.residual_hidden_dim}")
     print(f"  stage1_lr={cfg.stage1_lr}, stage1_epochs={cfg.stage1_epochs}")
     print(f"  stage2_lr={cfg.stage2_lr}, stage2_epochs={cfg.stage2_epochs}, unfreeze_pct={cfg.stage2_unfreeze_pct}")
     print(f"  meta_scale=[{cfg.meta_min_scale}, {cfg.meta_max_scale}]")
@@ -1275,12 +1359,246 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0,
                 pretrained_weights[image_modality]['__backbone__'] = layer.get_weights()
                 break
 
+        # Cache validation-set probability predictions (needed for stacking fusion).
+        # These are out-of-sample predictions — the model never saw this data during training.
+        _val_preds_key = (image_modality, fold_idx, 'val_probs')
+        if _val_preds_key not in _pretrain_cache:
+            _pt_val_probs = []
+            _pt_val_labels = []
+            for batch in pt_valid_ds:
+                batch_inputs, batch_labels = batch
+                batch_pred = pretrain_model.predict(batch_inputs, verbose=0)
+                _pt_val_probs.extend(batch_pred)
+                _pt_val_labels.extend(np.argmax(batch_labels.numpy(), axis=1))
+            _pretrain_cache[_val_preds_key] = {
+                'probs': np.array(_pt_val_probs),
+                'labels': np.array(_pt_val_labels),
+            }
+            print(f"    Cached val predictions: {len(_pt_val_probs)} samples")
+
         # Cache for other configs using the same fold
         _pretrain_cache[cache_key] = pretrained_weights[image_modality]
 
         del pretrain_model, pt_train_ds, pt_valid_ds, pt_train_dis, pt_valid_dis
         gc.collect()
         tf.keras.backend.clear_session()
+
+    # ── Step 1b: Stacking fusion (scikit-learn meta-learner, no neural fusion) ──
+    if cfg.fusion_strategy == 'stacking':
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+
+        print(f"\n  STACKING FUSION: meta_learner={cfg.stacking_meta_learner}")
+
+        # Collect RF metadata predictions from the validation dataset
+        # (these come from the RF model trained on the outer-training set)
+        stack_val_rf = []
+        stack_val_labels = []
+        for batch in valid_ds:
+            batch_inputs, batch_labels = batch
+            stack_val_rf.extend(batch_inputs['metadata_input'].numpy())
+            stack_val_labels.extend(np.argmax(batch_labels.numpy(), axis=1))
+        stack_val_rf = np.array(stack_val_rf)
+        stack_val_labels = np.array(stack_val_labels)
+
+        # Collect RF metadata predictions from the training dataset (OOF — from pipeline)
+        stack_train_rf = []
+        stack_train_labels = []
+        for batch in pre_aug_ds:
+            batch_inputs, batch_labels = batch
+            stack_train_rf.extend(batch_inputs['metadata_input'].numpy())
+            stack_train_labels.extend(np.argmax(batch_labels.numpy(), axis=1))
+        stack_train_rf = np.array(stack_train_rf)
+        stack_train_labels = np.array(stack_train_labels)
+
+        # Collect image model predictions for validation set (out-of-sample, cached above)
+        stack_val_imgs = []
+        for image_modality in cfg.image_modalities:
+            vp_key = (image_modality, fold_idx, 'val_probs')
+            if vp_key in _pretrain_cache:
+                stack_val_imgs.append(_pretrain_cache[vp_key]['probs'])
+            else:
+                print(f"  WARNING: No cached val predictions for {image_modality} fold {fold_idx}")
+                stack_val_imgs.append(np.full((len(stack_val_labels), 3), 1/3))
+
+        # For training set: use pre-trained model predictions on the training data.
+        # These are in-sample for the image models, but the meta-learner is so simple
+        # (9 features -> 3 classes, ~27 params) that it won't overfit to the slight bias.
+        # This avoids the expensive inner-fold OOF approach.
+        stack_train_imgs = []
+        for image_modality in cfg.image_modalities:
+            tp_key = (image_modality, fold_idx, 'train_probs')
+            if tp_key not in _pretrain_cache:
+                # Need to generate training predictions — rebuild pretrained model
+                sa_cfg_mod = _STANDALONE_CONFIGS[image_modality]
+                with strategy.scope():
+                    _pt_model, _pt_base = build_pretrain_model(sa_cfg_mod, image_modality)
+                    # Load cached backbone weights
+                    pt_cache_key = (image_modality, fold_idx)
+                    if pt_cache_key in _pretrain_cache and '__backbone__' in _pretrain_cache[pt_cache_key]:
+                        for layer in _pt_model.layers:
+                            if hasattr(layer, 'layers'):
+                                layer.set_weights(_pretrain_cache[pt_cache_key]['__backbone__'])
+                                break
+                    _pt_model.compile(optimizer='adam', loss='categorical_crossentropy')
+
+                # Build standalone training dataset for this modality
+                from src.data.dataset_utils import create_patient_folds as _cpf2, prepare_cached_datasets as _pcd2
+                from src.data.generative_augmentation_v3 import AugmentationConfig as _AugCfg2
+                import src.utils.production_config as _pcfg2
+                import src.data.dataset_utils as _ds_utils2
+
+                _pt_folds2 = _cpf2(data, n_folds=cfg.n_folds, random_state=42)
+                _pt_train2, _pt_valid2 = _pt_folds2[fold_idx]
+                _aug_cfg2 = _AugCfg2()
+                _aug_cfg2.generative_settings['output_size']['width'] = cfg.image_size
+                _aug_cfg2.generative_settings['output_size']['height'] = cfg.image_size
+
+                _orig_rgb2 = _pcfg2.RGB_BACKBONE
+                _orig_map2 = _pcfg2.MAP_BACKBONE
+                _orig_ds_rgb2 = _ds_utils2.RGB_BACKBONE
+                _orig_ds_map2 = _ds_utils2.MAP_BACKBONE
+                is_rgb = (image_modality == 'depth_rgb')
+                if is_rgb:
+                    _pcfg2.RGB_BACKBONE = 'EfficientNetB0'
+                    _ds_utils2.RGB_BACKBONE = 'EfficientNetB0'
+                else:
+                    _pcfg2.MAP_BACKBONE = 'EfficientNetB0'
+                    _ds_utils2.MAP_BACKBONE = 'EfficientNetB0'
+
+                from src.utils.config import get_project_paths as _gpp2
+                _, _res_dir2, _ = _gpp2()
+                _pt_aug_s = 'aug' if sa_cfg_mod.get('use_augmentation', True) else 'noaug'
+                _pt_cache_dir2 = os.path.join(_res_dir2, 'search_cache',
+                    f'{image_modality}_{cfg.image_size}_pretrained_{_pt_aug_s}')
+
+                _pt_train_ds2, _pt_preaugds2, _pt_val_ds2, _, _, _ = _pcd2(
+                    data, [image_modality], batch_size=sa_cfg_mod['batch_size'],
+                    gen_manager=None, aug_config=_aug_cfg2, run=fold_idx,
+                    image_size=cfg.image_size, train_patients=_pt_train2,
+                    valid_patients=_pt_valid2, cache_dir=_pt_cache_dir2)
+
+                _pcfg2.RGB_BACKBONE = _orig_rgb2
+                _pcfg2.MAP_BACKBONE = _orig_map2
+                _ds_utils2.RGB_BACKBONE = _orig_ds_rgb2
+                _ds_utils2.MAP_BACKBONE = _orig_ds_map2
+
+                # Get predictions on the pre-augmentation training data
+                _input_key = f'{image_modality}_input'
+                _train_probs = []
+                for batch in _pt_preaugds2:
+                    b_in, b_lab = batch
+                    b_pred = _pt_model.predict(b_in[_input_key], verbose=0)
+                    _train_probs.extend(b_pred)
+                _pretrain_cache[tp_key] = np.array(_train_probs)
+                print(f"    Cached train predictions for {image_modality}: {len(_train_probs)} samples")
+                del _pt_model, _pt_base, _pt_train_ds2, _pt_preaugds2, _pt_val_ds2
+                gc.collect()
+                tf.keras.backend.clear_session()
+
+            stack_train_imgs.append(_pretrain_cache[tp_key])
+
+        # Assemble stacking feature matrices
+        # Truncate to minimum length in case of slight misalignment
+        min_train = min(len(stack_train_rf), *[len(p) for p in stack_train_imgs])
+        min_val = min(len(stack_val_rf), *[len(p) for p in stack_val_imgs])
+
+        X_train = np.concatenate([stack_train_rf[:min_train]] +
+                                  [p[:min_train] for p in stack_train_imgs], axis=1)
+        y_train = stack_train_labels[:min_train]
+        X_val = np.concatenate([stack_val_rf[:min_val]] +
+                                [p[:min_val] for p in stack_val_imgs], axis=1)
+        y_val = stack_val_labels[:min_val]
+
+        print(f"  Stacking features: X_train={X_train.shape}, X_val={X_val.shape}")
+        print(f"  Feature layout: RF(3) + {' + '.join(f'{m}(3)' for m in cfg.image_modalities)}")
+
+        # Train meta-learner
+        if cfg.stacking_meta_learner == 'logistic_regression':
+            meta = LogisticRegression(C=cfg.stacking_lr_C, max_iter=2000,
+                                      multi_class='multinomial', solver='lbfgs',
+                                      random_state=42)
+        elif cfg.stacking_meta_learner == 'rf':
+            meta = RandomForestClassifier(n_estimators=cfg.stacking_rf_n_estimators,
+                                           max_depth=cfg.stacking_rf_max_depth,
+                                           random_state=42, n_jobs=-1)
+        elif cfg.stacking_meta_learner == 'gradient_boosting':
+            meta = GradientBoostingClassifier(n_estimators=100, max_depth=3,
+                                               learning_rate=0.1, random_state=42)
+        else:
+            raise ValueError(f"Unknown stacking_meta_learner: {cfg.stacking_meta_learner}")
+
+        meta.fit(X_train, y_train)
+        y_pred = meta.predict(X_val)
+
+        kappa = cohen_kappa_score(y_val, y_pred, weights='quadratic')
+        accuracy = accuracy_score(y_val, y_pred)
+        f1_macro = f1_score(y_val, y_pred, average='macro', zero_division=0)
+        cm = confusion_matrix(y_val, y_pred, labels=[0, 1, 2])
+
+        elapsed = time.time() - start_time
+        print(f"\n  POST-EVAL: kappa={kappa:.4f}, acc={accuracy:.4f}, f1={f1_macro:.4f}")
+        print(f"  Confusion matrix:\n{cm}")
+        print(f"  Time: {elapsed:.0f}s")
+
+        result = {
+            'name': cfg.name,
+            'image_modalities': '+'.join(cfg.image_modalities),
+            'fusion_strategy': 'stacking',
+            'image_projection_dim': 0,
+            'fusion_head_units': '[]',
+            'fusion_head_dropout': 0,
+            'fusion_head_bn': False,
+            'image_temperature': 1.0,
+            'gate_hidden_dim': 0,
+            'residual_alpha_init': 0,
+            'residual_hidden_dim': 0,
+            'stage1_lr': cfg.stage1_lr,
+            'stage1_epochs': 0,
+            'stage2_lr': 0,
+            'stage2_epochs': 0,
+            'stage2_unfreeze_pct': 0,
+            'meta_min_scale': 0,
+            'meta_max_scale': 0,
+            'fusion_query_dim': 0,
+            'fusion_query_l2': 0,
+            'meta_query_scale': 0,
+            'image_query_scale': 0,
+            'loss_type': 'stacking',
+            'focal_gamma': 0,
+            'alpha_sum': cfg.alpha_sum,
+            'label_smoothing': 0,
+            'rf_n_estimators': cfg.rf_n_estimators,
+            'rf_max_depth': cfg.rf_max_depth,
+            'rf_min_samples_leaf': cfg.rf_min_samples_leaf,
+            'rf_min_samples_split': cfg.rf_min_samples_split,
+            'rf_feature_selection_k': cfg.rf_feature_selection_k,
+            'batch_size': 0,
+            'lr_schedule': 'N/A',
+            'warmup_epochs': 0,
+            'use_augmentation': cfg.use_augmentation,
+            'use_mixup': False,
+            'mixup_alpha': 0,
+            'image_size': cfg.image_size,
+            'fold': fold_idx,
+            'pretrained_loaded': True,
+            'trainable_weights': 0,
+            'total_weights': 0,
+            'best_s1_kappa': 0,
+            'best_s1_epoch': 0,
+            'best_s2_kappa': -1,
+            'post_eval_kappa': kappa,
+            'post_eval_acc': accuracy,
+            'post_eval_f1': f1_macro,
+            'elapsed_seconds': elapsed,
+            'n_val_samples': len(y_val),
+            'stacking_meta_learner': cfg.stacking_meta_learner,
+            'stacking_lr_C': cfg.stacking_lr_C,
+        }
+
+        del train_ds, valid_ds, pre_aug_ds
+        gc.collect()
+        return result
 
     # ── Step 2: Build fusion model, transfer pretrained weights, freeze backbone ──
     with strategy.scope():
@@ -1485,11 +1803,14 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0,
         'name': cfg.name,
         'image_modalities': '+'.join(cfg.image_modalities),
         'fusion_strategy': cfg.fusion_strategy,
+        'image_projection_dim': cfg.image_projection_dim,
         'fusion_head_units': str(cfg.fusion_head_units),
         'fusion_head_dropout': cfg.fusion_head_dropout,
         'fusion_head_bn': cfg.fusion_head_bn,
         'image_temperature': cfg.image_temperature,
         'gate_hidden_dim': cfg.gate_hidden_dim,
+        'residual_alpha_init': cfg.residual_alpha_init,
+        'residual_hidden_dim': cfg.residual_hidden_dim,
         'stage1_lr': cfg.stage1_lr,
         'stage1_epochs': cfg.stage1_epochs,
         'stage2_lr': cfg.stage2_lr,
@@ -1529,6 +1850,8 @@ def train_single_config(cfg: FusionSearchConfig, data, fold_idx=0,
         'post_eval_f1': f1_macro,
         'elapsed_seconds': elapsed,
         'n_val_samples': len(y_true_v),
+        'stacking_meta_learner': 'N/A',
+        'stacking_lr_C': 0,
     }
 
     del model, train_ds, valid_ds, pre_aug_ds
@@ -1742,6 +2065,117 @@ def round7_stage2_finetune(best_r6: FusionSearchConfig):
     return configs
 
 
+def round8_image_projection(best_r7: FusionSearchConfig):
+    """Round 8: Image feature projection dimension before fusion.
+
+    Tests projecting image features (e.g. 160-dim) to a smaller dimension
+    before concatenating with RF probabilities (3-dim).
+
+    Motivation: Without projection, 160 image features overwhelm 3 metadata
+    features (53:1 ratio). Projection to dim=N gives a (N:3) ratio, forcing
+    the image branch to compress its representation into a metadata-compatible
+    space and preventing noisy image features from drowning the RF signal.
+
+    Only applies to feature_concat, gated, and hybrid strategies.
+    """
+    configs = []
+    variants = [
+        ('proj_0',   0),    # No projection (current default — 160:3 ratio)
+        ('proj_3',   3),    # Match metadata dim exactly (1:1 ratio)
+        ('proj_4',   4),    # Slight advantage to images (1.3:1)
+        ('proj_8',   8),    # Moderate compression (2.7:1)
+        ('proj_16',  16),   # Light compression (5.3:1)
+        ('proj_32',  32),   # Minimal compression (10.7:1)
+    ]
+    for name, proj_dim in variants:
+        cfg = deepcopy(best_r7)
+        cfg.name = f"R8_{name}"
+        cfg.image_projection_dim = proj_dim
+        configs.append(cfg)
+    return configs
+
+
+def round9_fusion_paradigms(best_r8: FusionSearchConfig):
+    """Round 9: Three fusion paradigms competing on equal footing.
+
+    Tests fundamentally different approaches to combining modalities:
+
+    A. NON-RESIDUAL NEURAL FUSION (baseline from R1-R8)
+       The best non-residual config from R1-R8 is carried forward as-is.
+       This is the control — what we had before any residual/stacking changes.
+
+    B. RESIDUAL NEURAL FUSION
+       output = softmax(log(RF) + alpha * correction(images))
+       Starts from RF, images make small corrections. Searches alpha and hidden dim.
+
+    C. STACKING (scikit-learn meta-learner)
+       Trains LogisticRegression/RF on concatenated probability predictions from
+       all modalities (9 features: 3 per modality). No neural fusion at all.
+       This is the simplest, most robust approach — only ~27 parameters.
+
+    The Top 3 selection then picks the best across ALL paradigms for 5-fold CV.
+    """
+    configs = []
+
+    # ── Part A: Non-residual baseline (the R8 winner itself, unchanged) ──
+    # This ensures the best R1-R8 config competes fairly against new approaches
+    cfg = deepcopy(best_r8)
+    cfg.name = "R9_baseline_best_r8"
+    configs.append(cfg)
+
+    # ── Part B: Residual fusion ──
+    # Alpha search (how aggressively images can correct RF)
+    for alpha_init in [0.005, 0.01, 0.02, 0.05, 0.1]:
+        cfg = deepcopy(best_r8)
+        cfg.name = f"R9_residual_a{alpha_init}"
+        cfg.fusion_strategy = 'residual'
+        cfg.residual_alpha_init = alpha_init
+        cfg.residual_hidden_dim = 32
+        cfg.image_projection_dim = 0
+        cfg.fusion_head_units = []
+        configs.append(cfg)
+
+    # Hidden dim search
+    for hidden_dim in [16, 64, 128]:
+        cfg = deepcopy(best_r8)
+        cfg.name = f"R9_residual_h{hidden_dim}"
+        cfg.fusion_strategy = 'residual'
+        cfg.residual_alpha_init = 0.02
+        cfg.residual_hidden_dim = hidden_dim
+        cfg.image_projection_dim = 0
+        cfg.fusion_head_units = []
+        configs.append(cfg)
+
+    # ── Part C: Stacking (scikit-learn meta-learner) ──
+    # LogisticRegression with different regularization
+    for C in [0.01, 0.1, 1.0, 10.0]:
+        cfg = deepcopy(best_r8)
+        cfg.name = f"R9_stack_lr_C{C}"
+        cfg.fusion_strategy = 'stacking'
+        cfg.stacking_meta_learner = 'logistic_regression'
+        cfg.stacking_lr_C = C
+        configs.append(cfg)
+
+    # RF meta-learner (small, to avoid overfitting on 9 features)
+    for n_est, depth in [(50, 3), (100, 4), (200, 6)]:
+        cfg = deepcopy(best_r8)
+        cfg.name = f"R9_stack_rf{n_est}_d{depth}"
+        cfg.fusion_strategy = 'stacking'
+        cfg.stacking_meta_learner = 'rf'
+        cfg.stacking_rf_n_estimators = n_est
+        cfg.stacking_rf_max_depth = depth
+        configs.append(cfg)
+
+    # GradientBoosting meta-learner
+    cfg = deepcopy(best_r8)
+    cfg.name = "R9_stack_gb"
+    cfg.fusion_strategy = 'stacking'
+    cfg.stacking_meta_learner = 'gradient_boosting'
+    configs.append(cfg)
+
+    return configs
+
+
 # ─────────────────────────────────────────────────────────────────────
 # Results I/O
 # ─────────────────────────────────────────────────────────────────────
@@ -1777,11 +2211,18 @@ def pick_best(results: List[Dict], metric='post_eval_kappa') -> Tuple[Dict, Fusi
     cfg = FusionSearchConfig(
         name=best['name'],
         fusion_strategy=best.get('fusion_strategy', 'prob_concat'),
+        image_projection_dim=int(best.get('image_projection_dim', 0)),
         fusion_head_units=fusion_head_units,
         fusion_head_dropout=float(best.get('fusion_head_dropout', 0.3)),
         fusion_head_bn=best.get('fusion_head_bn', True),
         image_temperature=float(best.get('image_temperature', 1.0)),
         gate_hidden_dim=int(best.get('gate_hidden_dim', 32)),
+        residual_alpha_init=float(best.get('residual_alpha_init', 0.01)),
+        residual_hidden_dim=int(best.get('residual_hidden_dim', 32)),
+        stacking_meta_learner=best.get('stacking_meta_learner', 'logistic_regression'),
+        stacking_lr_C=float(best.get('stacking_lr_C', 1.0)),
+        stacking_rf_n_estimators=int(best.get('stacking_rf_n_estimators', 100)),
+        stacking_rf_max_depth=int(best.get('stacking_rf_max_depth', 4)),
         stage1_lr=float(best['stage1_lr']),
         stage1_epochs=int(best['stage1_epochs']),
         stage2_lr=float(best.get('stage2_lr', 1e-5)),
@@ -1852,10 +2293,12 @@ def load_completed_results(filepath: str) -> List[Dict]:
                    'meta_query_scale', 'image_query_scale',
                    'focal_gamma', 'alpha_sum', 'label_smoothing', 'mixup_alpha',
                    'fusion_head_dropout', 'image_temperature',
+                   'residual_alpha_init', 'stacking_lr_C',
                    'best_s1_kappa', 'best_s2_kappa', 'post_eval_kappa',
                    'post_eval_acc', 'post_eval_f1', 'elapsed_seconds']
     int_keys = ['stage1_epochs', 'stage2_epochs', 'fusion_query_dim',
-                'gate_hidden_dim',
+                'gate_hidden_dim', 'residual_hidden_dim',
+                'stacking_rf_n_estimators', 'stacking_rf_max_depth',
                 'rf_n_estimators', 'rf_max_depth', 'rf_min_samples_leaf',
                 'rf_min_samples_split', 'rf_feature_selection_k',
                 'batch_size', 'warmup_epochs', 'image_size',
@@ -1911,7 +2354,7 @@ def main(fresh: bool = False, force_retrain: bool = False):
     modalities_str = ' + '.join(['metadata'] + image_modalities)
     print("=" * 80)
     print(f"FUSION HYPERPARAMETER SEARCH ({modalities_str})")
-    print(f"  Strategy: Top-3 R1 carry-forward with independent R2-R7 branches")
+    print(f"  Strategy: Top-3 R1 carry-forward with independent R2-R9 branches")
     print("=" * 80)
 
     data, directory, result_dir = load_data(image_modalities)
@@ -2043,6 +2486,34 @@ def main(fresh: bool = False, force_retrain: bool = False):
         _, best_r7_cfg = pick_best(r7_results)
         branch_rounds['R7'] = r7_results
 
+        # ─── R8: Image Feature Projection Dimension ───
+        print(f"\n{'='*60}")
+        print(f"  {branch_tag} — ROUND 8: IMAGE FEATURE PROJECTION DIMENSION")
+        print(f"{'='*60}")
+        r8_configs = round8_image_projection(best_r7_cfg)
+        for c in r8_configs:
+            c.name = f"{branch_tag}_{c.name}"
+        r8_results = run_round(f"{branch_tag}_R8", r8_configs, data, results_csv, completed,
+                                   force_retrain=force_retrain)
+        branch_all.extend(r8_results)
+        all_results.extend(r8_results)
+        _, best_r8_cfg = pick_best(r8_results)
+        branch_rounds['R8'] = r8_results
+
+        # ─── R9: Residual Fusion ───
+        print(f"\n{'='*60}")
+        print(f"  {branch_tag} — ROUND 9: FUSION PARADIGMS (baseline + residual + stacking)")
+        print(f"{'='*60}")
+        r9_configs = round9_fusion_paradigms(best_r8_cfg)
+        for c in r9_configs:
+            c.name = f"{branch_tag}_{c.name}"
+        r9_results = run_round(f"{branch_tag}_R9", r9_configs, data, results_csv, completed,
+                                   force_retrain=force_retrain)
+        branch_all.extend(r9_results)
+        all_results.extend(r9_results)
+        _, best_r9_cfg = pick_best(r9_results)
+        branch_rounds['R9'] = r9_results
+
         branch_results[branch_tag] = {
             'r1_cfg': r1_cfg,
             'label': branch_label,
@@ -2065,6 +2536,7 @@ def main(fresh: bool = False, force_retrain: bool = False):
     for r in search_results:
         fingerprint = (
             r.get('fusion_strategy', 'prob_concat'),
+            int(r.get('image_projection_dim', 0)),
             str(r.get('fusion_head_units', '[]')),
             float(r.get('fusion_head_dropout', 0.3)),
             r.get('fusion_head_bn', True),
@@ -2078,6 +2550,8 @@ def main(fresh: bool = False, force_retrain: bool = False):
             int(r.get('rf_min_samples_leaf', 5)), int(r.get('rf_min_samples_split', 10)),
             int(r.get('rf_feature_selection_k', 40)),
             int(r.get('stage2_epochs', 0)), float(r.get('stage2_unfreeze_pct', 0.2)),
+            float(r.get('residual_alpha_init', 0.01)), int(r.get('residual_hidden_dim', 32)),
+            str(r.get('stacking_meta_learner', 'N/A')), float(r.get('stacking_lr_C', 0)),
         )
         if fingerprint not in seen_configs:
             seen_configs.add(fingerprint)
@@ -2150,9 +2624,11 @@ def main(fresh: bool = False, force_retrain: bool = False):
 
     def print_config_summary(label, cfg, fold_results):
         print(f"\n{label}:")
-        print(f"  fusion_strategy={cfg.fusion_strategy}, head={cfg.fusion_head_units}, "
-              f"head_drop={cfg.fusion_head_dropout}, head_bn={cfg.fusion_head_bn}")
+        print(f"  fusion_strategy={cfg.fusion_strategy}, image_projection_dim={cfg.image_projection_dim}, "
+              f"head={cfg.fusion_head_units}, head_drop={cfg.fusion_head_dropout}, head_bn={cfg.fusion_head_bn}")
         print(f"  image_temperature={cfg.image_temperature}, gate_hidden_dim={cfg.gate_hidden_dim}")
+        if cfg.fusion_strategy == 'residual':
+            print(f"  residual_alpha_init={cfg.residual_alpha_init}, residual_hidden_dim={cfg.residual_hidden_dim}")
         print(f"  stage1_lr={cfg.stage1_lr}, epochs={cfg.stage1_epochs}")
         print(f"  meta_scale=[{cfg.meta_min_scale}, {cfg.meta_max_scale}]")
         print(f"  fusion_query_dim={cfg.fusion_query_dim}, l2={cfg.fusion_query_l2}")
@@ -2181,27 +2657,84 @@ def main(fresh: bool = False, force_retrain: bool = False):
     print("TOP 3 CONFIGS — 5-FOLD RESULTS")
     print(f"{'─'*60}")
 
-    sorted_top3 = sorted(top3_fold_results.items(),
-                         key=lambda x: x[1]['mean_kappa'], reverse=True)
+    # ─── Stability-Aware Ranking ───
+    # Rank by stability score = mean_kappa - 0.5 * std_kappa
+    # This penalizes high-variance configs that look good on average but are
+    # unreliable. A config with mean 0.303 and std 0.020 (score 0.293) beats
+    # a config with mean 0.309 and std 0.028 (score 0.295) — because the lower
+    # variance config is more trustworthy and the mean difference is within noise.
+    from scipy import stats
 
-    print(f"\n  {'Rank':<6} {'Config':<30} {'Fold0':>7} {'Mean+/-Std':>14}")
-    print(f"  {'-'*60}")
+    def _config_complexity(cfg):
+        """Estimate config complexity (lower = simpler = preferred when tied)."""
+        score = 0
+        if cfg.stage2_epochs > 0:
+            score += 2  # Stage 2 fine-tuning adds instability
+        if cfg.image_projection_dim > 0:
+            score += 1  # Extra projection layer
+        if cfg.fusion_head_units:
+            score += len(cfg.fusion_head_units)  # Extra head layers
+        if cfg.fusion_strategy == 'residual':
+            score += 1  # Extra correction network
+        return score
+
+    def _stability_score(fold_kappas):
+        """Stability-aware score: mean - 0.5 * std."""
+        return np.mean(fold_kappas) - 0.5 * np.std(fold_kappas)
+
+    # Compute stability scores for all Top 3 configs
+    for tag, info in top3_fold_results.items():
+        fk = [r['post_eval_kappa'] for r in info['fold_results']]
+        info['stability_score'] = _stability_score(fk)
+        info['complexity'] = _config_complexity(info['cfg'])
+
+    sorted_top3 = sorted(top3_fold_results.items(),
+                         key=lambda x: x[1]['stability_score'], reverse=True)
+
+    print(f"\n  {'Rank':<6} {'Config':<30} {'Mean+/-Std':>14} {'Stability':>10} {'Complexity':>11}")
+    print(f"  {'-'*75}")
     for rank, (tag, info) in enumerate(sorted_top3):
         fk = [r['post_eval_kappa'] for r in info['fold_results']]
-        print(f"  {rank+1:<6} {info['orig_name']:<30} {info['fold0_kappa']:>7.4f} "
-              f"{np.mean(fk):>6.4f}+/-{np.std(fk):.4f}")
+        print(f"  {rank+1:<6} {info['orig_name']:<30} "
+              f"{np.mean(fk):>6.4f}+/-{np.std(fk):.4f} "
+              f"{info['stability_score']:>10.4f} "
+              f"{info['complexity']:>11d}")
 
-    winner_tag, winner_info = sorted_top3[0]
+    # Pairwise comparison: check if top-ranked is significantly better than others
+    top_tag, top_info = sorted_top3[0]
+    top_kappas = [r['post_eval_kappa'] for r in top_info['fold_results']]
+
+    print(f"\n  Pairwise t-tests (top-ranked vs others):")
+    for rank, (tag, info) in enumerate(sorted_top3[1:], start=2):
+        other_kappas = [r['post_eval_kappa'] for r in info['fold_results']]
+        if len(top_kappas) == len(other_kappas) and len(top_kappas) >= 2:
+            t_stat, p_value = stats.ttest_rel(top_kappas, other_kappas)
+            sig = "significant" if p_value < 0.05 else "NOT significant"
+            diff = np.mean(top_kappas) - np.mean(other_kappas)
+            print(f"    vs #{rank} {info['orig_name']}: diff={diff:+.4f}, p={p_value:.4f} ({sig})")
+
+            # If top-ranked is NOT significantly better and the other is simpler, swap
+            if p_value >= 0.05 and info['complexity'] < top_info['complexity']:
+                print(f"    -> #{rank} is simpler (complexity {info['complexity']} vs {top_info['complexity']}) "
+                      f"and not significantly worse -> PROMOTING to winner")
+                top_tag, top_info = tag, info
+                top_kappas = other_kappas
+
+    winner_tag, winner_info = top_tag, top_info
     winner_cfg = winner_info['cfg']
     winner_fold_results = winner_info['fold_results']
+
+    print(f"\n  WINNER (stability-aware): {winner_info['orig_name']} "
+          f"(stability={winner_info['stability_score']:.4f}, complexity={winner_info['complexity']})")
 
     print(f"\n{'─'*60}")
     print("DETAILED RESULTS")
     print(f"{'─'*60}")
 
     for rank, (tag, info) in enumerate(sorted_top3):
+        marker = " *** WINNER ***" if tag == winner_tag else ""
         print_config_summary(
-            f"#{rank+1}: {info['orig_name']} ({tag})",
+            f"#{rank+1}: {info['orig_name']} ({tag}){marker}",
             info['cfg'], info['fold_results'])
 
     print(f"\n{'─'*60}")
@@ -2211,7 +2744,7 @@ def main(fresh: bool = False, force_retrain: bool = False):
         "BASELINE (defaults)", baseline_cfg, baseline_results)
 
     print(f"\n{'─'*60}")
-    print(f"STATISTICAL COMPARISON: #{1} {winner_info['orig_name']} vs BASELINE")
+    print(f"STATISTICAL COMPARISON: {winner_info['orig_name']} vs BASELINE")
     print(f"{'─'*60}")
 
     best_kappas = [r['post_eval_kappa'] for r in winner_fold_results]
@@ -2225,7 +2758,6 @@ def main(fresh: bool = False, force_retrain: bool = False):
     print(f"  Mean Accuracy diff: {acc_diff:+.4f}  ({np.mean(bl_accs):.4f} -> {np.mean(best_accs):.4f})")
     print(f"  Mean F1 diff:       {f1_diff:+.4f}  ({np.mean(bl_f1s):.4f} -> {np.mean(best_f1s):.4f})")
 
-    from scipy import stats
     if len(best_kappas) == len(bl_kappas) and len(best_kappas) >= 2:
         t_stat, p_value = stats.ttest_rel(best_kappas, bl_kappas)
         print(f"\n  Paired t-test on kappa (n={len(best_kappas)} folds):")
@@ -2239,7 +2771,7 @@ def main(fresh: bool = False, force_retrain: bool = False):
 
     print(f"\nResults saved to: {results_csv}")
 
-    # Decide overall best: winner vs baseline (higher mean kappa wins)
+    # Decide overall best: winner vs baseline
     bl_mean_kappa = np.mean(bl_kappas)
     winner_mean_kappa = np.mean(best_kappas)
     if bl_mean_kappa >= winner_mean_kappa:
@@ -2249,8 +2781,21 @@ def main(fresh: bool = False, force_retrain: bool = False):
         final_cfg = winner_cfg
         print(f"\n  {winner_info['orig_name']} wins (kappa {winner_mean_kappa:.4f} > {bl_mean_kappa:.4f})")
 
+    # Save best config with rationale
     best_config_path = os.path.join(AUDIT_DIR, 'fusion_best_config.json')
     config_dict = asdict(final_cfg)
+    config_dict['selection_rationale'] = (
+        f"Selected by stability-aware ranking: stability_score="
+        f"{winner_info['stability_score']:.4f} (mean_kappa - 0.5*std_kappa), "
+        f"complexity={winner_info['complexity']}"
+    )
+    config_dict['five_fold_results'] = {
+        'mean_kappa': float(np.mean(best_kappas)),
+        'std_kappa': float(np.std(best_kappas)),
+        'mean_accuracy': float(np.mean(best_accs)),
+        'mean_f1': float(np.mean(best_f1s)),
+        'fold_kappas': [float(k) for k in best_kappas],
+    }
     with open(best_config_path, 'w') as f:
         json.dump(config_dict, f, indent=2)
     print(f"Best config saved to: {best_config_path}")

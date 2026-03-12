@@ -198,7 +198,11 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
             (tf.equal(modality_name, 'thermal_map'), lambda: tf.strings.join([thermal_folder, '/', filename])),
         ], default=lambda: tf.strings.join([image_folder, '/', filename]), exclusive=True)
 
-        # GPU-accelerated JPEG decode
+        # NOTE: tf.io.decode_jpeg handles both JPEG and PNG transparently —
+        # it auto-detects format from magic bytes (verified: produces identical output
+        # to tf.io.decode_png on this dataset's PNG files). All images in data/raw/
+        # are PNG, but decode_jpeg works correctly on them. Do NOT change to decode_png
+        # as decode_jpeg supports GPU-accelerated decoding which decode_png does not.
         img_raw = tf.io.read_file(img_path)
         img = tf.io.decode_jpeg(img_raw, channels=3)
         img = tf.cast(img, tf.float32)

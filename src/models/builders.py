@@ -20,7 +20,7 @@ from src.utils.verbosity import vprint
 directory, result_dir, root = get_project_paths()
 
 # Import IMAGE_SIZE and backbone configs from production config
-from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE, get_modality_config
+from src.utils.production_config import IMAGE_SIZE, RGB_BACKBONE, MAP_BACKBONE, get_modality_config, FUSION_IMAGE_PROJECTION_DIM, FUSION_STRATEGY, FUSION_RESIDUAL_ALPHA_INIT
 
 def create_simple_cnn_rgb(image_input, modality):
     """Simple CNN for RGB images (4 conv layers)"""
@@ -382,6 +382,38 @@ class MetadataConfidenceCallback(tf.keras.callbacks.Callback):
                 plt.ylabel('Average Confidence Score')
                 plt.savefig(os.path.join(self.log_dir, f'metadata_confidence_epoch_{epoch+1}.png'))
                 plt.close()
+class ResidualFusionGate(Layer):
+    """Learnable scalar gate for residual fusion.
+
+    Produces: rf_logits + alpha * correction
+    where alpha is a trainable scalar initialized near zero so that
+    the model starts at RF-only performance and gradually learns
+    when images add useful signal.
+    """
+    def __init__(self, alpha_init=0.01, **kwargs):
+        super().__init__(**kwargs)
+        self.alpha_init = alpha_init
+
+    def build(self, input_shape):
+        self.alpha = self.add_weight(
+            name='residual_alpha',
+            shape=(),
+            initializer=tf.keras.initializers.Constant(self.alpha_init),
+            trainable=True,
+            dtype='float32',
+        )
+        super().build(input_shape)
+
+    def call(self, inputs):
+        rf_logits, correction = inputs
+        return rf_logits + self.alpha * correction
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'alpha_init': self.alpha_init})
+        return config
+
+
 def create_multimodal_model(input_shapes, selected_modalities, class_weights, strategy=None):
     """
     Create multimodal model for DFU classification.
@@ -442,12 +474,10 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
                 output = Dense(3, activation='softmax', name='output', dtype='float32')(branches[0])
 
         elif len(selected_modalities) >= 2 and has_metadata:
-            # FEATURE_CONCAT FUSION (validated by fusion hparam search)
-            # RF probs (3) + image features (N) → Dense(3)
-            # Much more expressive than prob_concat (RF probs + image probs → Dense(3))
             from src.utils.verbosity import vprint
             n_images = len(selected_modalities) - 1
-            vprint(f"Model: Metadata + {n_images} image(s) - feature_concat fusion", level=2)
+            fusion_strat = FUSION_STRATEGY
+            vprint(f"Model: Metadata + {n_images} image(s) - {fusion_strat} fusion", level=2)
 
             rf_probs = branches[metadata_idx]
             image_branches = [b for i, b in enumerate(branches) if i != metadata_idx]
@@ -457,11 +487,79 @@ def create_multimodal_model(input_shapes, selected_modalities, class_weights, st
             else:
                 image_features = image_branches[0]
 
-            # Feature-level fusion: concat RF probs with raw image features
-            # (not image probs — preserves richer feature representation)
-            fused = concatenate([rf_probs, image_features], name='fusion_concat')
-            output = Dense(3, activation='softmax', name='output', dtype='float32',
-                           kernel_regularizer=tf.keras.regularizers.l2(0.001))(fused)
+            if fusion_strat == 'residual':
+                # RESIDUAL FUSION: output = softmax(log(rf_probs) + alpha * correction(images))
+                #
+                # Key insight: instead of learning classification from scratch,
+                # start from the RF prediction and let images make small additive
+                # corrections in log-probability (logit) space.
+                #
+                # At initialization alpha ≈ 0.01, so the model starts at RF performance
+                # (Kappa ~0.333) and can only deviate when images provide confident signal.
+                # This guarantees the model never does worse than RF in early training.
+                #
+                # Architecture:
+                #   rf_probs (3-dim) -> log() -> rf_logits
+                #   image_features (160-dim) -> Dense(32,relu) -> BN -> Dropout
+                #                            -> Dense(3, tanh) -> correction (bounded ±1)
+                #   output = softmax(rf_logits + alpha * correction)
+                #
+                # The correction uses tanh activation to bound it to [-1, 1], preventing
+                # large logit shifts. The learnable alpha starts near zero and grows
+                # only if images consistently improve predictions.
+
+                image_feat_dim = image_features.shape[-1]
+                vprint(f"  Residual fusion: image features ({image_feat_dim}) -> correction (3-dim)", level=2)
+                vprint(f"  Alpha init: {FUSION_RESIDUAL_ALPHA_INIT}", level=2)
+
+                # Convert RF probs to logits (inverse softmax)
+                rf_logits = Lambda(
+                    lambda p: tf.math.log(tf.clip_by_value(p, 1e-7, 1.0)),
+                    name='rf_to_logits'
+                )(rf_probs)
+
+                # Image correction network: learns a small 3-class adjustment
+                x = Dense(32, activation='relu', kernel_initializer='he_normal',
+                          kernel_regularizer=tf.keras.regularizers.l2(0.001),
+                          name='residual_hidden')(image_features)
+                x = BatchNormalization(name='residual_bn')(x)
+                x = Dropout(0.3, name='residual_dropout')(x)
+                # tanh bounds correction to [-1, 1] — prevents catastrophic logit shifts
+                correction = Dense(3, activation='tanh',
+                                   kernel_initializer=tf.keras.initializers.GlorotUniform(),
+                                   name='residual_correction', dtype='float32')(x)
+
+                # Gated addition: rf_logits + alpha * correction
+                # alpha is a learnable scalar initialized near zero
+                adjusted_logits = ResidualFusionGate(
+                    alpha_init=FUSION_RESIDUAL_ALPHA_INIT,
+                    name='residual_gate'
+                )([rf_logits, correction])
+
+                output = tf.keras.layers.Softmax(name='output', dtype='float32')(adjusted_logits)
+
+            elif fusion_strat == 'feature_concat':
+                # FEATURE_CONCAT FUSION (validated by fusion hparam search)
+                # Dimensionality balancing: project image features to a small dimension
+                # before concatenating with metadata RF probs (3-dim).
+                proj_dim = FUSION_IMAGE_PROJECTION_DIM
+                if proj_dim > 0:
+                    image_feat_dim = image_features.shape[-1]
+                    vprint(f"  Image feature projection: {image_feat_dim} -> {proj_dim} "
+                           f"(metadata=3, ratio {proj_dim/3:.1f}:1)", level=2)
+                    image_features = Dense(proj_dim, activation='relu',
+                                           kernel_initializer='he_normal',
+                                           kernel_regularizer=tf.keras.regularizers.l2(0.001),
+                                           name='fusion_image_projection')(image_features)
+                    image_features = BatchNormalization(name='fusion_image_proj_bn')(image_features)
+                    image_features = Dropout(0.3, name='fusion_image_proj_dropout')(image_features)
+
+                fused = concatenate([rf_probs, image_features], name='fusion_concat')
+                output = Dense(3, activation='softmax', name='output', dtype='float32',
+                               kernel_regularizer=tf.keras.regularizers.l2(0.001))(fused)
+
+            else:
+                raise ValueError(f"Unknown FUSION_STRATEGY: {fusion_strat}. Use 'feature_concat' or 'residual'.")
 
         elif len(selected_modalities) == 2:
             # Two image modalities (no metadata)

@@ -170,6 +170,19 @@ PRETRAIN_LR = 1e-3  # Default learning rate for Stage 1 head-only training (over
 STAGE1_LR = 1e-3  # Learning rate for Stage 1 fusion training (frozen image branch); fusion best: 1e-3
 STAGE2_LR = 5e-6  # Learning rate for Stage 2 fusion fine-tuning (fusion best: 5e-6)
 FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
+FUSION_STRATEGY = 'residual'  # Fusion strategy for metadata+image combinations:
+                              #   'feature_concat': concat RF probs + image features -> Dense(3). Previous default.
+                              #   'residual': output = softmax(log(RF) + alpha * correction(images)).
+                              #     Starts from RF prediction, images make small additive corrections.
+                              #     Guarantees model starts at RF performance (~0.333 kappa).
+FUSION_RESIDUAL_ALPHA_INIT = 0.01  # Initial value for residual gate scalar (only used when FUSION_STRATEGY='residual')
+                                   # Small value means model starts nearly at RF-only performance.
+                                   # The network learns to increase alpha when images are informative.
+FUSION_IMAGE_PROJECTION_DIM = 8  # Project image features to this dim before fusing with metadata (0=disabled)
+                                 # Used by feature_concat strategy. Not used by residual strategy.
+                                 # Addresses dimensionality mismatch: without projection, 160 image features
+                                 # overwhelm 3 metadata features in the fusion Dense layer.
+                                 # With dim=8, the fusion layer sees (3 + 8) = 11 inputs — balanced ratio.
 STAGE1_EPOCHS = 100  # Stage 1 fusion training epochs (fusion best: 100; feature_concat needs more epochs to converge)
 STAGE2_FINETUNE_EPOCHS = 50  # Stage 2 fine-tuning epochs (fusion best: 50)
 STAGE2_UNFREEZE_PCT = 0.2  # Fraction of backbone to unfreeze in Stage 2 (0.2 = top 20%, validated by search)

@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold5.log
-[LOG] Started at: 2026-03-10 19:23:37
+[LOG] Started at: 2026-03-10 21:40:26
 
 
 ================================================================================
@@ -44,59 +44,58 @@ Will test 1 custom combinations
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-  Core data filtering: thresholds I=49, P=46, R=60
+  Core data filtering: thresholds I=54, P=56, R=61
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=49, P=46, R=60
+Thresholds: I=54, P=56, R=61
 
 Excluded samples per class:
-  Class I: 26 samples
-  Class P: 157 samples
-  Class R: 9 samples
+  Class I: 17 samples
+  Class P: 53 samples
+  Class R: 0 samples
 
-Total unique samples to exclude: 192
+Total unique samples to exclude: 70
 
-Dataset size (rows): 3108 -> 2085 (67.1%)
-Unique samples: 648 -> 456 (removed 192)
+Dataset size (rows): 3108 -> 2737 (88.1%)
+Unique samples: 648 -> 578 (removed 70)
 
 Class distribution after filtering:
-  Class I: 738 rows
-  Class P: 1058 rows
-  Class R: 289 rows
+  Class I: 791 rows
+  Class P: 1611 rows
+  Class R: 335 rows
 ============================================================
 
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
-Epoch 33: early stopping
-Restoring model weights from the end of the best epoch: 18.
-Epoch 16: early stopping
-Restoring model weights from the end of the best epoch: 1.
-Epoch 36: early stopping
-Restoring model weights from the end of the best epoch: 21.
-Epoch 16: early stopping
-Restoring model weights from the end of the best epoch: 1.
-Epoch 96: early stopping
-Restoring model weights from the end of the best epoch: 76.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 11.
+Restoring model weights from the end of the best epoch: 23.
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 26.
+Epoch 18: early stopping
+Restoring model weights from the end of the best epoch: 3.
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 5 Results for metadata+depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.63      0.67      0.65       120
-           P       0.67      0.53      0.59       113
-           R       0.33      0.56      0.42        27
+           I       0.56      0.44      0.49       152
+           P       0.74      0.81      0.77       409
+           R       0.33      0.30      0.32        50
 
-    accuracy                           0.60       260
-   macro avg       0.55      0.58      0.55       260
-weighted avg       0.62      0.60      0.60       260
+    accuracy                           0.68       611
+   macro avg       0.55      0.52      0.53       611
+weighted avg       0.66      0.68      0.67       611
 
-Cohen's Kappa: 0.3309
+Cohen's Kappa: 0.3847
 Warning: No predictions to save for run 5 (train). Skipping...
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
@@ -107,9 +106,9 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: metadata+depth_rgb+thermal_map
-  Accuracy: 0.6041 ± 0.0483
-  F1 Macro: 0.5711
-  Kappa: 0.4631
+  Accuracy: 0.5431 ± 0.0116
+  F1 Macro: 0.5031
+  Kappa: 0.3459
 
 Total combinations tested: 1
 ================================================================================

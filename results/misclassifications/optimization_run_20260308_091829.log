@@ -838,3 +838,30 @@ Cleanup Statistics:
 
   Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
 ⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.5431 (Δ-0.0374)
+  Macro F1: 0.5031 (Δ-0.0365)
+  Weighted F1: 0.5490 (Δ-0.0332)
+  Per-class F1: I=0.5217, P=0.5832, R=0.4044
+  Kappa: 0.3459 (Δ+0.0128)
+  Retention: 578/648 (89.2%)
+  Penalties: 0.062 (min_f1:0.06)
+  Combined Score: -0.0002
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 24/30
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=52, I=52, R=61
+Dataset after filtering: 544/648 samples (84.0%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...

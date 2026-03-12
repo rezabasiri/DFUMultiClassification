@@ -15285,3 +15285,314 @@ I0000 00:00:1773177190.445618 1791080 gpu_device.cc:2022] Created device /job:lo
 I0000 00:00:1773177229.120439 1791276 cuda_dnn.cc:529] Loaded cuDNN version 91002
 Epoch 32: early stopping
 Restoring model weights from the end of the best epoch: 17.
+Restoring model weights from the end of the best epoch: 27.
+Epoch 29: early stopping
+Restoring model weights from the end of the best epoch: 14.
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+Epoch 39: early stopping
+Restoring model weights from the end of the best epoch: 19.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.39      0.68      0.49        99
+           P       0.82      0.55      0.66       303
+           R       0.25      0.40      0.30        43
+
+    accuracy                           0.56       445
+   macro avg       0.48      0.54      0.48       445
+weighted avg       0.67      0.56      0.59       445
+
+Cohen's Kappa: 0.2790
+Warning: No predictions to save for run 4 (train). Skipping...
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb+thermal_map
+  Accuracy: 0.5369 ± 0.0050
+  F1 Macro: 0.5094
+  Kappa: 0.3682
+
+Total combinations tested: 1
+================================================================================
+
+I0000 00:00:1773178813.574484 1791080 gpu_device.cc:2022] Created device /device:GPU:0 with 22364 MB memory:  -> device: 0, name: NVIDIA RTX A5000, pci bus id: 0000:43:00.0, compute capability: 8.6
+
+Fold 4/5 completed successfully.
+
+================================================================================
+FOLD 5/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode single --min-gpu-memory 8.0 --fold 5 --resume_mode auto
+================================================================================
+
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773178820.273073 1834414 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773178820.279114 1834414 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold5.log
+[LOG] Started at: 2026-03-10 21:40:26
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 1 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected GPU 0: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+Enabled mixed precision (mixed_float16)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: auto
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 5-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 64
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
+================================================================================
+I0000 00:00:1773178827.617436 1834414 gpu_device.cc:2022] Created device /device:GPU:0 with 22364 MB memory:  -> device: 0, name: NVIDIA RTX A5000, pci bus id: 0000:43:00.0, compute capability: 8.6
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+  Core data filtering: thresholds I=54, P=56, R=61
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=54, P=56, R=61
+
+Excluded samples per class:
+  Class I: 17 samples
+  Class P: 53 samples
+  Class R: 0 samples
+
+Total unique samples to exclude: 70
+
+Dataset size (rows): 3108 -> 2737 (88.1%)
+Unique samples: 648 -> 578 (removed 70)
+
+Class distribution after filtering:
+  Class I: 791 rows
+  Class P: 1611 rows
+  Class R: 335 rows
+============================================================
+
+I0000 00:00:1773178835.398146 1834414 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 22364 MB memory:  -> device: 0, name: NVIDIA RTX A5000, pci bus id: 0000:43:00.0, compute capability: 8.6
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+I0000 00:00:1773178872.906334 1834666 cuda_dnn.cc:529] Loaded cuDNN version 91002
+Epoch 26: early stopping
+Restoring model weights from the end of the best epoch: 11.
+Restoring model weights from the end of the best epoch: 23.
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 26.
+Epoch 18: early stopping
+Restoring model weights from the end of the best epoch: 3.
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 5 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.56      0.44      0.49       152
+           P       0.74      0.81      0.77       409
+           R       0.33      0.30      0.32        50
+
+    accuracy                           0.68       611
+   macro avg       0.55      0.52      0.53       611
+weighted avg       0.66      0.68      0.67       611
+
+Cohen's Kappa: 0.3847
+Warning: No predictions to save for run 5 (train). Skipping...
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb+thermal_map
+  Accuracy: 0.5431 ± 0.0116
+  F1 Macro: 0.5031
+  Kappa: 0.3459
+
+Total combinations tested: 1
+================================================================================
+
+I0000 00:00:1773180276.241663 1834414 gpu_device.cc:2022] Created device /device:GPU:0 with 22364 MB memory:  -> device: 0, name: NVIDIA RTX A5000, pci bus id: 0000:43:00.0, compute capability: 8.6
+
+Fold 5/5 completed successfully.
+
+All 5 folds completed successfully.
+
+────────────────────────────────────────────────────────────────────────────────
+SCORING SUMMARY — Evaluation 23
+────────────────────────────────────────────────────────────────────────────────
+Thresholds: I=54, P=56, R=61
+Retention: 578/648 (89.2%)
+Accuracy:    0.5431
+Macro F1:    0.5031
+Weighted F1: 0.5490
+Per-class F1: I=0.5217, P=0.5832, R=0.4044
+Kappa:       0.3459
+Deltas vs baseline:
+  Δ Macro F1: -0.0365
+  Δ Kappa:    +0.0128
+Penalties: 0.0623 (min_f1:0.062)
+Combined Score: -0.0002
+────────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+EVALUATION EVAL_24
+Timestamp: 2026-03-10 22:04:44
+Thresholds: I=52, P=52, R=61
+================================================================================
+
+2026-03-10 22:04:44.902644: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773180284.921064 1874291 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773180284.927073 1874291 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
+[LOG] Started at: 2026-03-10 22:04:51
+
+
+================================================================================
+SUBPROCESS ISOLATION: Running 5 folds in separate processes
+  (Prevents TF/CUDA resource accumulation across folds)
+================================================================================
+
+
+================================================================================
+FOLD 1/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode single --min-gpu-memory 8.0 --fold 1 --resume_mode fresh
+================================================================================
+
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1773180291.612404 1874411 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1773180291.618613 1874411 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
+[LOG] Started at: 2026-03-10 22:04:57
+
+
+================================================================================
+DEVICE CONFIGURATION (mode: single)
+================================================================================
+
+Detected 1 GPU(s):
+  GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+
+Selected GPU 0: NVIDIA RTX A5000 (24.0GB)
+Enabled memory growth for 1 GPU(s)
+Enabled mixed precision (mixed_float16)
+
+Using default strategy (single GPU)
+================================================================================
+
+
+Batch size per replica: 64 (global batch size: 64, replicas: 1)
+
+================================================================================
+DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
+================================================================================
+Mode: search
+Resume mode: fresh
+Data percentage: 100.0%
+Verbosity: 0 (MINIMAL)
+Device: GPU 0 (single GPU mode)
+Cross-validation: 5-fold CV (patient-level)
+
+Configuration loaded from: src/utils/production_config.py
+Image size: 256x256
+Batch size: 64
+Max epochs: 200 (with early stopping)
+Modality search mode: custom
+Will test 1 custom combinations
+================================================================================
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+  Csv Results: 12 files deleted
+  Tf Cache: 14 files deleted
+================================================================================
+
+I0000 00:00:1773180299.195105 1874411 gpu_device.cc:2022] Created device /device:GPU:0 with 22364 MB memory:  -> device: 0, name: NVIDIA RTX A5000, pci bus id: 0000:43:00.0, compute capability: 8.6
+
+Data Cleaning Configuration (from production_config.py):
+  Outlier removal: False
+  Misclassification tracking: none
+  Core data filtering: thresholds I=52, P=52, R=61
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=52, P=52, R=61
+
+Excluded samples per class:
+  Class I: 23 samples
+  Class P: 81 samples
+  Class R: 0 samples
+
+Total unique samples to exclude: 104
+
+Dataset size (rows): 3108 -> 2563 (82.5%)
+Unique samples: 648 -> 544 (removed 104)
+
+Class distribution after filtering:
+  Class I: 759 rows
+  Class P: 1469 rows
+  Class R: 335 rows
+============================================================
+
+I0000 00:00:1773180305.043542 1874411 gpu_device.cc:2022] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 22364 MB memory:  -> device: 0, name: NVIDIA RTX A5000, pci bus id: 0000:43:00.0, compute capability: 8.6
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+I0000 00:00:1773180341.596441 1874662 cuda_dnn.cc:529] Loaded cuDNN version 91002
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 8.
+Restoring model weights from the end of the best epoch: 22.
+Epoch 37: early stopping
+Restoring model weights from the end of the best epoch: 22.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 6.

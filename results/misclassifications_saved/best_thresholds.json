@@ -19,5 +19,5 @@
   "phase1_baseline_modality": "metadata",
   "production_config_settings": "USE_CORE_DATA = True, THRESHOLD_I = 50, THRESHOLD_P = 47, THRESHOLD_R = 60",
   "command": "python src/main.py --mode search --cv_folds 5 --device-mode multi",
-  "timestamp": "2026-03-10T19:49:54.007648"
+  "timestamp": "2026-03-10T22:04:44.011661"
 }

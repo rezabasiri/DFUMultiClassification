@@ -109,7 +109,11 @@
       "Bash(# src is 20G?? Check what''s big du -sh /workspace/DFUMultiClassification/src/*/)",
       "Bash(# What''s 20G in src/models? du -sh /workspace/DFUMultiClassification/src/models/*/)",
       "Bash(python3.11 --version)",
-      "Bash(/venv/multimodal/bin/python3 -c \":*)"
+      "Bash(/venv/multimodal/bin/python3 -c \":*)",
+      "Bash(sort -t' ' -k1 -nr)",
+      "Bash(xargs file)",
+      "Bash(while read f)",
+      "Bash(do python3 -c \"from PIL import Image; import numpy as np; img = Image.open\\(''$f''\\); arr = np.array\\(img\\); print\\(f''File: {\"\"$f\"\"}''\\); print\\(f''  Shape: {arr.shape}, Format: {img.format}, Mode: {img.mode}''\\); print\\(f''  Min: {arr.min\\(\\)}, Max: {arr.max\\(\\)}, Mean: {arr.mean\\(\\):.1f}''\\)\")"
     ]
   }
 }

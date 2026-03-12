@@ -72,3 +72,44 @@ Class distribution after filtering:
   warnings.warn(
 Epoch 32: early stopping
 Restoring model weights from the end of the best epoch: 17.
+Restoring model weights from the end of the best epoch: 27.
+Epoch 29: early stopping
+Restoring model weights from the end of the best epoch: 14.
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+Epoch 39: early stopping
+Restoring model weights from the end of the best epoch: 19.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.39      0.68      0.49        99
+           P       0.82      0.55      0.66       303
+           R       0.25      0.40      0.30        43
+
+    accuracy                           0.56       445
+   macro avg       0.48      0.54      0.48       445
+weighted avg       0.67      0.56      0.59       445
+
+Cohen's Kappa: 0.2790
+Warning: No predictions to save for run 4 (train). Skipping...
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb+thermal_map
+  Accuracy: 0.5369 ± 0.0050
+  F1 Macro: 0.5094
+  Kappa: 0.3682
+
+Total combinations tested: 1
+================================================================================
+
