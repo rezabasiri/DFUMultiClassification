@@ -1,0 +1,207 @@
+📝 Logging to: results/misclassifications/optimization_run_20260317_164108.log
+
+
+🚀 Starting Phase 1: Misclassification Detection
+
+
+======================================================================
+PHASE 1: MISCLASSIFICATION DETECTION
+======================================================================
+Dataset: 648 samples (100% of 648)
+Min after filtering: 324 samples (50%)
+Testing 4 configurations from INCLUDED_COMBINATIONS:
+  - metadata+depth_rgb+thermal_map
+  - metadata+thermal_map
+  - metadata+depth_rgb
+  - metadata
+Running 3 runs per configuration (total 12 runs)
+Misclassification counts: max=3 (mode=valid, runs=3, folds=5)
+CV folds=5, verbosity=silent
+
+
+🧹 FRESH START MODE: Deleting all checkpoints...
+================================================================================
+
+Cleanup Statistics:
+================================================================================
+
+
+======================================================================
+Testing: metadata+depth_rgb+thermal_map (3 runs)
+======================================================================
+Phase 1 Progress (metadata+depth_rgb+thermal_map):   0%|                                                                                       | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after metadata+depth_rgb+thermal_map run 1...
+Phase 1 Progress (metadata+depth_rgb+thermal_map):  33%|#########################                                                  | 1/3 [59:53<1:59:47, 3593.61s/run]
+📊 Updating baseline after metadata+depth_rgb+thermal_map run 2...
+Phase 1 Progress (metadata+depth_rgb+thermal_map):  67%|##################################################                         | 2/3 [1:59:56<59:58, 3598.99s/run]
+📊 Updating baseline after metadata+depth_rgb+thermal_map run 3...
+Phase 1 Progress (metadata+depth_rgb+thermal_map): 100%|###########################################################################| 3/3 [2:57:40<00:00, 3537.36s/run]Phase 1 Progress (metadata+depth_rgb+thermal_map): 100%|###########################################################################| 3/3 [2:57:40<00:00, 3553.46s/run]
+
+======================================================================
+Testing: metadata+thermal_map (3 runs)
+======================================================================
+Phase 1 Progress (metadata+thermal_map):   0%|                                                                                                 | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after metadata+thermal_map run 1...
+Phase 1 Progress (metadata+thermal_map):  33%|############################3                                                        | 1/3 [34:43<1:09:27, 2083.86s/run]
+📊 Updating baseline after metadata+thermal_map run 2...
+Phase 1 Progress (metadata+thermal_map):  67%|########################################################6                            | 2/3 [1:12:00<36:13, 2173.92s/run]
+📊 Updating baseline after metadata+thermal_map run 3...
+Phase 1 Progress (metadata+thermal_map): 100%|#####################################################################################| 3/3 [1:45:58<00:00, 2111.94s/run]Phase 1 Progress (metadata+thermal_map): 100%|#####################################################################################| 3/3 [1:45:58<00:00, 2119.67s/run]
+
+======================================================================
+Testing: metadata+depth_rgb (3 runs)
+======================================================================
+Phase 1 Progress (metadata+depth_rgb):   0%|                                                                                                   | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after metadata+depth_rgb run 1...
+Phase 1 Progress (metadata+depth_rgb):  33%|#############################                                                          | 1/3 [32:04<1:04:08, 1924.05s/run]
+📊 Updating baseline after metadata+depth_rgb run 2...
+Phase 1 Progress (metadata+depth_rgb):  67%|##########################################################                             | 2/3 [1:04:24<32:13, 1933.59s/run]
+📊 Updating baseline after metadata+depth_rgb run 3...
+Phase 1 Progress (metadata+depth_rgb): 100%|#######################################################################################| 3/3 [1:38:38<00:00, 1988.63s/run]Phase 1 Progress (metadata+depth_rgb): 100%|#######################################################################################| 3/3 [1:38:38<00:00, 1972.82s/run]
+
+======================================================================
+Testing: metadata (3 runs)
+======================================================================
+Phase 1 Progress (metadata):   0%|                                                                                                             | 0/3 [00:00<?, ?run/s]
+📊 Updating baseline after metadata run 1...
+Phase 1 Progress (metadata):  33%|#################################3                                                                  | 1/3 [03:19<06:38, 199.19s/run]
+📊 Updating baseline after metadata run 2...
+Phase 1 Progress (metadata):  67%|##################################################################6                                 | 2/3 [06:39<03:19, 199.71s/run]
+📊 Updating baseline after metadata run 3...
+Phase 1 Progress (metadata): 100%|####################################################################################################| 3/3 [10:01<00:00, 200.96s/run]Phase 1 Progress (metadata): 100%|####################################################################################################| 3/3 [10:01<00:00, 200.57s/run]
+
+======================================================================
+✅ PHASE 1 COMPLETE
+======================================================================
+
+💾 Saved Phase 1 misclassification data:
+   - frequent_misclassifications_saved.csv (total)
+   - Backup: /workspace/DFUMultiClassification/results/misclassifications_saved/frequent_misclassifications_saved.csv
+   - frequent_misclassifications_depth_rgb_metadata_thermal_map_saved.csv
+   - frequent_misclassifications_metadata_thermal_map_saved.csv
+   - frequent_misclassifications_depth_rgb_metadata_saved.csv
+   - frequent_misclassifications_metadata_saved.csv
+🔒 Locked Phase 1 data - Phase 2 training won't contaminate counts
+
+Misclassification Summary:
+  Total unique misclassified samples: 640
+  Max count observed: 12
+
+  By class:
+    I: 199 samples, counts 1-12, median=9.0
+    P: 368 samples, counts 1-12, median=9.0
+    R: 73 samples, counts 1-12, median=8.0
+
+💾 Saved Phase 1 baseline metrics: /workspace/DFUMultiClassification/results/misclassifications/phase1_baseline.json
+   Best performance for 4 modality combinations preserved
+   Best overall: metadata+depth_rgb (Kappa=0.3498)
+   CSV with all modalities: /workspace/DFUMultiClassification/results/misclassifications_saved/phase1_modality_results.csv
+
+======================================================================
+PHASE 1 BASELINE PERFORMANCE (Before Optimization)
+======================================================================
+
+  metadata+depth_rgb << BEST:
+    Accuracy: 0.5077
+    Macro F1: 0.4864
+    Weighted F1: 0.5075
+    Per-class F1: I=0.5008, P=0.5195, R=0.4389
+    Kappa: 0.3498
+
+  metadata+depth_rgb+thermal_map:
+    Accuracy: 0.5150
+    Macro F1: 0.4764
+    Weighted F1: 0.5213
+    Per-class F1: I=0.4965, P=0.5351, R=0.3976
+    Kappa: 0.3471
+
+  metadata+thermal_map:
+    Accuracy: 0.5009
+    Macro F1: 0.4726
+    Weighted F1: 0.5098
+    Per-class F1: I=0.4823, P=0.5423, R=0.3932
+    Kappa: 0.3321
+
+  metadata:
+    Accuracy: 0.5809
+    Macro F1: 0.5371
+    Weighted F1: 0.5899
+    Per-class F1: I=0.4183, P=0.6610, R=0.5319
+    Kappa: 0.3276
+
+  📊 Using best baseline for optimization: metadata+depth_rgb
+     Accuracy: 0.5077, Macro F1: 0.4864, Weighted F1: 0.5075
+     Per-class F1: I=0.5008, P=0.5195, R=0.4389, Kappa: 0.3498
+
+🚀 Starting Phase 2: Bayesian Threshold Optimization
+
+
+======================================================================
+PHASE 2: BAYESIAN THRESHOLD OPTIMIZATION
+======================================================================
+
+  📊 Grid Search Strategy:
+     Rarest class: R (76 samples)
+     Per-class retention floors:
+       I: >=50% (102/204 samples)
+       P: >=50% (184/368 samples)
+       R: >=75% (57/76 samples)
+     Total retention floor: >=60% (389/648 samples)
+
+  Grid search: 16 combinations tested
+  Valid (>=60% total retention): 16
+  Valid ranges: I=[10,13], P=[10,13], R=[13,13]
+  Lowest valid retention: I=10, P=10, R=13 -> 413/648 (63.7%)
+
+======================================================================
+AUTOMATIC THRESHOLD CALCULATION (Balanced Dataset Strategy)
+======================================================================
+  Minority class retention target: 75%
+
+  Class I:
+    Original samples: 204 (893 images)
+    Target retention for balance: 50.0%
+    Misclass count range: 1-12, median=9.0
+    Min threshold for retention: 10
+    Actual retention at this threshold: 134/204 (65.7%) ≈ 586 images
+
+  Class P:
+    Original samples: 368 (1880 images)
+    Target retention for balance: 50.0%
+    Misclass count range: 1-12, median=9.0
+    Min threshold for retention: 10
+    Actual retention at this threshold: 203/368 (55.2%) ≈ 1037 images
+
+  Class R:
+    Original samples: 76 (335 images)
+    Target retention for balance: 75.0%
+    Misclass count range: 1-12, median=8.0
+    Min threshold for retention: 13
+    Actual retention at this threshold: 76/76 (100.0%) ≈ 335 images
+    ⚠️  WARNING: Threshold 13 exceeds max count 12
+       Cannot achieve retention - all samples have high misclass counts
+
+======================================================================
+⚠️  SKIPPING PHASE 2 OPTIMIZATION
+======================================================================
+
+Reason: Cannot achieve 75% retention with 5-fold CV.
+
+With 5-fold CV, each class needs ≥10 samples.
+Rarest class (R) has 76 samples.
+Minimum retention needed: 13.2%
+
+Possible solutions:
+  1. Increase --min-minority-retention to 0.13 or higher
+  2. Reduce --phase2-cv-folds to 5 or lower
+  3. Use NO filtering: python src/main.py --mode search --cv_folds 5
+
+======================================================================
+⚠️  OPTIMIZATION SKIPPED
+======================================================================
+
+Cannot achieve 75% retention for minority class.
+Recommendation: Use NO filtering for training:
+   python src/main.py --mode search --cv_folds 5
+
+Or reduce --min-minority-retention to allow more aggressive filtering.

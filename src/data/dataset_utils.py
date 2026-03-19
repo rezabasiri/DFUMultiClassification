@@ -287,25 +287,26 @@ def create_cached_dataset(best_matching_df, selected_modalities, batch_size,
         padded_img = tf.pad(resized_img, [[pad_top, pad_bottom], [pad_left, pad_right], [0, 0]], constant_values=0)
 
         # Normalize based on modality and backbone.
-        # EfficientNet variants (B0-B3) have a built-in Rescaling(1/255) layer that
-        # expects raw [0, 255] float input. Dividing by 255 here would cause double
-        # normalization, squishing all pixel values to [0, 0.004] — destroying features.
-        # SimpleCNN has NO built-in normalization, so it needs [0, 1] input.
-        _rgb_has_builtin_rescaling = RGB_BACKBONE.startswith('EfficientNet')
-        _map_has_builtin_rescaling = MAP_BACKBONE.startswith('EfficientNet')
+        # Pretrained backbones (EfficientNet, DenseNet, ResNet, MobileNet) each have
+        # their own preprocessing that expects raw [0, 255] float input.
+        # EfficientNet has built-in Rescaling(1/255); DenseNet/ResNet/MobileNet use
+        # preprocess_input() applied in builders.py. Both expect [0, 255] from the pipeline.
+        # Only SimpleCNN needs [0, 1] input (no built-in normalization).
+        _rgb_needs_manual_rescaling = RGB_BACKBONE == 'SimpleCNN'
+        _map_needs_manual_rescaling = MAP_BACKBONE == 'SimpleCNN'
 
         def _normalize_rgb(img):
-            if _rgb_has_builtin_rescaling:
-                return img  # Keep [0, 255] — EfficientNet normalizes internally
-            return img / 255.0
+            if _rgb_needs_manual_rescaling:
+                return img / 255.0  # SimpleCNN: normalize to [0, 1]
+            return img  # Keep [0, 255] — pretrained backbones normalize internally
 
         def _normalize_map(img):
-            if _map_has_builtin_rescaling:
-                return img  # Keep [0, 255] — EfficientNet normalizes internally
-            # SimpleCNN: normalize to [0, 1] using per-image max
-            return tf.cond(tf.reduce_max(img) != 0,
-                           lambda: img / tf.reduce_max(img),
-                           lambda: img / 255.0)
+            if _map_needs_manual_rescaling:
+                # SimpleCNN: normalize to [0, 1] using per-image max
+                return tf.cond(tf.reduce_max(img) != 0,
+                               lambda: img / tf.reduce_max(img),
+                               lambda: img / 255.0)
+            return img  # Keep [0, 255] — pretrained backbones normalize internally
 
         normalized_img = tf.case([
             (tf.logical_or(tf.equal(modality_name, 'depth_rgb'), tf.equal(modality_name, 'thermal_rgb')),

@@ -1,0 +1,52 @@
+{
+  "name": "TOP10_3_fold4",
+  "depth_rgb_backbone": "ResNet50V2",
+  "thermal_map_backbone": "DenseNet121",
+  "depth_rgb_head_units": [
+    32
+  ],
+  "thermal_map_head_units": [
+    256
+  ],
+  "head_dropout": 0.1,
+  "depth_rgb_pretrain_lr": 0.002660044721430352,
+  "thermal_map_pretrain_lr": 0.001345881999678257,
+  "depth_rgb_use_mixup": false,
+  "thermal_map_use_mixup": false,
+  "image_size": 128,
+  "rf_n_estimators": 200,
+  "rf_max_depth": 10,
+  "rf_feature_selection_k": 20,
+  "rf_min_samples_leaf": 10,
+  "fusion_strategy": "feature_concat",
+  "image_projection_dim": 16,
+  "fusion_head_units": [
+    64
+  ],
+  "stage1_lr": 0.004999999999999999,
+  "stage1_epochs": 500,
+  "label_smoothing": 0.0,
+  "focal_gamma": 3.0,
+  "stage2_epochs": 100,
+  "stage2_unfreeze_pct": 0.16450996667552586,
+  "batch_size": 64,
+  "early_stop_patience": 20,
+  "reduce_lr_patience": 10,
+  "alpha_sum": 3.0,
+  "head_use_bn": true,
+  "head_l2": 0.0,
+  "n_folds": 5,
+  "fold": 0,
+  "selection_method": "bayesian_optimization_joint_search",
+  "five_fold_results": {
+    "mean_kappa": 0.36845857656784864,
+    "std_kappa": 0.05835813516885186,
+    "fold_kappas": [
+      0.2969695531455421,
+      0.34007559505567464,
+      0.3410488757293102,
+      0.4657184536834428,
+      0.3984804052252734
+    ]
+  }
+}

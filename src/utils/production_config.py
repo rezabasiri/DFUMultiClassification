@@ -27,7 +27,7 @@ import os
 # =============================================================================
 
 # Core training hyperparameters
-IMAGE_SIZE = 256  # Image dimensions (256x256 optimal for fusion - see agent_communication/fusion_fix/FUSION_FIX_GUIDE.md)
+IMAGE_SIZE = 128  # Image dimensions (128x128 validated by joint optimization audit — TOP10_4)
 GLOBAL_BATCH_SIZE = int(os.environ.get('OVERRIDE_BATCH_SIZE', 64))  # Total batch size across all GPU replicas
 PHASE2_BATCH_SIZE_ADJUSTMENT = False  # Auto-adjust batch size in Phase 2 based on modality count/weight (can reduce batch size too aggressively)
 N_EPOCHS = 200  # Full training epochs
@@ -60,32 +60,32 @@ N_EPOCHS = 200  # Full training epochs
 #   3. Stage 2: 20-200 epochs (fine-tune everything)
 
 # Default backbones (fallback for modalities not in MODALITY_CONFIGS; also used by data pipeline normalization)
-RGB_BACKBONE = 'EfficientNetB0'
-MAP_BACKBONE = 'EfficientNetB2'
+RGB_BACKBONE = 'DenseNet121'
+MAP_BACKBONE = 'DenseNet121'
 
 # =============================================================================
 # Per-Modality Hyperparameters
 # =============================================================================
 # Each modality can override the global defaults for backbone, head, loss, and
-# fine-tuning.  Values here are validated by standalone hparam searches:
-#   depth_rgb:   agent_communication/depth_rgb_pipeline_audit/depth_rgb_best_config.json
-#   thermal_map: agent_communication/thermal_map_pipeline_audit/thermal_map_best_config.json
+# fine-tuning.  Values here are validated by joint optimization audit:
+#   depth_rgb:   agent_communication/joint_optimization_audit/joint_best_config.json (TOP10_4)
+#   thermal_map: agent_communication/joint_optimization_audit/joint_best_config.json (TOP10_4)
 #   depth_map:   mirrors thermal_map setup (same modality type)
 #
 # Keys not present in a modality dict fall back to the global defaults above.
 
 MODALITY_CONFIGS = {
     'depth_rgb': {
-        # validated: BASELINE config (depth_rgb_best_config.json)
-        'backbone': 'EfficientNetB0',
-        'head_units': [128],             # single-layer head
+        # validated: joint optimization audit TOP10_4 (joint_best_config.json)
+        'backbone': 'DenseNet121',
+        'head_units': [128, 32],         # two-layer head (joint audit best)
         'head_l2': 0.0,
         'label_smoothing': 0.0,
         'learning_rate': 0.001,          # Stage 1 (frozen backbone) LR
         'finetune_lr': 1e-5,            # Stage 2 fine-tuning LR
         'finetune_epochs': 30,
-        'unfreeze_pct': 0.2,            # top 20% backbone unfrozen in Stage 2
-        'freeze_bn_stage2': False,       # do NOT freeze BN in Stage 2
+        'unfreeze_pct': 0.05,           # top 5% backbone unfrozen in Stage 2 (joint audit best)
+        'freeze_bn_stage2': True,        # freeze BN in Stage 2
         'use_mixup': False,
         'mixup_alpha': 0.2,
         'early_stop_patience': 15,
@@ -93,47 +93,47 @@ MODALITY_CONFIGS = {
     },
     'depth_map': {
         # mirrors thermal_map setup (same modality type: map images)
-        'backbone': 'EfficientNetB2',
-        'head_units': [128, 32],         # two-layer head (matches thermal_map)
+        'backbone': 'DenseNet121',
+        'head_units': [128],             # single-layer head (matches thermal_map)
         'head_l2': 0.0,
         'label_smoothing': 0.0,
-        'learning_rate': 0.003,          # same as thermal_map
+        'learning_rate': 0.001,          # same as thermal_map
         'finetune_lr': 1e-5,
-        'finetune_epochs': 50,
-        'unfreeze_pct': 0.5,            # top 50% backbone unfrozen (matches thermal_map)
+        'finetune_epochs': 30,
+        'unfreeze_pct': 0.05,           # top 5% backbone unfrozen (matches thermal_map)
         'freeze_bn_stage2': True,        # freeze BN in Stage 2 (matches thermal_map)
-        'use_mixup': True,              # matches thermal_map
+        'use_mixup': False,             # matches thermal_map
         'mixup_alpha': 0.2,
         'early_stop_patience': 15,
         'reduce_lr_patience': 7,
     },
     'thermal_map': {
-        # validated: B3_R6_ft_top50_50ep (thermal_map_best_config.json)
-        'backbone': 'EfficientNetB2',
-        'head_units': [128, 32],         # two-layer head
+        # validated: joint optimization audit TOP10_4 (joint_best_config.json)
+        'backbone': 'DenseNet121',
+        'head_units': [128],             # single-layer head (joint audit best)
         'head_l2': 0.0,
         'label_smoothing': 0.0,
-        'learning_rate': 0.003,          # Stage 1 (frozen backbone) LR
+        'learning_rate': 0.001,          # Stage 1 (frozen backbone) LR
         'finetune_lr': 1e-5,
-        'finetune_epochs': 50,
-        'unfreeze_pct': 0.5,            # top 50% backbone unfrozen in Stage 2
+        'finetune_epochs': 30,
+        'unfreeze_pct': 0.05,           # top 5% backbone unfrozen in Stage 2 (joint audit best)
         'freeze_bn_stage2': True,        # freeze BN in Stage 2
-        'use_mixup': True,
+        'use_mixup': False,
         'mixup_alpha': 0.2,
         'early_stop_patience': 15,
         'reduce_lr_patience': 7,
     },
     'thermal_rgb': {
         # mirrors depth_rgb setup (same modality type: RGB images)
-        'backbone': 'EfficientNetB0',
-        'head_units': [128],
+        'backbone': 'DenseNet121',
+        'head_units': [128, 32],
         'head_l2': 0.0,
         'label_smoothing': 0.0,
         'learning_rate': 0.001,
         'finetune_lr': 1e-5,
         'finetune_epochs': 30,
-        'unfreeze_pct': 0.2,
-        'freeze_bn_stage2': False,
+        'unfreeze_pct': 0.05,
+        'freeze_bn_stage2': True,
         'use_mixup': False,
         'mixup_alpha': 0.2,
         'early_stop_patience': 15,
@@ -166,26 +166,25 @@ def get_modality_config(modality):
     }
 
 # Fusion-specific training parameters
+# Validated by joint optimization audit (agent_communication/joint_optimization_audit/joint_best_config.json)
+# Winner: TOP10_4 (DenseNet121+DenseNet121, 128px, feature_concat) — mean kappa 0.353 +/- 0.037 over 5 folds
+# Beats metadata-only (0.307) with statistical significance (p=0.013)
 PRETRAIN_LR = 1e-3  # Default learning rate for Stage 1 head-only training (overridden by per-modality learning_rate)
-STAGE1_LR = 1e-3  # Learning rate for Stage 1 fusion training (frozen image branch); fusion best: 1e-3
-STAGE2_LR = 5e-6  # Learning rate for Stage 2 fusion fine-tuning (fusion best: 5e-6)
+STAGE1_LR = 1.716e-3  # Learning rate for Stage 1 fusion training (frozen image branch); joint audit TOP10_4: 1.716e-3
+STAGE2_LR = 5e-6  # Learning rate for Stage 2 fusion fine-tuning
 FUSION_INIT_RF_WEIGHT = 0.70  # Initial RF weight for learnable fusion (0.0-1.0, image weight = 1 - this)
-FUSION_STRATEGY = 'residual'  # Fusion strategy for metadata+image combinations:
-                              #   'feature_concat': concat RF probs + image features -> Dense(3). Previous default.
-                              #   'residual': output = softmax(log(RF) + alpha * correction(images)).
-                              #     Starts from RF prediction, images make small additive corrections.
-                              #     Guarantees model starts at RF performance (~0.333 kappa).
+FUSION_STRATEGY = 'feature_concat'  # Fusion strategy for metadata+image combinations:
+                                    #   'feature_concat': concat RF probs + image features -> Dense(3). VALIDATED WINNER.
+                                    #   'residual': output = softmax(log(RF) + alpha * correction(images)).
+                                    #     Tested in fusion audit R9 — underperformed feature_concat on all folds.
 FUSION_RESIDUAL_ALPHA_INIT = 0.01  # Initial value for residual gate scalar (only used when FUSION_STRATEGY='residual')
                                    # Small value means model starts nearly at RF-only performance.
                                    # The network learns to increase alpha when images are informative.
-FUSION_IMAGE_PROJECTION_DIM = 8  # Project image features to this dim before fusing with metadata (0=disabled)
-                                 # Used by feature_concat strategy. Not used by residual strategy.
-                                 # Addresses dimensionality mismatch: without projection, 160 image features
-                                 # overwhelm 3 metadata features in the fusion Dense layer.
-                                 # With dim=8, the fusion layer sees (3 + 8) = 11 inputs — balanced ratio.
-STAGE1_EPOCHS = 100  # Stage 1 fusion training epochs (fusion best: 100; feature_concat needs more epochs to converge)
-STAGE2_FINETUNE_EPOCHS = 50  # Stage 2 fine-tuning epochs (fusion best: 50)
-STAGE2_UNFREEZE_PCT = 0.2  # Fraction of backbone to unfreeze in Stage 2 (0.2 = top 20%, validated by search)
+FUSION_IMAGE_PROJECTION_DIM = 0  # Project image features to this dim before fusing with metadata (0=disabled)
+                                 # Joint audit TOP10_4 confirms: proj_dim=0 is best for feature_concat
+STAGE1_EPOCHS = 500  # Stage 1 fusion training epochs (joint audit TOP10_4: 500 with early stopping patience=20)
+STAGE2_FINETUNE_EPOCHS = 30  # Stage 2 fine-tuning epochs (joint audit TOP10_4: 30; Stage 2 helps with conservative unfreeze)
+STAGE2_UNFREEZE_PCT = 0.05  # Fraction of backbone to unfreeze in Stage 2 (joint audit TOP10_4: 5%)
 DATA_PERCENTAGE = 100  # Percentage of data to use (100.0 = all data, 50.0 = half for faster testing)
 
 # Class imbalance handling - PRODUCTION OPTIMIZED (Phase 7 investigation)
@@ -213,20 +212,20 @@ TRAINING_CLASS_WEIGHT_MODE = 'frequency'
 
 # --- Random Forest hyperparameters (independent of neural network) ---
 # Controls: RF model used to generate metadata probabilities fed into the neural network
-# Validated by fusion hparam search: rf300_d10 (fusion_best_config.json)
-RF_N_ESTIMATORS = 300         # Number of trees (fusion best: 300)
+# Validated by joint optimization audit: TOP10_4 (joint_best_config.json)
+RF_N_ESTIMATORS = 300         # Number of trees (joint audit TOP10_4: 300)
 RF_CLASS_WEIGHT = 'frequency'  # 'balanced' (sklearn auto), 'frequency' (alpha values), or None
 RF_OOF_FOLDS = 5             # Internal OOF folds for training predictions
-RF_MAX_DEPTH = 10             # Limit tree depth (fusion best: 10)
+RF_MAX_DEPTH = 10             # Limit tree depth (joint audit TOP10_4: 10)
 RF_MIN_SAMPLES_LEAF = 5       # Min samples per leaf (prevents memorizing rare patterns)
 RF_MIN_SAMPLES_SPLIT = 10     # Min samples to split a node
 
 # Metadata feature selection (Mutual Information)
 RF_FEATURE_SELECTION = True  # Enable/disable MI-based feature selection before RF training
-RF_FEATURE_SELECTION_K = 40  # Number of top features to keep (only used if RF_FEATURE_SELECTION=True)
+RF_FEATURE_SELECTION_K = 80  # Number of top features to keep (joint audit TOP10_4: 80)
 
 # Early stopping and learning rate
-# Standalone audits validated patience=15/7; fusion best uses 20/10
+# Joint optimization audit TOP10_4 uses 20/10 (same as before)
 EARLY_STOP_PATIENCE = 20  # Epochs to wait before stopping (fusion training; standalone uses per-modality values)
 REDUCE_LR_PATIENCE = 10  # Epochs to wait before reducing LR (fusion training; standalone uses per-modality values)
 
@@ -475,7 +474,7 @@ ENTROPY_LOSS_WEIGHT = 0.2  # Base weight for entropy in total loss
 
 # Focal ordinal loss defaults (when not specified)
 FOCAL_ORDINAL_WEIGHT = 0.0  # Ordinal penalty disabled — argmax-based distance is non-differentiable, adds complexity with no benefit. Pure focal loss with alpha is sufficient.
-LABEL_SMOOTHING = 0.1  # Label smoothing for focal loss (validated by depth_rgb hparam search: 0.1 optimal)
+LABEL_SMOOTHING = 0.0  # Label smoothing for focal loss (joint audit TOP10_4: 0.0)
 # Note: HIERARCHICAL_FOCAL_GAMMA and HIERARCHICAL_FOCAL_ALPHA are used for hierarchical gating
 
 # =============================================================================
@@ -507,7 +506,7 @@ CV_SHUFFLE = True  # Whether to shuffle data before splitting
 
 # Parameter grid for loss function tuning
 GRID_SEARCH_ORDINAL_WEIGHTS = [1.0]  # Ordinal weight values to try
-GRID_SEARCH_GAMMAS = [2.0, 3.0]  # Gamma values to try
+GRID_SEARCH_GAMMAS = [2.0]  # Gamma values to try (joint audit TOP10_4: 2.0)
 GRID_SEARCH_ALPHAS = [  # Alpha value combinations to try
     [0.598, 0.315, 1.597],  # Current weights
     [1, 0.5, 2],  # Alternative 1
@@ -543,10 +542,10 @@ if _combo_override:
     INCLUDED_COMBINATIONS = [tuple(_combo_override.split('+'))]
 else:
     INCLUDED_COMBINATIONS = [
-        ('metadata',),
-        ('metadata', 'depth_rgb', 'thermal_map',),
-        ('depth_rgb', 'thermal_map',),
-        ('metadata', 'thermal_map',),
+        ('metadata', 'depth_rgb', 'thermal_map',),  # Priority 1: full fusion (target combo)
+        ('metadata', 'thermal_map',),                # Priority 2: metadata + best image
+        ('metadata', 'depth_rgb',),                  # Priority 3: metadata + depth
+        ('metadata',),                               # Priority 4: metadata alone (baseline)
     ]
 
 # Results file naming

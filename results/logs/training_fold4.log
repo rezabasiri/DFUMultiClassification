@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold4.log
-[LOG] Started at: 2026-03-10 21:13:01
+[LOG] Started at: 2026-03-19 01:24:09
 
 
 ================================================================================
@@ -30,7 +30,7 @@ Device: GPU 0 (single GPU mode)
 Cross-validation: 5-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 256x256
+Image size: 128x128
 Batch size: 64
 Max epochs: 200 (with early stopping)
 Modality search mode: custom
@@ -44,58 +44,59 @@ Will test 1 custom combinations
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-  Core data filtering: thresholds I=54, P=56, R=61
+  Core data filtering: thresholds I=53, P=90, R=72
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=54, P=56, R=61
+Thresholds: I=53, P=90, R=72
 
 Excluded samples per class:
-  Class I: 17 samples
-  Class P: 53 samples
-  Class R: 0 samples
+  Class I: 100 samples
+  Class P: 62 samples
+  Class R: 16 samples
 
-Total unique samples to exclude: 70
+Total unique samples to exclude: 178
 
-Dataset size (rows): 3108 -> 2737 (88.1%)
-Unique samples: 648 -> 578 (removed 70)
+Dataset size (rows): 3108 -> 2212 (71.2%)
+Unique samples: 648 -> 470 (removed 178)
 
 Class distribution after filtering:
-  Class I: 791 rows
-  Class P: 1611 rows
-  Class R: 335 rows
+  Class I: 402 rows
+  Class P: 1557 rows
+  Class R: 253 rows
 ============================================================
 
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
-Epoch 32: early stopping
-Restoring model weights from the end of the best epoch: 17.
-Restoring model weights from the end of the best epoch: 27.
-Epoch 29: early stopping
-Restoring model weights from the end of the best epoch: 14.
-Epoch 32: early stopping
-Restoring model weights from the end of the best epoch: 17.
-Epoch 39: early stopping
-Restoring model weights from the end of the best epoch: 19.
-Epoch 11: early stopping
+Epoch 24: early stopping
+Restoring model weights from the end of the best epoch: 9.
+Epoch 16: early stopping
 Restoring model weights from the end of the best epoch: 1.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 42: early stopping
+Restoring model weights from the end of the best epoch: 22.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 4 Results for metadata+depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.39      0.68      0.49        99
-           P       0.82      0.55      0.66       303
-           R       0.25      0.40      0.30        43
+           I       0.49      0.72      0.59        61
+           P       0.91      0.72      0.81       311
+           R       0.42      0.86      0.57        36
 
-    accuracy                           0.56       445
-   macro avg       0.48      0.54      0.48       445
-weighted avg       0.67      0.56      0.59       445
+    accuracy                           0.74       408
+   macro avg       0.61      0.77      0.65       408
+weighted avg       0.81      0.74      0.75       408
 
-Cohen's Kappa: 0.2790
+Cohen's Kappa: 0.5682
 Warning: No predictions to save for run 4 (train). Skipping...
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
@@ -106,9 +107,9 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: metadata+depth_rgb+thermal_map
-  Accuracy: 0.5369 ± 0.0050
-  F1 Macro: 0.5094
-  Kappa: 0.3682
+  Accuracy: 0.7351 ± 0.0405
+  F1 Macro: 0.6474
+  Kappa: 0.5624
 
 Total combinations tested: 1
 ================================================================================

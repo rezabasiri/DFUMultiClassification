@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training.log
-[LOG] Started at: 2026-03-10 22:04:51
+[LOG] Started at: 2026-03-19 01:44:18
 
 
 ================================================================================
@@ -11,5 +11,21 @@ SUBPROCESS ISOLATION: Running 5 folds in separate processes
 ================================================================================
 FOLD 1/5 - Starting in isolated subprocess
 Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode single --min-gpu-memory 8.0 --fold 1 --resume_mode fresh
+================================================================================
+
+
+Fold 1/5 completed successfully.
+
+================================================================================
+FOLD 2/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode single --min-gpu-memory 8.0 --fold 2 --resume_mode auto
+================================================================================
+
+
+Fold 2/5 completed successfully.
+
+================================================================================
+FOLD 3/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --data_percentage 100 --verbosity 0 --device-mode single --min-gpu-memory 8.0 --fold 3 --resume_mode auto
 ================================================================================
 

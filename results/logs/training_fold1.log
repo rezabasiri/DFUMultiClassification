@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
-[LOG] Started at: 2026-03-10 22:04:57
+[LOG] Started at: 2026-03-19 01:44:25
 
 
 ================================================================================
@@ -30,7 +30,7 @@ Device: GPU 0 (single GPU mode)
 Cross-validation: 5-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 256x256
+Image size: 128x128
 Batch size: 64
 Max epochs: 200 (with early stopping)
 Modality search mode: custom
@@ -50,36 +50,77 @@ Cleanup Statistics:
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-  Core data filtering: thresholds I=52, P=52, R=61
+  Core data filtering: thresholds I=53, P=76, R=76
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=52, P=52, R=61
+Thresholds: I=53, P=76, R=76
 
 Excluded samples per class:
-  Class I: 23 samples
-  Class P: 81 samples
-  Class R: 0 samples
+  Class I: 100 samples
+  Class P: 132 samples
+  Class R: 15 samples
 
-Total unique samples to exclude: 104
+Total unique samples to exclude: 247
 
-Dataset size (rows): 3108 -> 2563 (82.5%)
-Unique samples: 648 -> 544 (removed 104)
+Dataset size (rows): 3108 -> 1851 (59.6%)
+Unique samples: 648 -> 401 (removed 247)
 
 Class distribution after filtering:
-  Class I: 759 rows
-  Class P: 1469 rows
-  Class R: 335 rows
+  Class I: 402 rows
+  Class P: 1192 rows
+  Class R: 257 rows
 ============================================================
 
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
-Epoch 23: early stopping
-Restoring model weights from the end of the best epoch: 8.
-Restoring model weights from the end of the best epoch: 22.
-Epoch 37: early stopping
-Restoring model weights from the end of the best epoch: 22.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 6.
+Epoch 38: early stopping
+Restoring model weights from the end of the best epoch: 23.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+Epoch 40: early stopping
+Restoring model weights from the end of the best epoch: 25.
+Epoch 20: early stopping
+Restoring model weights from the end of the best epoch: 5.
+Epoch 81: early stopping
+Restoring model weights from the end of the best epoch: 61.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 1 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.48      0.71      0.57        69
+           P       0.91      0.76      0.83       350
+           R       0.62      0.89      0.73        54
+
+    accuracy                           0.77       473
+   macro avg       0.67      0.79      0.71       473
+weighted avg       0.81      0.77      0.78       473
+
+Cohen's Kappa: 0.6383
+Warning: No predictions to save for run 1 (train). Skipping...
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+
+All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+FINAL SUMMARY - BEST MODALITY COMBINATIONS
+================================================================================
+/workspace/DFUMultiClassification/src/main.py:2083: FutureWarning: The behavior of Series.idxmax with all-NA values, or any-NA and skipna=False, is deprecated. In a future version this will raise ValueError
+  best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
+================================================================================
+

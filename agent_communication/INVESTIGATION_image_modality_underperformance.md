@@ -268,6 +268,51 @@ This will test R1-R8 (including the new projection dimension search). Pre-traine
 
 ---
 
+## Fusion Audit Results (Round 2 — Completed 2026-03-12)
+
+The fusion audit ran 206 configurations across 9 rounds + Top 3 5-fold CV + baseline 5-fold CV.
+
+### Three Fusion Paradigms Tested in R9:
+1. **Non-residual neural fusion** (R1-R8 winners): prob_concat, feature_concat, etc.
+2. **Residual fusion**: `softmax(log(RF) + alpha * correction(images))` — tested alpha 0.005-0.1, hidden dims 16-128
+3. **Stacking**: scikit-learn meta-learner (LogReg, RF, GradientBoosting) on 9 concatenated probability features
+
+### Top 3 5-Fold Results:
+| Rank | Config | Strategy | Mean Kappa | Std | Stability Score |
+|------|--------|----------|-----------|-----|-----------------|
+| 1 | B1_R3_feature_concat | feature_concat (no proj, no stage2, lr=5e-4) | 0.303 | 0.020 | 0.293 |
+| 2 | B2_R8_proj_32 | prob_concat (proj=32, stage2=50ep, lr=1e-3) | 0.309 | 0.028 | 0.295 |
+| 3 | B2_R2_ep300_pat25 | prob_concat (no proj, no stage2, lr=1e-3) | 0.289 | 0.033 | 0.273 |
+| baseline | default prob_concat | prob_concat (default params) | 0.209 | 0.034 | - |
+
+### Winner Selection (Stability-Aware):
+B1_R3_feature_concat selected over B2_R8_proj_32 because:
+- Lower variance (std 0.020 vs 0.028 kappa, 0.032 vs 0.106 accuracy)
+- Simpler (no projection, no Stage 2 fine-tuning, complexity=0 vs 3)
+- Wins 3 of 5 folds
+- Mean difference 0.006 is NOT statistically significant (paired t-test p=0.704)
+
+### R9 Paradigm Comparison (fold 0):
+- **Best non-residual** (R1-R8): kappa ~0.28-0.30 (prob_concat, feature_concat)
+- **Best residual**: kappa ~0.23 (all alpha/hidden configs, all branches)
+- **Best stacking**: kappa 0.241 (GradientBoosting), 0.247 (LogReg C=1.0 on B3)
+- Residual and stacking both underperformed non-residual neural fusion
+
+### Production Config Updated:
+- `FUSION_STRATEGY = 'feature_concat'` (was 'residual')
+- `FUSION_IMAGE_PROJECTION_DIM = 0` (was 8, projection hurt performance)
+- `STAGE1_LR = 5e-4` (was 1e-3)
+- `STAGE1_EPOCHS = 300` (was 100)
+- `STAGE2_FINETUNE_EPOCHS = 0` (was 50, Stage 2 doesn't help)
+
+### Conclusion:
+Fusion (kappa 0.303) still does not surpass metadata-only (kappa 0.333). The 0.030 gap persists. The fundamental bottleneck is weak image features (small bounding boxes, domain mismatch, insufficient data for CNNs). No fusion architecture — neural, residual, or stacking — can overcome this.
+
+### Next Step:
+Run auto_polish_dataset_v2.py with the updated fusion config to see if data polishing (outlier removal) can close the gap.
+
+---
+
 ## Conclusion
 
 The image modality underperformance stems from a **cascading chain of issues**:
@@ -278,4 +323,4 @@ The image modality underperformance stems from a **cascading chain of issues**:
 4. ImageNet features don't transfer well to false-color medical sensor data
 5. The fusion architecture allowed 160 noisy image features to overwhelm 3 strong metadata features — **FIX IMPLEMENTED**
 
-The one actionable architectural fix — image feature projection before fusion — has been implemented and is ready for validation via the fusion audit's new Round 8. The remaining issues are fundamental data/domain limitations that cannot be solved by hyperparameter tuning alone.
+The one actionable architectural fix — image feature projection before fusion — has been implemented and validated via the fusion audit. The Round 2 audit (206 configs, 3 paradigms) confirmed that **no fusion architecture can overcome the fundamental signal quality gap**. The best fusion config (feature_concat, kappa 0.303) still trails metadata-only (kappa 0.333) by 0.030. The remaining issues are fundamental data/domain limitations that cannot be solved by hyperparameter tuning or architectural changes alone.
