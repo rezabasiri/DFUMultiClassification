@@ -1,15 +1,17 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
-[LOG] Started at: 2026-03-19 01:44:25
+[LOG] Started at: 2026-03-19 06:20:27
 
 
 ================================================================================
-DEVICE CONFIGURATION (mode: single)
+DEVICE CONFIGURATION (mode: multi)
 ================================================================================
 
 Detected 1 GPU(s):
   GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+⚠️  Only 1 suitable GPU found - using single GPU mode instead
 
-Selected GPU 0: NVIDIA RTX A5000 (24.0GB)
+Selected 1 GPU(s):
+  GPU 0: NVIDIA RTX A5000 (24.0GB)
 Enabled memory growth for 1 GPU(s)
 Enabled mixed precision (mixed_float16)
 
@@ -23,9 +25,9 @@ Batch size per replica: 64 (global batch size: 64, replicas: 1)
 DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
 ================================================================================
 Mode: search
-Resume mode: fresh
+Resume mode: auto
 Data percentage: 100.0%
-Verbosity: 0 (MINIMAL)
+Verbosity: 1 (NORMAL)
 Device: GPU 0 (single GPU mode)
 Cross-validation: 5-fold CV (patient-level)
 
@@ -33,94 +35,100 @@ Configuration loaded from: src/utils/production_config.py
 Image size: 128x128
 Batch size: 64
 Max epochs: 200 (with early stopping)
-Modality search mode: custom
-Will test 1 custom combinations
+Modality search mode: all
+Will test all 31 modality combinations
 ================================================================================
 
 
-🧹 FRESH START MODE: Deleting all checkpoints...
+✨ AUTO RESUME MODE: Keeping all checkpoints, will resume from latest state...
 ================================================================================
-
-Cleanup Statistics:
-  Csv Results: 12 files deleted
-  Tf Cache: 14 files deleted
-================================================================================
-
 
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-  Core data filtering: thresholds I=53, P=76, R=76
+  Core data filtering: thresholds I=53, P=84, R=70
+
+================================================================================
+MODALITY SEARCH MODE: ALL COMBINATIONS (15 combinations)
+================================================================================
+Total combinations to test: 15
+Cross-validation mode: 5-fold CV
+Iterations per combination: 5
+Total training sessions: 75
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata
+Number of samples for each selected modality:
+  metadata: 3108
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=53, P=76, R=76
+Thresholds: I=53, P=84, R=70
 
 Excluded samples per class:
   Class I: 100 samples
-  Class P: 132 samples
-  Class R: 15 samples
+  Class P: 88 samples
+  Class R: 17 samples
 
-Total unique samples to exclude: 247
+Total unique samples to exclude: 205
 
-Dataset size (rows): 3108 -> 1851 (59.6%)
-Unique samples: 648 -> 401 (removed 247)
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
 
 Class distribution after filtering:
   Class I: 402 rows
-  Class P: 1192 rows
-  Class R: 257 rows
+  Class P: 1434 rows
+  Class R: 248 rows
 ============================================================
 
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 1/5 with all modalities: ['metadata']
+Using consistent patient split across all modality combinations for run 1
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-Epoch 38: early stopping
-Restoring model weights from the end of the best epoch: 23.
-Epoch 16: early stopping
-Restoring model weights from the end of the best epoch: 1.
-Epoch 40: early stopping
-Restoring model weights from the end of the best epoch: 25.
-Epoch 20: early stopping
-Restoring model weights from the end of the best epoch: 5.
-Epoch 81: early stopping
-Restoring model weights from the end of the best epoch: 61.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
-  saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_rgb+thermal_map:
-              precision    recall  f1-score   support
+No existing data found for metadata, starting fresh
 
-           I       0.48      0.71      0.57        69
-           P       0.91      0.76      0.83       350
-           R       0.62      0.89      0.73        54
-
-    accuracy                           0.77       473
-   macro avg       0.67      0.79      0.71       473
-weighted avg       0.81      0.77      0.78       473
-
-Cohen's Kappa: 0.6383
-Warning: No predictions to save for run 1 (train). Skipping...
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-
-All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
-
-================================================================================
-FINAL SUMMARY - BEST MODALITY COMBINATIONS
-================================================================================
-/workspace/DFUMultiClassification/src/main.py:2083: FutureWarning: The behavior of Series.idxmax with all-NA values, or any-NA and skipna=False, is deprecated. In a future version this will raise ValueError
-  best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
-================================================================================
-
+Training metadata with modalities: ['metadata'], fold 1/5

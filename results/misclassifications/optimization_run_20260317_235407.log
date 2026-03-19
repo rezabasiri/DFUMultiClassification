@@ -718,3 +718,94 @@ Cleanup Statistics:
 
   Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
 ⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.7323 (Δ+0.2246)
+  Macro F1: 0.6859 (Δ+0.1995)
+  Weighted F1: 0.7363 (Δ+0.2288)
+  Per-class F1: I=0.6654, P=0.7828, R=0.6094
+  Kappa: 0.6248 (Δ+0.2749)
+  Retention: 401/648 (61.9%)
+  Combined Score: 0.2516
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 19/20
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=84, I=53, R=70
+Dataset after filtering: 443/648 samples (68.4%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.7409 (Δ+0.2332)
+  Macro F1: 0.6895 (Δ+0.2031)
+  Weighted F1: 0.7480 (Δ+0.2406)
+  Per-class F1: I=0.6621, P=0.7902, R=0.6162
+  Kappa: 0.6300 (Δ+0.2802)
+  Retention: 443/648 (68.4%)
+  Combined Score: 0.2627
+  ✨ New best score!
+
+──────────────────────────────────────────────────────────────────────
+EVALUATION 20/20
+──────────────────────────────────────────────────────────────────────
+Trying thresholds: P=81, I=53, R=71
+Dataset after filtering: 435/648 samples (67.1%)
+
+🔄 FROM DATA MODE: Keeping processed data, deleting models/predictions...
+================================================================================
+
+Cleanup Statistics:
+  Models: 15 files deleted
+  Predictions: 20 files deleted
+================================================================================
+
+
+  Phase 2 batch size: 64 (PHASE2_BATCH_SIZE_ADJUSTMENT = False)
+⏳ Training with cv_folds=5 (fresh mode)...
+Results:
+  Accuracy: 0.7270 (Δ+0.2193)
+  Macro F1: 0.6819 (Δ+0.1955)
+  Weighted F1: 0.7377 (Δ+0.2302)
+  Per-class F1: I=0.6657, P=0.7733, R=0.6068
+  Kappa: 0.6278 (Δ+0.2780)
+  Retention: 435/648 (67.1%)
+  Combined Score: 0.2554
+
+======================================================================
+✅ PHASE 2 COMPLETE
+======================================================================
+
+Best thresholds found: {'P': 84, 'I': 53, 'R': 70}
+Best score: 0.2627
+
+💾 Complete optimization log saved to:
+   /workspace/DFUMultiClassification/results/misclassifications_saved/phase2_optimization_20260318_113606.log
+
+📊 Results saved to: /workspace/DFUMultiClassification/results/misclassifications/bayesian_optimization_results.json
+   Also saved to: /workspace/DFUMultiClassification/results/misclassifications_saved/bayesian_optimization_results.json
+
+======================================================================
+🎉 OPTIMIZATION COMPLETE
+======================================================================
+
+Optimal thresholds: {'P': 84, 'I': 53, 'R': 70}
+Optimization score: 0.2627
+
+💡 To use these thresholds for final training, update production_config.py:
+   USE_CORE_DATA = True
+   THRESHOLD_I = 53
+   THRESHOLD_P = 84
+   THRESHOLD_R = 70
+
+   Then run:
+   python src/main.py --mode search --cv_folds 5

@@ -313,10 +313,11 @@ CONFIDENCE_FILTER_BAD_SAMPLES_FILE = 'confidence_low_samples.csv'
 # When True: filters dataset using thresholds above + frequent_misclassifications_saved.csv
 # Requires: frequent_misclassifications_saved.csv in results/ or results/misclassifications_saved/
 # If CSV missing: prints warning and continues with unfiltered data
-USE_CORE_DATA = os.environ.get('OVERRIDE_USE_CORE_DATA', 'false').lower() == 'true'
-THRESHOLD_I = int(os.environ['OVERRIDE_THRESHOLD_I']) if 'OVERRIDE_THRESHOLD_I' in os.environ else None
-THRESHOLD_P = int(os.environ['OVERRIDE_THRESHOLD_P']) if 'OVERRIDE_THRESHOLD_P' in os.environ else None
-THRESHOLD_R = int(os.environ['OVERRIDE_THRESHOLD_R']) if 'OVERRIDE_THRESHOLD_R' in os.environ else None
+# USE_CORE_DATA = os.environ.get('OVERRIDE_USE_CORE_DATA', 'false').lower() == 'true' # CORE DATA OFF
+USE_CORE_DATA = os.environ.get('OVERRIDE_USE_CORE_DATA', 'false').lower() == 'true' or True # CORE DATA ON
+THRESHOLD_I = int(os.environ['OVERRIDE_THRESHOLD_I']) if 'OVERRIDE_THRESHOLD_I' in os.environ else 53
+THRESHOLD_P = int(os.environ['OVERRIDE_THRESHOLD_P']) if 'OVERRIDE_THRESHOLD_P' in os.environ else 84
+THRESHOLD_R = int(os.environ['OVERRIDE_THRESHOLD_R']) if 'OVERRIDE_THRESHOLD_R' in os.environ else 70
 
 # =============================================================================
 # RF LOO Influence Filtering (replaces confidence-based filtering for RF)
@@ -530,7 +531,7 @@ PROGRESS_RETRY_DELAY = 0.4  # Delay between retries (seconds)
 ALL_MODALITIES = ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
 
 # Search mode: 'all' tests all 31 combinations, 'custom' uses INCLUDED_COMBINATIONS
-MODALITY_SEARCH_MODE = 'custom'  # Options: 'all', 'custom'
+MODALITY_SEARCH_MODE = 'all'  # Options: 'all', 'custom'
 
 # Combinations to exclude (list of tuples)
 EXCLUDED_COMBINATIONS = []  # e.g., [('depth_rgb',), ('thermal_rgb',)]
