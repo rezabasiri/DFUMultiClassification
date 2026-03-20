@@ -113,7 +113,8 @@
       "Bash(sort -t' ' -k1 -nr)",
       "Bash(xargs file)",
       "Bash(while read f)",
-      "Bash(do python3 -c \"from PIL import Image; import numpy as np; img = Image.open\\(''$f''\\); arr = np.array\\(img\\); print\\(f''File: {\"\"$f\"\"}''\\); print\\(f''  Shape: {arr.shape}, Format: {img.format}, Mode: {img.mode}''\\); print\\(f''  Min: {arr.min\\(\\)}, Max: {arr.max\\(\\)}, Mean: {arr.mean\\(\\):.1f}''\\)\")"
+      "Bash(do python3 -c \"from PIL import Image; import numpy as np; img = Image.open\\(''$f''\\); arr = np.array\\(img\\); print\\(f''File: {\"\"$f\"\"}''\\); print\\(f''  Shape: {arr.shape}, Format: {img.format}, Mode: {img.mode}''\\); print\\(f''  Min: {arr.min\\(\\)}, Max: {arr.max\\(\\)}, Mean: {arr.mean\\(\\):.1f}''\\)\")",
+      "Bash(/venv/multimodal/bin/python3:*)"
     ]
   }
 }
