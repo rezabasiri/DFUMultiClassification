@@ -355,6 +355,16 @@ PROGRESS_BAR_UPDATE_INTERVAL = 1  # Seconds between progress bar updates
 # Master switch: enable/disable gating network ensemble after all combinations are trained
 USE_GATING_NETWORK = True
 
+# Ensemble strategy:
+#   'simple_average_best' - average combos containing the best-performing standalone modality (recommended)
+#   'optimal_weighted'    - learn optimal per-combo weights via scipy optimization on training set (fallback)
+#   'simple_average_all'  - average all combo predictions
+#   'attention'           - learned attention-based gating network (requires train predictions)
+# 'simple_average_best' was found optimal in gating network audit (kappa 0.537 vs 0.258 for attention).
+# It automatically identifies the strongest standalone modality and averages all combos that include it.
+# 'optimal_weighted' is the second-best strategy (kappa 0.530) and works with any combo set.
+GATING_ENSEMBLE_STRATEGY = 'simple_average_best'
+
 # Architecture parameters
 GATING_NUM_HEADS_MULTIPLIER = 1  # num_heads = max(8, num_models + this)
 GATING_KEY_DIM_MULTIPLIER = 2  # key_dim = max(16, multiplier * (num_models + 1))

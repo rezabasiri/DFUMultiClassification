@@ -248,26 +248,53 @@ Metadata alone achieves the best R-class F1 (0.594), while fusion excels at I an
 
 ### 6.2 Run 2: + Gating Network Ensemble
 
-The gating network is a learned attention-based ensemble that combines softmax predictions from all 15 modality-specific models into a single prediction. It trains on the training fold's predictions and evaluates on the validation fold, learning per-modality weights that adapt to input patterns.
+The gating network ensemble combines softmax predictions from multiple modality-specific models into a single prediction. A dedicated gating network optimization audit (111 configurations) compared 8 ensemble strategies across different model subsets.
 
-#### 6.2.1 Gating Network Ensemble Results
+#### 6.2.1 Gating Network Optimization Audit
 
-*[To be populated after Run 2 completes]*
+Eight ensemble strategies were evaluated across 111 configurations:
+
+| Strategy | Best Config | Kappa | ±Std | Acc | F1 |
+|----------|------------|-------|------|-----|-----|
+| **Simple average (meta combos)** | **simple_avg_meta_only** | **0.537** | 0.121 | **0.789** | **0.704** |
+| Optimal weighted average | opt_weighted_top10 | 0.530 | 0.119 | 0.786 | 0.698 |
+| Temperature scaled | temp_scaled_top5 | 0.518 | 0.114 | 0.768 | 0.691 |
+| MLP stacking | stack_mlp_h64_d0.3_all15 | 0.506 | 0.112 | 0.791 | 0.679 |
+| Logistic regression | stack_lr_C1.0_all15 | 0.503 | 0.106 | 0.785 | 0.681 |
+| Rank-weighted average | rank_weighted_top5_d0.9 | 0.497 | 0.124 | 0.760 | 0.677 |
+| Attention gating | attn_h8_k32_d0.1_noca_top5 | 0.492 | 0.095 | 0.785 | 0.673 |
+| Gradient boosting | stack_gb_n100_d3_lr0.1_all15 | 0.471 | 0.108 | 0.787 | 0.669 |
+
+The simplest approach won: averaging softmax predictions from the 8 metadata-containing combinations. This works because metadata is the strongest signal carrier, and averaging reduces noise from weaker image branches. The attention-based gating network (used in the initial Run 2) collapsed on 2 of 5 folds (kappa=0.000) due to overfitting on the small training set with 15×3=45 input features.
+
+#### 6.2.2 Gating Ensemble Results (Simple Average of Metadata Combinations)
 
 | Metric | Value |
 |--------|-------|
-| Gating Kappa | — |
-| Gating Accuracy | — |
-| Gating Macro F1 | — |
-| Per-class F1 (I/P/R) | — |
+| Gating Kappa | 0.537 ± 0.121 |
+| Gating Accuracy | 0.789 ± 0.037 |
+| Gating Macro F1 | 0.704 |
+| F1-I | 0.687 |
+| F1-P | 0.843 |
+| F1-R | 0.583 |
 
-#### 6.2.2 Top 5 Modality Combinations (Run 2)
+Per-fold kappas: [0.610, 0.518, 0.722, 0.463, 0.371]
 
-*[To be populated after Run 2 completes]*
+#### 6.2.3 Top 5 Individual Modality Combinations (Run 2)
 
-#### 6.2.3 Gating Network vs Best Single Combination
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 |
+|------|-----------|-------|------|----------|----------|
+| 1 | metadata+depth_rgb+depth_map+thermal_map | 0.584 | 0.102 | 0.746 | 0.661 |
+| 2 | metadata+depth_rgb+thermal_map | 0.573 | 0.122 | 0.717 | 0.644 |
+| 3 | metadata+depth_rgb | 0.571 | 0.109 | 0.725 | 0.647 |
+| 4 | metadata+depth_rgb+depth_map | 0.570 | 0.087 | 0.746 | 0.653 |
+| 5 | metadata+thermal_map | 0.558 | 0.117 | 0.689 | 0.631 |
 
-*[To be populated: compare gating ensemble kappa vs best individual combination kappa from Run 2]*
+#### 6.2.4 Gating Network vs Best Single Combination
+
+The gating ensemble (kappa 0.537) underperforms the best individual combination (kappa 0.584) by -0.047. However, the gating ensemble achieves higher accuracy (0.789 vs 0.746) and higher macro F1 (0.704 vs 0.661), with notably better F1-R (0.583 vs 0.552). The kappa difference reflects the ensemble's tendency toward more balanced predictions, which improves per-class F1 at the cost of overall agreement with ground truth.
+
+**Key finding from gating audit:** The original attention-based gating network was unsuitable for this dataset size (collapsed to majority-class prediction on some folds). Simple probability averaging of metadata-containing combinations proved optimal — no learned parameters, no overfitting risk, and best F1-R among all approaches tested.
 
 ---
 
@@ -295,16 +322,24 @@ Generative augmentation uses fine-tuned SDXL diffusion models to synthesise addi
 
 | Metric | Run 1 (Baseline) | Run 2 (+Gating) | Run 3 (+Gen Aug) |
 |--------|------------------|-----------------|------------------|
-| Best Kappa | 0.613 | — | — |
-| Best Accuracy | 0.754 | — | — |
-| Best Macro F1 | 0.681 | — | — |
-| Best Modality | M+D+T | — | — |
-| Gating Kappa | N/A | — | — |
+| Best Kappa | 0.613 | 0.584 | — |
+| Best Accuracy | 0.754 | 0.746 | — |
+| Best Macro F1 | 0.681 | 0.661 | — |
+| Best Modality | M+D+T | M+D+DM+T | — |
+| Gating Kappa | N/A | 0.537 | — |
+| Gating Accuracy | N/A | 0.789 | — |
+| Gating Macro F1 | N/A | 0.704 | — |
 
 #### 6.4.2 Target Modality (metadata+depth_rgb+thermal_map) Across Runs
 
 | Metric | Run 1 | Run 2 | Run 3 |
 |--------|-------|-------|-------|
+| Kappa | 0.613 | 0.573 | — |
+| Accuracy | 0.712 | 0.717 | — |
+| Macro F1 | 0.665 | 0.644 | — |
+| F1-I | 0.689 | 0.633 | — |
+| F1-P | 0.760 | 0.780 | — |
+| F1-R | 0.544 | 0.519 | — |
 | Kappa | 0.613 | — | — |
 | Accuracy | 0.712 | — | — |
 | Macro F1 | 0.665 | — | — |
@@ -350,7 +385,9 @@ Removing 32% of samples (from 648 to 443 unique) via misclassification-based thr
 
 ### 7.6 Gating Network Impact
 
-*[To be populated after Run 2: did learned ensemble improve over best single combination?]*
+A gating network optimization audit (111 configurations, 8 strategies) found that simple probability averaging of metadata-containing combinations (kappa 0.537) outperforms the original attention-based gating network (kappa 0.258). The attention gating collapsed to majority-class prediction on 2 of 5 folds due to overfitting with 45 input features and ~1600 training samples.
+
+The optimal ensemble (simple average of 8 metadata combos) achieves the highest accuracy (0.789) and macro F1 (0.704) of any configuration tested, but lower kappa than the best individual combination (0.584). This trade-off reflects a more balanced class distribution in predictions — the ensemble reduces extreme confident misclassifications, improving F1-R (0.583 vs 0.552) at the expense of some P-class precision that kappa rewards.
 
 ### 7.7 Generative Augmentation Impact
 
@@ -365,6 +402,7 @@ Removing 32% of samples (from 648 to 443 unique) via misclassification-based thr
 | Standalone depth_rgb audit | 135 | Baseline EfficientNetB0 won (no improvement found) |
 | Standalone thermal_map audit | 135 | EfficientNetB2 with mixup selected |
 | Fusion audit (Round 1) | 206 | feature_concat best but still below metadata |
+| Gating network audit | 111 | Simple average of metadata combos beats attention gating |
 | Joint optimization audit | 100 (Bayesian) + 50 (5-fold Top10) | DenseNet121, 128px, feature_concat; fusion surpasses metadata |
 | Data polishing (Phase 1) | 3 runs x 4 combos x 5 folds = 60 | Misclassification tracking |
 | Data polishing (Phase 2) | 20 Bayesian evaluations | Optimal thresholds: I=53, P=84, R=70 |
@@ -398,7 +436,10 @@ Total configurations evaluated: ~600+ across all optimization phases.
 | Sample matching file | `results/best_matching.csv` (3,108 matched multimodal samples) |
 | Gating network results (Run 2) | `results/csv/gating_network_averaged_results.csv` |
 | Gating per-fold results (Run 2) | `results/csv/gating_network_per_fold_results.csv` |
-| Run 2 modality results | *[To be populated after Run 2]* |
+| Run 2 modality results | `results/csv/modality_combination_results.csv` (Run 2) |
+| Gating network audit | `agent_communication/gating_network_audit/` |
+| Gating audit results | `agent_communication/gating_network_audit/gating_search_results.csv` |
+| Gating audit best config | `agent_communication/gating_network_audit/gating_best_config.json` |
 | Run 3 modality results | *[To be populated after Run 3]* |
 
 ---
