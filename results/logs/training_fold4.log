@@ -1,5 +1,5 @@
-[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
-[LOG] Started at: 2026-03-19 06:20:27
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold4.log
+[LOG] Started at: 2026-03-19 11:05:23
 
 
 ================================================================================
@@ -120,18 +120,36 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
+
+Fold 4/5
+Using pre-computed fold 4 patient split
 Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 4/5 with all modalities: ['metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata, starting fresh
 
-Training metadata with modalities: ['metadata'], fold 1/5
+Training metadata with modalities: ['metadata'], fold 4/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
@@ -140,55 +158,27 @@ No existing pretrained weights found
 Epoch 21: early stopping
 Restoring model weights from the end of the best epoch: 1.
 
-Run 1 Results for metadata:
+Run 4 Results for metadata:
               precision    recall  f1-score   support
 
-           I       0.73      0.40      0.52        67
-           P       0.83      0.89      0.86       347
-           R       0.48      0.51      0.49        59
+           I       0.47      0.88      0.62        52
+           P       0.89      0.77      0.82       219
+           R       0.80      0.53      0.64        45
 
-    accuracy                           0.77       473
-   macro avg       0.68      0.60      0.62       473
-weighted avg       0.77      0.77      0.76       473
+    accuracy                           0.75       316
+   macro avg       0.72      0.73      0.69       316
+weighted avg       0.81      0.75      0.76       316
 
-Cohen's Kappa: 0.4623
-Warning: No predictions to save for run 1 (train). Skipping...
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
-
-Fold 3/5
-Using pre-computed fold 3 patient split
-
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
-
-Fold 4/5
-Using pre-computed fold 4 patient split
-
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Cohen's Kappa: 0.5657
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb
 Number of samples for each selected modality:
@@ -252,75 +242,65 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_rgb, starting fresh
-
-Training depth_rgb with modalities: ['depth_rgb'], fold 1/5
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 34: early stopping
-Restoring model weights from the end of the best epoch: 19.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 6.
-
-Run 1 Results for depth_rgb:
-              precision    recall  f1-score   support
-
-           I       0.37      0.76      0.50        67
-           P       0.86      0.50      0.63       347
-           R       0.33      0.76      0.46        59
-
-    accuracy                           0.57       473
-   macro avg       0.52      0.67      0.53       473
-weighted avg       0.72      0.57      0.59       473
-
-Cohen's Kappa: 0.4710
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_rgb']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb, starting fresh
+
+Training depth_rgb with modalities: ['depth_rgb'], fold 4/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 17.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 6.
+
+Run 4 Results for depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.36      0.62      0.46        52
+           P       0.77      0.56      0.65       219
+           R       0.36      0.56      0.44        45
+
+    accuracy                           0.57       316
+   macro avg       0.50      0.58      0.51       316
+weighted avg       0.64      0.57      0.59       316
+
+Cohen's Kappa: 0.4233
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for depth_rgb appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_map
 Number of samples for each selected modality:
@@ -384,75 +364,66 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_map, starting fresh
-
-Training depth_map with modalities: ['depth_map'], fold 1/5
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 36: early stopping
-Restoring model weights from the end of the best epoch: 21.
-Epoch 24: early stopping
-Restoring model weights from the end of the best epoch: 9.
-
-Run 1 Results for depth_map:
-              precision    recall  f1-score   support
-
-           I       0.17      0.42      0.24        67
-           P       0.67      0.37      0.48       347
-           R       0.17      0.32      0.22        59
-
-    accuracy                           0.37       473
-   macro avg       0.34      0.37      0.31       473
-weighted avg       0.54      0.37      0.41       473
-
-Cohen's Kappa: 0.1489
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_map, starting fresh
+
+Training depth_map with modalities: ['depth_map'], fold 4/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 18.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.1703 < s1=0.2137). Restoring S1 weights.
+
+Run 4 Results for depth_map:
+              precision    recall  f1-score   support
+
+           I       0.24      0.33      0.28        52
+           P       0.71      0.66      0.68       219
+           R       0.32      0.31      0.31        45
+
+    accuracy                           0.55       316
+   macro avg       0.42      0.43      0.43       316
+weighted avg       0.58      0.55      0.56       316
+
+Cohen's Kappa: 0.2137
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: thermal_map
 Number of samples for each selected modality:
@@ -516,75 +487,66 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for thermal_map, starting fresh
-
-Training thermal_map with modalities: ['thermal_map'], fold 1/5
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 24: early stopping
-Restoring model weights from the end of the best epoch: 9.
-Epoch 17: early stopping
-Restoring model weights from the end of the best epoch: 2.
-
-Run 1 Results for thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.32      0.58      0.41        67
-           P       0.80      0.56      0.66       347
-           R       0.31      0.58      0.41        59
-
-    accuracy                           0.56       473
-   macro avg       0.48      0.57      0.49       473
-weighted avg       0.67      0.56      0.59       473
-
-Cohen's Kappa: 0.3868
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['thermal_map']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for thermal_map, starting fresh
+
+Training thermal_map with modalities: ['thermal_map'], fold 4/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 39: early stopping
+Restoring model weights from the end of the best epoch: 24.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.4592 < s1=0.4662). Restoring S1 weights.
+
+Run 4 Results for thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.35      0.67      0.46        52
+           P       0.76      0.44      0.56       219
+           R       0.35      0.71      0.47        45
+
+    accuracy                           0.52       316
+   macro avg       0.49      0.61      0.50       316
+weighted avg       0.64      0.52      0.53       316
+
+Cohen's Kappa: 0.4662
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb
 Number of samples for each selected modality:
@@ -649,79 +611,68 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for metadata+depth_rgb, starting fresh
-
-Training metadata+depth_rgb with modalities: ['metadata', 'depth_rgb'], fold 1/5
-  ✓ Loaded pre-trained weights for: ['depth_rgb']
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 51: early stopping
-Restoring model weights from the end of the best epoch: 31.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Fusion Stage 2 did NOT improve (s2=0.6350 < s1=0.6404). Restoring S1 weights.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 34 variables whereas the saved optimizer has 22 variables. 
-  saveable.load_own_variables(weights_store.get(inner_path))
-
-Run 1 Results for metadata+depth_rgb:
-              precision    recall  f1-score   support
-
-           I       0.50      0.76      0.61        67
-           P       0.91      0.75      0.82       347
-           R       0.58      0.83      0.68        59
-
-    accuracy                           0.76       473
-   macro avg       0.66      0.78      0.70       473
-weighted avg       0.81      0.76      0.77       473
-
-Cohen's Kappa: 0.6404
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_rgb, starting fresh
+
+Training metadata+depth_rgb with modalities: ['metadata', 'depth_rgb'], fold 4/5
+  ✓ Loaded pre-trained weights for: ['depth_rgb']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 37: early stopping
+Restoring model weights from the end of the best epoch: 17.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 34 variables whereas the saved optimizer has 22 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.48      0.77      0.59        52
+           P       0.83      0.69      0.76       219
+           R       0.45      0.51      0.48        45
+
+    accuracy                           0.68       316
+   macro avg       0.59      0.66      0.61       316
+weighted avg       0.72      0.68      0.69       316
+
+Cohen's Kappa: 0.5055
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, depth_rgb appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata, depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_map
 Number of samples for each selected modality:
@@ -786,78 +737,69 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for metadata+depth_map, starting fresh
-
-Training metadata+depth_map with modalities: ['metadata', 'depth_map'], fold 1/5
-  ✓ Loaded pre-trained weights for: ['depth_map']
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 74: early stopping
-Restoring model weights from the end of the best epoch: 54.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
-  saveable.load_own_variables(weights_store.get(inner_path))
-
-Run 1 Results for metadata+depth_map:
-              precision    recall  f1-score   support
-
-           I       0.44      0.46      0.45        67
-           P       0.83      0.76      0.79       347
-           R       0.39      0.56      0.46        59
-
-    accuracy                           0.69       473
-   macro avg       0.55      0.59      0.57       473
-weighted avg       0.72      0.69      0.70       473
-
-Cohen's Kappa: 0.3995
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map', 'metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_map, starting fresh
+
+Training metadata+depth_map with modalities: ['metadata', 'depth_map'], fold 4/5
+  ✓ Loaded pre-trained weights for: ['depth_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 59: early stopping
+Restoring model weights from the end of the best epoch: 39.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Fusion Stage 2 did NOT improve (s2=0.5165 < s1=0.5339). Restoring S1 weights.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+depth_map:
+              precision    recall  f1-score   support
+
+           I       0.50      0.63      0.56        52
+           P       0.83      0.77      0.80       219
+           R       0.57      0.58      0.57        45
+
+    accuracy                           0.72       316
+   macro avg       0.63      0.66      0.64       316
+weighted avg       0.74      0.72      0.73       316
+
+Cohen's Kappa: 0.5339
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, thermal_map
 Number of samples for each selected modality:
@@ -922,78 +864,69 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for metadata+thermal_map, starting fresh
-
-Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/5
-  ✓ Loaded pre-trained weights for: ['thermal_map']
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 96: early stopping
-Restoring model weights from the end of the best epoch: 76.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
-  saveable.load_own_variables(weights_store.get(inner_path))
-
-Run 1 Results for metadata+thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.51      0.67      0.58        67
-           P       0.90      0.72      0.80       347
-           R       0.48      0.86      0.62        59
-
-    accuracy                           0.73       473
-   macro avg       0.63      0.75      0.67       473
-weighted avg       0.79      0.73      0.75       473
-
-Cohen's Kappa: 0.5883
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 4/5
+  ✓ Loaded pre-trained weights for: ['thermal_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 65: early stopping
+Restoring model weights from the end of the best epoch: 45.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Fusion Stage 2 did NOT improve (s2=0.5430 < s1=0.5539). Restoring S1 weights.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.48      0.85      0.62        52
+           P       0.88      0.60      0.71       219
+           R       0.42      0.71      0.53        45
+
+    accuracy                           0.66       316
+   macro avg       0.59      0.72      0.62       316
+weighted avg       0.75      0.66      0.67       316
+
+Cohen's Kappa: 0.5519
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, depth_map
 Number of samples for each selected modality:
@@ -1058,76 +991,66 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_rgb+depth_map, starting fresh
-
-Training depth_rgb+depth_map with modalities: ['depth_rgb', 'depth_map'], fold 1/5
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 47: early stopping
-Restoring model weights from the end of the best epoch: 27.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.4346 < s1=0.4481). Restoring S1 weights.
-
-Run 1 Results for depth_rgb+depth_map:
-              precision    recall  f1-score   support
-
-           I       0.28      0.76      0.41        67
-           P       0.84      0.47      0.60       347
-           R       0.44      0.73      0.55        59
-
-    accuracy                           0.54       473
-   macro avg       0.52      0.65      0.52       473
-weighted avg       0.71      0.54      0.57       473
-
-Cohen's Kappa: 0.4481
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb+depth_map, starting fresh
+
+Training depth_rgb+depth_map with modalities: ['depth_rgb', 'depth_map'], fold 4/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 11.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.4280 < s1=0.4330). Restoring S1 weights.
+
+Run 4 Results for depth_rgb+depth_map:
+              precision    recall  f1-score   support
+
+           I       0.46      0.44      0.45        52
+           P       0.75      0.79      0.77       219
+           R       0.46      0.38      0.41        45
+
+    accuracy                           0.67       316
+   macro avg       0.56      0.54      0.54       316
+weighted avg       0.66      0.67      0.67       316
+
+Cohen's Kappa: 0.4330
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for depth_rgb, depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, thermal_map
 Number of samples for each selected modality:
@@ -1193,76 +1116,65 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_rgb+thermal_map, starting fresh
-
-Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/5
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 46: early stopping
-Restoring model weights from the end of the best epoch: 26.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.4733 < s1=0.4938). Restoring S1 weights.
-
-Run 1 Results for depth_rgb+thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.42      0.48      0.44        67
-           P       0.84      0.69      0.76       347
-           R       0.43      0.80      0.56        59
-
-    accuracy                           0.68       473
-   macro avg       0.56      0.66      0.59       473
-weighted avg       0.73      0.68      0.69       473
-
-Cohen's Kappa: 0.4938
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 4/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 21.
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 3.
+
+Run 4 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.40      0.65      0.50        52
+           P       0.78      0.65      0.71       219
+           R       0.44      0.47      0.45        45
+
+    accuracy                           0.63       316
+   macro avg       0.54      0.59      0.55       316
+weighted avg       0.67      0.63      0.64       316
+
+Cohen's Kappa: 0.4679
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_map, thermal_map
 Number of samples for each selected modality:
@@ -1328,75 +1240,66 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_map+thermal_map, starting fresh
-
-Training depth_map+thermal_map with modalities: ['depth_map', 'thermal_map'], fold 1/5
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 31: early stopping
-Restoring model weights from the end of the best epoch: 11.
-Epoch 23: early stopping
-Restoring model weights from the end of the best epoch: 3.
-
-Run 1 Results for depth_map+thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.29      0.61      0.39        67
-           P       0.77      0.55      0.64       347
-           R       0.30      0.42      0.35        59
-
-    accuracy                           0.54       473
-   macro avg       0.45      0.53      0.46       473
-weighted avg       0.64      0.54      0.57       473
-
-Cohen's Kappa: 0.3542
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map', 'thermal_map']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_map+thermal_map, starting fresh
+
+Training depth_map+thermal_map with modalities: ['depth_map', 'thermal_map'], fold 4/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
+  Stage 2 did NOT improve (s2=0.4277 < s1=0.4326). Restoring S1 weights.
+
+Run 4 Results for depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.35      0.54      0.42        52
+           P       0.73      0.52      0.61       219
+           R       0.34      0.62      0.44        45
+
+    accuracy                           0.53       316
+   macro avg       0.48      0.56      0.49       316
+weighted avg       0.61      0.53      0.55       316
+
+Cohen's Kappa: 0.4326
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, depth_map
 Number of samples for each selected modality:
@@ -1462,79 +1365,68 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for metadata+depth_rgb+depth_map, starting fresh
-
-Training metadata+depth_rgb+depth_map with modalities: ['metadata', 'depth_rgb', 'depth_map'], fold 1/5
-  ✓ Loaded pre-trained weights for: ['depth_rgb', 'depth_map']
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 60: early stopping
-Restoring model weights from the end of the best epoch: 40.
-Epoch 13: early stopping
-Restoring model weights from the end of the best epoch: 3.
-  Fusion Stage 2 did NOT improve (s2=0.5518 < s1=0.5569). Restoring S1 weights.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
-  saveable.load_own_variables(weights_store.get(inner_path))
-
-Run 1 Results for metadata+depth_rgb+depth_map:
-              precision    recall  f1-score   support
-
-           I       0.46      0.63      0.53        67
-           P       0.86      0.78      0.82       347
-           R       0.58      0.64      0.61        59
-
-    accuracy                           0.74       473
-   macro avg       0.63      0.68      0.65       473
-weighted avg       0.77      0.74      0.75       473
-
-Cohen's Kappa: 0.5569
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_rgb+depth_map, starting fresh
+
+Training metadata+depth_rgb+depth_map with modalities: ['metadata', 'depth_rgb', 'depth_map'], fold 4/5
+  ✓ Loaded pre-trained weights for: ['depth_rgb', 'depth_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 55: early stopping
+Restoring model weights from the end of the best epoch: 35.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+depth_rgb+depth_map:
+              precision    recall  f1-score   support
+
+           I       0.58      0.50      0.54        52
+           P       0.80      0.85      0.83       219
+           R       0.62      0.51      0.56        45
+
+    accuracy                           0.75       316
+   macro avg       0.67      0.62      0.64       316
+weighted avg       0.74      0.75      0.74       316
+
+Cohen's Kappa: 0.5354
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, depth_rgb, depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata, depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, thermal_map
 Number of samples for each selected modality:
@@ -1601,78 +1493,69 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for metadata+depth_rgb+thermal_map, starting fresh
-
-Training metadata+depth_rgb+thermal_map with modalities: ['metadata', 'depth_rgb', 'thermal_map'], fold 1/5
-  ✓ Loaded pre-trained weights for: ['depth_rgb', 'thermal_map']
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 38: early stopping
-Restoring model weights from the end of the best epoch: 18.
-Epoch 12: early stopping
-Restoring model weights from the end of the best epoch: 2.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
-  saveable.load_own_variables(weights_store.get(inner_path))
-
-Run 1 Results for metadata+depth_rgb+thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.47      0.82      0.60        67
-           P       0.92      0.65      0.76       347
-           R       0.45      0.83      0.59        59
-
-    accuracy                           0.70       473
-   macro avg       0.61      0.77      0.65       473
-weighted avg       0.79      0.70      0.72       473
-
-Cohen's Kappa: 0.5865
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['thermal_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_rgb+thermal_map, starting fresh
+
+Training metadata+depth_rgb+thermal_map with modalities: ['metadata', 'depth_rgb', 'thermal_map'], fold 4/5
+  ✓ Loaded pre-trained weights for: ['depth_rgb', 'thermal_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 40: early stopping
+Restoring model weights from the end of the best epoch: 20.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.4930 < s1=0.5098). Restoring S1 weights.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 4 Results for metadata+depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.49      0.63      0.55        52
+           P       0.80      0.72      0.76       219
+           R       0.46      0.51      0.48        45
+
+    accuracy                           0.68       316
+   macro avg       0.58      0.62      0.60       316
+weighted avg       0.70      0.68      0.68       316
+
+Cohen's Kappa: 0.5098
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata, depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_map, thermal_map
 Number of samples for each selected modality:
@@ -1739,78 +1622,68 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
+
+Fold 4/5
+Using pre-computed fold 4 patient split
 Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map', 'thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_map+thermal_map, starting fresh
 
-Training metadata+depth_map+thermal_map with modalities: ['metadata', 'depth_map', 'thermal_map'], fold 1/5
+Training metadata+depth_map+thermal_map with modalities: ['metadata', 'depth_map', 'thermal_map'], fold 4/5
   ✓ Loaded pre-trained weights for: ['depth_map', 'thermal_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 87: early stopping
-Restoring model weights from the end of the best epoch: 67.
+Epoch 38: early stopping
+Restoring model weights from the end of the best epoch: 18.
 Epoch 14: early stopping
 Restoring model weights from the end of the best epoch: 4.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 46 variables whereas the saved optimizer has 22 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_map+thermal_map:
+Run 4 Results for metadata+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.52      0.49      0.50        67
-           P       0.84      0.77      0.80       347
-           R       0.43      0.66      0.52        59
+           I       0.49      0.48      0.49        52
+           P       0.80      0.75      0.77       219
+           R       0.49      0.64      0.56        45
 
-    accuracy                           0.72       473
-   macro avg       0.59      0.64      0.61       473
-weighted avg       0.74      0.72      0.73       473
+    accuracy                           0.69       316
+   macro avg       0.59      0.62      0.60       316
+weighted avg       0.70      0.69      0.69       316
 
-Cohen's Kappa: 0.4928
-Warning: No predictions to save for run 1 (train). Skipping...
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
-
-Fold 3/5
-Using pre-computed fold 3 patient split
-
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
-
-Fold 4/5
-Using pre-computed fold 4 patient split
-
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Cohen's Kappa: 0.5129
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, depth_map, thermal_map
 Number of samples for each selected modality:
@@ -1877,74 +1750,65 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
-  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
-
-No existing data found for depth_rgb+depth_map+thermal_map, starting fresh
-
-Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_map', 'thermal_map'], fold 1/5
-/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
-  warnings.warn(
-No existing pretrained weights found
-Epoch 36: early stopping
-Restoring model weights from the end of the best epoch: 16.
-Restoring model weights from the end of the best epoch: 13.
-
-Run 1 Results for depth_rgb+depth_map+thermal_map:
-              precision    recall  f1-score   support
-
-           I       0.42      0.57      0.48        67
-           P       0.83      0.71      0.77       347
-           R       0.43      0.61      0.51        59
-
-    accuracy                           0.68       473
-   macro avg       0.56      0.63      0.59       473
-weighted avg       0.72      0.68      0.69       473
-
-Cohen's Kappa: 0.4946
-Warning: No predictions to save for run 1 (train). Skipping...
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
 
 Fold 2/5
 Using pre-computed fold 2 patient split
 
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
+Generative augmentation disabled
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb+depth_map+thermal_map, starting fresh
+
+Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_map', 'thermal_map'], fold 4/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
+
+Run 4 Results for depth_rgb+depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.46      0.62      0.52        52
+           P       0.78      0.70      0.74       219
+           R       0.43      0.47      0.45        45
+
+    accuracy                           0.66       316
+   macro avg       0.56      0.60      0.57       316
+weighted avg       0.68      0.66      0.66       316
+
+Cohen's Kappa: 0.4792
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for depth_rgb, depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, depth_map, thermal_map
 Number of samples for each selected modality:
@@ -2012,78 +1876,68 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+
+Fold 3/5 skipped (target_fold=4). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 3/5
+
+Fold 4/5
+Using pre-computed fold 4 patient split
 Generative augmentation disabled
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 4/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 4
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold4_classR_P094_A01_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
 
-Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 1/5
+Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 4/5
   ✓ Loaded pre-trained weights for: ['depth_rgb', 'depth_map', 'thermal_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 37: early stopping
-Restoring model weights from the end of the best epoch: 17.
+Epoch 38: early stopping
+Restoring model weights from the end of the best epoch: 18.
 Epoch 12: early stopping
 Restoring model weights from the end of the best epoch: 2.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 74 variables whereas the saved optimizer has 38 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_rgb+depth_map+thermal_map:
+Run 4 Results for metadata+depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.37      0.82      0.51        67
-           P       0.88      0.63      0.73       347
-           R       0.53      0.69      0.60        59
+           I       0.52      0.58      0.55        52
+           P       0.81      0.74      0.77       219
+           R       0.48      0.60      0.53        45
 
-    accuracy                           0.66       473
-   macro avg       0.59      0.71      0.61       473
-weighted avg       0.76      0.66      0.68       473
+    accuracy                           0.70       316
+   macro avg       0.60      0.64      0.62       316
+weighted avg       0.71      0.70      0.70       316
 
-Cohen's Kappa: 0.5351
-Warning: No predictions to save for run 1 (train). Skipping...
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
-
-Fold 3/5
-Using pre-computed fold 3 patient split
-
-Fold 3/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 3/5
-
-Fold 4/5
-Using pre-computed fold 4 patient split
-
-Fold 4/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 4/5
+Cohen's Kappa: 0.5306
+Warning: No predictions to save for run 4 (train). Skipping...
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/fromnumeric.py:3504: RuntimeWarning: Mean of empty slice.
-  return _methods._mean(a, axis=axis, dtype=dtype,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:129: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:206: RuntimeWarning: Degrees of freedom <= 0 for slice
-  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:163: RuntimeWarning: invalid value encountered in divide
-  arrmean = um.true_divide(arrmean, div, out=arrmean,
-/venv/multimodal/lib/python3.11/site-packages/numpy/core/_methods.py:198: RuntimeWarning: invalid value encountered in scalar divide
-  ret = ret.dtype.type(ret / rcount)
-Results for metadata, depth_rgb, depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Results for metadata, depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
@@ -2185,8 +2039,19 @@ Fold 5/5
 ================================================================================
 FINAL SUMMARY - BEST MODALITY COMBINATIONS
 ================================================================================
-/workspace/DFUMultiClassification/src/main.py:2083: FutureWarning: The behavior of Series.idxmax with all-NA values, or any-NA and skipna=False, is deprecated. In a future version this will raise ValueError
-  best_acc_idx = results_df['Accuracy (Mean)'].idxmax()
-Could not generate summary: nan
+
+Best by Accuracy:
+  Modalities: metadata+depth_rgb+depth_map
+  Accuracy: 0.7562 ± 0.0217
+  F1 Macro: 0.6945
+  Kappa: 0.6340
+
+Best by Kappa:
+  Modalities: metadata+depth_rgb+thermal_map
+  Accuracy: 0.7241
+  F1 Macro: 0.6869
+  Kappa: 0.6469 ± 0.0714
+
+Total combinations tested: 15
 ================================================================================
 
