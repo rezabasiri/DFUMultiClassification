@@ -42,6 +42,7 @@ results/runs/
 results/checkpoints/
 results/demo_tf_records/
 results/tf_records/
+agent_communication/joint_optimization_audit/weights/
 # results/demo/
 results/models/
 results/csv/

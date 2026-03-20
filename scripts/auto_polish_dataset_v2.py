@@ -2527,10 +2527,10 @@ GPU Configuration:
     parser.add_argument('--phase1-cv-folds', type=int, default=5,
                         help='Number of CV folds in Phase 1 (default: 5)')
 
-    parser.add_argument('--track-misclass', type=str, choices=['both', 'valid', 'train'], default='both',
+    parser.add_argument('--track-misclass', type=str, choices=['both', 'valid', 'train'], default='valid',
                         help='Which dataset to track misclassifications from: '
-                             'both (train+valid, default), valid (faster), train (not recommended). '
-                             'Default: both')
+                             'both (train+valid), valid (default, faster), train (not recommended). '
+                             'Default: valid')
 
     parser.add_argument('--n-evaluations', type=int, default=20,
                         help='Number of Bayesian optimization evaluations (default: 20)')

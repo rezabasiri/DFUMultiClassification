@@ -1,24 +1,13 @@
 {
-  "timestamp": "2026-03-19T04:19:39.630350",
-  "completed_evaluations": 20,
-  "total_planned_evaluations": 20,
+  "timestamp": "2026-03-19T04:19:39.888109",
+  "phase1_n_runs": 5,
+  "phase2_n_evaluations": 20,
   "best_thresholds": {
     "P": 84,
     "I": 53,
     "R": 70
   },
   "best_score": 0.26270168686060347,
-  "best_metrics": {
-    "f1_per_class": {
-      "I": 0.6621463684681592,
-      "P": 0.7902363455783985,
-      "R": 0.6162246124398916
-    },
-    "macro_f1": 0.6895357754954831,
-    "weighted_f1": 0.7480116177207092,
-    "kappa": 0.629956064944363,
-    "accuracy": 0.7409423442029875
-  },
   "phase1_baseline": {
     "modality": "metadata+depth_rgb",
     "accuracy": 0.5077072239677556,
@@ -35,7 +24,6 @@
     "min_f1": 0.4388934892226666,
     "best_overall": true
   },
-  "original_dataset_size": 648,
   "optimization_history": [
     {
       "evaluation": 1,
@@ -468,5 +456,5 @@
       "rejected": false
     }
   ],
-  "log_file": "/workspace/DFUMultiClassification/results/misclassifications_saved/phase2_optimization_20260318_113606.log"
+  "original_dataset_size": 648
 }

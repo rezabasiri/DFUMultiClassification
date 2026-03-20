@@ -1,23 +1,23 @@
 {
   "thresholds": {
-    "P": 47,
-    "I": 50,
-    "R": 60
+    "P": 84,
+    "I": 53,
+    "R": 70
   },
-  "score": 0.16371439020821815,
+  "score": 0.26270168686060347,
   "metrics": {
     "f1_per_class": {
-      "I": 0.6408531702246532,
-      "P": 0.6095073603564489,
-      "R": 0.5515276866994769
+      "I": 0.6621463684681592,
+      "P": 0.7902363455783985,
+      "R": 0.6162246124398916
     },
-    "macro_f1": 0.600629405760193,
-    "weighted_f1": 0.6176094033772948,
-    "kappa": 0.5041303186557948,
-    "accuracy": 0.6201517553270561
+    "macro_f1": 0.6895357754954831,
+    "weighted_f1": 0.7480116177207092,
+    "kappa": 0.629956064944363,
+    "accuracy": 0.7409423442029875
   },
-  "phase1_baseline_modality": "metadata",
-  "production_config_settings": "USE_CORE_DATA = True, THRESHOLD_I = 50, THRESHOLD_P = 47, THRESHOLD_R = 60",
+  "phase1_baseline_modality": "metadata+depth_rgb",
+  "production_config_settings": "USE_CORE_DATA = True, THRESHOLD_I = 53, THRESHOLD_P = 84, THRESHOLD_R = 70",
   "command": "python src/main.py --mode search --cv_folds 5 --device-mode multi",
-  "timestamp": "2026-03-10T19:49:54.007648"
+  "timestamp": "2026-03-19T04:19:39.889751"
 }

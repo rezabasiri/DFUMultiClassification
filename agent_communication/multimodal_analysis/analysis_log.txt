@@ -1,0 +1,263 @@
+MULTIMODAL ANALYSIS FOR DFU CLASSIFICATION
+================================================================================
+Date: 2026-03-20 01:09
+Folds: 5
+Available modalities: ['depth_map', 'depth_rgb', 'depth_rgb+thermal_map', 'metadata', 'metadata+depth_rgb', 'metadata+depth_rgb+depth_map+thermal_map', 'metadata+depth_rgb+thermal_map', 'metadata+thermal_map', 'thermal_map']
+
+
+================================================================================
+1. ERROR CORRELATION ANALYSIS (Standalone Modalities)
+================================================================================
+
+  metadata vs depth_rgb:
+    Q-statistic:     -0.2597 +/-0.1634
+    Disagreement:    0.4985
+    Error overlap:   0.1446
+    Error kappa:     -0.1017
+    P(metadata wrong | depth_rgb correct): 0.3306
+    P(depth_rgb wrong | metadata correct): 0.4064
+
+  metadata vs thermal_map:
+    Q-statistic:     -0.1391 +/-0.1758
+    Disagreement:    0.4932
+    Error overlap:   0.1811
+    Error kappa:     -0.0576
+    P(metadata wrong | thermal_map correct): 0.3172
+    P(thermal_map wrong | metadata correct): 0.4406
+
+  metadata vs depth_map:
+    Q-statistic:     -0.1221 +/-0.0789
+    Disagreement:    0.5408
+    Error overlap:   0.2093
+    Error kappa:     -0.0471
+    P(metadata wrong | depth_map correct): 0.3186
+    P(depth_map wrong | metadata correct): 0.5562
+
+  depth_rgb vs thermal_map:
+    Q-statistic:     0.1500 +/-0.1278
+    Disagreement:    0.4416
+    Error overlap:   0.2835
+    Error kappa:     0.0733
+    P(depth_rgb wrong | thermal_map correct): 0.3441
+    P(thermal_map wrong | depth_rgb correct): 0.3927
+
+  depth_rgb vs depth_map:
+    Q-statistic:     0.1027 +/-0.1094
+    Disagreement:    0.4845
+    Error overlap:   0.3027
+    Error kappa:     0.0437
+    P(depth_rgb wrong | depth_map correct): 0.3450
+    P(depth_map wrong | depth_rgb correct): 0.5208
+
+  thermal_map vs depth_map:
+    Q-statistic:     0.1203 +/-0.0336
+    Disagreement:    0.4780
+    Error overlap:   0.3328
+    Error kappa:     0.0552
+    P(thermal_map wrong | depth_map correct): 0.3906
+    P(depth_map wrong | thermal_map correct): 0.5155
+
+  Interpretation:
+    metadata vs depth_rgb: Q=-0.260 -> highly complementary (fusion should help)
+    metadata vs thermal_map: Q=-0.139 -> highly complementary (fusion should help)
+    metadata vs depth_map: Q=-0.122 -> highly complementary (fusion should help)
+    depth_rgb vs thermal_map: Q=0.150 -> highly complementary (fusion should help)
+    depth_rgb vs depth_map: Q=0.103 -> highly complementary (fusion should help)
+    thermal_map vs depth_map: Q=0.120 -> highly complementary (fusion should help)
+
+================================================================================
+2. CONFIDENCE AND CALIBRATION ANALYSIS
+================================================================================
+
+  metadata:
+    Mean confidence:    0.5427
+    Conf when correct:  0.5625
+    Conf when wrong:    0.4951
+    Conf separation:    0.0674 (higher = better calibrated)
+    Mean entropy:       0.9410
+    ECE:                0.1636
+    Accuracy:           0.7063
+
+  depth_rgb:
+    Mean confidence:    0.5912
+    Conf when correct:  0.5985
+    Conf when wrong:    0.5788
+    Conf separation:    0.0197 (higher = better calibrated)
+    Mean entropy:       0.8325
+    ECE:                0.0698
+    Accuracy:           0.6281
+
+  thermal_map:
+    Mean confidence:    0.5650
+    Conf when correct:  0.5565
+    Conf when wrong:    0.5769
+    Conf separation:    -0.0203 (higher = better calibrated)
+    Mean entropy:       0.8638
+    ECE:                0.1141
+    Accuracy:           0.5835
+
+  depth_map:
+    Mean confidence:    0.4618
+    Conf when correct:  0.4603
+    Conf when wrong:    0.4630
+    Conf separation:    -0.0027 (higher = better calibrated)
+    Mean entropy:       1.0296
+    ECE:                0.0609
+    Accuracy:           0.4549
+
+  metadata+depth_rgb:
+    Mean confidence:    0.6103
+    Conf when correct:  0.6263
+    Conf when wrong:    0.5689
+    Conf separation:    0.0574 (higher = better calibrated)
+    Mean entropy:       0.7955
+    ECE:                0.1119
+    Accuracy:           0.7207
+
+  metadata+thermal_map:
+    Mean confidence:    0.5871
+    Conf when correct:  0.5961
+    Conf when wrong:    0.5665
+    Conf separation:    0.0295 (higher = better calibrated)
+    Mean entropy:       0.8212
+    ECE:                0.1098
+    Accuracy:           0.6953
+
+  metadata+depth_rgb+thermal_map:
+    Mean confidence:    0.6578
+    Conf when correct:  0.6659
+    Conf when wrong:    0.6380
+    Conf separation:    0.0278 (higher = better calibrated)
+    Mean entropy:       0.7301
+    ECE:                0.0771
+    Accuracy:           0.7097
+
+  depth_rgb+thermal_map:
+    Mean confidence:    0.6591
+    Conf when correct:  0.6686
+    Conf when wrong:    0.6372
+    Conf separation:    0.0314 (higher = better calibrated)
+    Mean entropy:       0.7228
+    ECE:                0.0675
+    Accuracy:           0.6972
+
+  metadata+depth_rgb+depth_map+thermal_map:
+    Mean confidence:    0.6842
+    Conf when correct:  0.6973
+    Conf when wrong:    0.6505
+    Conf separation:    0.0468 (higher = better calibrated)
+    Mean entropy:       0.6798
+    ECE:                0.0580
+    Accuracy:           0.7198
+
+
+================================================================================
+3. PER-CLASS DIFFICULTY ANALYSIS
+================================================================================
+
+  Modality                                   Kappa     Acc    F1-I    F1-P    F1-R  Hardest
+  -------------------------------------------------------------------------------------
+  metadata                                  0.4086  0.7063   0.548   0.791   0.520        R
+  depth_rgb                                 0.3542  0.6281   0.596   0.693   0.446        R
+  thermal_map                               0.3114  0.5835   0.560   0.635   0.456        R
+  depth_map                                 0.1059  0.4549   0.414   0.554   0.193        R
+  metadata+depth_rgb                        0.4765  0.7207   0.677   0.783   0.515        R
+  metadata+thermal_map                      0.4530  0.6953   0.646   0.755   0.540        R
+  metadata+depth_rgb+thermal_map            0.4786  0.7097   0.689   0.765   0.531        R
+  depth_rgb+thermal_map                     0.4369  0.6972   0.633   0.762   0.521        R
+  metadata+depth_rgb+depth_map+thermal_map  0.4753  0.7198   0.663   0.779   0.543        R
+
+================================================================================
+5. FUSION GAIN DECOMPOSITION
+================================================================================
+
+  Fusion: metadata+depth_rgb+thermal_map
+  Reference: metadata (best standalone)
+
+  Total samples (across folds): 2084
+  Both correct:    1045 (50.1%)
+  Fusion rescued:  434 (20.8%) — fusion right, metadata wrong
+  Fusion degraded: 427 (20.5%) — fusion wrong, metadata right
+  Both wrong:      178 (8.5%)
+  Net gain:        +7 samples
+
+  Per-class breakdown:
+    Class     Rescued   Degraded      Net
+    I             128         59      +69
+    P             221        341     -120
+    R              85         27      +58
+
+================================================================================
+8. SAMPLE HARDNESS ANALYSIS
+================================================================================
+
+  Standalone modalities analyzed: ['metadata', 'depth_rgb', 'thermal_map', 'depth_map']
+  Total unique samples: 443
+  Always correct (all modalities): 7 (1.6%)
+  Always wrong (no modality correct): 0 (0.0%)
+
+  Per-class hardness:
+    Class     Total  Always OK Always Wrong   Hard %
+    I           104          5            0     0.0%
+    P           280          1            0     0.0%
+    R            59          1            0     0.0%
+
+================================================================================
+10. STATISTICAL SIGNIFICANCE TESTS
+================================================================================
+
+  metadata vs metadata+depth_rgb+thermal_map:
+    Mean kappa: 0.3948 vs 0.4429 (diff=+0.0481)
+    Paired t-test: t=-0.838, p=0.4490 -> no
+    McNemar's test: chi2=0.042, p=0.8380 -> no
+
+  metadata vs depth_rgb:
+    Mean kappa: 0.3948 vs 0.3216 (diff=-0.0732)
+    Paired t-test: t=1.070, p=0.3451 -> no
+    McNemar's test: chi2=25.210, p=0.0000 -> YES
+
+  metadata vs thermal_map:
+    Mean kappa: 0.3948 vs 0.2794 (diff=-0.1154)
+    Paired t-test: t=1.831, p=0.1411 -> no
+    McNemar's test: chi2=63.875, p=0.0000 -> YES
+
+  depth_rgb vs thermal_map:
+    Mean kappa: 0.3216 vs 0.2794 (diff=-0.0422)
+    Paired t-test: t=1.893, p=0.1313 -> no
+    McNemar's test: chi2=9.271, p=0.0023 -> YES
+
+  metadata+depth_rgb vs metadata+depth_rgb+thermal_map:
+    Mean kappa: 0.4432 vs 0.4429 (diff=-0.0004)
+    Paired t-test: t=0.016, p=0.9884 -> no
+    McNemar's test: chi2=1.019, p=0.3128 -> no
+
+  metadata+thermal_map vs metadata+depth_rgb+thermal_map:
+    Mean kappa: 0.4243 vs 0.4429 (diff=+0.0186)
+    Paired t-test: t=-0.746, p=0.4972 -> no
+    McNemar's test: chi2=1.502, p=0.2204 -> no
+
+
+================================================================================
+11. MODALITY AGREEMENT ANALYSIS (meta, depth_rgb, thermal_map)
+================================================================================
+
+  Total samples (across folds): 2084
+
+  Region                  Count      Pct
+  ----------------------------------------
+  All correct               527    25.3%
+  Only meta                 294    14.1%
+  Only depth                160     7.7%
+  Only thermal              102     4.9%
+  Meta+Depth                343    16.5%
+  Meta+Thermal              308    14.8%
+  Depth+Thermal             279    13.4%
+  None correct               71     3.4%
+
+  Unique contributions: 556 (26.7%)
+  Complementarity score: 0.2762 (fraction of correct samples from unique modality)
+
+================================================================================
+ANALYSIS COMPLETE
+Figures saved to: /workspace/DFUMultiClassification/agent_communication/multimodal_analysis/figures
+Tables saved to: /workspace/DFUMultiClassification/agent_communication/multimodal_analysis/tables

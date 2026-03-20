@@ -1,15 +1,17 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold3.log
-[LOG] Started at: 2026-03-10 20:45:54
+[LOG] Started at: 2026-03-19 09:29:20
 
 
 ================================================================================
-DEVICE CONFIGURATION (mode: single)
+DEVICE CONFIGURATION (mode: multi)
 ================================================================================
 
 Detected 1 GPU(s):
   GPU 0: NVIDIA RTX A5000 - 24.0GB (compute 8.6)
+⚠️  Only 1 suitable GPU found - using single GPU mode instead
 
-Selected GPU 0: NVIDIA RTX A5000 (24.0GB)
+Selected 1 GPU(s):
+  GPU 0: NVIDIA RTX A5000 (24.0GB)
 Enabled memory growth for 1 GPU(s)
 Enabled mixed precision (mixed_float16)
 
@@ -25,16 +27,16 @@ DFU MULTIMODAL CLASSIFICATION - PRODUCTION PIPELINE
 Mode: search
 Resume mode: auto
 Data percentage: 100.0%
-Verbosity: 0 (MINIMAL)
+Verbosity: 1 (NORMAL)
 Device: GPU 0 (single GPU mode)
 Cross-validation: 5-fold CV (patient-level)
 
 Configuration loaded from: src/utils/production_config.py
-Image size: 256x256
+Image size: 128x128
 Batch size: 64
 Max epochs: 200 (with early stopping)
-Modality search mode: custom
-Will test 1 custom combinations
+Modality search mode: all
+Will test all 31 modality combinations
 ================================================================================
 
 
@@ -44,73 +46,2013 @@ Will test 1 custom combinations
 Data Cleaning Configuration (from production_config.py):
   Outlier removal: False
   Misclassification tracking: none
-  Core data filtering: thresholds I=54, P=56, R=61
+  Core data filtering: thresholds I=53, P=84, R=70
+
+================================================================================
+MODALITY SEARCH MODE: ALL COMBINATIONS (15 combinations)
+================================================================================
+Total combinations to test: 15
+Cross-validation mode: 5-fold CV
+Iterations per combination: 5
+Total training sessions: 75
+Results will be saved to: /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+================================================================================
+
+
+Testing modalities: metadata
+Number of samples for each selected modality:
+  metadata: 3108
 
 ============================================================
 FILTERING SUMMARY
 ============================================================
-Thresholds: I=54, P=56, R=61
+Thresholds: I=53, P=84, R=70
 
 Excluded samples per class:
-  Class I: 17 samples
-  Class P: 53 samples
-  Class R: 0 samples
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
 
-Total unique samples to exclude: 70
+Total unique samples to exclude: 205
 
-Dataset size (rows): 3108 -> 2737 (88.1%)
-Unique samples: 648 -> 578 (removed 70)
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
 
 Class distribution after filtering:
-  Class I: 791 rows
-  Class P: 1611 rows
-  Class R: 335 rows
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
 ============================================================
 
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata, starting fresh
+
+Training metadata with modalities: ['metadata'], fold 3/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
-Epoch 31: early stopping
-Restoring model weights from the end of the best epoch: 16.
-Epoch 26: early stopping
-Restoring model weights from the end of the best epoch: 11.
-Epoch 48: early stopping
-Restoring model weights from the end of the best epoch: 33.
+No existing pretrained weights found
+/venv/multimodal/lib/python3.11/site-packages/keras/src/backend/tensorflow/trainer.py:86: UserWarning: The model does not have any trainable weights.
+  warnings.warn("The model does not have any trainable weights.")
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+
+Run 3 Results for metadata:
+              precision    recall  f1-score   support
+
+           I       0.74      0.60      0.66       178
+           P       0.74      0.83      0.78       244
+           R       0.83      0.91      0.87        47
+
+    accuracy                           0.75       469
+   macro avg       0.77      0.78      0.77       469
+weighted avg       0.75      0.75      0.75       469
+
+Cohen's Kappa: 0.6424
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: depth_rgb
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb, starting fresh
+
+Training depth_rgb with modalities: ['depth_rgb'], fold 3/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 26.
+Restoring model weights from the end of the best epoch: 26.
+
+Run 3 Results for depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.73      0.78      0.76       178
+           P       0.73      0.63      0.68       244
+           R       0.39      0.57      0.46        47
+
+    accuracy                           0.68       469
+   macro avg       0.62      0.66      0.63       469
+weighted avg       0.70      0.68      0.68       469
+
+Cohen's Kappa: 0.6196
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: depth_map
+Number of samples for each selected modality:
+  depth_map: 3108
+  depth_bb: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_map, starting fresh
+
+Training depth_map with modalities: ['depth_map'], fold 3/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 29: early stopping
+Restoring model weights from the end of the best epoch: 14.
 Epoch 17: early stopping
 Restoring model weights from the end of the best epoch: 2.
-Epoch 37: early stopping
-Restoring model weights from the end of the best epoch: 17.
+  Stage 2 did NOT improve (s2=0.2456 < s1=0.2663). Restoring S1 weights.
+
+Run 3 Results for depth_map:
+              precision    recall  f1-score   support
+
+           I       0.56      0.65      0.60       178
+           P       0.63      0.46      0.53       244
+           R       0.13      0.23      0.17        47
+
+    accuracy                           0.51       469
+   macro avg       0.44      0.45      0.43       469
+weighted avg       0.55      0.51      0.52       469
+
+Cohen's Kappa: 0.2633
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: thermal_map
+Number of samples for each selected modality:
+  thermal_map: 3108
+  thermal_bb: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['thermal_map']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for thermal_map, starting fresh
+
+Training thermal_map with modalities: ['thermal_map'], fold 3/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 29.
+Epoch 19: early stopping
+Restoring model weights from the end of the best epoch: 4.
+
+Run 3 Results for thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.68      0.85      0.75       178
+           P       0.81      0.50      0.62       244
+           R       0.47      0.91      0.62        47
+
+    accuracy                           0.68       469
+   macro avg       0.65      0.76      0.66       469
+weighted avg       0.72      0.68      0.67       469
+
+Cohen's Kappa: 0.6707
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, depth_rgb
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  metadata: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_rgb, starting fresh
+
+Training metadata+depth_rgb with modalities: ['metadata', 'depth_rgb'], fold 3/5
+  ✓ Loaded pre-trained weights for: ['depth_rgb']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 36: early stopping
+Restoring model weights from the end of the best epoch: 16.
 Epoch 11: early stopping
 Restoring model weights from the end of the best epoch: 1.
-/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 138 variables whereas the saved optimizer has 30 variables. 
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 34 variables whereas the saved optimizer has 22 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 3 Results for metadata+depth_rgb:
+              precision    recall  f1-score   support
+
+           I       0.80      0.81      0.81       178
+           P       0.79      0.74      0.76       244
+           R       0.48      0.62      0.54        47
+
+    accuracy                           0.75       469
+   macro avg       0.69      0.72      0.70       469
+weighted avg       0.76      0.75      0.76       469
+
+Cohen's Kappa: 0.6868
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata, depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, depth_map
+Number of samples for each selected modality:
+  depth_map: 3108
+  depth_bb: 3108
+  metadata: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_map, starting fresh
+
+Training metadata+depth_map with modalities: ['metadata', 'depth_map'], fold 3/5
+  ✓ Loaded pre-trained weights for: ['depth_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 63: early stopping
+Restoring model weights from the end of the best epoch: 43.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.4434 < s1=0.4788). Restoring S1 weights.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 3 Results for metadata+depth_map:
+              precision    recall  f1-score   support
+
+           I       0.65      0.72      0.68       178
+           P       0.76      0.64      0.69       244
+           R       0.42      0.60      0.49        47
+
+    accuracy                           0.67       469
+   macro avg       0.61      0.65      0.62       469
+weighted avg       0.68      0.67      0.67       469
+
+Cohen's Kappa: 0.4788
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, thermal_map
+Number of samples for each selected modality:
+  thermal_map: 3108
+  thermal_bb: 3108
+  metadata: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+thermal_map, starting fresh
+
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 3/5
+  ✓ Loaded pre-trained weights for: ['thermal_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 61: early stopping
+Restoring model weights from the end of the best epoch: 41.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.6997 < s1=0.7050). Restoring S1 weights.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 3 Results for metadata+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.76      0.80      0.78       178
+           P       0.80      0.67      0.73       244
+           R       0.52      0.85      0.65        47
+
+    accuracy                           0.74       469
+   macro avg       0.69      0.77      0.72       469
+weighted avg       0.75      0.74      0.74       469
+
+Cohen's Kappa: 0.7030
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: depth_rgb, depth_map
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  depth_map: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb+depth_map, starting fresh
+
+Training depth_rgb+depth_map with modalities: ['depth_rgb', 'depth_map'], fold 3/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 33: early stopping
+Restoring model weights from the end of the best epoch: 13.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.5985 < s1=0.5990). Restoring S1 weights.
+
+Run 3 Results for depth_rgb+depth_map:
+              precision    recall  f1-score   support
+
+           I       0.70      0.79      0.75       178
+           P       0.72      0.64      0.68       244
+           R       0.40      0.47      0.43        47
+
+    accuracy                           0.68       469
+   macro avg       0.61      0.63      0.62       469
+weighted avg       0.68      0.68      0.68       469
+
+Cohen's Kappa: 0.5990
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  thermal_map: 3108
+  thermal_bb: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb+thermal_map, starting fresh
+
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 3/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 74: early stopping
+Restoring model weights from the end of the best epoch: 54.
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 5.
+  Stage 2 did NOT improve (s2=0.7396 < s1=0.7425). Restoring S1 weights.
+
+Run 3 Results for depth_rgb+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.81      0.84      0.83       178
+           P       0.82      0.77      0.79       244
+           R       0.59      0.72      0.65        47
+
+    accuracy                           0.79       469
+   macro avg       0.74      0.78      0.76       469
+weighted avg       0.79      0.79      0.79       469
+
+Cohen's Kappa: 0.7425
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: depth_map, thermal_map
+Number of samples for each selected modality:
+  depth_map: 3108
+  depth_bb: 3108
+  thermal_map: 3108
+  thermal_bb: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'thermal_map']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_map+thermal_map, starting fresh
+
+Training depth_map+thermal_map with modalities: ['depth_map', 'thermal_map'], fold 3/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 31: early stopping
+Restoring model weights from the end of the best epoch: 11.
+Epoch 22: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 did NOT improve (s2=0.6242 < s1=0.6336). Restoring S1 weights.
+
+Run 3 Results for depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.66      0.87      0.75       178
+           P       0.78      0.38      0.51       244
+           R       0.37      0.89      0.52        47
+
+    accuracy                           0.62       469
+   macro avg       0.60      0.71      0.59       469
+weighted avg       0.69      0.62      0.60       469
+
+Cohen's Kappa: 0.6327
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, depth_rgb, depth_map
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  depth_map: 3108
+  metadata: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_rgb+depth_map, starting fresh
+
+Training metadata+depth_rgb+depth_map with modalities: ['metadata', 'depth_rgb', 'depth_map'], fold 3/5
+  ✓ Loaded pre-trained weights for: ['depth_rgb', 'depth_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 69: early stopping
+Restoring model weights from the end of the best epoch: 49.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Fusion Stage 2 did NOT improve (s2=0.7153 < s1=0.7220). Restoring S1 weights.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 3 Results for metadata+depth_rgb+depth_map:
+              precision    recall  f1-score   support
+
+           I       0.78      0.89      0.83       178
+           P       0.84      0.75      0.79       244
+           R       0.58      0.62      0.60        47
+
+    accuracy                           0.79       469
+   macro avg       0.73      0.75      0.74       469
+weighted avg       0.79      0.79      0.79       469
+
+Cohen's Kappa: 0.7220
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata, depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, depth_rgb, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  thermal_map: 3108
+  thermal_bb: 3108
+  metadata: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['thermal_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_rgb+thermal_map, starting fresh
+
+Training metadata+depth_rgb+thermal_map with modalities: ['metadata', 'depth_rgb', 'thermal_map'], fold 3/5
+  ✓ Loaded pre-trained weights for: ['depth_rgb', 'thermal_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 48: early stopping
+Restoring model weights from the end of the best epoch: 28.
+Epoch 17: early stopping
+Restoring model weights from the end of the best epoch: 7.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 3 Results for metadata+depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.56      0.55      0.55       162
-           P       0.52      0.60      0.56       204
-           R       0.54      0.36      0.43        83
+           I       0.84      0.87      0.86       178
+           P       0.84      0.74      0.79       244
+           R       0.49      0.72      0.58        47
 
-    accuracy                           0.54       449
-   macro avg       0.54      0.50      0.51       449
-weighted avg       0.54      0.54      0.53       449
+    accuracy                           0.79       469
+   macro avg       0.72      0.78      0.74       469
+weighted avg       0.81      0.79      0.79       469
 
-Cohen's Kappa: 0.4039
+Cohen's Kappa: 0.7472
 Warning: No predictions to save for run 3 (train). Skipping...
 
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata, depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, depth_map, thermal_map
+Number of samples for each selected modality:
+  depth_map: 3108
+  depth_bb: 3108
+  thermal_map: 3108
+  thermal_bb: 3108
+  metadata: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_map+thermal_map, starting fresh
+
+Training metadata+depth_map+thermal_map with modalities: ['metadata', 'depth_map', 'thermal_map'], fold 3/5
+  ✓ Loaded pre-trained weights for: ['depth_map', 'thermal_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 55: early stopping
+Restoring model weights from the end of the best epoch: 35.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 46 variables whereas the saved optimizer has 22 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 3 Results for metadata+depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.76      0.84      0.80       178
+           P       0.80      0.68      0.74       244
+           R       0.52      0.72      0.61        47
+
+    accuracy                           0.75       469
+   macro avg       0.70      0.75      0.71       469
+weighted avg       0.76      0.75      0.75       469
+
+Cohen's Kappa: 0.7045
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: depth_rgb, depth_map, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  depth_map: 3108
+  thermal_map: 3108
+  thermal_bb: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for depth_rgb+depth_map+thermal_map, starting fresh
+
+Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_map', 'thermal_map'], fold 3/5
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 34: early stopping
+Restoring model weights from the end of the best epoch: 14.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.6883 < s1=0.6939). Restoring S1 weights.
+
+Run 3 Results for depth_rgb+depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.75      0.88      0.81       178
+           P       0.82      0.64      0.72       244
+           R       0.46      0.70      0.56        47
+
+    accuracy                           0.73       469
+   macro avg       0.68      0.74      0.69       469
+weighted avg       0.76      0.73      0.73       469
+
+Cohen's Kappa: 0.6939
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+Testing modalities: metadata, depth_rgb, depth_map, thermal_map
+Number of samples for each selected modality:
+  depth_rgb: 3108
+  depth_bb: 3108
+  depth_map: 3108
+  thermal_map: 3108
+  thermal_bb: 3108
+  metadata: 3108
+
+============================================================
+FILTERING SUMMARY
+============================================================
+Thresholds: I=53, P=84, R=70
+
+Excluded samples per class:
+  Class I: 100 samples
+  Class P: 88 samples
+  Class R: 17 samples
+
+Total unique samples to exclude: 205
+
+Dataset size (rows): 3108 -> 2084 (67.1%)
+Unique samples: 648 -> 443 (removed 205)
+
+Class distribution after filtering:
+  Class I: 402 rows
+  Class P: 1434 rows
+  Class R: 248 rows
+============================================================
+
+Using 100.0% of the data: 2084 samples
+
+================================================================================
+GENERATING 5-FOLD CROSS-VALIDATION SPLITS (PATIENT-LEVEL)
+================================================================================
+
+================================================================================
+STRATIFIED K-FOLD SPLIT - CLASS DISTRIBUTION CHECK
+================================================================================
+Class 0: 56 patients
+Class 1: 112 patients
+Class 2: 28 patients
+================================================================================
+
+Fold 1/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.208, 1: 0.675, 2: 0.117}
+  Valid dist: {0: 0.142, 1: 0.734, 2: 0.125}
+Fold 2/5: 156 train patients, 40 valid patients
+  Train dist: {0: 0.203, 1: 0.690, 2: 0.106}
+  Valid dist: {0: 0.151, 1: 0.679, 2: 0.170}
+Fold 3/5: 155 train patients, 41 valid patients
+  Train dist: {0: 0.139, 1: 0.737, 2: 0.124}
+  Valid dist: {0: 0.380, 1: 0.520, 2: 0.100}
+Fold 4/5: 158 train patients, 38 valid patients
+  Train dist: {0: 0.198, 1: 0.687, 2: 0.115}
+  Valid dist: {0: 0.165, 1: 0.693, 2: 0.142}
+Fold 5/5: 157 train patients, 39 valid patients
+  Train dist: {0: 0.215, 1: 0.652, 2: 0.132}
+  Valid dist: {0: 0.104, 1: 0.831, 2: 0.065}
+Generated 5 folds
+All data will be validated exactly once across all folds
+================================================================================
+
+
+Fold 1/5
+Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
+
+Fold 2/5 skipped (target_fold=3). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 2/5
+
+Fold 3/5
+Using pre-computed fold 3 patient split
+Generative augmentation disabled
+
+Preparing datasets for Fold 3/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 3
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classI_P057_A04_D1.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold3_classR_P094_A01_D1.png
+  Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
+
+No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
+
+Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 3/5
+  ✓ Loaded pre-trained weights for: ['depth_rgb', 'depth_map', 'thermal_map']
+/venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
+  warnings.warn(
+No existing pretrained weights found
+Epoch 76: early stopping
+Restoring model weights from the end of the best epoch: 56.
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
+  Fusion Stage 2 did NOT improve (s2=0.7447 < s1=0.7447). Restoring S1 weights.
+/venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 74 variables whereas the saved optimizer has 38 variables. 
+  saveable.load_own_variables(weights_store.get(inner_path))
+
+Run 3 Results for metadata+depth_rgb+depth_map+thermal_map:
+              precision    recall  f1-score   support
+
+           I       0.82      0.83      0.83       178
+           P       0.82      0.80      0.80       244
+           R       0.63      0.68      0.65        47
+
+    accuracy                           0.80       469
+   macro avg       0.75      0.77      0.76       469
+weighted avg       0.80      0.80      0.80       469
+
+Cohen's Kappa: 0.7447
+Warning: No predictions to save for run 3 (train). Skipping...
+
+Fold 4/5
+Using pre-computed fold 4 patient split
+
+Fold 4/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 4/5
+
+Fold 5/5
+Using pre-computed fold 5 patient split
+
+Fold 5/5 skipped (target_fold=3). Loading saved results...
+  Warning: No saved metrics found for Fold 5/5
+Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Results for metadata, depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+
+================================================================================
+GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS
+================================================================================
+Ensembling predictions from 15 modality combinations
+
+Fold 1/5
+  Warning: Could not load predictions for metadata
+  Warning: Could not load predictions for depth_rgb
+  Warning: Could not load predictions for depth_map
+  Warning: Could not load predictions for thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb
+  Warning: Could not load predictions for metadata+depth_map
+  Warning: Could not load predictions for metadata+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map
+  Warning: Could not load predictions for depth_rgb+thermal_map
+  Warning: Could not load predictions for depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map
+  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
+  Warning: Could not load predictions for metadata+depth_map+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
+  Not enough predictions loaded (0) for gating network ensemble
+
+Fold 2/5
+  Warning: Could not load predictions for metadata
+  Warning: Could not load predictions for depth_rgb
+  Warning: Could not load predictions for depth_map
+  Warning: Could not load predictions for thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb
+  Warning: Could not load predictions for metadata+depth_map
+  Warning: Could not load predictions for metadata+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map
+  Warning: Could not load predictions for depth_rgb+thermal_map
+  Warning: Could not load predictions for depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map
+  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
+  Warning: Could not load predictions for metadata+depth_map+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
+  Not enough predictions loaded (0) for gating network ensemble
+
+Fold 3/5
+  Warning: Could not load predictions for metadata
+  Warning: Could not load predictions for depth_rgb
+  Warning: Could not load predictions for depth_map
+  Warning: Could not load predictions for thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb
+  Warning: Could not load predictions for metadata+depth_map
+  Warning: Could not load predictions for metadata+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map
+  Warning: Could not load predictions for depth_rgb+thermal_map
+  Warning: Could not load predictions for depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map
+  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
+  Warning: Could not load predictions for metadata+depth_map+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
+  Not enough predictions loaded (0) for gating network ensemble
+
+Fold 4/5
+  Warning: Could not load predictions for metadata
+  Warning: Could not load predictions for depth_rgb
+  Warning: Could not load predictions for depth_map
+  Warning: Could not load predictions for thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb
+  Warning: Could not load predictions for metadata+depth_map
+  Warning: Could not load predictions for metadata+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map
+  Warning: Could not load predictions for depth_rgb+thermal_map
+  Warning: Could not load predictions for depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map
+  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
+  Warning: Could not load predictions for metadata+depth_map+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
+  Not enough predictions loaded (0) for gating network ensemble
+
+Fold 5/5
+  Warning: Could not load predictions for metadata
+  Warning: Could not load predictions for depth_rgb
+  Warning: Could not load predictions for depth_map
+  Warning: Could not load predictions for thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb
+  Warning: Could not load predictions for metadata+depth_map
+  Warning: Could not load predictions for metadata+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map
+  Warning: Could not load predictions for depth_rgb+thermal_map
+  Warning: Could not load predictions for depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map
+  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
+  Warning: Could not load predictions for metadata+depth_map+thermal_map
+  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
+  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
+  Not enough predictions loaded (0) for gating network ensemble
 
 ================================================================================
 FINAL SUMMARY - BEST MODALITY COMBINATIONS
 ================================================================================
 
 Best by Accuracy:
-  Modalities: metadata+depth_rgb+thermal_map
-  Accuracy: 0.5370 ± 0.0061
-  F1 Macro: 0.5070
-  Kappa: 0.3504
+  Modalities: metadata+depth_rgb+depth_map
+  Accuracy: 0.7409 ± 0.0012
+  F1 Macro: 0.6718
+  Kappa: 0.5899
 
-Total combinations tested: 1
+Best by F1 Macro:
+  Modalities: metadata+depth_rgb
+  Accuracy: 0.7308
+  F1 Macro: 0.6815 ± 0.0221
+  Kappa: 0.6226
+
+Total combinations tested: 15
 ================================================================================
 
