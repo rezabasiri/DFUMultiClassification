@@ -1882,16 +1882,13 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outli
         )
 
         # Save predictions per combination for later gating network ensemble
+        # NOTE: Use per-combo pred_run files (not sum_pred which gets overwritten by each combo)
         config_name = '+'.join(selected_modalities)
         for run in range(num_iterations):
-            # Load the aggregated predictions that were saved during cross_validation
-            train_preds, train_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
-            valid_preds, valid_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
-            # Save each type independently (both needed for gating network)
-            if train_preds is not None and len(train_preds) > 0:
-                save_combination_predictions(run + 1, config_name, train_preds[0], train_labels, ck_path, dataset_type='train')
-            if valid_preds is not None and len(valid_preds) > 0:
-                save_combination_predictions(run + 1, config_name, valid_preds[0], valid_labels, ck_path, dataset_type='valid')
+            for dtype in ['train', 'valid']:
+                preds, labels = load_run_predictions(run + 1, config_name, ck_path, dataset_type=dtype)
+                if preds is not None:
+                    save_combination_predictions(run + 1, config_name, preds, labels, ck_path, dataset_type=dtype)
 
         # Calculate average metrics and their standard deviations with error handling
         avg_accuracy = np.mean([m['accuracy'] for m in cv_results])

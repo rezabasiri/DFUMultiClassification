@@ -74,9 +74,37 @@ def log(msg):
 # ============================================================
 
 def load_combo_predictions(combo_name, fold, dtype='valid'):
-    """Load predictions and labels for a combo/fold."""
-    pred_path = os.path.join(CHECKPOINT_DIR, f"combo_pred_{combo_name}_run{fold}_{dtype}.npy")
-    label_path = os.path.join(CHECKPOINT_DIR, f"combo_label_{combo_name}_run{fold}_{dtype}.npy")
+    """Load predictions and labels for a combo/fold.
+
+    Uses pred_run files (per-combo, correct) rather than combo_pred files
+    (which were overwritten by aggregation bug).
+    Combo names use underscores in filenames but plus signs in pred_run files.
+    """
+    # Convert underscore-separated name back to plus-separated for pred_run files
+    # e.g. "metadata_depth_rgb" -> "metadata+depth_rgb"
+    # But "depth_rgb" alone should stay as "depth_rgb" (single modality)
+    modality_tokens = ['metadata', 'depth_rgb', 'depth_map', 'thermal_map']
+
+    # Reconstruct the plus-separated name from underscore name
+    remaining = combo_name
+    parts = []
+    while remaining:
+        matched = False
+        for token in sorted(modality_tokens, key=len, reverse=True):
+            if remaining.startswith(token):
+                parts.append(token)
+                remaining = remaining[len(token):]
+                if remaining.startswith('_'):
+                    remaining = remaining[1:]
+                matched = True
+                break
+        if not matched:
+            break
+
+    plus_name = '+'.join(parts) if parts else combo_name
+
+    pred_path = os.path.join(CHECKPOINT_DIR, f"pred_run{fold}_{plus_name}_{dtype}.npy")
+    label_path = os.path.join(CHECKPOINT_DIR, f"true_label_run{fold}_{plus_name}_{dtype}.npy")
     if not os.path.exists(pred_path) or not os.path.exists(label_path):
         return None, None
     return np.load(pred_path).astype(np.float32), np.load(label_path).astype(np.int64)
@@ -678,7 +706,13 @@ def main():
         save_result(result)
 
         delta = metrics['kappa'] - best_combo[1]
-        marker = " *** NEW BEST ***" if delta > 0 else ""
+        if not hasattr(main, '_best_kappa_seen'):
+            main._best_kappa_seen = best_combo[1]
+        if metrics['kappa'] > main._best_kappa_seen:
+            main._best_kappa_seen = metrics['kappa']
+            marker = " *** NEW BEST ***"
+        else:
+            marker = ""
         log(f"  kappa={metrics['kappa']:.4f}±{metrics['kappa_std']:.4f} acc={metrics['accuracy']:.4f} "
             f"F1={metrics['f1_macro']:.4f} [I={metrics['f1_I']:.3f} P={metrics['f1_P']:.3f} R={metrics['f1_R']:.3f}] "
             f"delta={delta:+.4f} ({elapsed:.1f}s){marker}")
