@@ -170,9 +170,25 @@ Best thresholds: I=53, P=84, R=70 (from total misclassification counts across al
 
 ---
 
-## 5. Results
+## 5. Experimental Conditions
 
-### 5.1 Final Model Performance (All 15 Modality Combinations)
+Three experimental conditions are compared, each using identical model architecture, data polishing, and cross-validation protocol. They differ only in the post-training ensemble and augmentation strategies:
+
+| Condition | Gating Network | Generative Augmentation | Description |
+|-----------|---------------|------------------------|-------------|
+| **Run 1: Baseline** | Off | Off | Standard pipeline: per-combination models with feature_concat fusion |
+| **Run 2: + Gating Network** | On | Off | Adds a learned attention-based ensemble that weights predictions from all 15 modality combinations |
+| **Run 3: + Generative Aug** | On | On | Adds SDXL-generated synthetic wound images for minority class augmentation during training |
+
+All conditions use the same polished dataset (443 unique samples from 648, thresholds I=53, P=84, R=70), identical DenseNet121 backbones, and 5-fold patient-stratified CV.
+
+---
+
+## 6. Results
+
+### 6.1 Run 1: Baseline (No Gating, No Generative Augmentation)
+
+#### 6.1.1 All 15 Modality Combinations
 
 Evaluated with 5-fold patient-stratified CV on the polished dataset (443 unique samples, 2,084 training rows):
 
@@ -194,7 +210,7 @@ Evaluated with 5-fold patient-stratified CV on the polished dataset (443 unique 
 | 14 | metadata+depth_map | 0.466 | 0.048 | 0.681 | 0.602 | 0.571 | 0.755 | 0.481 |
 | 15 | depth_map (alone) | 0.191 | 0.051 | 0.442 | 0.370 | 0.371 | 0.521 | 0.217 |
 
-### 5.2 Performance Progression Across Optimization Stages
+#### 6.1.2 Performance Progression Across Optimization Stages
 
 | Stage | Best Fusion Kappa | Metadata-Only Kappa | Fusion > Metadata? |
 |-------|-------------------|--------------------|--------------------|
@@ -203,7 +219,7 @@ Evaluated with 5-fold patient-stratified CV on the polished dataset (443 unique 
 | Joint optimization | 0.369 | 0.307 | **Yes (+0.062)** |
 | + Data polishing | **0.613** | 0.533 | **Yes (+0.080)** |
 
-### 5.3 Modality Ranking Analysis
+#### 6.1.3 Modality Ranking Analysis
 
 The desired ranking (best to worst): meta+d+t > meta+t > meta+d > d+t > meta > t > d
 
@@ -216,7 +232,7 @@ Key observations:
 - Depth_map is the weakest modality (kappa 0.191 alone) and degrades several combinations it joins
 - The top 4 combinations are within 0.007 kappa of each other — statistically indistinguishable
 
-### 5.4 Per-Class Analysis
+#### 6.1.4 Per-Class Analysis
 
 The R (Remodeling) class remains the most challenging across all modalities due to smallest sample size (118 samples, 13.3%). Best per-class performance:
 
@@ -230,25 +246,101 @@ Metadata alone achieves the best R-class F1 (0.594), while fusion excels at I an
 
 ---
 
-## 6. Key Findings
+### 6.2 Run 2: + Gating Network Ensemble
 
-### 6.1 Joint Optimization is Essential for Effective Fusion
+The gating network is a learned attention-based ensemble that combines softmax predictions from all 15 modality-specific models into a single prediction. It trains on the training fold's predictions and evaluates on the validation fold, learning per-modality weights that adapt to input patterns.
+
+#### 6.2.1 Gating Network Ensemble Results
+
+*[To be populated after Run 2 completes]*
+
+| Metric | Value |
+|--------|-------|
+| Gating Kappa | — |
+| Gating Accuracy | — |
+| Gating Macro F1 | — |
+| Per-class F1 (I/P/R) | — |
+
+#### 6.2.2 Top 5 Modality Combinations (Run 2)
+
+*[To be populated after Run 2 completes]*
+
+#### 6.2.3 Gating Network vs Best Single Combination
+
+*[To be populated: compare gating ensemble kappa vs best individual combination kappa from Run 2]*
+
+---
+
+### 6.3 Run 3: + Generative Augmentation
+
+Generative augmentation uses fine-tuned SDXL diffusion models to synthesise additional wound images for underrepresented classes during training. This targets the class imbalance problem (I: 31%, P: 56%, R: 13%).
+
+#### 6.3.1 All 15 Modality Combinations (Run 3)
+
+*[To be populated after Run 3 completes]*
+
+#### 6.3.2 Gating Network Ensemble Results (Run 3)
+
+*[To be populated after Run 3 completes]*
+
+#### 6.3.3 Effect of Generative Augmentation on Per-Class F1
+
+*[To be populated: particular focus on R-class improvement]*
+
+---
+
+### 6.4 Cross-Run Comparison
+
+#### 6.4.1 Best Combination Performance Across Runs
+
+| Metric | Run 1 (Baseline) | Run 2 (+Gating) | Run 3 (+Gen Aug) |
+|--------|------------------|-----------------|------------------|
+| Best Kappa | 0.613 | — | — |
+| Best Accuracy | 0.754 | — | — |
+| Best Macro F1 | 0.681 | — | — |
+| Best Modality | M+D+T | — | — |
+| Gating Kappa | N/A | — | — |
+
+#### 6.4.2 Target Modality (metadata+depth_rgb+thermal_map) Across Runs
+
+| Metric | Run 1 | Run 2 | Run 3 |
+|--------|-------|-------|-------|
+| Kappa | 0.613 | — | — |
+| Accuracy | 0.712 | — | — |
+| Macro F1 | 0.665 | — | — |
+| F1-I | 0.689 | — | — |
+| F1-P | 0.760 | — | — |
+| F1-R | 0.544 | — | — |
+
+#### 6.4.3 Per-Class F1 Comparison (metadata+depth_rgb+thermal_map)
+
+*[To be populated: bar chart data showing F1-I, F1-P, F1-R across all 3 runs]*
+
+#### 6.4.4 Statistical Significance (Paired t-test on per-fold kappa)
+
+*[To be populated: Run 1 vs Run 2, Run 2 vs Run 3, Run 1 vs Run 3]*
+
+---
+
+## 7. Key Findings
+
+### 7.1 Joint Optimization is Essential for Effective Fusion
 
 The most important methodological finding is that independently optimizing modalities before fusion yields suboptimal results. The standalone audits (400+ configs) concluded EfficientNet was best and Stage 2 hurts — the joint audit (100 configs) found the opposite. This is because modality interactions during fusion create dependencies that single-modality optimization cannot capture.
 
-### 6.2 Image Size 128 Outperforms 256
+### 7.2 Image Size 128 Outperforms 256
 
 Reducing input resolution from 256x256 to 128x128 improved performance. With average wound bounding boxes of 70-100 pixels, 256x256 requires 3-14x upsampling that introduces interpolation artifacts. At 128x128, the upsampling factor is reduced to 1.3-1.8x, preserving more genuine wound texture.
 
-### 6.3 DenseNet121 Outperforms EfficientNet for Medical Imaging
+### 7.3 DenseNet121 Outperforms EfficientNet for Medical Imaging
 
 DenseNet121 emerged as the optimal backbone for both depth and thermal modalities, replacing the initially selected EfficientNetB0/B2. DenseNet's dense connectivity pattern and feature reuse may provide better transfer learning for false-color medical images compared to EfficientNet's compound scaling.
 
-### 6.4 Data Polishing Provides Substantial Gains
+### 7.4 Data Polishing Provides Substantial Gains
 
 Removing 32% of samples (from 648 to 443 unique) via misclassification-based thresholding improved kappa from 0.369 to 0.613 (+0.244). The removed samples are likely mislabeled, ambiguous, or at class boundaries. Per-class thresholds (I=53, P=84, R=70) reflect that P-class samples are more tolerant (higher threshold) while I-class samples require stricter filtering.
 
-### 6.5 Remaining Challenges
+### 7.5 Remaining Challenges
 
 - **R-class performance:** F1-R (0.544) lags behind F1-I (0.689) and F1-P (0.760). The 118 R-class samples (58 after polishing) are insufficient for robust CNN learning.
 - **Depth_map modality:** Raw depth maps (kappa 0.191) provide little discriminative value and degrade most combinations they join. Further investigation into depth map preprocessing or alternative representations may be needed.
@@ -256,7 +348,17 @@ Removing 32% of samples (from 648 to 443 unique) via misclassification-based thr
 
 ---
 
-## 7. Experimental Timeline and Effort
+### 7.6 Gating Network Impact
+
+*[To be populated after Run 2: did learned ensemble improve over best single combination?]*
+
+### 7.7 Generative Augmentation Impact
+
+*[To be populated after Run 3: did synthetic data improve R-class F1? Did it help or hurt other classes?]*
+
+---
+
+## 8. Experimental Timeline and Effort
 
 | Phase | Configs Tested | Key Outcome |
 |-------|---------------|-------------|
@@ -272,7 +374,7 @@ Total configurations evaluated: ~600+ across all optimization phases.
 
 ---
 
-## 8. Files and Artifacts
+## 9. Files and Artifacts
 
 | Artifact | Path |
 |----------|------|
@@ -292,3 +394,15 @@ Total configurations evaluated: ~600+ across all optimization phases.
 | Main training script | `src/main.py` |
 | Data polishing script | `scripts/auto_polish_dataset_v2.py` |
 | Joint optimization script | `agent_communication/joint_optimization_audit/joint_hparam_search.py` |
+| Multimodal analysis | `agent_communication/multimodal_analysis/` |
+| Sample matching file | `results/best_matching.csv` (3,108 matched multimodal samples) |
+| Gating network results (Run 2) | `results/csv/gating_network_averaged_results.csv` |
+| Gating per-fold results (Run 2) | `results/csv/gating_network_per_fold_results.csv` |
+| Run 2 modality results | *[To be populated after Run 2]* |
+| Run 3 modality results | *[To be populated after Run 3]* |
+
+---
+
+## 10. Data Consistency Note
+
+All experiments use samples listed in `results/best_matching.csv` (3,108 rows, 648 unique patient-appointment-DFU combinations from 268 patients). This file ensures that every modality combination evaluates on identical samples — a sample is only included if it has matched depth_rgb, depth_map, thermal_map, and metadata records. After data polishing, 443 of 648 unique samples are retained (68.4%). This consistency is maintained across all three experimental runs.

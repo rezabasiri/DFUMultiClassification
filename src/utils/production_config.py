@@ -352,6 +352,9 @@ PROGRESS_BAR_UPDATE_INTERVAL = 1  # Seconds between progress bar updates
 # Gating Network Configuration
 # =============================================================================
 
+# Master switch: enable/disable gating network ensemble after all combinations are trained
+USE_GATING_NETWORK = True
+
 # Architecture parameters
 GATING_NUM_HEADS_MULTIPLIER = 1  # num_heads = max(8, num_models + this)
 GATING_KEY_DIM_MULTIPLIER = 2  # key_dim = max(16, multiplier * (num_models + 1))

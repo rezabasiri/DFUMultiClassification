@@ -1887,9 +1887,10 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outli
             # Load the aggregated predictions that were saved during cross_validation
             train_preds, train_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
             valid_preds, valid_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
-            if train_preds is not None and valid_preds is not None and len(train_preds) > 0 and len(valid_preds) > 0:
-                # Save as combination-specific file (use first prediction if multiple configs)
+            # Save each type independently (both needed for gating network)
+            if train_preds is not None and len(train_preds) > 0:
                 save_combination_predictions(run + 1, config_name, train_preds[0], train_labels, ck_path, dataset_type='train')
+            if valid_preds is not None and len(valid_preds) > 0:
                 save_combination_predictions(run + 1, config_name, valid_preds[0], valid_labels, ck_path, dataset_type='valid')
 
         # Calculate average metrics and their standard deviations with error handling
@@ -1978,7 +1979,9 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outli
     vprint(f"\nAll results saved to {csv_filename}", level=0)
 
     # After all combinations are trained, run gating network ensemble across modality combinations
-    if len(combinations_to_process) >= 2:
+    all_gating_results = []
+    from src.utils.production_config import USE_GATING_NETWORK
+    if USE_GATING_NETWORK and len(combinations_to_process) >= 2:
         vprint(f"\n{'='*80}")
         vprint(f"GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS")
         vprint(f"{'='*80}")
@@ -2052,16 +2055,42 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outli
                         final_preds = np.argmax(combined_predictions, axis=1)
                         ensemble_accuracy = accuracy_score(gating_valid_labels, final_preds)
                         ensemble_f1 = f1_score(gating_valid_labels, final_preds, average='macro')
+                        ensemble_f1_weighted = f1_score(gating_valid_labels, final_preds, average='weighted')
                         ensemble_kappa = cohen_kappa_score(gating_valid_labels, final_preds)
+                        ensemble_f1_classes = f1_score(gating_valid_labels, final_preds, average=None, labels=[0, 1, 2], zero_division=0)
 
                         vprint(f"\nGating Network Ensemble Results for Run {run + 1}:", level=0)
                         vprint(f"  Accuracy: {ensemble_accuracy:.4f}", level=0)
                         vprint(f"  F1 Macro: {ensemble_f1:.4f}", level=0)
                         vprint(f"  Kappa: {ensemble_kappa:.4f}", level=0)
+                        vprint(f"  Per-class F1: I={ensemble_f1_classes[0]:.4f}, P={ensemble_f1_classes[1]:.4f}, R={ensemble_f1_classes[2]:.4f}", level=0)
+
+                        all_gating_results.append({
+                            'accuracy': ensemble_accuracy,
+                            'f1_macro': ensemble_f1,
+                            'f1_weighted': ensemble_f1_weighted,
+                            'kappa': ensemble_kappa,
+                            'f1_classes': ensemble_f1_classes,
+                        })
                 except Exception as e:
                     vprint(f"Error in gating network ensemble for run {run + 1}: {str(e)}", level=1)
             else:
                 vprint(f"  Not enough predictions loaded ({len(all_train_predictions)}) for gating network ensemble", level=1)
+
+    elif not USE_GATING_NETWORK:
+        vprint(f"\nGating network ensemble: DISABLED (USE_GATING_NETWORK = False in production_config.py)", level=0)
+
+    # Save gating network results to CSV
+    if all_gating_results:
+        save_gating_results(all_gating_results, result_dir)
+        avg_gating_kappa = np.mean([r['kappa'] for r in all_gating_results])
+        avg_gating_acc = np.mean([r['accuracy'] for r in all_gating_results])
+        avg_gating_f1 = np.mean([r['f1_macro'] for r in all_gating_results])
+        vprint(f"\nGating Network Ensemble Summary ({len(all_gating_results)} folds):", level=0)
+        vprint(f"  Mean Accuracy: {avg_gating_acc:.4f} ± {np.std([r['accuracy'] for r in all_gating_results]):.4f}", level=0)
+        vprint(f"  Mean F1 Macro: {avg_gating_f1:.4f} ± {np.std([r['f1_macro'] for r in all_gating_results]):.4f}", level=0)
+        vprint(f"  Mean Kappa:    {avg_gating_kappa:.4f} ± {np.std([r['kappa'] for r in all_gating_results]):.4f}", level=0)
+        vprint(f"  Results saved to: results/csv/gating_network_averaged_results.csv", level=0)
 
     # Final summary - read CSV and show best results (shown at all verbosity levels)
     vprint(f"\n{'='*80}", level=0)

@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold4.log
-[LOG] Started at: 2026-03-19 11:05:23
+[LOG] Started at: 2026-03-20 08:14:59
 
 
 ================================================================================
@@ -170,7 +170,16 @@ Run 4 Results for metadata:
 weighted avg       0.81      0.75      0.76       316
 
 Cohen's Kappa: 0.5657
-Warning: No predictions to save for run 4 (train). Skipping...
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.7532
+F1 Macro: 0.6937
+Kappa: 0.5657
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -178,6 +187,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_valid.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run2_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run2_valid.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run3_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run3_valid.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run4_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run4_valid.npy
 Results for metadata updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb
@@ -292,7 +309,16 @@ Run 4 Results for depth_rgb:
 weighted avg       0.64      0.57      0.59       316
 
 Cohen's Kappa: 0.4233
-Warning: No predictions to save for run 4 (train). Skipping...
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.5665
+F1 Macro: 0.5137
+Kappa: 0.4233
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -300,6 +326,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_valid.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_valid.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run3_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run3_valid.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run4_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run4_valid.npy
 Results for depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_map
@@ -397,25 +431,34 @@ Training depth_map with modalities: ['depth_map'], fold 4/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 33: early stopping
-Restoring model weights from the end of the best epoch: 18.
+Epoch 49: early stopping
+Restoring model weights from the end of the best epoch: 34.
 Epoch 16: early stopping
 Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.1703 < s1=0.2137). Restoring S1 weights.
+  Stage 2 did NOT improve (s2=0.1727 < s1=0.1788). Restoring S1 weights.
 
 Run 4 Results for depth_map:
               precision    recall  f1-score   support
 
-           I       0.24      0.33      0.28        52
-           P       0.71      0.66      0.68       219
-           R       0.32      0.31      0.31        45
+           I       0.22      0.50      0.31        52
+           P       0.71      0.43      0.53       219
+           R       0.25      0.36      0.29        45
 
-    accuracy                           0.55       316
-   macro avg       0.42      0.43      0.43       316
-weighted avg       0.58      0.55      0.56       316
+    accuracy                           0.43       316
+   macro avg       0.39      0.43      0.38       316
+weighted avg       0.56      0.43      0.46       316
 
-Cohen's Kappa: 0.2137
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.1788
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.4304
+F1 Macro: 0.3770
+Kappa: 0.1788
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -423,6 +466,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run1_train.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run1_valid.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run2_train.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run2_valid.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run3_train.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run3_valid.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run4_train.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run4_valid.npy
 Results for depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: thermal_map
@@ -520,25 +571,34 @@ Training thermal_map with modalities: ['thermal_map'], fold 4/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 39: early stopping
-Restoring model weights from the end of the best epoch: 24.
+Epoch 47: early stopping
+Restoring model weights from the end of the best epoch: 32.
 Epoch 16: early stopping
 Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.4592 < s1=0.4662). Restoring S1 weights.
+  Stage 2 did NOT improve (s2=0.4396 < s1=0.4438). Restoring S1 weights.
 
 Run 4 Results for thermal_map:
               precision    recall  f1-score   support
 
-           I       0.35      0.67      0.46        52
-           P       0.76      0.44      0.56       219
-           R       0.35      0.71      0.47        45
+           I       0.31      0.73      0.44        52
+           P       0.74      0.40      0.52       219
+           R       0.36      0.62      0.46        45
 
-    accuracy                           0.52       316
-   macro avg       0.49      0.61      0.50       316
-weighted avg       0.64      0.52      0.53       316
+    accuracy                           0.48       316
+   macro avg       0.47      0.58      0.47       316
+weighted avg       0.61      0.48      0.50       316
 
-Cohen's Kappa: 0.4662
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.4438
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.4842
+F1 Macro: 0.4715
+Kappa: 0.4438
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -546,6 +606,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_valid.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_valid.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run3_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run3_valid.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run4_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run4_valid.npy
 Results for thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb
@@ -664,7 +732,16 @@ Run 4 Results for metadata+depth_rgb:
 weighted avg       0.72      0.68      0.69       316
 
 Cohen's Kappa: 0.5055
-Warning: No predictions to save for run 4 (train). Skipping...
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.6772
+F1 Macro: 0.6075
+Kappa: 0.5055
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -672,6 +749,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_valid.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_valid.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run3_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run3_valid.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run4_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run4_valid.npy
 Results for metadata, depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_map
@@ -771,27 +856,36 @@ Training metadata+depth_map with modalities: ['metadata', 'depth_map'], fold 4/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 59: early stopping
-Restoring model weights from the end of the best epoch: 39.
-Epoch 12: early stopping
-Restoring model weights from the end of the best epoch: 2.
-  Fusion Stage 2 did NOT improve (s2=0.5165 < s1=0.5339). Restoring S1 weights.
+Epoch 74: early stopping
+Restoring model weights from the end of the best epoch: 54.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 11.
+  Fusion Stage 2 did NOT improve (s2=0.5291 < s1=0.5530). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 4 Results for metadata+depth_map:
               precision    recall  f1-score   support
 
-           I       0.50      0.63      0.56        52
-           P       0.83      0.77      0.80       219
-           R       0.57      0.58      0.57        45
+           I       0.54      0.65      0.59        52
+           P       0.82      0.86      0.84       219
+           R       0.83      0.42      0.56        45
 
-    accuracy                           0.72       316
-   macro avg       0.63      0.66      0.64       316
-weighted avg       0.74      0.72      0.73       316
+    accuracy                           0.76       316
+   macro avg       0.73      0.64      0.66       316
+weighted avg       0.77      0.76      0.76       316
 
-Cohen's Kappa: 0.5339
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.5530
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.7627
+F1 Macro: 0.6625
+Kappa: 0.5530
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -799,6 +893,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run1_train.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run1_valid.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run2_train.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run2_valid.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run3_train.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run3_valid.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run4_train.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run4_valid.npy
 Results for metadata, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, thermal_map
@@ -898,27 +1000,36 @@ Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 65: early stopping
-Restoring model weights from the end of the best epoch: 45.
-Epoch 12: early stopping
-Restoring model weights from the end of the best epoch: 2.
-  Fusion Stage 2 did NOT improve (s2=0.5430 < s1=0.5539). Restoring S1 weights.
+Epoch 45: early stopping
+Restoring model weights from the end of the best epoch: 25.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.5521 < s1=0.5655). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 4 Results for metadata+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.48      0.85      0.62        52
-           P       0.88      0.60      0.71       219
-           R       0.42      0.71      0.53        45
+           I       0.52      0.83      0.64        52
+           P       0.87      0.62      0.72       219
+           R       0.41      0.71      0.52        45
 
     accuracy                           0.66       316
-   macro avg       0.59      0.72      0.62       316
-weighted avg       0.75      0.66      0.67       316
+   macro avg       0.60      0.72      0.63       316
+weighted avg       0.75      0.66      0.68       316
 
-Cohen's Kappa: 0.5519
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.5655
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.6646
+F1 Macro: 0.6264
+Kappa: 0.5655
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -926,6 +1037,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_valid.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_valid.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run3_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run3_valid.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run4_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run4_valid.npy
 Results for metadata, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, depth_map
@@ -1024,25 +1143,33 @@ Training depth_rgb+depth_map with modalities: ['depth_rgb', 'depth_map'], fold 4
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 31: early stopping
-Restoring model weights from the end of the best epoch: 11.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.4280 < s1=0.4330). Restoring S1 weights.
+Epoch 37: early stopping
+Restoring model weights from the end of the best epoch: 17.
+Epoch 25: early stopping
+Restoring model weights from the end of the best epoch: 5.
 
 Run 4 Results for depth_rgb+depth_map:
               precision    recall  f1-score   support
 
-           I       0.46      0.44      0.45        52
-           P       0.75      0.79      0.77       219
-           R       0.46      0.38      0.41        45
+           I       0.37      0.56      0.44        52
+           P       0.74      0.66      0.70       219
+           R       0.40      0.38      0.39        45
 
-    accuracy                           0.67       316
-   macro avg       0.56      0.54      0.54       316
-weighted avg       0.66      0.67      0.67       316
+    accuracy                           0.60       316
+   macro avg       0.50      0.53      0.51       316
+weighted avg       0.63      0.60      0.61       316
 
-Cohen's Kappa: 0.4330
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.4066
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.6013
+F1 Macro: 0.5088
+Kappa: 0.4066
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1050,6 +1177,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run1_train.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run1_valid.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run2_train.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run2_valid.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run3_train.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run3_valid.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run4_train.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run4_valid.npy
 Results for depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, thermal_map
@@ -1151,22 +1286,32 @@ Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fo
 No existing pretrained weights found
 Epoch 41: early stopping
 Restoring model weights from the end of the best epoch: 21.
-Epoch 23: early stopping
-Restoring model weights from the end of the best epoch: 3.
+Epoch 22: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 did NOT improve (s2=0.4602 < s1=0.4659). Restoring S1 weights.
 
 Run 4 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.40      0.65      0.50        52
-           P       0.78      0.65      0.71       219
-           R       0.44      0.47      0.45        45
+           I       0.45      0.56      0.50        52
+           P       0.77      0.67      0.72       219
+           R       0.39      0.53      0.45        45
 
     accuracy                           0.63       316
-   macro avg       0.54      0.59      0.55       316
+   macro avg       0.54      0.59      0.56       316
 weighted avg       0.67      0.63      0.64       316
 
-Cohen's Kappa: 0.4679
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.4659
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.6329
+F1 Macro: 0.5558
+Kappa: 0.4659
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1174,6 +1319,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run3_valid.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run4_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run4_valid.npy
 Results for depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_map, thermal_map
@@ -1273,25 +1426,34 @@ Training depth_map+thermal_map with modalities: ['depth_map', 'thermal_map'], fo
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 35: early stopping
-Restoring model weights from the end of the best epoch: 15.
-Epoch 27: early stopping
-Restoring model weights from the end of the best epoch: 7.
-  Stage 2 did NOT improve (s2=0.4277 < s1=0.4326). Restoring S1 weights.
+Epoch 42: early stopping
+Restoring model weights from the end of the best epoch: 22.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.4446 < s1=0.4560). Restoring S1 weights.
 
 Run 4 Results for depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.35      0.54      0.42        52
-           P       0.73      0.52      0.61       219
-           R       0.34      0.62      0.44        45
+           I       0.36      0.50      0.42        52
+           P       0.77      0.55      0.64       219
+           R       0.39      0.73      0.51        45
 
-    accuracy                           0.53       316
-   macro avg       0.48      0.56      0.49       316
-weighted avg       0.61      0.53      0.55       316
+    accuracy                           0.57       316
+   macro avg       0.50      0.60      0.52       316
+weighted avg       0.64      0.57      0.59       316
 
-Cohen's Kappa: 0.4326
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.4560
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.5696
+F1 Macro: 0.5219
+Kappa: 0.4560
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1299,6 +1461,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run1_train.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run1_valid.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run2_train.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run2_valid.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run3_train.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run3_valid.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run4_train.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run4_valid.npy
 Results for depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, depth_map
@@ -1399,8 +1569,8 @@ Training metadata+depth_rgb+depth_map with modalities: ['metadata', 'depth_rgb',
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 55: early stopping
-Restoring model weights from the end of the best epoch: 35.
+Epoch 68: early stopping
+Restoring model weights from the end of the best epoch: 48.
 Epoch 11: early stopping
 Restoring model weights from the end of the best epoch: 1.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
@@ -1409,16 +1579,25 @@ Restoring model weights from the end of the best epoch: 1.
 Run 4 Results for metadata+depth_rgb+depth_map:
               precision    recall  f1-score   support
 
-           I       0.58      0.50      0.54        52
-           P       0.80      0.85      0.83       219
-           R       0.62      0.51      0.56        45
+           I       0.52      0.62      0.57        52
+           P       0.83      0.83      0.83       219
+           R       0.64      0.51      0.57        45
 
     accuracy                           0.75       316
-   macro avg       0.67      0.62      0.64       316
-weighted avg       0.74      0.75      0.74       316
+   macro avg       0.66      0.65      0.65       316
+weighted avg       0.75      0.75      0.75       316
 
-Cohen's Kappa: 0.5354
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.5231
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.7468
+F1 Macro: 0.6536
+Kappa: 0.5231
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1426,6 +1605,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run1_train.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run1_valid.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run2_train.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run2_valid.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run3_train.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run3_valid.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run4_train.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run4_valid.npy
 Results for metadata, depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, thermal_map
@@ -1527,27 +1714,35 @@ Training metadata+depth_rgb+thermal_map with modalities: ['metadata', 'depth_rgb
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 40: early stopping
-Restoring model weights from the end of the best epoch: 20.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Fusion Stage 2 did NOT improve (s2=0.4930 < s1=0.5098). Restoring S1 weights.
+Epoch 39: early stopping
+Restoring model weights from the end of the best epoch: 19.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 4 Results for metadata+depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.49      0.63      0.55        52
-           P       0.80      0.72      0.76       219
-           R       0.46      0.51      0.48        45
+           I       0.54      0.52      0.53        52
+           P       0.79      0.74      0.76       219
+           R       0.42      0.56      0.48        45
 
     accuracy                           0.68       316
-   macro avg       0.58      0.62      0.60       316
-weighted avg       0.70      0.68      0.68       316
+   macro avg       0.58      0.60      0.59       316
+weighted avg       0.69      0.68      0.68       316
 
-Cohen's Kappa: 0.5098
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.4938
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.6772
+F1 Macro: 0.5893
+Kappa: 0.4938
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1555,6 +1750,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run1_train.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run1_valid.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run2_train.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run2_valid.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run3_train.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run3_valid.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run4_train.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run4_valid.npy
 Results for metadata, depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_map, thermal_map
@@ -1656,26 +1859,36 @@ Training metadata+depth_map+thermal_map with modalities: ['metadata', 'depth_map
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 38: early stopping
-Restoring model weights from the end of the best epoch: 18.
-Epoch 14: early stopping
-Restoring model weights from the end of the best epoch: 4.
+Epoch 97: early stopping
+Restoring model weights from the end of the best epoch: 77.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.5546 < s1=0.5617). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 46 variables whereas the saved optimizer has 22 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 4 Results for metadata+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.49      0.48      0.49        52
-           P       0.80      0.75      0.77       219
-           R       0.49      0.64      0.56        45
+           I       0.52      0.62      0.56        52
+           P       0.83      0.79      0.81       219
+           R       0.60      0.62      0.61        45
 
-    accuracy                           0.69       316
-   macro avg       0.59      0.62      0.60       316
-weighted avg       0.70      0.69      0.69       316
+    accuracy                           0.73       316
+   macro avg       0.65      0.67      0.66       316
+weighted avg       0.75      0.73      0.74       316
 
-Cohen's Kappa: 0.5129
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.5617
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.7342
+F1 Macro: 0.6592
+Kappa: 0.5617
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1683,6 +1896,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run1_train.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run1_valid.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run2_train.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run2_valid.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run3_train.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run3_valid.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run4_train.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run4_valid.npy
 Results for metadata, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, depth_map, thermal_map
@@ -1783,24 +2004,33 @@ Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_m
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 27: early stopping
-Restoring model weights from the end of the best epoch: 7.
-Epoch 27: early stopping
-Restoring model weights from the end of the best epoch: 7.
+Epoch 34: early stopping
+Restoring model weights from the end of the best epoch: 14.
+Epoch 22: early stopping
+Restoring model weights from the end of the best epoch: 2.
 
 Run 4 Results for depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.46      0.62      0.52        52
-           P       0.78      0.70      0.74       219
-           R       0.43      0.47      0.45        45
+           I       0.43      0.62      0.51        52
+           P       0.78      0.66      0.71       219
+           R       0.40      0.49      0.44        45
 
-    accuracy                           0.66       316
-   macro avg       0.56      0.60      0.57       316
-weighted avg       0.68      0.66      0.66       316
+    accuracy                           0.63       316
+   macro avg       0.54      0.59      0.55       316
+weighted avg       0.67      0.63      0.64       316
 
-Cohen's Kappa: 0.4792
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.4670
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.6297
+F1 Macro: 0.5541
+Kappa: 0.4670
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1808,6 +2038,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_valid.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_valid.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run3_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run3_valid.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run4_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run4_valid.npy
 Results for depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, depth_map, thermal_map
@@ -1910,26 +2148,36 @@ Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 38: early stopping
-Restoring model weights from the end of the best epoch: 18.
-Epoch 12: early stopping
-Restoring model weights from the end of the best epoch: 2.
+Epoch 35: early stopping
+Restoring model weights from the end of the best epoch: 15.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.5071 < s1=0.5160). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 74 variables whereas the saved optimizer has 38 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 4 Results for metadata+depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.52      0.58      0.55        52
-           P       0.81      0.74      0.77       219
-           R       0.48      0.60      0.53        45
+           I       0.46      0.63      0.54        52
+           P       0.80      0.75      0.77       219
+           R       0.55      0.49      0.52        45
 
-    accuracy                           0.70       316
-   macro avg       0.60      0.64      0.62       316
-weighted avg       0.71      0.70      0.70       316
+    accuracy                           0.69       316
+   macro avg       0.60      0.62      0.61       316
+weighted avg       0.71      0.69      0.70       316
 
-Cohen's Kappa: 0.5306
-Warning: No predictions to save for run 4 (train). Skipping...
+Cohen's Kappa: 0.5160
+
+Training gating network for run 4...
+
+Initializing gating network training...
+Skipping gating network: only 1 model(s), need at least 2 to combine
+
+Gating Network Results for Run 4:
+Accuracy: 0.6930
+F1 Macro: 0.6093
+Kappa: 0.5160
 
 Fold 5/5
 Using pre-computed fold 5 patient split
@@ -1937,6 +2185,14 @@ Using pre-computed fold 5 patient split
 Fold 5/5 skipped (target_fold=4). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run1_train.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run1_valid.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run2_train.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run2_valid.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run3_train.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run3_valid.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run4_train.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run4_valid.npy
 Results for metadata, depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
@@ -1947,76 +2203,92 @@ GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS
 Ensembling predictions from 15 modality combinations
 
 Fold 1/5
-  Warning: Could not load predictions for metadata
-  Warning: Could not load predictions for depth_rgb
-  Warning: Could not load predictions for depth_map
-  Warning: Could not load predictions for thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb
-  Warning: Could not load predictions for metadata+depth_map
-  Warning: Could not load predictions for metadata+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map
-  Warning: Could not load predictions for depth_rgb+thermal_map
-  Warning: Could not load predictions for depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map
-  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
-  Warning: Could not load predictions for metadata+depth_map+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
-  Not enough predictions loaded (0) for gating network ensemble
+
+Training gating network with 15 modality combinations:
+
+Initializing gating network training...
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.0000
+Best Accuracy: 0.7336
+Best Weighted Accuracy: 0.3840
+Best Loss: 0.7021
+
+Gating Network Ensemble Results for Run 1:
+  Accuracy: 0.7336
+  F1 Macro: 0.2821
+  Kappa: 0.0000
+  Per-class F1: I=0.0000, P=0.8463, R=0.0000
 
 Fold 2/5
-  Warning: Could not load predictions for metadata
-  Warning: Could not load predictions for depth_rgb
-  Warning: Could not load predictions for depth_map
-  Warning: Could not load predictions for thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb
-  Warning: Could not load predictions for metadata+depth_map
-  Warning: Could not load predictions for metadata+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map
-  Warning: Could not load predictions for depth_rgb+thermal_map
-  Warning: Could not load predictions for depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map
-  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
-  Warning: Could not load predictions for metadata+depth_map+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
-  Not enough predictions loaded (0) for gating network ensemble
+
+Training gating network with 15 modality combinations:
+
+Initializing gating network training...
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.5679
+Best Accuracy: 0.6496
+Best Weighted Accuracy: 0.7410
+Best Loss: 0.4656
+
+Gating Network Ensemble Results for Run 2:
+  Accuracy: 0.6496
+  F1 Macro: 0.6585
+  Kappa: 0.4118
+  Per-class F1: I=0.7818, P=0.6979, R=0.4959
 
 Fold 3/5
-  Warning: Could not load predictions for metadata
-  Warning: Could not load predictions for depth_rgb
-  Warning: Could not load predictions for depth_map
-  Warning: Could not load predictions for thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb
-  Warning: Could not load predictions for metadata+depth_map
-  Warning: Could not load predictions for metadata+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map
-  Warning: Could not load predictions for depth_rgb+thermal_map
-  Warning: Could not load predictions for depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map
-  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
-  Warning: Could not load predictions for metadata+depth_map+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
-  Not enough predictions loaded (0) for gating network ensemble
+
+Training gating network with 15 modality combinations:
+
+Initializing gating network training...
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.5951
+Best Accuracy: 0.7569
+Best Weighted Accuracy: 0.6561
+Best Loss: 0.4513
+
+Gating Network Ensemble Results for Run 3:
+  Accuracy: 0.7569
+  F1 Macro: 0.5376
+  Kappa: 0.5474
+  Per-class F1: I=0.8174, P=0.7955, R=0.0000
 
 Fold 4/5
-  Warning: Could not load predictions for metadata
-  Warning: Could not load predictions for depth_rgb
-  Warning: Could not load predictions for depth_map
-  Warning: Could not load predictions for thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb
-  Warning: Could not load predictions for metadata+depth_map
-  Warning: Could not load predictions for metadata+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map
-  Warning: Could not load predictions for depth_rgb+thermal_map
-  Warning: Could not load predictions for depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map
-  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
-  Warning: Could not load predictions for metadata+depth_map+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
-  Not enough predictions loaded (0) for gating network ensemble
+
+Training gating network with 15 modality combinations:
+
+Initializing gating network training...
+
+Training with all models...
+Restoring model weights from the end of the best epoch: 1.
+Initial Accuracy: 0.6930, Initial Weighted Accuracy: 0.3274, Loss: 0.7274, kappa: 0.0000
+/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1531: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", len(result))
+/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1531: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", len(result))
+/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1531: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, f"{metric.capitalize()} is", len(result))
+
+Detailed results saved to /workspace/DFUMultiClassification/results/csv/model_combination_results_4.txt
+
+Final Results:
+==============
+Best Cohen's Kappa: 0.0000
+Best Accuracy: 0.6930
+Best Weighted Accuracy: 0.3274
+Best Loss: 0.7274
+
+Gating Network Ensemble Results for Run 4:
+  Accuracy: 0.6930
+  F1 Macro: 0.2729
+  Kappa: 0.0000
+  Per-class F1: I=0.0000, P=0.8187, R=0.0000
 
 Fold 5/5
   Warning: Could not load predictions for metadata
@@ -2036,21 +2308,27 @@ Fold 5/5
   Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
   Not enough predictions loaded (0) for gating network ensemble
 
+Gating Network Ensemble Summary (4 folds):
+  Mean Accuracy: 0.7083 ± 0.0409
+  Mean F1 Macro: 0.4378 ± 0.1659
+  Mean Kappa:    0.2398 ± 0.2445
+  Results saved to: results/csv/gating_network_averaged_results.csv
+
 ================================================================================
 FINAL SUMMARY - BEST MODALITY COMBINATIONS
 ================================================================================
 
 Best by Accuracy:
   Modalities: metadata+depth_rgb+depth_map
-  Accuracy: 0.7562 ± 0.0217
-  F1 Macro: 0.6945
-  Kappa: 0.6340
+  Accuracy: 0.7497 ± 0.0096
+  F1 Macro: 0.6763
+  Kappa: 0.6051
 
-Best by Kappa:
-  Modalities: metadata+depth_rgb+thermal_map
-  Accuracy: 0.7241
-  F1 Macro: 0.6869
-  Kappa: 0.6469 ± 0.0714
+Best by F1 Macro:
+  Modalities: metadata+depth_rgb+depth_map+thermal_map
+  Accuracy: 0.7479
+  F1 Macro: 0.6800 ± 0.0564
+  Kappa: 0.6160
 
 Total combinations tested: 15
 ================================================================================

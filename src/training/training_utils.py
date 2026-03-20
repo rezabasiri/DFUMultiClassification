@@ -2210,35 +2210,34 @@ def cross_validation_manual_split(data, configs, train_patient_percentage=0.8, c
                             model.load_weights(best_load_path)
 
                         # Evaluate training data predictions
-                        # NOTE: Skipped when track_misclass='none' (Phase 2 threshold search).
-                        # Re-enable by setting TRACK_MISCLASS='both'/'train' in production_config.py
-                        # or when you need train predictions for correlation studies / gating network.
-                        need_train_eval = track_misclass in ['both', 'train']
+                        # Always run: predictions are needed for gating network ensemble.
+                        # Misclassification tracking is conditional on track_misclass setting.
+                        need_misclass_tracking = track_misclass in ['both', 'train']
                         y_true_t = []
                         y_pred_t = []
                         probabilities_t = []
                         all_sample_ids_t = []
 
-                        if need_train_eval:
-                            for batch in pre_aug_train_dataset:
-                                batch_inputs, batch_labels = batch
-                                sample_ids_batch = batch_inputs['sample_id'].numpy()
-                                model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
-                                batch_pred = model(model_inputs, training=False)
-                                batch_pred_np = batch_pred.numpy()
-                                y_true_t.extend(np.argmax(batch_labels, axis=1))
-                                y_pred_t.extend(np.argmax(batch_pred_np, axis=1))
-                                probabilities_t.extend(batch_pred_np)
-                                all_sample_ids_t.extend(sample_ids_batch)
+                        for batch in pre_aug_train_dataset:
+                            batch_inputs, batch_labels = batch
+                            sample_ids_batch = batch_inputs['sample_id'].numpy()
+                            model_inputs = {k: v for k, v in batch_inputs.items() if k != 'sample_id'}
+                            batch_pred = model(model_inputs, training=False)
+                            batch_pred_np = batch_pred.numpy()
+                            y_true_t.extend(np.argmax(batch_labels, axis=1))
+                            y_pred_t.extend(np.argmax(batch_pred_np, axis=1))
+                            probabilities_t.extend(batch_pred_np)
+                            all_sample_ids_t.extend(sample_ids_batch)
 
-                                del batch_inputs, batch_labels, batch_pred, batch_pred_np, model_inputs, sample_ids_batch
-                                gc.collect()
+                            del batch_inputs, batch_labels, batch_pred, batch_pred_np, model_inputs, sample_ids_batch
+                            gc.collect()
 
-                            sample_ids_t = np.array(all_sample_ids_t)
-                            save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train', sample_ids=sample_ids_t)
-                            run_predictions_list_t.append(np.array(probabilities_t))
-                            if run_true_labels_t is None:
-                                run_true_labels_t = np.array(y_true_t)
+                        sample_ids_t = np.array(all_sample_ids_t)
+                        save_run_predictions(run + 1, config_name, np.array(probabilities_t), np.array(y_true_t), ck_path, dataset_type='train', sample_ids=sample_ids_t)
+                        run_predictions_list_t.append(np.array(probabilities_t))
+                        if run_true_labels_t is None:
+                            run_true_labels_t = np.array(y_true_t)
+                        if need_misclass_tracking:
                             track_misclassifications(np.array(y_true_t), np.array(y_pred_t), sample_ids_t, selected_modalities, misclass_path)
 
                         # Evaluate model
@@ -2622,9 +2621,33 @@ def save_gating_results(all_gating_results, result_dir):
     """Save aggregated gating network results to CSV."""
     if not all_gating_results:
         return
-        
-    # Calculate average metrics
-    results = [{
+
+    # Save per-fold results
+    per_fold_rows = []
+    for i, r in enumerate(all_gating_results):
+        row = {
+            'fold': i + 1,
+            'accuracy': r['accuracy'],
+            'f1_macro': r['f1_macro'],
+            'f1_weighted': r['f1_weighted'],
+            'kappa': r['kappa'],
+        }
+        if 'f1_classes' in r and r['f1_classes'] is not None:
+            row['f1_I'] = r['f1_classes'][0]
+            row['f1_P'] = r['f1_classes'][1]
+            row['f1_R'] = r['f1_classes'][2]
+        per_fold_rows.append(row)
+
+    per_fold_filename = os.path.join(csv_path, 'gating_network_per_fold_results.csv')
+    if per_fold_rows:
+        fieldnames = list(per_fold_rows[0].keys())
+        with open(per_fold_filename, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(per_fold_rows)
+
+    # Save averaged results
+    avg_result = {
         'accuracy_mean': np.mean([r['accuracy'] for r in all_gating_results]),
         'accuracy_std': np.std([r['accuracy'] for r in all_gating_results]),
         'f1_macro_mean': np.mean([r['f1_macro'] for r in all_gating_results]),
@@ -2632,16 +2655,22 @@ def save_gating_results(all_gating_results, result_dir):
         'f1_weighted_mean': np.mean([r['f1_weighted'] for r in all_gating_results]),
         'f1_weighted_std': np.std([r['f1_weighted'] for r in all_gating_results]),
         'kappa_mean': np.mean([r['kappa'] for r in all_gating_results]),
-        'kappa_std': np.std([r['kappa'] for r in all_gating_results])
-    }]
-    
-    # Save to file
+        'kappa_std': np.std([r['kappa'] for r in all_gating_results]),
+    }
+    # Add per-class F1 averages if available
+    f1_classes = [r['f1_classes'] for r in all_gating_results if 'f1_classes' in r and r['f1_classes'] is not None]
+    if f1_classes:
+        f1_arr = np.array(f1_classes)
+        avg_result['f1_I_mean'] = np.mean(f1_arr[:, 0])
+        avg_result['f1_P_mean'] = np.mean(f1_arr[:, 1])
+        avg_result['f1_R_mean'] = np.mean(f1_arr[:, 2])
+
     csv_filename = os.path.join(csv_path, 'gating_network_averaged_results.csv')
-    fieldnames = list(results[0].keys())
+    fieldnames = list(avg_result.keys())
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(results)
+        writer.writerow(avg_result)
 
 def save_aggregated_results(all_metrics, configs, result_dir):
     """Save aggregated results to CSV file."""
