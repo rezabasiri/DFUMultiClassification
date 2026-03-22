@@ -177,8 +177,9 @@ Three experimental conditions are compared, each using identical model architect
 | Condition | Gating Network | Generative Augmentation | Description |
 |-----------|---------------|------------------------|-------------|
 | **Run 1: Baseline** | Off | Off | Standard pipeline: per-combination models with feature_concat fusion |
-| **Run 2: + Gating Network** | On | Off | Adds a learned attention-based ensemble that weights predictions from all 15 modality combinations |
-| **Run 3: + Generative Aug** | On | On | Adds SDXL-generated synthetic wound images for minority class augmentation during training |
+| **Run 2: + Gating Network** | On | Off | Adds simple-average ensemble across metadata-containing combinations |
+| **Run 3a: + GenAug (6%)** | On | On (6% prob) | Adds SDXL-generated synthetic depth_rgb images at 6% probability per batch |
+| **Run 3b: + GenAug (15%)** | On | On (15% prob) | Same as Run 3a but with higher augmentation probability |
 
 All conditions use the same polished dataset (443 unique samples from 648, thresholds I=53, P=84, R=70), identical DenseNet121 backbones, and 5-fold patient-stratified CV.
 
@@ -300,19 +301,43 @@ The gating ensemble (kappa 0.537) underperforms the best individual combination 
 
 ### 6.3 Run 3: + Generative Augmentation
 
-Generative augmentation uses fine-tuned SDXL diffusion models to synthesise additional wound images for underrepresented classes during training. This targets the class imbalance problem (I: 31%, P: 56%, R: 13%).
+Generative augmentation uses a fine-tuned SDXL diffusion model to synthesise additional wound images during training of depth_rgb-containing modality combinations. Synthetic images are pre-generated to a disk cache before training begins (57 images per phase, 171 total), then injected during training at a configurable probability. Two augmentation probabilities were tested: 6% (Run 3a) and 15% (Run 3b).
 
-#### 6.3.1 All 15 Modality Combinations (Run 3)
+#### 6.3.1 Run 3a: Generative Augmentation at 6% Probability
 
-*[To be populated after Run 3 completes]*
+Top 5 modality combinations:
 
-#### 6.3.2 Gating Network Ensemble Results (Run 3)
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 | F1-I | F1-P | F1-R |
+|------|-----------|-------|------|----------|----------|------|------|------|
+| 1 | metadata+depth_rgb+thermal_map | 0.584 | 0.113 | 0.722 | 0.654 | 0.639 | 0.781 | 0.542 |
+| 2 | metadata+depth_rgb | 0.580 | 0.107 | 0.739 | 0.662 | 0.647 | 0.796 | 0.542 |
+| 3 | metadata+depth_rgb+depth_map+thermal_map | 0.570 | 0.108 | 0.726 | 0.644 | 0.635 | 0.784 | 0.514 |
+| 4 | metadata+thermal_map | 0.560 | 0.118 | 0.696 | 0.631 | 0.605 | 0.754 | 0.534 |
+| 5 | metadata+depth_rgb+depth_map | 0.558 | 0.113 | 0.746 | 0.647 | 0.618 | 0.810 | 0.512 |
 
-*[To be populated after Run 3 completes]*
+Gating network ensemble (simple average of metadata-containing combos):
+- Kappa: 0.517 ± 0.136, Accuracy: 0.766, Macro F1: 0.692
+- F1-I: 0.670, F1-P: 0.822, F1-R: 0.586
+- Per-fold kappas: [0.583, 0.480, 0.723, 0.490, 0.308]
+
+#### 6.3.2 Run 3b: Generative Augmentation at 15% Probability
+
+*[To be populated after Run 3b completes]*
 
 #### 6.3.3 Effect of Generative Augmentation on Per-Class F1
 
-*[To be populated: particular focus on R-class improvement]*
+Comparing the target modality (metadata+depth_rgb+thermal_map) across augmentation levels:
+
+| Metric | Run 2 (0% gen aug) | Run 3a (6% gen aug) | Run 3b (15% gen aug) |
+|--------|-------------------|--------------------|--------------------|
+| Kappa | 0.573 | 0.584 (+0.011) | — |
+| Accuracy | 0.717 | 0.722 (+0.005) | — |
+| Macro F1 | 0.644 | 0.654 (+0.010) | — |
+| F1-I | 0.633 | 0.639 (+0.006) | — |
+| F1-P | 0.780 | 0.781 (+0.001) | — |
+| F1-R | 0.519 | 0.542 (+0.023) | — |
+
+At 6% probability, generative augmentation shows a modest positive effect, most pronounced on the R-class (F1-R +0.023). The improvement is within run-to-run variance but the direction is consistent — all metrics improve or remain stable.
 
 ---
 
@@ -320,40 +345,39 @@ Generative augmentation uses fine-tuned SDXL diffusion models to synthesise addi
 
 #### 6.4.1 Best Combination Performance Across Runs
 
-| Metric | Run 1 (Baseline) | Run 2 (+Gating) | Run 3 (+Gen Aug) |
-|--------|------------------|-----------------|------------------|
-| Best Kappa | 0.613 | 0.584 | — |
-| Best Accuracy | 0.754 | 0.746 | — |
-| Best Macro F1 | 0.681 | 0.661 | — |
-| Best Modality | M+D+T | M+D+DM+T | — |
-| Gating Kappa | N/A | 0.537 | — |
-| Gating Accuracy | N/A | 0.789 | — |
-| Gating Macro F1 | N/A | 0.704 | — |
+| Metric | Run 1 (Baseline) | Run 2 (+Gating) | Run 3a (6% GenAug) | Run 3b (15% GenAug) |
+|--------|------------------|-----------------|--------------------|--------------------|
+| Best Kappa | 0.613 | 0.584 | 0.584 | — |
+| Best Accuracy | 0.754 | 0.746 | 0.746 | — |
+| Best Macro F1 | 0.681 | 0.661 | 0.662 | — |
+| Best Modality | M+D+T | M+D+DM+T | M+D+T | — |
+| Gating Kappa | N/A | 0.537 | 0.517 | — |
+| Gating Accuracy | N/A | 0.789 | 0.766 | — |
+| Gating Macro F1 | N/A | 0.704 | 0.692 | — |
+| Gating F1-R | N/A | 0.583 | 0.586 | — |
 
 #### 6.4.2 Target Modality (metadata+depth_rgb+thermal_map) Across Runs
 
-| Metric | Run 1 | Run 2 | Run 3 |
-|--------|-------|-------|-------|
-| Kappa | 0.613 | 0.573 | — |
-| Accuracy | 0.712 | 0.717 | — |
-| Macro F1 | 0.665 | 0.644 | — |
-| F1-I | 0.689 | 0.633 | — |
-| F1-P | 0.760 | 0.780 | — |
-| F1-R | 0.544 | 0.519 | — |
-| Kappa | 0.613 | — | — |
-| Accuracy | 0.712 | — | — |
-| Macro F1 | 0.665 | — | — |
-| F1-I | 0.689 | — | — |
-| F1-P | 0.760 | — | — |
-| F1-R | 0.544 | — | — |
+| Metric | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) |
+|--------|-------|-------|-------------|-------------|
+| Kappa | 0.613 | 0.573 | 0.584 | — |
+| Accuracy | 0.712 | 0.717 | 0.722 | — |
+| Macro F1 | 0.665 | 0.644 | 0.654 | — |
+| F1-I | 0.689 | 0.633 | 0.639 | — |
+| F1-P | 0.760 | 0.780 | 0.781 | — |
+| F1-R | 0.544 | 0.519 | 0.542 | — |
 
 #### 6.4.3 Per-Class F1 Comparison (metadata+depth_rgb+thermal_map)
 
-*[To be populated: bar chart data showing F1-I, F1-P, F1-R across all 3 runs]*
+| Class | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) |
+|-------|-------|-------|-------------|-------------|
+| F1-I | 0.689 | 0.633 | 0.639 | — |
+| F1-P | 0.760 | 0.780 | 0.781 | — |
+| F1-R | 0.544 | 0.519 | 0.542 | — |
 
 #### 6.4.4 Statistical Significance (Paired t-test on per-fold kappa)
 
-*[To be populated: Run 1 vs Run 2, Run 2 vs Run 3, Run 1 vs Run 3]*
+*[To be populated after Run 3b: Run 1 vs Run 2, Run 2 vs Run 3a, Run 3a vs Run 3b]*
 
 ---
 
@@ -391,7 +415,11 @@ The optimal ensemble (simple average of 8 metadata combos) achieves the highest 
 
 ### 7.7 Generative Augmentation Impact
 
-*[To be populated after Run 3: did synthetic data improve R-class F1? Did it help or hurt other classes?]*
+At 6% augmentation probability, generative augmentation provides a modest but consistent improvement across all metrics for the target modality (M+D+T): kappa +0.011, F1-R +0.023, accuracy +0.005 vs Run 2. The R-class benefit (+0.023 F1-R) is the largest per-class gain, aligning with the augmentation's design intent of addressing minority class underrepresentation. However, the improvements are within run-to-run variance (~0.03 kappa std) and not statistically significant at this probability level.
+
+Run 3b at 15% augmentation probability will test whether a stronger augmentation signal produces a clearer effect.
+
+*[To be updated after Run 3b]*
 
 ---
 

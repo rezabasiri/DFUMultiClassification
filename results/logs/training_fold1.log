@@ -1,5 +1,5 @@
 [LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
-[LOG] Started at: 2026-03-20 02:38:37
+[LOG] Started at: 2026-03-21 15:24:34
 
 
 ================================================================================
@@ -120,7 +120,29 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Pre-generating 144 synthetic images per phase (['I', 'P', 'R'])...
+Loading SDXL model from: results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Loaded fine-tuned UNet weights from checkpoint
+/venv/multimodal/lib/python3.11/site-packages/diffusers/pipelines/pipeline_utils.py:2186: FutureWarning: `enable_vae_slicing` is deprecated and will be removed in version 0.40.0. Calling `enable_vae_slicing()` on a `StableDiffusionXLPipeline` is deprecated and this method will be removed in a future version. Please use `pipe.vae.enable_slicing()`.
+  deprecate(
+/venv/multimodal/lib/python3.11/site-packages/diffusers/pipelines/pipeline_utils.py:2213: FutureWarning: `enable_vae_tiling` is deprecated and will be removed in version 0.40.0. Calling `enable_vae_tiling()` on a `StableDiffusionXLPipeline` is deprecated and this method will be removed in a future version. Please use `pipe.vae.enable_tiling()`.
+  deprecate(
+  SDXL pipeline loaded (ready for pre-generation)
+    Phase I: 36/144 (25%)
+    Phase I: 72/144 (50%)
+    Phase I: 108/144 (75%)
+    Phase I: 144/144 (100%)
+    Phase P: 36/144 (25%)
+    Phase P: 72/144 (50%)
+    Phase P: 108/144 (75%)
+    Phase P: 144/144 (100%)
+    Phase R: 36/144 (25%)
+    Phase R: 72/144 (50%)
+    Phase R: 108/144 (75%)
+    Phase R: 144/144 (100%)
+  Pre-generation complete: 432 images cached. SDXL unloaded from GPU.
 
 Preparing datasets for Fold 1/5 with all modalities: ['metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -253,7 +275,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_rgb']
 Using consistent patient split across all modality combinations for run 1
@@ -268,23 +292,27 @@ Training depth_rgb with modalities: ['depth_rgb'], fold 1/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 34: early stopping
-Restoring model weights from the end of the best epoch: 19.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 6.
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+Epoch 23: early stopping
+Restoring model weights from the end of the best epoch: 8.
+  [SDXL Gen] Total: 200 | By phase: I:41, P:138, R:21
+Epoch 18: early stopping
+Restoring model weights from the end of the best epoch: 3.
 
 Run 1 Results for depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.37      0.76      0.50        67
-           P       0.86      0.50      0.63       347
-           R       0.33      0.76      0.46        59
+           I       0.35      0.76      0.48        67
+           P       0.84      0.50      0.63       347
+           R       0.34      0.69      0.46        59
 
-    accuracy                           0.57       473
-   macro avg       0.52      0.67      0.53       473
-weighted avg       0.72      0.57      0.59       473
+    accuracy                           0.56       473
+   macro avg       0.51      0.65      0.52       473
+weighted avg       0.71      0.56      0.59       473
 
-Cohen's Kappa: 0.4710
+Cohen's Kappa: 0.4568
 
 Training gating network for run 1...
 
@@ -292,9 +320,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.5666
-F1 Macro: 0.5301
-Kappa: 0.4710
+Accuracy: 0.5624
+F1 Macro: 0.5212
+Kappa: 0.4568
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -386,7 +414,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map']
 Using consistent patient split across all modality combinations for run 1
@@ -403,21 +433,21 @@ Training depth_map with modalities: ['depth_map'], fold 1/5
 No existing pretrained weights found
 Epoch 21: early stopping
 Restoring model weights from the end of the best epoch: 6.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 6.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
 
 Run 1 Results for depth_map:
               precision    recall  f1-score   support
 
-           I       0.18      0.45      0.26        67
-           P       0.70      0.43      0.53       347
-           R       0.16      0.25      0.20        59
+           I       0.18      0.36      0.24        67
+           P       0.70      0.40      0.51       347
+           R       0.18      0.42      0.25        59
 
-    accuracy                           0.41       473
-   macro avg       0.35      0.38      0.33       473
-weighted avg       0.56      0.41      0.45       473
+    accuracy                           0.40       473
+   macro avg       0.35      0.40      0.33       473
+weighted avg       0.56      0.40      0.44       473
 
-Cohen's Kappa: 0.1396
+Cohen's Kappa: 0.1554
 
 Training gating network for run 1...
 
@@ -425,9 +455,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.4123
-F1 Macro: 0.3300
-Kappa: 0.1396
+Accuracy: 0.3996
+F1 Macro: 0.3343
+Kappa: 0.1554
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -519,7 +549,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['thermal_map']
 Using consistent patient split across all modality combinations for run 1
@@ -534,23 +566,23 @@ Training thermal_map with modalities: ['thermal_map'], fold 1/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 36: early stopping
-Restoring model weights from the end of the best epoch: 21.
-Epoch 17: early stopping
-Restoring model weights from the end of the best epoch: 2.
+Epoch 39: early stopping
+Restoring model weights from the end of the best epoch: 24.
+Epoch 20: early stopping
+Restoring model weights from the end of the best epoch: 5.
 
 Run 1 Results for thermal_map:
               precision    recall  f1-score   support
 
-           I       0.30      0.61      0.40        67
-           P       0.81      0.47      0.59       347
-           R       0.31      0.73      0.44        59
+           I       0.30      0.64      0.41        67
+           P       0.80      0.47      0.59       347
+           R       0.30      0.64      0.41        59
 
     accuracy                           0.52       473
-   macro avg       0.48      0.60      0.48       473
-weighted avg       0.68      0.52      0.55       473
+   macro avg       0.47      0.59      0.47       473
+weighted avg       0.67      0.52      0.55       473
 
-Cohen's Kappa: 0.3951
+Cohen's Kappa: 0.3900
 
 Training gating network for run 1...
 
@@ -558,9 +590,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.5201
-F1 Macro: 0.4780
-Kappa: 0.3951
+Accuracy: 0.5180
+F1 Macro: 0.4722
+Kappa: 0.3900
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -653,7 +685,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_rgb', 'metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -669,25 +703,42 @@ Training metadata+depth_rgb with modalities: ['metadata', 'depth_rgb'], fold 1/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 59: early stopping
-Restoring model weights from the end of the best epoch: 39.
-Epoch 22: early stopping
-Restoring model weights from the end of the best epoch: 12.
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
+Epoch 41: early stopping
+Restoring model weights from the end of the best epoch: 21.
+
+============================================================
+SDXL Generative Augmentation Summary
+============================================================
+  Total generated images: 246
+  Per-phase breakdown:
+    Phase I (Inflammatory): 56 (22.8%)
+    Phase P (Proliferative): 165 (67.1%)
+    Phase R (Remodeling): 25 (10.2%)
+============================================================
+
+  [SDXL Gen] Total: 300 | By phase: I:63, P:209, R:28
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.6574 < s1=0.6642). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 34 variables whereas the saved optimizer has 22 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 1 Results for metadata+depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.50      0.76      0.60        67
-           P       0.90      0.77      0.83       347
-           R       0.61      0.78      0.69        59
+           I       0.58      0.72      0.64        67
+           P       0.90      0.81      0.85       347
+           R       0.60      0.81      0.69        59
 
-    accuracy                           0.77       473
-   macro avg       0.67      0.77      0.71       473
-weighted avg       0.81      0.77      0.78       473
+    accuracy                           0.79       473
+   macro avg       0.69      0.78      0.73       473
+weighted avg       0.82      0.79      0.80       473
 
-Cohen's Kappa: 0.6370
+Cohen's Kappa: 0.6642
 
 Training gating network for run 1...
 
@@ -695,9 +746,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.7674
-F1 Macro: 0.7051
-Kappa: 0.6370
+Accuracy: 0.7949
+F1 Macro: 0.7277
+Kappa: 0.6642
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -790,7 +841,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -806,26 +859,26 @@ Training metadata+depth_map with modalities: ['metadata', 'depth_map'], fold 1/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 89: early stopping
-Restoring model weights from the end of the best epoch: 69.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Fusion Stage 2 did NOT improve (s2=0.4185 < s1=0.4267). Restoring S1 weights.
+Epoch 69: early stopping
+Restoring model weights from the end of the best epoch: 49.
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Fusion Stage 2 did NOT improve (s2=0.4014 < s1=0.4133). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 1 Results for metadata+depth_map:
               precision    recall  f1-score   support
 
-           I       0.47      0.57      0.51        67
+           I       0.45      0.63      0.52        67
            P       0.83      0.77      0.80       347
-           R       0.39      0.46      0.42        59
+           R       0.39      0.39      0.39        59
 
     accuracy                           0.70       473
-   macro avg       0.56      0.60      0.58       473
+   macro avg       0.56      0.59      0.57       473
 weighted avg       0.72      0.70      0.71       473
 
-Cohen's Kappa: 0.4267
+Cohen's Kappa: 0.4133
 
 Training gating network for run 1...
 
@@ -833,9 +886,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.7040
-F1 Macro: 0.5785
-Kappa: 0.4267
+Accuracy: 0.6998
+F1 Macro: 0.5697
+Kappa: 0.4133
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -928,7 +981,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -944,25 +999,25 @@ Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 92: early stopping
-Restoring model weights from the end of the best epoch: 72.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
+Epoch 96: early stopping
+Restoring model weights from the end of the best epoch: 76.
+Epoch 15: early stopping
+Restoring model weights from the end of the best epoch: 5.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 1 Results for metadata+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.53      0.69      0.60        67
-           P       0.89      0.73      0.80       347
-           R       0.47      0.81      0.59        59
+           I       0.60      0.58      0.59        67
+           P       0.86      0.82      0.84       347
+           R       0.53      0.68      0.59        59
 
-    accuracy                           0.73       473
-   macro avg       0.63      0.74      0.66       473
-weighted avg       0.79      0.73      0.75       473
+    accuracy                           0.77       473
+   macro avg       0.66      0.69      0.68       473
+weighted avg       0.78      0.77      0.78       473
 
-Cohen's Kappa: 0.5830
+Cohen's Kappa: 0.5848
 
 Training gating network for run 1...
 
@@ -970,9 +1025,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.7336
-F1 Macro: 0.6644
-Kappa: 0.5830
+Accuracy: 0.7717
+F1 Macro: 0.6753
+Kappa: 0.5848
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -1065,7 +1120,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 1
@@ -1080,24 +1137,28 @@ Training depth_rgb+depth_map with modalities: ['depth_rgb', 'depth_map'], fold 1
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 37: early stopping
-Restoring model weights from the end of the best epoch: 17.
-Epoch 22: early stopping
-Restoring model weights from the end of the best epoch: 2.
-  Stage 2 did NOT improve (s2=0.4269 < s1=0.4280). Restoring S1 weights.
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
+Epoch 49: early stopping
+Restoring model weights from the end of the best epoch: 29.
+  [SDXL Gen] Total: 300 | By phase: I:68, P:203, R:29
+  [SDXL Gen] Total: 400 | By phase: I:95, P:266, R:39
+Restoring model weights from the end of the best epoch: 16.
 
 Run 1 Results for depth_rgb+depth_map:
               precision    recall  f1-score   support
 
-           I       0.30      0.55      0.39        67
-           P       0.83      0.55      0.66       347
-           R       0.38      0.78      0.51        59
+           I       0.34      0.58      0.43        67
+           P       0.82      0.58      0.68       347
+           R       0.37      0.69      0.48        59
 
-    accuracy                           0.58       473
-   macro avg       0.50      0.63      0.52       473
-weighted avg       0.70      0.58      0.60       473
+    accuracy                           0.60       473
+   macro avg       0.51      0.62      0.53       473
+weighted avg       0.70      0.60      0.62       473
 
-Cohen's Kappa: 0.4280
+Cohen's Kappa: 0.4417
 
 Training gating network for run 1...
 
@@ -1105,9 +1166,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.5793
-F1 Macro: 0.5218
-Kappa: 0.4280
+Accuracy: 0.5962
+F1 Macro: 0.5300
+Kappa: 0.4417
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -1201,7 +1262,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 1
@@ -1216,24 +1279,28 @@ Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fo
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 48: early stopping
-Restoring model weights from the end of the best epoch: 28.
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+  [SDXL Gen] Total: 500 | By phase: I:112, P:337, R:51
+  [SDXL Gen] Total: 700 | By phase: I:160, P:469, R:71
+Epoch 40: early stopping
+Restoring model weights from the end of the best epoch: 20.
 Epoch 21: early stopping
 Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.4963 < s1=0.5114). Restoring S1 weights.
 
 Run 1 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.37      0.76      0.50        67
-           P       0.84      0.69      0.76       347
-           R       0.58      0.53      0.55        59
+           I       0.46      0.70      0.55        67
+           P       0.85      0.75      0.80       347
+           R       0.50      0.54      0.52        59
 
-    accuracy                           0.68       473
-   macro avg       0.60      0.66      0.60       473
-weighted avg       0.74      0.68      0.69       473
+    accuracy                           0.72       473
+   macro avg       0.60      0.66      0.62       473
+weighted avg       0.75      0.72      0.73       473
 
-Cohen's Kappa: 0.5129
+Cohen's Kappa: 0.5303
 
 Training gating network for run 1...
 
@@ -1241,9 +1308,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.6765
-F1 Macro: 0.6026
-Kappa: 0.5129
+Accuracy: 0.7167
+F1 Macro: 0.6232
+Kappa: 0.5303
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -1337,7 +1404,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map']
 Using consistent patient split across all modality combinations for run 1
@@ -1354,22 +1423,21 @@ Training depth_map+thermal_map with modalities: ['depth_map', 'thermal_map'], fo
 No existing pretrained weights found
 Epoch 29: early stopping
 Restoring model weights from the end of the best epoch: 9.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.3331 < s1=0.3389). Restoring S1 weights.
+Epoch 24: early stopping
+Restoring model weights from the end of the best epoch: 4.
 
 Run 1 Results for depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.30      0.40      0.35        67
-           P       0.78      0.61      0.68       347
-           R       0.30      0.56      0.39        59
+           I       0.30      0.48      0.37        67
+           P       0.77      0.61      0.68       347
+           R       0.31      0.49      0.38        59
 
     accuracy                           0.58       473
-   macro avg       0.46      0.52      0.47       473
+   macro avg       0.46      0.53      0.48       473
 weighted avg       0.65      0.58      0.60       473
 
-Cohen's Kappa: 0.3389
+Cohen's Kappa: 0.3572
 
 Training gating network for run 1...
 
@@ -1377,9 +1445,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.5751
-F1 Macro: 0.4728
-Kappa: 0.3389
+Accuracy: 0.5793
+F1 Macro: 0.4795
+Kappa: 0.3572
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -1473,7 +1541,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'depth_rgb', 'metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -1489,26 +1559,42 @@ Training metadata+depth_rgb+depth_map with modalities: ['metadata', 'depth_rgb',
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
+  [SDXL Gen] Total: 300 | By phase: I:70, P:203, R:27
 Epoch 60: early stopping
 Restoring model weights from the end of the best epoch: 40.
+
+============================================================
+SDXL Generative Augmentation Summary
+============================================================
+  Total generated images: 351
+  Per-phase breakdown:
+    Phase I (Inflammatory): 81 (23.1%)
+    Phase P (Proliferative): 234 (66.7%)
+    Phase R (Remodeling): 36 (10.3%)
+============================================================
+
+  [SDXL Gen] Total: 400 | By phase: I:86, P:271, R:43
 Epoch 11: early stopping
 Restoring model weights from the end of the best epoch: 1.
-  Fusion Stage 2 did NOT improve (s2=0.5760 < s1=0.5859). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 1 Results for metadata+depth_rgb+depth_map:
               precision    recall  f1-score   support
 
-           I       0.45      0.70      0.55        67
-           P       0.88      0.75      0.81       347
-           R       0.58      0.71      0.64        59
+           I       0.47      0.69      0.56        67
+           P       0.86      0.79      0.82       347
+           R       0.60      0.58      0.59        59
 
-    accuracy                           0.74       473
-   macro avg       0.64      0.72      0.66       473
-weighted avg       0.78      0.74      0.75       473
+    accuracy                           0.75       473
+   macro avg       0.64      0.68      0.65       473
+weighted avg       0.77      0.75      0.75       473
 
-Cohen's Kappa: 0.5859
+Cohen's Kappa: 0.5601
 
 Training gating network for run 1...
 
@@ -1516,9 +1602,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.7357
-F1 Macro: 0.6644
-Kappa: 0.5859
+Accuracy: 0.7463
+F1 Macro: 0.6549
+Kappa: 0.5601
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -1613,7 +1699,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'depth_rgb', 'metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -1629,25 +1717,43 @@ Training metadata+depth_rgb+thermal_map with modalities: ['metadata', 'depth_rgb
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 37: early stopping
-Restoring model weights from the end of the best epoch: 17.
-Epoch 19: early stopping
-Restoring model weights from the end of the best epoch: 9.
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
+  [SDXL Gen] Total: 300 | By phase: I:70, P:203, R:27
+Epoch 61: early stopping
+Restoring model weights from the end of the best epoch: 41.
+
+============================================================
+SDXL Generative Augmentation Summary
+============================================================
+  Total generated images: 360
+  Per-phase breakdown:
+    Phase I (Inflammatory): 83 (23.1%)
+    Phase P (Proliferative): 238 (66.1%)
+    Phase R (Remodeling): 39 (10.8%)
+============================================================
+
+  [SDXL Gen] Total: 400 | By phase: I:88, P:268, R:44
+Epoch 13: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Fusion Stage 2 did NOT improve (s2=0.5918 < s1=0.6109). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 1 Results for metadata+depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.51      0.73      0.60        67
-           P       0.88      0.75      0.81       347
-           R       0.51      0.68      0.58        59
+           I       0.56      0.63      0.59        67
+           P       0.88      0.82      0.85       347
+           R       0.58      0.73      0.65        59
 
-    accuracy                           0.74       473
-   macro avg       0.63      0.72      0.66       473
-weighted avg       0.78      0.74      0.75       473
+    accuracy                           0.78       473
+   macro avg       0.67      0.72      0.69       473
+weighted avg       0.79      0.78      0.79       473
 
-Cohen's Kappa: 0.5905
+Cohen's Kappa: 0.6109
 
 Training gating network for run 1...
 
@@ -1655,9 +1761,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.7400
-F1 Macro: 0.6636
-Kappa: 0.5905
+Accuracy: 0.7801
+F1 Macro: 0.6949
+Kappa: 0.6109
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -1752,7 +1858,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -1768,26 +1876,26 @@ Training metadata+depth_map+thermal_map with modalities: ['metadata', 'depth_map
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 48: early stopping
-Restoring model weights from the end of the best epoch: 28.
+Epoch 54: early stopping
+Restoring model weights from the end of the best epoch: 34.
 Epoch 12: early stopping
 Restoring model weights from the end of the best epoch: 2.
-  Fusion Stage 2 did NOT improve (s2=0.5054 < s1=0.5098). Restoring S1 weights.
+  Fusion Stage 2 did NOT improve (s2=0.4807 < s1=0.4847). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 46 variables whereas the saved optimizer has 22 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 1 Results for metadata+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.41      0.66      0.51        67
+           I       0.45      0.69      0.54        67
            P       0.85      0.70      0.76       347
-           R       0.46      0.63      0.53        59
+           R       0.39      0.56      0.46        59
 
     accuracy                           0.68       473
-   macro avg       0.57      0.66      0.60       473
-weighted avg       0.74      0.68      0.70       473
+   macro avg       0.56      0.65      0.59       473
+weighted avg       0.73      0.68      0.70       473
 
-Cohen's Kappa: 0.5098
+Cohen's Kappa: 0.4847
 
 Training gating network for run 1...
 
@@ -1795,9 +1903,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.6829
-F1 Macro: 0.6009
-Kappa: 0.5098
+Accuracy: 0.6786
+F1 Macro: 0.5891
+Kappa: 0.4847
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -1892,7 +2000,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
 Using consistent patient split across all modality combinations for run 1
@@ -1907,24 +2017,29 @@ Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_m
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 56: early stopping
-Restoring model weights from the end of the best epoch: 36.
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Stage 2 did NOT improve (s2=0.4638 < s1=0.4722). Restoring S1 weights.
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+Epoch 32: early stopping
+Restoring model weights from the end of the best epoch: 12.
+  [SDXL Gen] Total: 200 | By phase: I:42, P:137, R:21
+  [SDXL Gen] Total: 300 | By phase: I:68, P:203, R:29
+Epoch 22: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Stage 2 did NOT improve (s2=0.4807 < s1=0.4865). Restoring S1 weights.
 
 Run 1 Results for depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.35      0.52      0.42        67
-           P       0.83      0.68      0.75       347
-           R       0.45      0.68      0.54        59
+           I       0.53      0.46      0.49        67
+           P       0.81      0.82      0.81       347
+           R       0.45      0.51      0.48        59
 
-    accuracy                           0.66       473
-   macro avg       0.54      0.63      0.57       473
-weighted avg       0.71      0.66      0.67       473
+    accuracy                           0.73       473
+   macro avg       0.60      0.60      0.60       473
+weighted avg       0.73      0.73      0.73       473
 
-Cohen's Kappa: 0.4722
+Cohen's Kappa: 0.4865
 
 Training gating network for run 1...
 
@@ -1932,9 +2047,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.6575
-F1 Macro: 0.5705
-Kappa: 0.4722
+Accuracy: 0.7273
+F1 Macro: 0.5955
+Kappa: 0.4865
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -2030,7 +2145,9 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
-Generative augmentation disabled
+Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
+  Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
+  Loaded 432 cached synthetic images from results/generative_aug_cache
 
 Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
 Using consistent patient split across all modality combinations for run 1
@@ -2046,25 +2163,43 @@ Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 62: early stopping
-Restoring model weights from the end of the best epoch: 42.
+  Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
+  Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
+  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
+  [SDXL Gen] Total: 300 | By phase: I:70, P:203, R:27
+Epoch 58: early stopping
+Restoring model weights from the end of the best epoch: 38.
+
+============================================================
+SDXL Generative Augmentation Summary
+============================================================
+  Total generated images: 337
+  Per-phase breakdown:
+    Phase I (Inflammatory): 81 (24.0%)
+    Phase P (Proliferative): 222 (65.9%)
+    Phase R (Remodeling): 34 (10.1%)
+============================================================
+
+  [SDXL Gen] Total: 400 | By phase: I:96, P:262, R:42
 Epoch 11: early stopping
 Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.5409 < s1=0.5517). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 74 variables whereas the saved optimizer has 38 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
 Run 1 Results for metadata+depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.51      0.52      0.52        67
-           P       0.86      0.82      0.84       347
-           R       0.58      0.75      0.65        59
+           I       0.44      0.64      0.52        67
+           P       0.86      0.73      0.79       347
+           R       0.53      0.71      0.60        59
 
-    accuracy                           0.77       473
-   macro avg       0.65      0.69      0.67       473
-weighted avg       0.78      0.77      0.77       473
+    accuracy                           0.72       473
+   macro avg       0.61      0.70      0.64       473
+weighted avg       0.76      0.72      0.73       473
 
-Cohen's Kappa: 0.5782
+Cohen's Kappa: 0.5517
 
 Training gating network for run 1...
 
@@ -2072,9 +2207,9 @@ Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
 Gating Network Results for Run 1:
-Accuracy: 0.7653
-F1 Macro: 0.6692
-Kappa: 0.5782
+Accuracy: 0.7188
+F1 Macro: 0.6400
+Kappa: 0.5517
 
 Fold 2/5
 Using pre-computed fold 2 patient split
@@ -2109,38 +2244,19 @@ All results saved to /workspace/DFUMultiClassification/results/csv/modality_comb
 ================================================================================
 GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS
 ================================================================================
+Strategy: simple_average_best
 Ensembling predictions from 15 modality combinations
 
 Fold 1/5
 
-Training gating network with 15 modality combinations:
+  Best standalone modality: metadata (kappa=0.4255)
+  Simple average of 8 combinations containing 'metadata':
 
-Initializing gating network training...
-
-Training with all models...
-Restoring model weights from the end of the best epoch: 1.
-Initial Accuracy: 0.7336, Initial Weighted Accuracy: 0.3840, Loss: 0.7021, kappa: 0.0000
-/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1531: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
-  _warn_prf(average, modifier, f"{metric.capitalize()} is", len(result))
-/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1531: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
-  _warn_prf(average, modifier, f"{metric.capitalize()} is", len(result))
-/venv/multimodal/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1531: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
-  _warn_prf(average, modifier, f"{metric.capitalize()} is", len(result))
-
-Detailed results saved to /workspace/DFUMultiClassification/results/csv/model_combination_results_1.txt
-
-Final Results:
-==============
-Best Cohen's Kappa: 0.0000
-Best Accuracy: 0.7336
-Best Weighted Accuracy: 0.3840
-Best Loss: 0.7021
-
-Gating Network Ensemble Results for Run 1:
-  Accuracy: 0.7336
-  F1 Macro: 0.2821
-  Kappa: 0.0000
-  Per-class F1: I=0.0000, P=0.8463, R=0.0000
+Gating Network Ensemble Results for Fold 1:
+  Accuracy: 0.8224
+  F1 Macro: 0.7411
+  Kappa: 0.5906
+  Per-class F1: I=0.7007, P=0.8779, R=0.6446
 
 Fold 2/5
   Warning: Could not load predictions for metadata
@@ -2215,9 +2331,9 @@ Fold 5/5
   Not enough predictions loaded (0) for gating network ensemble
 
 Gating Network Ensemble Summary (1 folds):
-  Mean Accuracy: 0.7336 ± 0.0000
-  Mean F1 Macro: 0.2821 ± 0.0000
-  Mean Kappa:    0.0000 ± 0.0000
+  Mean Accuracy: 0.8224 ± 0.0000
+  Mean F1 Macro: 0.7411 ± 0.0000
+  Mean Kappa:    0.5906 ± 0.0000
   Results saved to: results/csv/gating_network_averaged_results.csv
 
 ================================================================================
@@ -2225,16 +2341,10 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 ================================================================================
 
 Best by Accuracy:
-  Modalities: metadata
-  Accuracy: 0.7738 ± 0.0000
-  F1 Macro: 0.6231
-  Kappa: 0.4623
-
-Best by F1 Macro:
   Modalities: metadata+depth_rgb
-  Accuracy: 0.7674
-  F1 Macro: 0.7051 ± 0.0000
-  Kappa: 0.6370
+  Accuracy: 0.7949 ± 0.0000
+  F1 Macro: 0.7277
+  Kappa: 0.6642
 
 Total combinations tested: 15
 ================================================================================

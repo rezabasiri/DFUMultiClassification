@@ -269,7 +269,7 @@ def setup_device_strategy(
             if verbose:
                 print(f"Enabled memory growth for {len(physical_gpus)} GPU(s)")
         except RuntimeError as e:
-            print(f"⚠️  Could not set memory growth: {e}")
+            print(f"Could not configure GPU memory: {e}")
 
     # Enable mixed precision (float16 compute with float32 accumulation)
     # A4000/A5000 (compute 8.6) have good fp16 tensor cores → ~1.5-2x speedup
