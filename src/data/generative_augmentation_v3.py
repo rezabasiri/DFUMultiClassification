@@ -605,16 +605,54 @@ class GenerativeAugmentationManagerSDXL:
         cache_per_phase = max(50, min(500, int(images_per_epoch * 10)))
         print(f"  Cache size: {images_per_epoch:.1f} imgs/epoch × 10x variety = {cache_per_phase}/phase")
 
-        # Check if cache is complete
-        cache_complete = True
+        # Validate cache against current config via manifest file.
+        # Manifest records all generation parameters so stale caches are detected.
+        import json
+        manifest_path = self._cache_dir / "manifest.json"
+        inference_steps = self.config.generative_settings['inference_steps']
+        guidance_scale = self.config.generative_settings['guidance_scale']
+
+        current_manifest = {
+            "model_path": str(self.checkpoint_path),
+            "native_resolution": native_res,
+            "phases": sorted(phases),
+            "aug_version": GENERATIVE_AUG_VERSION,
+            "inference_steps": inference_steps,
+            "guidance_scale": guidance_scale,
+        }
+
+        cache_valid = True
+        if manifest_path.exists():
+            with open(manifest_path) as f:
+                saved_manifest = json.load(f)
+            for key in current_manifest:
+                if str(saved_manifest.get(key)) != str(current_manifest[key]):
+                    print(f"  Cache mismatch on '{key}': saved={saved_manifest.get(key)}, current={current_manifest[key]}")
+                    cache_valid = False
+                    break
+        else:
+            cache_valid = False
+
+        if not cache_valid:
+            # Config changed — clear stale cache entirely
+            import shutil
+            if self._cache_dir.exists():
+                shutil.rmtree(self._cache_dir)
+            self._cache_dir.mkdir(parents=True, exist_ok=True)
+            print(f"  Cache invalidated (config changed), will regenerate...")
+
+        # Count existing valid files per phase and determine what needs generating
+        phases_to_generate = {}  # phase -> number of NEW images needed
         for phase in phases:
             phase_dir = self._cache_dir / phase
-            if not phase_dir.exists() or len(list(phase_dir.glob("*.npy"))) < cache_per_phase:
-                cache_complete = False
-                break
+            phase_dir.mkdir(parents=True, exist_ok=True)
+            existing = len(list(phase_dir.glob("*.npy")))
+            needed = cache_per_phase - existing
+            if needed > 0:
+                phases_to_generate[phase] = (existing, needed)
 
-        if cache_complete:
-            # Load from disk
+        if not phases_to_generate:
+            # All phases have enough images — just load from disk
             for phase in phases:
                 phase_dir = self._cache_dir / phase
                 files = sorted(phase_dir.glob("*.npy"))[:cache_per_phase]
@@ -623,61 +661,67 @@ class GenerativeAugmentationManagerSDXL:
             print(f"  Loaded {total} cached synthetic images from {self._cache_dir}")
             return
 
-        # Generate cache: load SDXL on GPU, generate all images, then unload
-        print(f"  Pre-generating {cache_per_phase} synthetic images per phase ({phases})...")
+        # Some phases need more images — generate only the difference
+        total_to_gen = sum(n for _, n in phases_to_generate.values())
+        print(f"  Generating {total_to_gen} additional synthetic images ({', '.join(f'{p}:{n} new' for p, (_, n) in phases_to_generate.items())})...")
         self._load_model()
         if self.pipeline is None:
             print("  WARNING: SDXL model failed to load, generative augmentation disabled")
             return
 
-        # Move to GPU for fast generation
         gpu_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pipeline = self.pipeline.to(gpu_device)
+        batch_size = min(4, self.config.generative_settings['batch_size_limit'])
 
-        batch_size = min(4, self.config.generative_settings['batch_size_limit'])  # Small batches for safety
-
-        for phase in phases:
+        for phase, (existing_count, needed) in phases_to_generate.items():
             phase_dir = self._cache_dir / phase
-            phase_dir.mkdir(parents=True, exist_ok=True)
-            self._image_cache[phase] = []
-            generated = 0
-
             prompt = SDXL_PHASE_PROMPTS.get(phase, SDXL_PHASE_PROMPTS['I'])
             negative_prompt = SDXL_NEGATIVE_PROMPT
+            generated = 0
+            file_idx = existing_count  # Start numbering after existing files
 
-            while generated < cache_per_phase:
-                n = min(batch_size, cache_per_phase - generated)
+            while generated < needed:
+                n = min(batch_size, needed - generated)
                 try:
                     with torch.no_grad():
                         with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                             output = self.pipeline(
                                 prompt=[prompt] * n,
                                 negative_prompt=[negative_prompt] * n,
-                                num_inference_steps=self.config.generative_settings['inference_steps'],
-                                guidance_scale=self.config.generative_settings['guidance_scale'],
+                                num_inference_steps=inference_steps,
+                                guidance_scale=guidance_scale,
                                 height=native_res,
                                 width=native_res,
                             ).images
 
                     for i, img in enumerate(output):
                         arr = np.array(img).astype(np.float32) / 255.0
-                        np.save(str(phase_dir / f"{generated + i:04d}.npy"), arr)
-                        self._image_cache[phase].append(arr)
+                        np.save(str(phase_dir / f"{file_idx + i:04d}.npy"), arr)
+                    file_idx += len(output)
                     generated += len(output)
-                    # Print progress at 25% intervals
-                    pct = generated / cache_per_phase
-                    prev_pct = (generated - len(output)) / cache_per_phase
-                    if int(pct * 4) > int(prev_pct * 4) or generated >= cache_per_phase:
-                        print(f"    Phase {phase}: {generated}/{cache_per_phase} ({pct:.0%})")
+                    pct = generated / needed
+                    prev_pct = (generated - len(output)) / needed
+                    if int(pct * 4) > int(prev_pct * 4) or generated >= needed:
+                        print(f"    Phase {phase}: {generated}/{needed} new ({pct:.0%})")
                 except Exception as e:
                     print(f"    Error generating phase {phase} batch: {e}")
                     break
+
+        # Save/update manifest
+        with open(manifest_path, 'w') as f:
+            json.dump(current_manifest, f, indent=2)
 
         # Unload SDXL completely — free GPU for TF training
         del self.pipeline
         self.pipeline = None
         gc.collect()
         torch.cuda.empty_cache()
+
+        # Load all cached images (existing + newly generated)
+        for phase in phases:
+            phase_dir = self._cache_dir / phase
+            files = sorted(phase_dir.glob("*.npy"))[:cache_per_phase]
+            self._image_cache[phase] = [np.load(str(f)) for f in files]
         total = sum(len(v) for v in self._image_cache.values())
         print(f"  Pre-generation complete: {total} images cached. SDXL unloaded from GPU.")
 
@@ -822,8 +866,11 @@ class GenerativeAugmentationManagerSDXL:
             # Update generated image counter with phase info
             _gen_image_counter.increment(phase, batch_size)
 
-            # Cache images are already numpy float32 [0, 1]
-            images_tensor = tf.convert_to_tensor(np.stack(sampled), dtype=tf.float32)
+            # Cache images are numpy float32 [0, 1]. Training pipeline uses [0, 255]
+            # (DenseNet121/EfficientNet have built-in Rescaling(1/255) as first layer).
+            # Scale to [0, 255] to match the training data range.
+            images_np = np.stack(sampled) * 255.0
+            images_tensor = tf.convert_to_tensor(images_np, dtype=tf.float32)
 
             # Resize to target dimensions if different from native SDXL resolution (512x512)
             native_resolution = self.config.generative_settings['sdxl_resolution']
