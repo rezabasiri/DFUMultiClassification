@@ -1665,25 +1665,43 @@ def _save_diagnostic_samples(pre_aug_dataset, train_df, selected_modalities, fol
             tag = f"fold{fold+1}_class{cls_name}_{id_str}"
 
             # --- Save composite image ---
-            n_imgs = max(len(image_modalities), 1)
-            fig, axes = plt.subplots(1, n_imgs, figsize=(4 * n_imgs, 4))
-            if n_imgs == 1:
-                axes = [axes]
-
-            for ax_idx, mod in enumerate(image_modalities):
-                key = f'{mod}_input'
-                if key in feats:
-                    img = feats[key]
-                    # For display: if values are in [0,255] (EfficientNet path), scale to [0,1]
-                    if img.max() > 1.5:
-                        img = img / 255.0
-                    img = np.clip(img, 0, 1)
-                    axes[ax_idx].imshow(img)
-                    axes[ax_idx].set_title(mod, fontsize=10)
+            if len(image_modalities) == 0:
+                # Metadata-only: show RF probabilities as bar chart
+                fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+                if 'metadata_input' in feats:
+                    md = feats['metadata_input']
+                    bars = ax.bar(['I', 'P', 'R'], md[:3], color=['#2196F3', '#FF9800', '#4CAF50'])
+                    ax.set_ylim(0, 1)
+                    ax.set_ylabel('RF Probability')
+                    ax.set_title('Metadata (RF probs)', fontsize=10)
+                    for bar, val in zip(bars, md[:3]):
+                        ax.text(bar.get_x() + bar.get_width()/2, val + 0.02,
+                                f'{val:.3f}', ha='center', fontsize=9)
                 else:
-                    axes[ax_idx].text(0.5, 0.5, f'{mod}\n(not in data)',
-                                      ha='center', va='center', transform=axes[ax_idx].transAxes)
-                axes[ax_idx].axis('off')
+                    ax.text(0.5, 0.5, 'Metadata only\n(no image)', ha='center', va='center',
+                            transform=ax.transAxes, fontsize=12)
+                    ax.axis('off')
+                axes = [ax]
+            else:
+                n_imgs = len(image_modalities)
+                fig, axes = plt.subplots(1, n_imgs, figsize=(4 * n_imgs, 4))
+                if n_imgs == 1:
+                    axes = [axes]
+
+                for ax_idx, mod in enumerate(image_modalities):
+                    key = f'{mod}_input'
+                    if key in feats:
+                        img = feats[key]
+                        # For display: if values are in [0,255] (EfficientNet/DenseNet path), scale to [0,1]
+                        if img.max() > 1.5:
+                            img = img / 255.0
+                        img = np.clip(img, 0, 1)
+                        axes[ax_idx].imshow(img)
+                        axes[ax_idx].set_title(mod, fontsize=10)
+                    else:
+                        axes[ax_idx].text(0.5, 0.5, f'{mod}\n(not in data)',
+                                          ha='center', va='center', transform=axes[ax_idx].transAxes)
+                    axes[ax_idx].axis('off')
 
             fig.suptitle(f"Class {cls_name} ({id_str}) — fold {fold+1}", fontsize=12)
             plt.tight_layout()

@@ -592,7 +592,7 @@ class GenerativeAugmentationManagerSDXL:
         #   total_unique_needed = gen_calls_per_epoch * images_per_call * max_epochs
         #   cache_size = total_unique_needed * 3x safety margin, clamped to [50, 500]
         from src.utils.production_config import (
-            GLOBAL_BATCH_SIZE, N_EPOCHS, EARLY_STOP_PATIENCE
+            GLOBAL_BATCH_SIZE, N_EPOCHS, EARLY_STOP_PATIENCE, GENERATIVE_AUG_VERSION
         )
         dataset_size = 2084  # approximate training set size (443 unique × ~4.7 rows/sample)
         batches_per_epoch = max(1, dataset_size // GLOBAL_BATCH_SIZE)
@@ -1047,7 +1047,8 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                         os.makedirs(save_dir, exist_ok=True)
                                         for si in range(min(len(gen_np), 3 - _saved_gen_samples[0])):
                                             _saved_gen_samples[0] += 1
-                                            img = (gen_np[si] * 255).clip(0, 255).astype(np.uint8)
+                                            # gen_np is already [0, 255] (scaled in generate_images)
+                                            img = gen_np[si].clip(0, 255).astype(np.uint8)
                                             save_path = os.path.join(save_dir, f'gen{_saved_gen_samples[0]}.png')
                                             Image.fromarray(img).save(save_path)
                                             print(f"  Saved generated sample: {save_path} (phase: {phase}, modality: {modality_raw})", flush=True)

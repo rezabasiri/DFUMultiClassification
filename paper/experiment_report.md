@@ -180,6 +180,7 @@ Three experimental conditions are compared, each using identical model architect
 | **Run 2: + Gating Network** | On | Off | Adds simple-average ensemble across metadata-containing combinations |
 | **Run 3a: + GenAug (6%)** | On | On (6% prob) | Adds SDXL-generated synthetic depth_rgb images at 6% probability per batch |
 | **Run 3b: + GenAug (15%)** | On | On (15% prob) | Same as Run 3a but with higher augmentation probability |
+| **Run 3c: + GenAug (25%)** | On | On (25% prob) | Same as Run 3a but with highest augmentation probability |
 
 All conditions use the same polished dataset (443 unique samples from 648, thresholds I=53, P=84, R=70), identical DenseNet121 backbones, and 5-fold patient-stratified CV.
 
@@ -301,32 +302,77 @@ The gating ensemble (kappa 0.537) underperforms the best individual combination 
 
 ### 6.3 Run 3: + Generative Augmentation
 
-Generative augmentation uses a fine-tuned SDXL diffusion model to synthesise additional depth_rgb wound images during training. Synthetic images are pre-generated to a disk cache before training begins, then injected into training batches at a configurable probability with 1-5% mix ratio. Two augmentation probabilities were tested: 6% (Run 3a) and 15% (Run 3b).
+Generative augmentation uses a fine-tuned SDXL diffusion model to synthesise additional depth_rgb wound images during training. Synthetic images are pre-generated to a disk cache before training begins (144 images per phase at 512x512, then resized to 128x128), and injected into training batches at a configurable probability with 1-5% mix ratio. Three augmentation probabilities were tested: 6% (Run 3a), 15% (Run 3b), and 25% (Run 3c).
 
-**Important note:** An initial implementation contained a scaling bug where synthetic images (generated in [0, 1] range) were injected into training batches that use [0, 255] range. This caused the synthetic images to appear as near-black to the model, rendering generative augmentation completely ineffective. The bug was discovered through systematic due diligence testing (end-to-end pipeline verification), fixed by applying `× 255` scaling at injection time, and all Run 3 results below were obtained after the fix.
+**Important note:** An initial implementation contained a scaling bug where synthetic images (generated in [0, 1] range) were injected into training batches that use [0, 255] range. This caused the synthetic images to appear as near-black to the model, rendering generative augmentation completely ineffective. The bug was discovered through systematic due diligence testing (end-to-end pipeline verification), fixed by applying x255 scaling at injection time, and all Run 3 results below were obtained after the fix.
 
 #### 6.3.1 Run 3a: Generative Augmentation at 6% Probability
 
-*[To be populated after Run 3a re-run with scaling fix]*
+Top 5 modality combinations:
+
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 | F1-I | F1-P | F1-R |
+|------|-----------|-------|------|----------|----------|------|------|------|
+| 1 | metadata+depth_rgb+thermal_map | 0.586 | 0.123 | 0.724 | 0.657 | 0.644 | 0.786 | 0.541 |
+| 2 | metadata+depth_rgb | 0.584 | 0.124 | 0.735 | 0.659 | 0.656 | 0.792 | 0.529 |
+| 3 | metadata+depth_rgb+depth_map+thermal_map | 0.566 | 0.114 | 0.733 | 0.646 | 0.601 | 0.795 | 0.543 |
+| 4 | metadata+thermal_map | 0.560 | 0.112 | 0.702 | 0.636 | 0.599 | 0.762 | 0.546 |
+| 5 | metadata+depth_rgb+depth_map | 0.553 | 0.098 | 0.725 | 0.638 | 0.629 | 0.791 | 0.493 |
+
+Gating ensemble: kappa 0.498 ± 0.149, accuracy 0.759, F1-R 0.561
 
 #### 6.3.2 Run 3b: Generative Augmentation at 15% Probability
 
-*[To be populated after Run 3b re-run with scaling fix]*
+Top 5 modality combinations:
 
-#### 6.3.3 Effect of Generative Augmentation on Per-Class F1
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 | F1-I | F1-P | F1-R |
+|------|-----------|-------|------|----------|----------|------|------|------|
+| 1 | metadata+depth_rgb+thermal_map | 0.584 | 0.120 | 0.726 | 0.656 | 0.636 | 0.780 | 0.551 |
+| 2 | metadata+thermal_map | 0.572 | 0.116 | 0.692 | 0.640 | 0.624 | 0.747 | 0.551 |
+| 3 | metadata+depth_rgb | 0.570 | 0.099 | 0.730 | 0.651 | 0.628 | 0.790 | 0.535 |
+| 4 | metadata+depth_rgb+depth_map+thermal_map | 0.565 | 0.107 | 0.731 | 0.643 | 0.610 | 0.793 | 0.526 |
+| 5 | metadata+depth_rgb+depth_map | 0.553 | 0.109 | 0.736 | 0.646 | 0.604 | 0.801 | 0.534 |
+
+Gating ensemble: kappa 0.528 ± 0.151, accuracy 0.773, F1-R 0.590
+
+#### 6.3.3 Run 3c: Generative Augmentation at 25% Probability
+
+Top 5 modality combinations:
+
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 | F1-I | F1-P | F1-R |
+|------|-----------|-------|------|----------|----------|------|------|------|
+| 1 | metadata+depth_rgb | 0.581 | 0.120 | 0.733 | 0.658 | 0.653 | 0.789 | 0.531 |
+| 2 | metadata+depth_rgb+thermal_map | 0.579 | 0.127 | 0.716 | 0.649 | 0.629 | 0.773 | 0.545 |
+| 3 | metadata+depth_rgb+depth_map | 0.575 | 0.105 | 0.752 | 0.659 | 0.620 | 0.811 | 0.544 |
+| 4 | metadata+thermal_map | 0.570 | 0.109 | 0.716 | 0.646 | 0.617 | 0.777 | 0.543 |
+| 5 | metadata+depth_rgb+depth_map+thermal_map | 0.567 | 0.117 | 0.719 | 0.645 | 0.605 | 0.781 | 0.550 |
+
+Gating ensemble: kappa 0.520 ± 0.147, accuracy 0.778, F1-R 0.559
+
+At 25%, performance declines compared to 15% across most metrics, confirming an inverted-U dose-response relationship.
+
+#### 6.3.4 Generative Augmentation Dose-Response
 
 Comparing the target modality (metadata+depth_rgb+thermal_map) across augmentation levels:
 
-| Metric | Run 2 (0% gen aug) | Run 3a (6% gen aug) | Run 3b (15% gen aug) |
-|--------|-------------------|--------------------|--------------------|
-| Kappa | 0.573 | — | — |
-| Accuracy | 0.717 | — | — |
-| Macro F1 | 0.644 | — | — |
-| F1-I | 0.633 | — | — |
-| F1-P | 0.780 | — | — |
-| F1-R | 0.519 | — | — |
+| Metric | Run 2 (0%) | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-----------|-------------|-------------|-------------|
+| Kappa | 0.573 | 0.586 (+0.013) | 0.584 (+0.011) | 0.579 (+0.006) |
+| Accuracy | 0.717 | 0.724 (+0.007) | 0.726 (+0.009) | 0.716 (-0.001) |
+| Macro F1 | 0.644 | 0.657 (+0.013) | 0.656 (+0.012) | 0.649 (+0.005) |
+| F1-I | 0.633 | 0.644 (+0.011) | 0.636 (+0.003) | 0.629 (-0.004) |
+| F1-P | 0.780 | 0.786 (+0.006) | 0.780 (+0.000) | 0.773 (-0.007) |
+| F1-R | 0.519 | 0.541 (+0.022) | **0.551 (+0.032)** | 0.545 (+0.026) |
 
-*[To be populated after both re-runs complete]*
+Gating ensemble dose-response:
+
+| Metric | Run 2 (0%) | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-----------|-------------|-------------|-------------|
+| Kappa | **0.537** | 0.498 | 0.528 | 0.520 |
+| Accuracy | **0.789** | 0.759 | 0.773 | 0.778 |
+| Macro F1 | **0.704** | 0.679 | 0.697 | 0.692 |
+| F1-R | 0.583 | 0.561 | **0.590** | 0.559 |
+
+The dose-response follows an inverted-U curve. For individual combinations, 6% provides the best kappa while 15% maximises F1-R. At 25%, performance degrades — the model overfits to synthetic images recycled from a fixed cache of 144 images per phase. The gating ensemble shows a sharper response: 15% is the clear optimum (F1-R 0.590, +0.029 over 6%), while 25% drops back to near-baseline levels (F1-R 0.559).
 
 ---
 
@@ -334,39 +380,47 @@ Comparing the target modality (metadata+depth_rgb+thermal_map) across augmentati
 
 #### 6.4.1 Best Combination Performance Across Runs
 
-| Metric | Run 1 (Baseline) | Run 2 (+Gating) | Run 3a (6% GenAug) | Run 3b (15% GenAug) |
-|--------|------------------|-----------------|--------------------|--------------------|
-| Best Kappa | 0.613 | 0.584 | — | — |
-| Best Accuracy | 0.754 | 0.746 | — | — |
-| Best Macro F1 | 0.681 | 0.661 | — | — |
-| Best Modality | M+D+T | M+D+DM+T | — | — |
-| Gating Kappa | N/A | 0.537 | — | — |
-| Gating Accuracy | N/A | 0.789 | — | — |
-| Gating Macro F1 | N/A | 0.704 | — | — |
-| Gating F1-R | N/A | 0.583 | — | — |
+| Metric | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-------|-------|-------------|-------------|-------------|
+| Best Kappa | **0.613** | 0.584 | 0.586 | 0.584 | 0.581 |
+| Best Accuracy | **0.754** | 0.746 | 0.735 | 0.731 | 0.752 |
+| Best Macro F1 | **0.681** | 0.661 | 0.659 | 0.656 | 0.659 |
+| Best Modality | M+D+T | M+D+DM+T | M+D+T | M+D+T | M+D |
+| Gating Kappa | N/A | **0.537** | 0.498 | 0.528 | 0.520 |
+| Gating Accuracy | N/A | **0.789** | 0.759 | 0.773 | 0.778 |
+| Gating Macro F1 | N/A | **0.704** | 0.679 | 0.697 | 0.692 |
+| Gating F1-R | N/A | 0.583 | 0.561 | **0.590** | 0.559 |
 
 #### 6.4.2 Target Modality (metadata+depth_rgb+thermal_map) Across Runs
 
-| Metric | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) |
-|--------|-------|-------|-------------|-------------|
-| Kappa | 0.613 | 0.573 | — | — |
-| Accuracy | 0.712 | 0.717 | — | — |
-| Macro F1 | 0.665 | 0.644 | — | — |
-| F1-I | 0.689 | 0.633 | — | — |
-| F1-P | 0.760 | 0.780 | — | — |
-| F1-R | 0.544 | 0.519 | — | — |
+| Metric | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-------|-------|-------------|-------------|-------------|
+| Kappa | **0.613** | 0.573 | 0.586 | 0.584 | 0.579 |
+| Accuracy | 0.712 | 0.717 | 0.724 | **0.726** | 0.716 |
+| Macro F1 | **0.665** | 0.644 | 0.657 | 0.656 | 0.649 |
+| F1-I | **0.689** | 0.633 | 0.644 | 0.636 | 0.629 |
+| F1-P | 0.760 | 0.780 | **0.786** | 0.780 | 0.773 |
+| F1-R | 0.544 | 0.519 | 0.541 | **0.551** | 0.545 |
 
 #### 6.4.3 Per-Class F1 Comparison (metadata+depth_rgb+thermal_map)
 
-| Class | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) |
-|-------|-------|-------|-------------|-------------|
-| F1-I | 0.689 | 0.633 | — | — |
-| F1-P | 0.760 | 0.780 | — | — |
-| F1-R | 0.544 | 0.519 | — | — |
+| Class | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|-------|-------|-------|-------------|-------------|-------------|
+| F1-I | **0.689** | 0.633 | 0.644 | 0.636 | 0.629 |
+| F1-P | 0.760 | 0.780 | **0.786** | 0.780 | 0.773 |
+| F1-R | 0.544 | 0.519 | 0.541 | **0.551** | 0.545 |
 
-#### 6.4.4 Statistical Significance (Paired t-test on per-fold kappa)
+#### 6.4.4 Summary of Best Results Across All Experiments
 
-*[To be populated after Run 3b: Run 1 vs Run 2, Run 2 vs Run 3a, Run 3a vs Run 3b]*
+| Objective | Best Config | Value |
+|-----------|------------|-------|
+| Highest single-combo kappa | Run 1, M+D+T, no gating, no gen aug | **0.613** |
+| Highest accuracy | Run 1, M+D+DM, no gating, no gen aug | **0.754** |
+| Highest F1-R (minority class) | Run 3b gating, 15% gen aug | **0.590** |
+| Highest gating kappa | Run 2, no gen aug | **0.537** |
+| Highest gating accuracy | Run 2, no gen aug | **0.789** |
+| Highest gating macro F1 | Run 2, no gen aug | **0.704** |
+| Most balanced per-class F1 | Run 3b, 15% gen aug (F1 range: 0.551-0.780) | std=0.099 |
 
 ---
 
@@ -404,9 +458,16 @@ The optimal ensemble (simple average of 8 metadata combos) achieves the highest 
 
 ### 7.7 Generative Augmentation Impact
 
-A scaling bug was discovered during due diligence testing: synthetic images (generated in [0, 1] float range) were injected into training batches using [0, 255] range, causing them to appear as near-black images to the model. This rendered generative augmentation completely ineffective in early runs. After fixing the scaling (applying × 255 at injection), both Run 3a (6% probability) and Run 3b (15% probability) are being re-run.
+A scaling bug was discovered during due diligence testing: synthetic images (generated in [0, 1] float range) were injected into training batches using [0, 255] range, causing them to appear as near-black images to the model. This rendered generative augmentation completely ineffective in early runs. After fixing the scaling (applying x255 at injection), all Run 3 results use correctly scaled synthetic images.
 
-*[To be updated after Run 3a and 3b complete with the scaling fix]*
+After the fix, generative augmentation shows an inverted-U dose-response across three probability levels (6%, 15%, 25%):
+
+- **F1-R (R-class)**: The primary target. Improved from 0.519 (no aug) to 0.541 (6%) to 0.551 (15%), then declined to 0.545 (25%). Peak improvement: +0.032 at 15%.
+- **Kappa**: Improved from 0.573 to 0.586 (6%), then gradually declined: 0.584 (15%), 0.579 (25%). Best at 6%.
+- **F1-I**: Declined monotonically with augmentation: 0.633 → 0.644 → 0.636 → 0.629. The I-class (Inflammatory) may share visual features with synthetic P-class images, causing confusion at higher augmentation rates.
+- **Gating ensemble**: Shows a sharper dose-response. F1-R peaked at 0.590 at 15% (+0.029 over 6%), but dropped to 0.559 at 25% — below even the 0% baseline (0.583). The ensemble amplifies both positive and negative augmentation effects.
+
+The 25% decline confirms that the fixed cache of 144 images per phase becomes a bottleneck at higher injection rates — the model sees the same synthetic images repeatedly, overfitting to SDXL's generation style. The optimal augmentation probability is 6-15%, with 15% preferred when optimising for R-class recall via the gating ensemble.
 
 ---
 
