@@ -248,9 +248,9 @@ USE_GENERAL_AUGMENTATION = True  # Enable/disable general (non-generative) augme
 # V3: Uses single conditional SDXL model fine-tuned on all phases
 # V2 (legacy): Uses separate SD 1.5 models per modality/phase from results/GenerativeAug_Models/models_5_7/
 # Only applies to RGB images (depth_rgb, thermal_rgb)
-USE_GENERATIVE_AUGMENTATION = False  # Enable/disable generative augmentation
+USE_GENERATIVE_AUGMENTATION = True  # Enable/disable generative augmentation
 GENERATIVE_AUG_VERSION = 'v3'  # 'v3' = SDXL conditional model, 'v2' = SD 1.5 per-phase models
-GENERATIVE_AUG_PROB = 0.06  # Probability of applying generative augmentation (0.0-1.0)
+GENERATIVE_AUG_PROB = 0.15  # Probability of applying generative augmentation (0.0-1.0)
 GENERATIVE_AUG_MIX_RATIO = (0.01, 0.05)  # Range for mixing real/synthetic samples (min, max)
 GENERATIVE_AUG_INFERENCE_STEPS = 50  # Diffusion inference steps (25=fast/good quality, 50=higher quality but 2x slower)
 GENERATIVE_AUG_BATCH_LIMIT = 32  # Max batch size for generative aug (increased - full GPU mode has more memory available)
@@ -351,6 +351,19 @@ PROGRESS_BAR_UPDATE_INTERVAL = 1  # Seconds between progress bar updates
 # =============================================================================
 # Gating Network Configuration
 # =============================================================================
+
+# Master switch: enable/disable gating network ensemble after all combinations are trained
+USE_GATING_NETWORK = True
+
+# Ensemble strategy:
+#   'simple_average_best' - average combos containing the best-performing standalone modality (recommended)
+#   'optimal_weighted'    - learn optimal per-combo weights via scipy optimization on training set (fallback)
+#   'simple_average_all'  - average all combo predictions
+#   'attention'           - learned attention-based gating network (requires train predictions)
+# 'simple_average_best' was found optimal in gating network audit (kappa 0.537 vs 0.258 for attention).
+# It automatically identifies the strongest standalone modality and averages all combos that include it.
+# 'optimal_weighted' is the second-best strategy (kappa 0.530) and works with any combo set.
+GATING_ENSEMBLE_STRATEGY = 'simple_average_best'
 
 # Architecture parameters
 GATING_NUM_HEADS_MULTIPLIER = 1  # num_heads = max(8, num_models + this)

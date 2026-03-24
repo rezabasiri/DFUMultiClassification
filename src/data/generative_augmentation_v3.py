@@ -547,6 +547,9 @@ class GenerativeAugmentationManagerSDXL:
         """
         Initialize the SDXL generative augmentation manager.
 
+        Pre-generates a cache of synthetic images on GPU before TF training starts,
+        then serves from cache during training to avoid TF/PyTorch GPU memory conflicts.
+
         Args:
             checkpoint_path (str): Path to the SDXL checkpoint file (.pt)
             config (AugmentationConfig): Configuration object for augmentation
@@ -558,10 +561,169 @@ class GenerativeAugmentationManagerSDXL:
         self.pipeline = None
         self.lock = threading.Lock()
         self.current_phase = None
+        self._image_cache = {}  # {phase: [numpy_array, ...]}
+        self._cache_dir = Path("results/generative_aug_cache")
 
         # Only initialize if generative augmentation is enabled
         if self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
-            self._load_model()
+            self._ensure_cache()
+
+    def _ensure_cache(self):
+        """Load cached images from disk, or generate them if cache doesn't exist.
+
+        Only generates if depth_rgb (or other image modalities) are included in the
+        training combinations. Skips entirely for metadata-only runs.
+        """
+        # Only generate cache if depth_rgb is included (only modality with a generative model)
+        from src.utils.production_config import INCLUDED_COMBINATIONS
+        has_depth_rgb = any('depth_rgb' in combo for combo in INCLUDED_COMBINATIONS)
+        if not has_depth_rgb:
+            print("  Generative augmentation: depth_rgb not in INCLUDED_COMBINATIONS, skipping cache")
+            return
+
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        phases = self.config.generative_settings.get('phases', ['I', 'P', 'R'])
+        native_res = self.config.generative_settings['sdxl_resolution']
+
+        # Dynamically calculate cache size based on training parameters:
+        #   batches_per_epoch = dataset_size / batch_size
+        #   gen_calls_per_epoch = batches_per_epoch * gen_prob
+        #   images_per_call = batch_size * max_mix_ratio
+        #   total_unique_needed = gen_calls_per_epoch * images_per_call * max_epochs
+        #   cache_size = total_unique_needed * 3x safety margin, clamped to [50, 500]
+        from src.utils.production_config import (
+            GLOBAL_BATCH_SIZE, N_EPOCHS, EARLY_STOP_PATIENCE, GENERATIVE_AUG_VERSION
+        )
+        dataset_size = 2084  # approximate training set size (443 unique × ~4.7 rows/sample)
+        batches_per_epoch = max(1, dataset_size // GLOBAL_BATCH_SIZE)
+        gen_prob = self.config.generative_settings.get('prob', GENERATIVE_AUG_PROB)
+        max_mix = self.config.generative_settings['mix_ratio_range'][1]
+        effective_epochs = min(N_EPOCHS, EARLY_STOP_PATIENCE * 5)  # realistic epochs before early stop
+        images_per_call = max(1, int(GLOBAL_BATCH_SIZE * max_mix))
+        images_per_epoch = batches_per_epoch * gen_prob * images_per_call
+        # Cache = 10x images drawn per epoch (enough variety that repeats are rare within an epoch)
+        cache_per_phase = max(50, min(500, int(images_per_epoch * 10)))
+        print(f"  Cache size: {images_per_epoch:.1f} imgs/epoch × 10x variety = {cache_per_phase}/phase")
+
+        # Validate cache against current config via manifest file.
+        # Manifest records all generation parameters so stale caches are detected.
+        import json
+        manifest_path = self._cache_dir / "manifest.json"
+        inference_steps = self.config.generative_settings['inference_steps']
+        guidance_scale = self.config.generative_settings['guidance_scale']
+
+        current_manifest = {
+            "model_path": str(self.checkpoint_path),
+            "native_resolution": native_res,
+            "phases": sorted(phases),
+            "aug_version": GENERATIVE_AUG_VERSION,
+            "inference_steps": inference_steps,
+            "guidance_scale": guidance_scale,
+        }
+
+        cache_valid = True
+        if manifest_path.exists():
+            with open(manifest_path) as f:
+                saved_manifest = json.load(f)
+            for key in current_manifest:
+                if str(saved_manifest.get(key)) != str(current_manifest[key]):
+                    print(f"  Cache mismatch on '{key}': saved={saved_manifest.get(key)}, current={current_manifest[key]}")
+                    cache_valid = False
+                    break
+        else:
+            cache_valid = False
+
+        if not cache_valid:
+            # Config changed — clear stale cache entirely
+            import shutil
+            if self._cache_dir.exists():
+                shutil.rmtree(self._cache_dir)
+            self._cache_dir.mkdir(parents=True, exist_ok=True)
+            print(f"  Cache invalidated (config changed), will regenerate...")
+
+        # Count existing valid files per phase and determine what needs generating
+        phases_to_generate = {}  # phase -> number of NEW images needed
+        for phase in phases:
+            phase_dir = self._cache_dir / phase
+            phase_dir.mkdir(parents=True, exist_ok=True)
+            existing = len(list(phase_dir.glob("*.npy")))
+            needed = cache_per_phase - existing
+            if needed > 0:
+                phases_to_generate[phase] = (existing, needed)
+
+        if not phases_to_generate:
+            # All phases have enough images — just load from disk
+            for phase in phases:
+                phase_dir = self._cache_dir / phase
+                files = sorted(phase_dir.glob("*.npy"))[:cache_per_phase]
+                self._image_cache[phase] = [np.load(str(f)) for f in files]
+            total = sum(len(v) for v in self._image_cache.values())
+            print(f"  Loaded {total} cached synthetic images from {self._cache_dir}")
+            return
+
+        # Some phases need more images — generate only the difference
+        total_to_gen = sum(n for _, n in phases_to_generate.values())
+        print(f"  Generating {total_to_gen} additional synthetic images ({', '.join(f'{p}:{n} new' for p, (_, n) in phases_to_generate.items())})...")
+        self._load_model()
+        if self.pipeline is None:
+            print("  WARNING: SDXL model failed to load, generative augmentation disabled")
+            return
+
+        gpu_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.pipeline = self.pipeline.to(gpu_device)
+        batch_size = min(4, self.config.generative_settings['batch_size_limit'])
+
+        for phase, (existing_count, needed) in phases_to_generate.items():
+            phase_dir = self._cache_dir / phase
+            prompt = SDXL_PHASE_PROMPTS.get(phase, SDXL_PHASE_PROMPTS['I'])
+            negative_prompt = SDXL_NEGATIVE_PROMPT
+            generated = 0
+            file_idx = existing_count  # Start numbering after existing files
+
+            while generated < needed:
+                n = min(batch_size, needed - generated)
+                try:
+                    with torch.no_grad():
+                        with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+                            output = self.pipeline(
+                                prompt=[prompt] * n,
+                                negative_prompt=[negative_prompt] * n,
+                                num_inference_steps=inference_steps,
+                                guidance_scale=guidance_scale,
+                                height=native_res,
+                                width=native_res,
+                            ).images
+
+                    for i, img in enumerate(output):
+                        arr = np.array(img).astype(np.float32) / 255.0
+                        np.save(str(phase_dir / f"{file_idx + i:04d}.npy"), arr)
+                    file_idx += len(output)
+                    generated += len(output)
+                    pct = generated / needed
+                    prev_pct = (generated - len(output)) / needed
+                    if int(pct * 4) > int(prev_pct * 4) or generated >= needed:
+                        print(f"    Phase {phase}: {generated}/{needed} new ({pct:.0%})")
+                except Exception as e:
+                    print(f"    Error generating phase {phase} batch: {e}")
+                    break
+
+        # Save/update manifest
+        with open(manifest_path, 'w') as f:
+            json.dump(current_manifest, f, indent=2)
+
+        # Unload SDXL completely — free GPU for TF training
+        del self.pipeline
+        self.pipeline = None
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        # Load all cached images (existing + newly generated)
+        for phase in phases:
+            phase_dir = self._cache_dir / phase
+            files = sorted(phase_dir.glob("*.npy"))[:cache_per_phase]
+            self._image_cache[phase] = [np.load(str(f)) for f in files]
+        total = sum(len(v) for v in self._image_cache.values())
+        print(f"  Pre-generation complete: {total} images cached. SDXL unloaded from GPU.")
 
     def _load_model(self):
         """Load the SDXL model from checkpoint"""
@@ -658,16 +820,8 @@ class GenerativeAugmentationManagerSDXL:
             if hasattr(self.pipeline, 'enable_vae_tiling'):
                 self.pipeline.enable_vae_tiling()
 
-            # Load entire model to GPU for maximum speed
-            # SDXL base model (~7GB) + training data fits comfortably in 24GB GPU
-            # Sequential CPU offload was causing 6x slowdown (30s vs 5s per batch)
-            self.pipeline = self.pipeline.to(self.device)
-            print(f"  SDXL model loaded on {self.device} (full GPU mode for max speed)")
-
-            # Note: If OOM occurs, uncomment below to enable CPU offload (slower but uses less memory)
-            # if hasattr(self.pipeline, 'enable_sequential_cpu_offload'):
-            #     self.pipeline.enable_sequential_cpu_offload()
-            #     print(f"  SDXL model loaded with sequential CPU offload (low memory mode)")
+            # Pipeline stays on CPU after loading — _ensure_cache() will move to GPU for generation
+            print(f"  SDXL pipeline loaded (ready for pre-generation)")
 
         except Exception as e:
             print(f"Error loading SDXL model: {str(e)}")
@@ -676,67 +830,50 @@ class GenerativeAugmentationManagerSDXL:
 
     def generate_images(self, modality, phase, batch_size=1, target_height=None, target_width=None):
         """
-        Generate images using the SDXL model with phase-specific prompts.
+        Serve pre-generated synthetic images from cache.
 
-        Images are always generated at native SDXL resolution (512x512) for quality,
-        then resized to target dimensions if different.
+        Images were pre-generated at SDXL native resolution (512x512) during init,
+        and are resized to target dimensions on-the-fly.
 
         Args:
             modality (str): The input modality (e.g., 'thermal_rgb', 'depth_rgb')
             phase (str): The wound healing phase ('I', 'P', or 'R')
-            batch_size (int): Number of images to generate
-            target_height (int): Target height for output images (will resize if different from SDXL native)
-            target_width (int): Target width for output images (will resize if different from SDXL native)
+            batch_size (int): Number of images to return
+            target_height (int): Target height for output images
+            target_width (int): Target width for output images
 
         Returns:
-            tf.Tensor: Generated images as a TensorFlow tensor [batch_size, target_height, target_width, 3]
+            tf.Tensor: Synthetic images as a TensorFlow tensor [batch_size, target_height, target_width, 3]
         """
-        if self.pipeline is None:
+        if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
             return None
 
-        if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
+        if phase not in self._image_cache or len(self._image_cache[phase]) == 0:
             return None
 
         batch_size = min(batch_size, self.config.generative_settings['batch_size_limit'])
 
-        # Always generate at native SDXL resolution for quality
-        # SDXL was trained at 512x512, generating at smaller sizes produces poor results
-        native_resolution = self.config.generative_settings['sdxl_resolution']
-
-        # Determine final output size (default to IMAGE_SIZE from config)
+        # Determine final output size
         final_height = target_height if target_height is not None else self.config.generative_settings['output_size']['height']
         final_width = target_width if target_width is not None else self.config.generative_settings['output_size']['width']
 
-        # Get phase-specific prompt
-        if phase not in SDXL_PHASE_PROMPTS:
-            print(f"Warning: Unknown phase '{phase}', defaulting to 'I'")
-            phase = 'I'
-
-        prompt = SDXL_PHASE_PROMPTS[phase]
-        negative_prompt = SDXL_NEGATIVE_PROMPT
-
         try:
-            with self.lock:  # Thread-safe generation
-                with torch.no_grad():
-                    # Use autocast for memory efficiency (bfloat16 matches training dtype)
-                    with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
-                        output = self.pipeline(
-                            prompt=[prompt] * batch_size,
-                            negative_prompt=[negative_prompt] * batch_size,
-                            num_inference_steps=self.config.generative_settings['inference_steps'],
-                            guidance_scale=self.config.generative_settings['guidance_scale'],
-                            height=native_resolution,
-                            width=native_resolution,
-                        ).images
+            # Randomly sample from cache (with replacement)
+            cache = self._image_cache[phase]
+            indices = [random.randint(0, len(cache) - 1) for _ in range(batch_size)]
+            sampled = [cache[i] for i in indices]
 
             # Update generated image counter with phase info
             _gen_image_counter.increment(phase, batch_size)
 
-            # Convert PIL images to normalized numpy arrays [0, 1]
-            tensors = [np.array(img).astype(np.float32) / 255.0 for img in output]
-            images_tensor = tf.convert_to_tensor(np.stack(tensors), dtype=tf.float32)
+            # Cache images are numpy float32 [0, 1]. Training pipeline uses [0, 255]
+            # (DenseNet121/EfficientNet have built-in Rescaling(1/255) as first layer).
+            # Scale to [0, 255] to match the training data range.
+            images_np = np.stack(sampled) * 255.0
+            images_tensor = tf.convert_to_tensor(images_np, dtype=tf.float32)
 
-            # Resize to target dimensions if different from native resolution
+            # Resize to target dimensions if different from native SDXL resolution (512x512)
+            native_resolution = self.config.generative_settings['sdxl_resolution']
             if final_height != native_resolution or final_width != native_resolution:
                 images_tensor = tf.image.resize(
                     images_tensor,
@@ -761,7 +898,7 @@ class GenerativeAugmentationManagerSDXL:
         Returns:
             bool: True if generative augmentation should be applied
         """
-        if self.pipeline is None:
+        if not self._image_cache:
             return False
 
         if not self.config.modality_settings['depth_rgb']['generative_augmentations']['enabled']:
@@ -910,7 +1047,8 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                         os.makedirs(save_dir, exist_ok=True)
                                         for si in range(min(len(gen_np), 3 - _saved_gen_samples[0])):
                                             _saved_gen_samples[0] += 1
-                                            img = (gen_np[si] * 255).clip(0, 255).astype(np.uint8)
+                                            # gen_np is already [0, 255] (scaled in generate_images)
+                                            img = gen_np[si].clip(0, 255).astype(np.uint8)
                                             save_path = os.path.join(save_dir, f'gen{_saved_gen_samples[0]}.png')
                                             Image.fromarray(img).save(save_path)
                                             print(f"  Saved generated sample: {save_path} (phase: {phase}, modality: {modality_raw})", flush=True)

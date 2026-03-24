@@ -1882,15 +1882,13 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outli
         )
 
         # Save predictions per combination for later gating network ensemble
+        # NOTE: Use per-combo pred_run files (not sum_pred which gets overwritten by each combo)
         config_name = '+'.join(selected_modalities)
         for run in range(num_iterations):
-            # Load the aggregated predictions that were saved during cross_validation
-            train_preds, train_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='train')
-            valid_preds, valid_labels = load_aggregated_predictions(run + 1, ck_path, dataset_type='valid')
-            if train_preds is not None and valid_preds is not None and len(train_preds) > 0 and len(valid_preds) > 0:
-                # Save as combination-specific file (use first prediction if multiple configs)
-                save_combination_predictions(run + 1, config_name, train_preds[0], train_labels, ck_path, dataset_type='train')
-                save_combination_predictions(run + 1, config_name, valid_preds[0], valid_labels, ck_path, dataset_type='valid')
+            for dtype in ['train', 'valid']:
+                preds, labels = load_run_predictions(run + 1, config_name, ck_path, dataset_type=dtype)
+                if preds is not None:
+                    save_combination_predictions(run + 1, config_name, preds, labels, ck_path, dataset_type=dtype)
 
         # Calculate average metrics and their standard deviations with error handling
         avg_accuracy = np.mean([m['accuracy'] for m in cv_results])
@@ -1978,10 +1976,14 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outli
     vprint(f"\nAll results saved to {csv_filename}", level=0)
 
     # After all combinations are trained, run gating network ensemble across modality combinations
-    if len(combinations_to_process) >= 2:
+    all_gating_results = []
+    from src.utils.production_config import USE_GATING_NETWORK
+    if USE_GATING_NETWORK and len(combinations_to_process) >= 2:
+        from src.utils.production_config import GATING_ENSEMBLE_STRATEGY
         vprint(f"\n{'='*80}")
         vprint(f"GATING NETWORK ENSEMBLE ACROSS MODALITY COMBINATIONS")
         vprint(f"{'='*80}")
+        vprint(f"Strategy: {GATING_ENSEMBLE_STRATEGY}")
         vprint(f"Ensembling predictions from {len(combinations_to_process)} modality combinations")
 
         for run in range(num_iterations):
@@ -2001,67 +2003,185 @@ def main_search(data_percentage, train_patient_percentage=0.8, cv_folds=5, outli
             for combination in combinations_to_process:
                 config_name = '+'.join(combination)
 
-                # Load predictions for this specific combination
-                train_preds, t_labels = load_combination_predictions(run + 1, config_name, ck_path, dataset_type='train')
-                valid_preds, v_labels = load_combination_predictions(run + 1, config_name, ck_path, dataset_type='valid')
+                # Load per-combo predictions (use pred_run files, not combo_pred)
+                valid_preds, v_labels = load_run_predictions(run + 1, config_name, ck_path, dataset_type='valid')
+                train_preds, t_labels = load_run_predictions(run + 1, config_name, ck_path, dataset_type='train')
 
-                if train_preds is not None and valid_preds is not None:
-                    all_train_predictions.append(train_preds)
+                if valid_preds is not None:
                     all_valid_predictions.append(valid_preds)
+                    if train_preds is not None:
+                        all_train_predictions.append(train_preds)
                     combination_names.append(config_name)
 
-                    if train_labels is None:
-                        train_labels = t_labels
+                    if valid_labels is None:
                         valid_labels = v_labels
+                        if t_labels is not None:
+                            train_labels = t_labels
 
-                    vprint(f"  Loaded {config_name}: train shape {train_preds.shape}, valid shape {valid_preds.shape}", level=2)
+                    vprint(f"  Loaded {config_name}: valid shape {valid_preds.shape}" +
+                           (f", train shape {train_preds.shape}" if train_preds is not None else " (valid only)"), level=2)
                 else:
                     vprint(f"  Warning: Could not load predictions for {config_name}", level=1)
 
-            if len(all_train_predictions) >= 2:
-                vprint(f"\nTraining gating network with {len(all_train_predictions)} modality combinations:", level=1)
-                if get_verbosity() == 2:
-                    for name in combination_names:
-                        print(f"  - {name}")
-
+            if len(all_valid_predictions) >= 2:
                 # Convert labels to class indices if needed
-                if train_labels is not None and len(train_labels.shape) > 1:
-                    gating_train_labels = np.argmax(train_labels, axis=1)
-                else:
-                    gating_train_labels = train_labels
-
                 if valid_labels is not None and len(valid_labels.shape) > 1:
                     gating_valid_labels = np.argmax(valid_labels, axis=1)
                 else:
                     gating_valid_labels = valid_labels
 
-                try:
-                    combined_predictions, final_labels = train_gating_network(
-                        all_train_predictions,
-                        all_valid_predictions,
-                        gating_train_labels,
-                        gating_valid_labels,
-                        run + 1,
-                        find_optimal=False,  # Disabled: gating network search was hanging
-                        min_models=2,
-                        max_tries=100
-                    )
+                combined_predictions = None
+                active_strategy = GATING_ENSEMBLE_STRATEGY
 
-                    # Calculate ensemble metrics
-                    if combined_predictions is not None:
-                        final_preds = np.argmax(combined_predictions, axis=1)
-                        ensemble_accuracy = accuracy_score(gating_valid_labels, final_preds)
-                        ensemble_f1 = f1_score(gating_valid_labels, final_preds, average='macro')
-                        ensemble_kappa = cohen_kappa_score(gating_valid_labels, final_preds)
+                if active_strategy == 'simple_average_best':
+                    # Find the best-performing standalone modality on this fold's validation set
+                    standalone_modalities = [name for name in combination_names if '+' not in name]
+                    best_standalone = None
+                    best_standalone_kappa = -1.0
 
-                        vprint(f"\nGating Network Ensemble Results for Run {run + 1}:", level=0)
-                        vprint(f"  Accuracy: {ensemble_accuracy:.4f}", level=0)
-                        vprint(f"  F1 Macro: {ensemble_f1:.4f}", level=0)
-                        vprint(f"  Kappa: {ensemble_kappa:.4f}", level=0)
-                except Exception as e:
-                    vprint(f"Error in gating network ensemble for run {run + 1}: {str(e)}", level=1)
+                    for name in standalone_modalities:
+                        idx = combination_names.index(name)
+                        pred_class = np.argmax(all_valid_predictions[idx], axis=1)
+                        k = cohen_kappa_score(gating_valid_labels, pred_class)
+                        vprint(f"  Standalone {name}: kappa={k:.4f}", level=2)
+                        if k > best_standalone_kappa:
+                            best_standalone_kappa = k
+                            best_standalone = name
+
+                    if best_standalone is not None:
+                        # Average all combos that contain the best standalone modality
+                        anchor_indices = [i for i, name in enumerate(combination_names) if best_standalone in name.split('+')]
+                        if len(anchor_indices) >= 2:
+                            anchor_preds = [all_valid_predictions[i] for i in anchor_indices]
+                            combined_predictions = np.mean(np.stack(anchor_preds, axis=0), axis=0)
+                            anchor_names = [combination_names[i] for i in anchor_indices]
+                            vprint(f"\n  Best standalone modality: {best_standalone} (kappa={best_standalone_kappa:.4f})", level=1)
+                            vprint(f"  Simple average of {len(anchor_indices)} combinations containing '{best_standalone}':", level=1)
+                            for name in anchor_names:
+                                vprint(f"    - {name}", level=2)
+                        else:
+                            vprint(f"  Only {len(anchor_indices)} combo(s) contain '{best_standalone}', falling back to optimal_weighted", level=1)
+                            active_strategy = 'optimal_weighted'
+                    else:
+                        vprint(f"  No standalone modalities found, falling back to optimal_weighted", level=1)
+                        active_strategy = 'optimal_weighted'
+
+                if combined_predictions is None and active_strategy == 'optimal_weighted':
+                    # Learn optimal per-combo weights via scipy optimization on training set
+                    from scipy.optimize import minimize
+                    if len(all_train_predictions) >= 2 and train_labels is not None:
+                        if train_labels is not None and len(train_labels.shape) > 1:
+                            gating_train_labels_flat = np.argmax(train_labels, axis=1)
+                        else:
+                            gating_train_labels_flat = train_labels
+
+                        n_models = len(all_train_predictions)
+                        train_stack = np.stack(all_train_predictions, axis=0)
+                        valid_stack = np.stack(all_valid_predictions, axis=0)
+
+                        def neg_kappa(weights):
+                            w = np.abs(weights)
+                            w = w / w.sum()
+                            combined = np.tensordot(w, train_stack, axes=([0], [0]))
+                            pred_class = np.argmax(combined, axis=1)
+                            return -cohen_kappa_score(gating_train_labels_flat, pred_class)
+
+                        best_result = None
+                        best_val = float('inf')
+                        for _ in range(5):
+                            x0 = np.random.dirichlet(np.ones(n_models))
+                            result = minimize(neg_kappa, x0, method='Nelder-Mead', options={'maxiter': 2000})
+                            if result.fun < best_val:
+                                best_val = result.fun
+                                best_result = result
+
+                        w = np.abs(best_result.x)
+                        w = w / w.sum()
+                        combined_predictions = np.tensordot(w, valid_stack, axes=([0], [0]))
+
+                        # Log top weights
+                        weight_pairs = sorted(zip(combination_names, w), key=lambda x: -x[1])
+                        vprint(f"\n  Optimal weighted average ({n_models} combos, train kappa={-best_val:.4f}):", level=1)
+                        for name, weight in weight_pairs[:5]:
+                            vprint(f"    {name}: weight={weight:.4f}", level=2)
+                    else:
+                        vprint(f"  Not enough train predictions for optimal_weighted, using simple average", level=1)
+                        combined_predictions = np.mean(np.stack(all_valid_predictions, axis=0), axis=0)
+
+                if combined_predictions is None and active_strategy == 'simple_average_all':
+                    # Simple average of all combinations
+                    combined_predictions = np.mean(np.stack(all_valid_predictions, axis=0), axis=0)
+                    vprint(f"\n  Simple average of all {len(all_valid_predictions)} combinations", level=1)
+
+                if combined_predictions is None and active_strategy == 'attention':
+                    # Original attention-based gating network (requires train predictions)
+                    if train_labels is not None and len(train_labels.shape) > 1:
+                        gating_train_labels = np.argmax(train_labels, axis=1)
+                    else:
+                        gating_train_labels = train_labels
+
+                    if len(all_train_predictions) >= 2 and gating_train_labels is not None:
+                        vprint(f"\nTraining attention gating network with {len(all_train_predictions)} combinations:", level=1)
+                        try:
+                            combined_predictions, _ = train_gating_network(
+                                all_train_predictions,
+                                all_valid_predictions,
+                                gating_train_labels,
+                                gating_valid_labels,
+                                run + 1,
+                                find_optimal=False,
+                                min_models=2,
+                                max_tries=100
+                            )
+                        except Exception as e:
+                            vprint(f"  Attention gating failed: {e}, falling back to simple average", level=1)
+                            combined_predictions = np.mean(np.stack(all_valid_predictions, axis=0), axis=0)
+                    else:
+                        vprint(f"  Not enough train predictions for attention gating, using simple average", level=1)
+                        combined_predictions = np.mean(np.stack(all_valid_predictions, axis=0), axis=0)
+                if combined_predictions is None:
+                    vprint(f"  Strategy '{active_strategy}' did not produce predictions, using simple average of all", level=1)
+                    combined_predictions = np.mean(np.stack(all_valid_predictions, axis=0), axis=0)
+
+                # Calculate ensemble metrics
+                if combined_predictions is not None:
+                    final_preds = np.argmax(combined_predictions, axis=1)
+                    ensemble_accuracy = accuracy_score(gating_valid_labels, final_preds)
+                    ensemble_f1 = f1_score(gating_valid_labels, final_preds, average='macro')
+                    ensemble_f1_weighted = f1_score(gating_valid_labels, final_preds, average='weighted')
+                    ensemble_kappa = cohen_kappa_score(gating_valid_labels, final_preds)
+                    ensemble_f1_classes = f1_score(gating_valid_labels, final_preds, average=None, labels=[0, 1, 2], zero_division=0)
+
+                    vprint(f"\nGating Network Ensemble Results for Fold {run + 1}:", level=0)
+                    vprint(f"  Accuracy: {ensemble_accuracy:.4f}", level=0)
+                    vprint(f"  F1 Macro: {ensemble_f1:.4f}", level=0)
+                    vprint(f"  Kappa: {ensemble_kappa:.4f}", level=0)
+                    vprint(f"  Per-class F1: I={ensemble_f1_classes[0]:.4f}, P={ensemble_f1_classes[1]:.4f}, R={ensemble_f1_classes[2]:.4f}", level=0)
+
+                    all_gating_results.append({
+                        'accuracy': ensemble_accuracy,
+                        'f1_macro': ensemble_f1,
+                        'f1_weighted': ensemble_f1_weighted,
+                        'kappa': ensemble_kappa,
+                        'f1_classes': ensemble_f1_classes,
+                    })
             else:
-                vprint(f"  Not enough predictions loaded ({len(all_train_predictions)}) for gating network ensemble", level=1)
+                vprint(f"  Not enough predictions loaded ({len(all_valid_predictions)}) for gating network ensemble", level=1)
+
+    elif not USE_GATING_NETWORK:
+        vprint(f"\nGating network ensemble: DISABLED (USE_GATING_NETWORK = False in production_config.py)", level=0)
+
+    # Save gating network results to CSV
+    if all_gating_results:
+        save_gating_results(all_gating_results, result_dir)
+        avg_gating_kappa = np.mean([r['kappa'] for r in all_gating_results])
+        avg_gating_acc = np.mean([r['accuracy'] for r in all_gating_results])
+        avg_gating_f1 = np.mean([r['f1_macro'] for r in all_gating_results])
+        vprint(f"\nGating Network Ensemble Summary ({len(all_gating_results)} folds):", level=0)
+        vprint(f"  Mean Accuracy: {avg_gating_acc:.4f} ± {np.std([r['accuracy'] for r in all_gating_results]):.4f}", level=0)
+        vprint(f"  Mean F1 Macro: {avg_gating_f1:.4f} ± {np.std([r['f1_macro'] for r in all_gating_results]):.4f}", level=0)
+        vprint(f"  Mean Kappa:    {avg_gating_kappa:.4f} ± {np.std([r['kappa'] for r in all_gating_results]):.4f}", level=0)
+        vprint(f"  Results saved to: results/csv/gating_network_averaged_results.csv", level=0)
 
     # Final summary - read CSV and show best results (shown at all verbosity levels)
     vprint(f"\n{'='*80}", level=0)

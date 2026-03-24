@@ -15,8 +15,12 @@ def clear_gpu_memory():
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
         try:
+            # Only set memory growth if virtual devices aren't already configured
             for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
+                try:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                except (ValueError, RuntimeError):
+                    pass  # Virtual device configuration already set (e.g. memory limit mode)
             tf.keras.backend.clear_session()
             gc.collect()
         except RuntimeError as e:

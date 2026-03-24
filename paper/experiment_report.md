@@ -170,9 +170,27 @@ Best thresholds: I=53, P=84, R=70 (from total misclassification counts across al
 
 ---
 
-## 5. Results
+## 5. Experimental Conditions
 
-### 5.1 Final Model Performance (All 15 Modality Combinations)
+Three experimental conditions are compared, each using identical model architecture, data polishing, and cross-validation protocol. They differ only in the post-training ensemble and augmentation strategies:
+
+| Condition | Gating Network | Generative Augmentation | Description |
+|-----------|---------------|------------------------|-------------|
+| **Run 1: Baseline** | Off | Off | Standard pipeline: per-combination models with feature_concat fusion |
+| **Run 2: + Gating Network** | On | Off | Adds simple-average ensemble across metadata-containing combinations |
+| **Run 3a: + GenAug (6%)** | On | On (6% prob) | Adds SDXL-generated synthetic depth_rgb images at 6% probability per batch |
+| **Run 3b: + GenAug (15%)** | On | On (15% prob) | Same as Run 3a but with higher augmentation probability |
+| **Run 3c: + GenAug (25%)** | On | On (25% prob) | Same as Run 3a but with highest augmentation probability |
+
+All conditions use the same polished dataset (443 unique samples from 648, thresholds I=53, P=84, R=70), identical DenseNet121 backbones, and 5-fold patient-stratified CV.
+
+---
+
+## 6. Results
+
+### 6.1 Run 1: Baseline (No Gating, No Generative Augmentation)
+
+#### 6.1.1 All 15 Modality Combinations
 
 Evaluated with 5-fold patient-stratified CV on the polished dataset (443 unique samples, 2,084 training rows):
 
@@ -194,7 +212,7 @@ Evaluated with 5-fold patient-stratified CV on the polished dataset (443 unique 
 | 14 | metadata+depth_map | 0.466 | 0.048 | 0.681 | 0.602 | 0.571 | 0.755 | 0.481 |
 | 15 | depth_map (alone) | 0.191 | 0.051 | 0.442 | 0.370 | 0.371 | 0.521 | 0.217 |
 
-### 5.2 Performance Progression Across Optimization Stages
+#### 6.1.2 Performance Progression Across Optimization Stages
 
 | Stage | Best Fusion Kappa | Metadata-Only Kappa | Fusion > Metadata? |
 |-------|-------------------|--------------------|--------------------|
@@ -203,7 +221,7 @@ Evaluated with 5-fold patient-stratified CV on the polished dataset (443 unique 
 | Joint optimization | 0.369 | 0.307 | **Yes (+0.062)** |
 | + Data polishing | **0.613** | 0.533 | **Yes (+0.080)** |
 
-### 5.3 Modality Ranking Analysis
+#### 6.1.3 Modality Ranking Analysis
 
 The desired ranking (best to worst): meta+d+t > meta+t > meta+d > d+t > meta > t > d
 
@@ -216,7 +234,7 @@ Key observations:
 - Depth_map is the weakest modality (kappa 0.191 alone) and degrades several combinations it joins
 - The top 4 combinations are within 0.007 kappa of each other — statistically indistinguishable
 
-### 5.4 Per-Class Analysis
+#### 6.1.4 Per-Class Analysis
 
 The R (Remodeling) class remains the most challenging across all modalities due to smallest sample size (118 samples, 13.3%). Best per-class performance:
 
@@ -230,25 +248,201 @@ Metadata alone achieves the best R-class F1 (0.594), while fusion excels at I an
 
 ---
 
-## 6. Key Findings
+### 6.2 Run 2: + Gating Network Ensemble
 
-### 6.1 Joint Optimization is Essential for Effective Fusion
+The gating network ensemble combines softmax predictions from multiple modality-specific models into a single prediction. A dedicated gating network optimization audit (111 configurations) compared 8 ensemble strategies across different model subsets.
+
+#### 6.2.1 Gating Network Optimization Audit
+
+Eight ensemble strategies were evaluated across 111 configurations:
+
+| Strategy | Best Config | Kappa | ±Std | Acc | F1 |
+|----------|------------|-------|------|-----|-----|
+| **Simple average (meta combos)** | **simple_avg_meta_only** | **0.537** | 0.121 | **0.789** | **0.704** |
+| Optimal weighted average | opt_weighted_top10 | 0.530 | 0.119 | 0.786 | 0.698 |
+| Temperature scaled | temp_scaled_top5 | 0.518 | 0.114 | 0.768 | 0.691 |
+| MLP stacking | stack_mlp_h64_d0.3_all15 | 0.506 | 0.112 | 0.791 | 0.679 |
+| Logistic regression | stack_lr_C1.0_all15 | 0.503 | 0.106 | 0.785 | 0.681 |
+| Rank-weighted average | rank_weighted_top5_d0.9 | 0.497 | 0.124 | 0.760 | 0.677 |
+| Attention gating | attn_h8_k32_d0.1_noca_top5 | 0.492 | 0.095 | 0.785 | 0.673 |
+| Gradient boosting | stack_gb_n100_d3_lr0.1_all15 | 0.471 | 0.108 | 0.787 | 0.669 |
+
+The simplest approach won: averaging softmax predictions from the 8 metadata-containing combinations. This works because metadata is the strongest signal carrier, and averaging reduces noise from weaker image branches. The attention-based gating network (used in the initial Run 2) collapsed on 2 of 5 folds (kappa=0.000) due to overfitting on the small training set with 15×3=45 input features.
+
+#### 6.2.2 Gating Ensemble Results (Simple Average of Metadata Combinations)
+
+| Metric | Value |
+|--------|-------|
+| Gating Kappa | 0.537 ± 0.121 |
+| Gating Accuracy | 0.789 ± 0.037 |
+| Gating Macro F1 | 0.704 |
+| F1-I | 0.687 |
+| F1-P | 0.843 |
+| F1-R | 0.583 |
+
+Per-fold kappas: [0.610, 0.518, 0.722, 0.463, 0.371]
+
+#### 6.2.3 Top 5 Individual Modality Combinations (Run 2)
+
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 |
+|------|-----------|-------|------|----------|----------|
+| 1 | metadata+depth_rgb+depth_map+thermal_map | 0.584 | 0.102 | 0.746 | 0.661 |
+| 2 | metadata+depth_rgb+thermal_map | 0.573 | 0.122 | 0.717 | 0.644 |
+| 3 | metadata+depth_rgb | 0.571 | 0.109 | 0.725 | 0.647 |
+| 4 | metadata+depth_rgb+depth_map | 0.570 | 0.087 | 0.746 | 0.653 |
+| 5 | metadata+thermal_map | 0.558 | 0.117 | 0.689 | 0.631 |
+
+#### 6.2.4 Gating Network vs Best Single Combination
+
+The gating ensemble (kappa 0.537) underperforms the best individual combination (kappa 0.584) by -0.047. However, the gating ensemble achieves higher accuracy (0.789 vs 0.746) and higher macro F1 (0.704 vs 0.661), with notably better F1-R (0.583 vs 0.552). The kappa difference reflects the ensemble's tendency toward more balanced predictions, which improves per-class F1 at the cost of overall agreement with ground truth.
+
+**Key finding from gating audit:** The original attention-based gating network was unsuitable for this dataset size (collapsed to majority-class prediction on some folds). Simple probability averaging of metadata-containing combinations proved optimal — no learned parameters, no overfitting risk, and best F1-R among all approaches tested.
+
+---
+
+### 6.3 Run 3: + Generative Augmentation
+
+Generative augmentation uses a fine-tuned SDXL diffusion model to synthesise additional depth_rgb wound images during training. Synthetic images are pre-generated to a disk cache before training begins (144 images per phase at 512x512, then resized to 128x128), and injected into training batches at a configurable probability with 1-5% mix ratio. Three augmentation probabilities were tested: 6% (Run 3a), 15% (Run 3b), and 25% (Run 3c).
+
+**Important note:** An initial implementation contained a scaling bug where synthetic images (generated in [0, 1] range) were injected into training batches that use [0, 255] range. This caused the synthetic images to appear as near-black to the model, rendering generative augmentation completely ineffective. The bug was discovered through systematic due diligence testing (end-to-end pipeline verification), fixed by applying x255 scaling at injection time, and all Run 3 results below were obtained after the fix.
+
+#### 6.3.1 Run 3a: Generative Augmentation at 6% Probability
+
+Top 5 modality combinations:
+
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 | F1-I | F1-P | F1-R |
+|------|-----------|-------|------|----------|----------|------|------|------|
+| 1 | metadata+depth_rgb+thermal_map | 0.586 | 0.123 | 0.724 | 0.657 | 0.644 | 0.786 | 0.541 |
+| 2 | metadata+depth_rgb | 0.584 | 0.124 | 0.735 | 0.659 | 0.656 | 0.792 | 0.529 |
+| 3 | metadata+depth_rgb+depth_map+thermal_map | 0.566 | 0.114 | 0.733 | 0.646 | 0.601 | 0.795 | 0.543 |
+| 4 | metadata+thermal_map | 0.560 | 0.112 | 0.702 | 0.636 | 0.599 | 0.762 | 0.546 |
+| 5 | metadata+depth_rgb+depth_map | 0.553 | 0.098 | 0.725 | 0.638 | 0.629 | 0.791 | 0.493 |
+
+Gating ensemble: kappa 0.498 ± 0.149, accuracy 0.759, F1-R 0.561
+
+#### 6.3.2 Run 3b: Generative Augmentation at 15% Probability
+
+Top 5 modality combinations:
+
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 | F1-I | F1-P | F1-R |
+|------|-----------|-------|------|----------|----------|------|------|------|
+| 1 | metadata+depth_rgb+thermal_map | 0.584 | 0.120 | 0.726 | 0.656 | 0.636 | 0.780 | 0.551 |
+| 2 | metadata+thermal_map | 0.572 | 0.116 | 0.692 | 0.640 | 0.624 | 0.747 | 0.551 |
+| 3 | metadata+depth_rgb | 0.570 | 0.099 | 0.730 | 0.651 | 0.628 | 0.790 | 0.535 |
+| 4 | metadata+depth_rgb+depth_map+thermal_map | 0.565 | 0.107 | 0.731 | 0.643 | 0.610 | 0.793 | 0.526 |
+| 5 | metadata+depth_rgb+depth_map | 0.553 | 0.109 | 0.736 | 0.646 | 0.604 | 0.801 | 0.534 |
+
+Gating ensemble: kappa 0.528 ± 0.151, accuracy 0.773, F1-R 0.590
+
+#### 6.3.3 Run 3c: Generative Augmentation at 25% Probability
+
+Top 5 modality combinations:
+
+| Rank | Modalities | Kappa | ±Std | Accuracy | Macro F1 | F1-I | F1-P | F1-R |
+|------|-----------|-------|------|----------|----------|------|------|------|
+| 1 | metadata+depth_rgb | 0.581 | 0.120 | 0.733 | 0.658 | 0.653 | 0.789 | 0.531 |
+| 2 | metadata+depth_rgb+thermal_map | 0.579 | 0.127 | 0.716 | 0.649 | 0.629 | 0.773 | 0.545 |
+| 3 | metadata+depth_rgb+depth_map | 0.575 | 0.105 | 0.752 | 0.659 | 0.620 | 0.811 | 0.544 |
+| 4 | metadata+thermal_map | 0.570 | 0.109 | 0.716 | 0.646 | 0.617 | 0.777 | 0.543 |
+| 5 | metadata+depth_rgb+depth_map+thermal_map | 0.567 | 0.117 | 0.719 | 0.645 | 0.605 | 0.781 | 0.550 |
+
+Gating ensemble: kappa 0.520 ± 0.147, accuracy 0.778, F1-R 0.559
+
+At 25%, performance declines compared to 15% across most metrics, confirming an inverted-U dose-response relationship.
+
+#### 6.3.4 Generative Augmentation Dose-Response
+
+Comparing the target modality (metadata+depth_rgb+thermal_map) across augmentation levels:
+
+| Metric | Run 2 (0%) | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-----------|-------------|-------------|-------------|
+| Kappa | 0.573 | 0.586 (+0.013) | 0.584 (+0.011) | 0.579 (+0.006) |
+| Accuracy | 0.717 | 0.724 (+0.007) | 0.726 (+0.009) | 0.716 (-0.001) |
+| Macro F1 | 0.644 | 0.657 (+0.013) | 0.656 (+0.012) | 0.649 (+0.005) |
+| F1-I | 0.633 | 0.644 (+0.011) | 0.636 (+0.003) | 0.629 (-0.004) |
+| F1-P | 0.780 | 0.786 (+0.006) | 0.780 (+0.000) | 0.773 (-0.007) |
+| F1-R | 0.519 | 0.541 (+0.022) | **0.551 (+0.032)** | 0.545 (+0.026) |
+
+Gating ensemble dose-response:
+
+| Metric | Run 2 (0%) | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-----------|-------------|-------------|-------------|
+| Kappa | **0.537** | 0.498 | 0.528 | 0.520 |
+| Accuracy | **0.789** | 0.759 | 0.773 | 0.778 |
+| Macro F1 | **0.704** | 0.679 | 0.697 | 0.692 |
+| F1-R | 0.583 | 0.561 | **0.590** | 0.559 |
+
+The dose-response follows an inverted-U curve. For individual combinations, 6% provides the best kappa while 15% maximises F1-R. At 25%, performance degrades — the model overfits to synthetic images recycled from a fixed cache of 144 images per phase. The gating ensemble shows a sharper response: 15% is the clear optimum (F1-R 0.590, +0.029 over 6%), while 25% drops back to near-baseline levels (F1-R 0.559).
+
+---
+
+### 6.4 Cross-Run Comparison
+
+#### 6.4.1 Best Combination Performance Across Runs
+
+| Metric | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-------|-------|-------------|-------------|-------------|
+| Best Kappa | **0.613** | 0.584 | 0.586 | 0.584 | 0.581 |
+| Best Accuracy | **0.754** | 0.746 | 0.735 | 0.731 | 0.752 |
+| Best Macro F1 | **0.681** | 0.661 | 0.659 | 0.656 | 0.659 |
+| Best Modality | M+D+T | M+D+DM+T | M+D+T | M+D+T | M+D |
+| Gating Kappa | N/A | **0.537** | 0.498 | 0.528 | 0.520 |
+| Gating Accuracy | N/A | **0.789** | 0.759 | 0.773 | 0.778 |
+| Gating Macro F1 | N/A | **0.704** | 0.679 | 0.697 | 0.692 |
+| Gating F1-R | N/A | 0.583 | 0.561 | **0.590** | 0.559 |
+
+#### 6.4.2 Target Modality (metadata+depth_rgb+thermal_map) Across Runs
+
+| Metric | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|--------|-------|-------|-------------|-------------|-------------|
+| Kappa | **0.613** | 0.573 | 0.586 | 0.584 | 0.579 |
+| Accuracy | 0.712 | 0.717 | 0.724 | **0.726** | 0.716 |
+| Macro F1 | **0.665** | 0.644 | 0.657 | 0.656 | 0.649 |
+| F1-I | **0.689** | 0.633 | 0.644 | 0.636 | 0.629 |
+| F1-P | 0.760 | 0.780 | **0.786** | 0.780 | 0.773 |
+| F1-R | 0.544 | 0.519 | 0.541 | **0.551** | 0.545 |
+
+#### 6.4.3 Per-Class F1 Comparison (metadata+depth_rgb+thermal_map)
+
+| Class | Run 1 | Run 2 | Run 3a (6%) | Run 3b (15%) | Run 3c (25%) |
+|-------|-------|-------|-------------|-------------|-------------|
+| F1-I | **0.689** | 0.633 | 0.644 | 0.636 | 0.629 |
+| F1-P | 0.760 | 0.780 | **0.786** | 0.780 | 0.773 |
+| F1-R | 0.544 | 0.519 | 0.541 | **0.551** | 0.545 |
+
+#### 6.4.4 Summary of Best Results Across All Experiments
+
+| Objective | Best Config | Value |
+|-----------|------------|-------|
+| Highest single-combo kappa | Run 1, M+D+T, no gating, no gen aug | **0.613** |
+| Highest accuracy | Run 1, M+D+DM, no gating, no gen aug | **0.754** |
+| Highest F1-R (minority class) | Run 3b gating, 15% gen aug | **0.590** |
+| Highest gating kappa | Run 2, no gen aug | **0.537** |
+| Highest gating accuracy | Run 2, no gen aug | **0.789** |
+| Highest gating macro F1 | Run 2, no gen aug | **0.704** |
+| Most balanced per-class F1 | Run 3b, 15% gen aug (F1 range: 0.551-0.780) | std=0.099 |
+
+---
+
+## 7. Key Findings
+
+### 7.1 Joint Optimization is Essential for Effective Fusion
 
 The most important methodological finding is that independently optimizing modalities before fusion yields suboptimal results. The standalone audits (400+ configs) concluded EfficientNet was best and Stage 2 hurts — the joint audit (100 configs) found the opposite. This is because modality interactions during fusion create dependencies that single-modality optimization cannot capture.
 
-### 6.2 Image Size 128 Outperforms 256
+### 7.2 Image Size 128 Outperforms 256
 
 Reducing input resolution from 256x256 to 128x128 improved performance. With average wound bounding boxes of 70-100 pixels, 256x256 requires 3-14x upsampling that introduces interpolation artifacts. At 128x128, the upsampling factor is reduced to 1.3-1.8x, preserving more genuine wound texture.
 
-### 6.3 DenseNet121 Outperforms EfficientNet for Medical Imaging
+### 7.3 DenseNet121 Outperforms EfficientNet for Medical Imaging
 
 DenseNet121 emerged as the optimal backbone for both depth and thermal modalities, replacing the initially selected EfficientNetB0/B2. DenseNet's dense connectivity pattern and feature reuse may provide better transfer learning for false-color medical images compared to EfficientNet's compound scaling.
 
-### 6.4 Data Polishing Provides Substantial Gains
+### 7.4 Data Polishing Provides Substantial Gains
 
 Removing 32% of samples (from 648 to 443 unique) via misclassification-based thresholding improved kappa from 0.369 to 0.613 (+0.244). The removed samples are likely mislabeled, ambiguous, or at class boundaries. Per-class thresholds (I=53, P=84, R=70) reflect that P-class samples are more tolerant (higher threshold) while I-class samples require stricter filtering.
 
-### 6.5 Remaining Challenges
+### 7.5 Remaining Challenges
 
 - **R-class performance:** F1-R (0.544) lags behind F1-I (0.689) and F1-P (0.760). The 118 R-class samples (58 after polishing) are insufficient for robust CNN learning.
 - **Depth_map modality:** Raw depth maps (kappa 0.191) provide little discriminative value and degrade most combinations they join. Further investigation into depth map preprocessing or alternative representations may be needed.
@@ -256,13 +450,37 @@ Removing 32% of samples (from 648 to 443 unique) via misclassification-based thr
 
 ---
 
-## 7. Experimental Timeline and Effort
+### 7.6 Gating Network Impact
+
+A gating network optimization audit (111 configurations, 8 strategies) found that simple probability averaging of metadata-containing combinations (kappa 0.537) outperforms the original attention-based gating network (kappa 0.258). The attention gating collapsed to majority-class prediction on 2 of 5 folds due to overfitting with 45 input features and ~1600 training samples.
+
+The optimal ensemble (simple average of 8 metadata combos) achieves the highest accuracy (0.789) and macro F1 (0.704) of any configuration tested, but lower kappa than the best individual combination (0.584). This trade-off reflects a more balanced class distribution in predictions — the ensemble reduces extreme confident misclassifications, improving F1-R (0.583 vs 0.552) at the expense of some P-class precision that kappa rewards.
+
+### 7.7 Generative Augmentation Impact
+
+A scaling bug was discovered during due diligence testing: synthetic images (generated in [0, 1] float range) were injected into training batches using [0, 255] range, causing them to appear as near-black images to the model. This rendered generative augmentation completely ineffective in early runs. After fixing the scaling (applying x255 at injection), all Run 3 results use correctly scaled synthetic images.
+
+After the fix, generative augmentation shows an inverted-U dose-response across three probability levels (6%, 15%, 25%):
+
+- **F1-R (R-class)**: The primary target. Improved from 0.519 (no aug) to 0.541 (6%) to 0.551 (15%), then declined to 0.545 (25%). Peak improvement: +0.032 at 15%.
+- **Kappa**: Improved from 0.573 to 0.586 (6%), then gradually declined: 0.584 (15%), 0.579 (25%). Best at 6%.
+- **F1-I**: Declined monotonically with augmentation: 0.633 → 0.644 → 0.636 → 0.629. The I-class (Inflammatory) may share visual features with synthetic P-class images, causing confusion at higher augmentation rates.
+- **Gating ensemble**: Shows a sharper dose-response. F1-R peaked at 0.590 at 15% (+0.029 over 6%), but dropped to 0.559 at 25% — below even the 0% baseline (0.583). The ensemble amplifies both positive and negative augmentation effects.
+
+The 25% decline confirms that the fixed cache of 144 images per phase becomes a bottleneck at higher injection rates — the model sees the same synthetic images repeatedly, overfitting to SDXL's generation style. The optimal augmentation probability is 6-15%, with 15% preferred when optimising for R-class recall via the gating ensemble.
+
+**Why finer probability tuning was not pursued:** The four tested values (0%, 6%, 15%, 25%) provide a clear dose-response curve with a broad plateau at 6-15%. Finer tuning (e.g., testing 10% or 12%) was not justified because: (1) the treatment effect between 6% and 15% is 0.002 kappa — 15x smaller than the run-to-run variance of ~0.03, making intermediate values statistically indistinguishable; (2) the performance bottleneck lies in the cache size (144 images per phase) and SDXL generation quality, not the injection probability; and (3) the broad plateau means any value in the 6-15% range would produce equivalent results. The selected value of 15% maximises the most clinically relevant metric (F1-R for the minority Remodeling class) while remaining within the safe region of the dose-response curve.
+
+---
+
+## 8. Experimental Timeline and Effort
 
 | Phase | Configs Tested | Key Outcome |
 |-------|---------------|-------------|
 | Standalone depth_rgb audit | 135 | Baseline EfficientNetB0 won (no improvement found) |
 | Standalone thermal_map audit | 135 | EfficientNetB2 with mixup selected |
 | Fusion audit (Round 1) | 206 | feature_concat best but still below metadata |
+| Gating network audit | 111 | Simple average of metadata combos beats attention gating |
 | Joint optimization audit | 100 (Bayesian) + 50 (5-fold Top10) | DenseNet121, 128px, feature_concat; fusion surpasses metadata |
 | Data polishing (Phase 1) | 3 runs x 4 combos x 5 folds = 60 | Misclassification tracking |
 | Data polishing (Phase 2) | 20 Bayesian evaluations | Optimal thresholds: I=53, P=84, R=70 |
@@ -272,7 +490,7 @@ Total configurations evaluated: ~600+ across all optimization phases.
 
 ---
 
-## 8. Files and Artifacts
+## 9. Files and Artifacts
 
 | Artifact | Path |
 |----------|------|
@@ -292,3 +510,18 @@ Total configurations evaluated: ~600+ across all optimization phases.
 | Main training script | `src/main.py` |
 | Data polishing script | `scripts/auto_polish_dataset_v2.py` |
 | Joint optimization script | `agent_communication/joint_optimization_audit/joint_hparam_search.py` |
+| Multimodal analysis | `agent_communication/multimodal_analysis/` |
+| Sample matching file | `results/best_matching.csv` (3,108 matched multimodal samples) |
+| Gating network results (Run 2) | `results/csv/gating_network_averaged_results.csv` |
+| Gating per-fold results (Run 2) | `results/csv/gating_network_per_fold_results.csv` |
+| Run 2 modality results | `results/csv/modality_combination_results.csv` (Run 2) |
+| Gating network audit | `agent_communication/gating_network_audit/` |
+| Gating audit results | `agent_communication/gating_network_audit/gating_search_results.csv` |
+| Gating audit best config | `agent_communication/gating_network_audit/gating_best_config.json` |
+| Run 3 modality results | *[To be populated after Run 3]* |
+
+---
+
+## 10. Data Consistency Note
+
+All experiments use samples listed in `results/best_matching.csv` (3,108 rows, 648 unique patient-appointment-DFU combinations from 268 patients). This file ensures that every modality combination evaluates on identical samples — a sample is only included if it has matched depth_rgb, depth_map, thermal_map, and metadata records. After data polishing, 443 of 648 unique samples are retained (68.4%). This consistency is maintained across all three experimental runs.

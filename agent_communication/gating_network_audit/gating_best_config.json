@@ -1,0 +1,19 @@
+{
+  "name": "simple_avg_meta_only",
+  "strategy": "simple_average",
+  "n_combos": "8",
+  "combo_subset": "custom",
+  "kappa": "0.536940",
+  "kappa_std": "0.120813",
+  "accuracy": "0.788559",
+  "accuracy_std": "0.037450",
+  "f1_macro": "0.704317",
+  "f1_macro_std": "0.072800",
+  "f1_weighted": "0.792537",
+  "f1_I": "0.686528",
+  "f1_P": "0.842974",
+  "f1_R": "0.583450",
+  "fold_kappas": "[0.6095709770288498, 0.5184368323109794, 0.7224436010131696, 0.4631585825365365, 0.3710917559979582]",
+  "params": "{}",
+  "elapsed_seconds": "0.0"
+}

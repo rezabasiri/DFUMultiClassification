@@ -30,11 +30,30 @@ Unique patients:         233 patients
 Unique appointments:     559 patient visits
 Unique DFU instances:    648 distinct wounds
 
-CLASS DISTRIBUTION
-------------------
-Healing Phase 0 (Non-healing):  2,569 samples (82.7%)
-Healing Phase 1 (Healing):      496 samples (16.0%)
-Missing/Unknown:                43 samples (1.4%)
+CLASS DISTRIBUTION (3-class: I/P/R)
+------------------------------------
+In matched dataset (3,108 rows):
+  Inflammatory (I):     893 samples (28.7%)
+  Proliferative (P):  1,880 samples (60.5%)
+  Remodeling (R):       335 samples (10.8%)
+
+In unique samples (648):
+  Inflammatory (I):     203 samples (31.3%)
+  Proliferative (P):   368 samples (56.8%)
+  Remodeling (R):        75 samples (11.6%)
+  Missing/Unknown:        2 samples (0.3%)
+
+After multimodal screening (443 unique):
+  Inflammatory (I):     103 samples (23.3%)
+  Proliferative (P):   280 samples (63.2%)
+  Remodeling (R):        58 samples (13.1%)
+  (Note: class distribution shift reflects that screening
+   removed more I-class samples with ambiguous labels)
+
+Legacy 2-class labeling (not used in experiments):
+  Healing Phase 0 (Non-healing):  2,569 samples (82.7%)
+  Healing Phase 1 (Healing):      496 samples (16.0%)
+  Missing/Unknown:                43 samples (1.4%)
 
 MODALITY IMAGE CHARACTERISTICS
 ------------------------------
@@ -71,10 +90,23 @@ Thermal pattern is biologically consistent: inflammatory wounds are
 hottest (increased blood flow), remodeling wounds are coolest (reduced
 metabolic activity).
 
+TRAINING CONFIGURATION (from joint optimization)
+-------------------------------------------------
+Image input resolution:  128x128 pixels (resized from native with aspect-ratio preservation + zero padding)
+Backbone:               DenseNet121 (ImageNet pretrained) for all image modalities
+Fusion:                 Feature concatenation
+Training:               Two-stage (500 epochs frozen backbone, 30 epochs 5% unfreeze)
+Loss:                   Focal loss (gamma=2.0, frequency-based class weights)
+Metadata:               Random Forest (300 trees, depth 10, k=80 mutual-information features)
+Ensemble:               Simple average of 8 metadata-containing combinations
+Generative aug:         SDXL 1.0, 15% probability, 1-5% mix, 144 cached images/phase
+
 NOTES
 -----
+- Patient count: 268 in raw metadata, 233 after multimodal matching (35 patients had no matched image pairs)
 - Multiple DFUs per image: Some patients presented with multiple wounds captured in the same image
 - Matching loss: 4.5% of depth annotations lost during depth-thermal-metadata matching
-- Class imbalance: ~5:1 ratio of non-healing to healing wounds
-- Depth maps have minimal standalone discriminative value; most useful as complementary signal in multimodal fusion
+- Class imbalance: ~5:1 ratio P:R in the 3-class labeling
+- Depth maps have minimal standalone discriminative value (kappa 0.19); most useful as complementary signal
 - Thermal maps carry meaningful temperature-based signal, especially for distinguishing remodeling from inflammatory/proliferative phases
+- Image size 128x128 selected via joint optimization; 256x256 causes excessive upsampling artifacts from small bounding box crops
