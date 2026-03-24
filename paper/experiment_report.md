@@ -469,6 +469,8 @@ After the fix, generative augmentation shows an inverted-U dose-response across 
 
 The 25% decline confirms that the fixed cache of 144 images per phase becomes a bottleneck at higher injection rates — the model sees the same synthetic images repeatedly, overfitting to SDXL's generation style. The optimal augmentation probability is 6-15%, with 15% preferred when optimising for R-class recall via the gating ensemble.
 
+**Why finer probability tuning was not pursued:** The four tested values (0%, 6%, 15%, 25%) provide a clear dose-response curve with a broad plateau at 6-15%. Finer tuning (e.g., testing 10% or 12%) was not justified because: (1) the treatment effect between 6% and 15% is 0.002 kappa — 15x smaller than the run-to-run variance of ~0.03, making intermediate values statistically indistinguishable; (2) the performance bottleneck lies in the cache size (144 images per phase) and SDXL generation quality, not the injection probability; and (3) the broad plateau means any value in the 6-15% range would produce equivalent results. The selected value of 15% maximises the most clinically relevant metric (F1-R for the minority Remodeling class) while remaining within the safe region of the dose-response curve.
+
 ---
 
 ## 8. Experimental Timeline and Effort
