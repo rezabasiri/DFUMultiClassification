@@ -1,5 +1,5 @@
-[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold1.log
-[LOG] Started at: 2026-03-24 20:18:49
+[LOG] Output is being logged to: /workspace/DFUMultiClassification/results/logs/training_fold2.log
+[LOG] Started at: 2026-03-24 22:33:35
 
 
 ================================================================================
@@ -120,20 +120,26 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata, starting fresh
 
-Training metadata with modalities: ['metadata'], fold 1/5
+Training metadata with modalities: ['metadata'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
@@ -142,56 +148,52 @@ No existing pretrained weights found
 Epoch 21: early stopping
 Restoring model weights from the end of the best epoch: 1.
 
-Run 1 Results for metadata:
+Run 2 Results for metadata:
               precision    recall  f1-score   support
 
-           I       0.73      0.40      0.52        67
-           P       0.83      0.89      0.86       347
-           R       0.48      0.51      0.49        59
+           I       0.45      0.81      0.57        62
+           P       0.79      0.72      0.75       279
+           R       0.50      0.30      0.38        70
 
-    accuracy                           0.77       473
-   macro avg       0.68      0.60      0.62       473
-weighted avg       0.77      0.77      0.76       473
+    accuracy                           0.66       411
+   macro avg       0.58      0.61      0.57       411
+weighted avg       0.69      0.66      0.66       411
 
-Cohen's Kappa: 0.4623
+Cohen's Kappa: 0.4597
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.7738
-F1 Macro: 0.6231
-Kappa: 0.4623
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6642
+F1 Macro: 0.5678
+Kappa: 0.4597
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_train.npy
 Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run1_valid.npy
-Results for metadata appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run2_train.npy
+Saved metadata predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_run2_valid.npy
+Results for metadata updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb
 Number of samples for each selected modality:
@@ -255,83 +257,85 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for depth_rgb, starting fresh
 
-Training depth_rgb with modalities: ['depth_rgb'], fold 1/5
+Training depth_rgb with modalities: ['depth_rgb'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-Epoch 24: early stopping
-Restoring model weights from the end of the best epoch: 9.
-  [SDXL Gen] Total: 200 | By phase: I:41, P:136, R:23
+Epoch 19: early stopping
+Restoring model weights from the end of the best epoch: 4.
+  [SDXL Gen] Total: 200 | By phase: I:49, P:126, R:25
 Epoch 17: early stopping
 Restoring model weights from the end of the best epoch: 2.
-  Stage 2 did NOT improve (s2=0.4480 < s1=0.4591). Restoring S1 weights.
+  Stage 2 did NOT improve (s2=0.4792 < s1=0.5066). Restoring S1 weights.
 
-Run 1 Results for depth_rgb:
+Run 2 Results for depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.39      0.46      0.42        67
-           P       0.82      0.61      0.70       347
-           R       0.35      0.81      0.49        59
+           I       0.62      0.65      0.63        62
+           P       0.78      0.74      0.76       279
+           R       0.40      0.47      0.43        70
 
-    accuracy                           0.61       473
-   macro avg       0.52      0.63      0.54       473
-weighted avg       0.70      0.61      0.63       473
+    accuracy                           0.68       411
+   macro avg       0.60      0.62      0.61       411
+weighted avg       0.69      0.68      0.68       411
 
-Cohen's Kappa: 0.4591
+Cohen's Kappa: 0.5059
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.6131
-F1 Macro: 0.5376
-Kappa: 0.4591
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6788
+F1 Macro: 0.6071
+Kappa: 0.5059
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_train.npy
 Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run1_valid.npy
-Results for depth_rgb appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_train.npy
+Saved depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_run2_valid.npy
+Results for depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_map
 Number of samples for each selected modality:
@@ -395,79 +399,81 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for depth_map, starting fresh
 
-Training depth_map with modalities: ['depth_map'], fold 1/5
+Training depth_map with modalities: ['depth_map'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 22: early stopping
-Restoring model weights from the end of the best epoch: 7.
-Epoch 18: early stopping
-Restoring model weights from the end of the best epoch: 3.
-  Stage 2 did NOT improve (s2=0.1122 < s1=0.1197). Restoring S1 weights.
+Epoch 17: early stopping
+Restoring model weights from the end of the best epoch: 2.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.1316 < s1=0.1551). Restoring S1 weights.
 
-Run 1 Results for depth_map:
+Run 2 Results for depth_map:
               precision    recall  f1-score   support
 
-           I       0.17      0.42      0.24        67
-           P       0.68      0.29      0.41       347
-           R       0.15      0.42      0.23        59
+           I       0.26      0.60      0.36        62
+           P       0.63      0.15      0.24       279
+           R       0.18      0.51      0.27        70
 
-    accuracy                           0.33       473
-   macro avg       0.34      0.38      0.29       473
-weighted avg       0.54      0.33      0.36       473
+    accuracy                           0.28       411
+   macro avg       0.36      0.42      0.29       411
+weighted avg       0.50      0.28      0.26       411
 
-Cohen's Kappa: 0.1197
+Cohen's Kappa: 0.1551
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.3256
-F1 Macro: 0.2926
-Kappa: 0.1197
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.2774
+F1 Macro: 0.2872
+Kappa: 0.1551
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run1_train.npy
 Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run1_valid.npy
-Results for depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run2_train.npy
+Saved depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_run2_valid.npy
+Results for depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: thermal_map
 Number of samples for each selected modality:
@@ -531,79 +537,81 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['thermal_map']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for thermal_map, starting fresh
 
-Training thermal_map with modalities: ['thermal_map'], fold 1/5
+Training thermal_map with modalities: ['thermal_map'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 24: early stopping
-Restoring model weights from the end of the best epoch: 9.
-Epoch 17: early stopping
-Restoring model weights from the end of the best epoch: 2.
-  Stage 2 did NOT improve (s2=0.3631 < s1=0.3748). Restoring S1 weights.
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 29.
+Epoch 16: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.4692 < s1=0.4791). Restoring S1 weights.
 
-Run 1 Results for thermal_map:
+Run 2 Results for thermal_map:
               precision    recall  f1-score   support
 
-           I       0.30      0.42      0.35        67
-           P       0.77      0.59      0.67       347
-           R       0.31      0.59      0.41        59
+           I       0.47      0.68      0.56        62
+           P       0.77      0.53      0.63       279
+           R       0.34      0.64      0.45        70
 
-    accuracy                           0.57       473
-   macro avg       0.46      0.53      0.47       473
-weighted avg       0.64      0.57      0.59       473
+    accuracy                           0.57       411
+   macro avg       0.53      0.62      0.54       411
+weighted avg       0.65      0.57      0.59       411
 
-Cohen's Kappa: 0.3748
+Cohen's Kappa: 0.4791
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.5666
-F1 Macro: 0.4749
-Kappa: 0.3748
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.5693
+F1 Macro: 0.5429
+Kappa: 0.4791
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_train.npy
 Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run1_valid.npy
-Results for thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_train.npy
+Saved thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_thermal_map_run2_valid.npy
+Results for thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb
 Number of samples for each selected modality:
@@ -668,20 +676,26 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_rgb, starting fresh
 
-Training metadata+depth_rgb with modalities: ['metadata', 'depth_rgb'], fold 1/5
+Training metadata+depth_rgb with modalities: ['metadata', 'depth_rgb'], fold 2/5
   ✓ Loaded pre-trained weights for: ['depth_rgb']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
@@ -689,77 +703,74 @@ No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
-  [SDXL Gen] Total: 300 | By phase: I:70, P:203, R:27
-Epoch 51: early stopping
-Restoring model weights from the end of the best epoch: 31.
+  [SDXL Gen] Total: 200 | By phase: I:52, P:131, R:17
+  [SDXL Gen] Total: 300 | By phase: I:68, P:209, R:23
+  [SDXL Gen] Total: 400 | By phase: I:92, P:280, R:28
+Epoch 80: early stopping
+Restoring model weights from the end of the best epoch: 60.
 
 ============================================================
 SDXL Generative Augmentation Summary
 ============================================================
-  Total generated images: 301
+  Total generated images: 497
   Per-phase breakdown:
-    Phase I (Inflammatory): 70 (23.3%)
-    Phase P (Proliferative): 204 (67.8%)
-    Phase R (Remodeling): 27 (9.0%)
+    Phase I (Inflammatory): 121 (24.3%)
+    Phase P (Proliferative): 339 (68.2%)
+    Phase R (Remodeling): 37 (7.4%)
 ============================================================
 
+  [SDXL Gen] Total: 500 | By phase: I:121, P:340, R:39
 Epoch 11: early stopping
 Restoring model weights from the end of the best epoch: 1.
-  Fusion Stage 2 did NOT improve (s2=0.6401 < s1=0.6438). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 34 variables whereas the saved optimizer has 22 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_rgb:
+Run 2 Results for metadata+depth_rgb:
               precision    recall  f1-score   support
 
-           I       0.51      0.73      0.60        67
-           P       0.89      0.81      0.85       347
-           R       0.71      0.71      0.71        59
+           I       0.61      0.92      0.73        62
+           P       0.86      0.63      0.73       279
+           R       0.40      0.63      0.49        70
 
-    accuracy                           0.79       473
-   macro avg       0.70      0.75      0.72       473
-weighted avg       0.81      0.79      0.80       473
+    accuracy                           0.68       411
+   macro avg       0.62      0.73      0.65       411
+weighted avg       0.74      0.68      0.69       411
 
-Cohen's Kappa: 0.6438
+Cohen's Kappa: 0.5945
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.7886
-F1 Macro: 0.7196
-Kappa: 0.6438
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6764
+F1 Macro: 0.6494
+Kappa: 0.5945
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_train.npy
 Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run1_valid.npy
-Results for metadata, depth_rgb appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_train.npy
+Saved metadata+depth_rgb predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_run2_valid.npy
+Results for metadata, depth_rgb updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_map
 Number of samples for each selected modality:
@@ -824,82 +835,84 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_map, starting fresh
 
-Training metadata+depth_map with modalities: ['metadata', 'depth_map'], fold 1/5
+Training metadata+depth_map with modalities: ['metadata', 'depth_map'], fold 2/5
   ✓ Loaded pre-trained weights for: ['depth_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 62: early stopping
-Restoring model weights from the end of the best epoch: 42.
-Epoch 13: early stopping
-Restoring model weights from the end of the best epoch: 3.
-  Fusion Stage 2 did NOT improve (s2=0.3994 < s1=0.4013). Restoring S1 weights.
+Epoch 58: early stopping
+Restoring model weights from the end of the best epoch: 38.
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.4745 < s1=0.4804). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_map:
+Run 2 Results for metadata+depth_map:
               precision    recall  f1-score   support
 
-           I       0.41      0.61      0.49        67
-           P       0.84      0.76      0.80       347
-           R       0.43      0.44      0.44        59
+           I       0.51      0.61      0.56        62
+           P       0.77      0.80      0.79       279
+           R       0.53      0.37      0.44        70
 
-    accuracy                           0.70       473
-   macro avg       0.56      0.60      0.57       473
-weighted avg       0.73      0.70      0.71       473
+    accuracy                           0.70       411
+   macro avg       0.61      0.59      0.59       411
+weighted avg       0.69      0.70      0.69       411
 
-Cohen's Kappa: 0.4013
+Cohen's Kappa: 0.4804
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.6956
-F1 Macro: 0.5734
-Kappa: 0.4013
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6983
+F1 Macro: 0.5941
+Kappa: 0.4804
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run1_train.npy
 Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run1_valid.npy
-Results for metadata, depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run2_train.npy
+Saved metadata+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_run2_valid.npy
+Results for metadata, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, thermal_map
 Number of samples for each selected modality:
@@ -964,82 +977,84 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+thermal_map, starting fresh
 
-Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 1/5
+Training metadata+thermal_map with modalities: ['metadata', 'thermal_map'], fold 2/5
   ✓ Loaded pre-trained weights for: ['thermal_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 85: early stopping
-Restoring model weights from the end of the best epoch: 65.
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
-  Fusion Stage 2 did NOT improve (s2=0.5700 < s1=0.5755). Restoring S1 weights.
+Epoch 44: early stopping
+Restoring model weights from the end of the best epoch: 24.
+Epoch 13: early stopping
+Restoring model weights from the end of the best epoch: 3.
+  Fusion Stage 2 did NOT improve (s2=0.5222 < s1=0.5259). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 26 variables whereas the saved optimizer has 14 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+thermal_map:
+Run 2 Results for metadata+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.55      0.70      0.61        67
-           P       0.89      0.75      0.82       347
-           R       0.47      0.75      0.58        59
+           I       0.51      0.84      0.64        62
+           P       0.81      0.58      0.68       279
+           R       0.37      0.57      0.45        70
 
-    accuracy                           0.74       473
-   macro avg       0.64      0.73      0.67       473
-weighted avg       0.79      0.74      0.76       473
+    accuracy                           0.62       411
+   macro avg       0.56      0.66      0.59       411
+weighted avg       0.69      0.62      0.63       411
 
-Cohen's Kappa: 0.5755
+Cohen's Kappa: 0.5259
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.7442
-F1 Macro: 0.6684
-Kappa: 0.5755
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6204
+F1 Macro: 0.5880
+Kappa: 0.5259
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_train.npy
 Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run1_valid.npy
-Results for metadata, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_train.npy
+Saved metadata+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_thermal_map_run2_valid.npy
+Results for metadata, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, depth_map
 Number of samples for each selected modality:
@@ -1104,83 +1119,87 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for depth_rgb+depth_map, starting fresh
 
-Training depth_rgb+depth_map with modalities: ['depth_rgb', 'depth_map'], fold 1/5
+Training depth_rgb+depth_map with modalities: ['depth_rgb', 'depth_map'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
-Epoch 37: early stopping
-Restoring model weights from the end of the best epoch: 17.
-  [SDXL Gen] Total: 300 | By phase: I:56, P:209, R:35
+  [SDXL Gen] Total: 200 | By phase: I:52, P:131, R:17
+  [SDXL Gen] Total: 300 | By phase: I:68, P:209, R:23
+  [SDXL Gen] Total: 400 | By phase: I:92, P:280, R:28
+Epoch 66: early stopping
+Restoring model weights from the end of the best epoch: 46.
+  [SDXL Gen] Total: 500 | By phase: I:108, P:364, R:28
 Epoch 25: early stopping
 Restoring model weights from the end of the best epoch: 5.
 
-Run 1 Results for depth_rgb+depth_map:
+Run 2 Results for depth_rgb+depth_map:
               precision    recall  f1-score   support
 
-           I       0.32      0.61      0.42        67
-           P       0.83      0.63      0.72       347
-           R       0.49      0.68      0.57        59
+           I       0.56      0.85      0.68        62
+           P       0.84      0.70      0.76       279
+           R       0.42      0.51      0.46        70
 
-    accuracy                           0.63       473
-   macro avg       0.55      0.64      0.57       473
-weighted avg       0.72      0.63      0.66       473
+    accuracy                           0.69       411
+   macro avg       0.61      0.69      0.63       411
+weighted avg       0.73      0.69      0.70       411
 
-Cohen's Kappa: 0.4812
+Cohen's Kappa: 0.5326
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.6342
-F1 Macro: 0.5690
-Kappa: 0.4812
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6886
+F1 Macro: 0.6335
+Kappa: 0.5326
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run1_train.npy
 Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run1_valid.npy
-Results for depth_rgb, depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run2_train.npy
+Saved depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_run2_valid.npy
+Results for depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, thermal_map
 Number of samples for each selected modality:
@@ -1246,83 +1265,87 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for depth_rgb+thermal_map, starting fresh
 
-Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 1/5
+Training depth_rgb+thermal_map with modalities: ['depth_rgb', 'thermal_map'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-  [SDXL Gen] Total: 400 | By phase: I:81, P:270, R:49
-  [SDXL Gen] Total: 600 | By phase: I:129, P:402, R:69
-Epoch 60: early stopping
-Restoring model weights from the end of the best epoch: 40.
-  [SDXL Gen] Total: 800 | By phase: I:169, P:544, R:87
-Restoring model weights from the end of the best epoch: 12.
+  [SDXL Gen] Total: 600 | By phase: I:125, P:435, R:40
+  [SDXL Gen] Total: 700 | By phase: I:155, P:495, R:50
+  [SDXL Gen] Total: 800 | By phase: I:174, P:574, R:52
+Epoch 50: early stopping
+Restoring model weights from the end of the best epoch: 30.
+Epoch 21: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Stage 2 did NOT improve (s2=0.5804 < s1=0.5914). Restoring S1 weights.
 
-Run 1 Results for depth_rgb+thermal_map:
+Run 2 Results for depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.41      0.63      0.49        67
-           P       0.86      0.70      0.77       347
-           R       0.48      0.71      0.58        59
+           I       0.59      0.84      0.69        62
+           P       0.86      0.61      0.72       279
+           R       0.41      0.73      0.53        70
 
-    accuracy                           0.69       473
-   macro avg       0.58      0.68      0.61       473
-weighted avg       0.75      0.69      0.71       473
+    accuracy                           0.67       411
+   macro avg       0.62      0.73      0.64       411
+weighted avg       0.74      0.67      0.68       411
 
-Cohen's Kappa: 0.5245
+Cohen's Kappa: 0.5914
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.6892
-F1 Macro: 0.6126
-Kappa: 0.5245
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6667
+F1 Macro: 0.6449
+Kappa: 0.5914
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_train.npy
 Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run1_valid.npy
-Results for depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_train.npy
+Saved depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_thermal_map_run2_valid.npy
+Results for depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_map, thermal_map
 Number of samples for each selected modality:
@@ -1388,78 +1411,81 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map', 'thermal_map']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for depth_map+thermal_map, starting fresh
 
-Training depth_map+thermal_map with modalities: ['depth_map', 'thermal_map'], fold 1/5
+Training depth_map+thermal_map with modalities: ['depth_map', 'thermal_map'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 52: early stopping
-Restoring model weights from the end of the best epoch: 32.
-Epoch 28: early stopping
-Restoring model weights from the end of the best epoch: 8.
+Epoch 53: early stopping
+Restoring model weights from the end of the best epoch: 33.
+Epoch 27: early stopping
+Restoring model weights from the end of the best epoch: 7.
+  Stage 2 did NOT improve (s2=0.4353 < s1=0.4469). Restoring S1 weights.
 
-Run 1 Results for depth_map+thermal_map:
+Run 2 Results for depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.27      0.51      0.36        67
-           P       0.76      0.57      0.65       347
-           R       0.31      0.46      0.37        59
+           I       0.46      0.68      0.55        62
+           P       0.75      0.55      0.64       279
+           R       0.32      0.53      0.40        70
 
-    accuracy                           0.55       473
-   macro avg       0.45      0.51      0.46       473
-weighted avg       0.63      0.55      0.57       473
+    accuracy                           0.57       411
+   macro avg       0.51      0.59      0.53       411
+weighted avg       0.64      0.57      0.58       411
 
-Cohen's Kappa: 0.3468
+Cohen's Kappa: 0.4469
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.5476
-F1 Macro: 0.4582
-Kappa: 0.3468
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.5669
+F1 Macro: 0.5277
+Kappa: 0.4469
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run1_train.npy
 Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run1_valid.npy
-Results for depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run2_train.npy
+Saved depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_map_thermal_map_run2_valid.npy
+Results for depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, depth_map
 Number of samples for each selected modality:
@@ -1525,20 +1551,26 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_rgb+depth_map, starting fresh
 
-Training metadata+depth_rgb+depth_map with modalities: ['metadata', 'depth_rgb', 'depth_map'], fold 1/5
+Training metadata+depth_rgb+depth_map with modalities: ['metadata', 'depth_rgb', 'depth_map'], fold 2/5
   ✓ Loaded pre-trained weights for: ['depth_rgb', 'depth_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
@@ -1546,76 +1578,73 @@ No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
-Epoch 40: early stopping
-Restoring model weights from the end of the best epoch: 20.
+  [SDXL Gen] Total: 200 | By phase: I:52, P:131, R:17
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
 
 ============================================================
 SDXL Generative Augmentation Summary
 ============================================================
-  Total generated images: 241
+  Total generated images: 281
   Per-phase breakdown:
-    Phase I (Inflammatory): 55 (22.8%)
-    Phase P (Proliferative): 161 (66.8%)
-    Phase R (Remodeling): 25 (10.4%)
+    Phase I (Inflammatory): 64 (22.8%)
+    Phase P (Proliferative): 195 (69.4%)
+    Phase R (Remodeling): 22 (7.8%)
 ============================================================
 
-  [SDXL Gen] Total: 300 | By phase: I:67, P:205, R:28
-Epoch 11: early stopping
-Restoring model weights from the end of the best epoch: 1.
+  [SDXL Gen] Total: 300 | By phase: I:67, P:211, R:22
+Epoch 12: early stopping
+Restoring model weights from the end of the best epoch: 2.
+  Fusion Stage 2 did NOT improve (s2=0.6034 < s1=0.6128). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_rgb+depth_map:
+Run 2 Results for metadata+depth_rgb+depth_map:
               precision    recall  f1-score   support
 
-           I       0.39      0.70      0.50        67
-           P       0.88      0.68      0.77       347
-           R       0.55      0.78      0.64        59
+           I       0.62      0.89      0.73        62
+           P       0.86      0.67      0.75       279
+           R       0.44      0.66      0.53        70
 
-    accuracy                           0.69       473
-   macro avg       0.60      0.72      0.64       473
-weighted avg       0.77      0.69      0.71       473
+    accuracy                           0.70       411
+   macro avg       0.64      0.74      0.67       411
+weighted avg       0.75      0.70      0.71       411
 
-Cohen's Kappa: 0.5525
+Cohen's Kappa: 0.6128
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.6934
-F1 Macro: 0.6354
-Kappa: 0.5525
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.7007
+F1 Macro: 0.6694
+Kappa: 0.6128
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run1_train.npy
 Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run1_valid.npy
-Results for metadata, depth_rgb, depth_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run2_train.npy
+Saved metadata+depth_rgb+depth_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_run2_valid.npy
+Results for metadata, depth_rgb, depth_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, thermal_map
 Number of samples for each selected modality:
@@ -1682,20 +1711,26 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['thermal_map', 'depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['thermal_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_rgb+thermal_map, starting fresh
 
-Training metadata+depth_rgb+thermal_map with modalities: ['metadata', 'depth_rgb', 'thermal_map'], fold 1/5
+Training metadata+depth_rgb+thermal_map with modalities: ['metadata', 'depth_rgb', 'thermal_map'], fold 2/5
   ✓ Loaded pre-trained weights for: ['depth_rgb', 'thermal_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
@@ -1703,77 +1738,74 @@ No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
-  [SDXL Gen] Total: 300 | By phase: I:70, P:203, R:27
-Epoch 64: early stopping
-Restoring model weights from the end of the best epoch: 44.
+  [SDXL Gen] Total: 200 | By phase: I:52, P:131, R:17
+  [SDXL Gen] Total: 300 | By phase: I:68, P:209, R:23
+Epoch 56: early stopping
+Restoring model weights from the end of the best epoch: 36.
 
 ============================================================
 SDXL Generative Augmentation Summary
 ============================================================
-  Total generated images: 376
+  Total generated images: 339
   Per-phase breakdown:
-    Phase I (Inflammatory): 84 (22.3%)
-    Phase P (Proliferative): 250 (66.5%)
-    Phase R (Remodeling): 42 (11.2%)
+    Phase I (Inflammatory): 79 (23.3%)
+    Phase P (Proliferative): 237 (69.9%)
+    Phase R (Remodeling): 23 (6.8%)
 ============================================================
 
-  [SDXL Gen] Total: 400 | By phase: I:88, P:267, R:45
-Epoch 14: early stopping
-Restoring model weights from the end of the best epoch: 4.
+  [SDXL Gen] Total: 400 | By phase: I:89, P:285, R:26
+Epoch 11: early stopping
+Restoring model weights from the end of the best epoch: 1.
+  Fusion Stage 2 did NOT improve (s2=0.6072 < s1=0.6096). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 54 variables whereas the saved optimizer has 30 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_rgb+thermal_map:
+Run 2 Results for metadata+depth_rgb+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.50      0.81      0.62        67
-           P       0.92      0.68      0.78       347
-           R       0.45      0.83      0.58        59
+           I       0.63      0.85      0.73        62
+           P       0.85      0.67      0.75       279
+           R       0.43      0.64      0.51        70
 
-    accuracy                           0.71       473
-   macro avg       0.62      0.77      0.66       473
-weighted avg       0.80      0.71      0.73       473
+    accuracy                           0.70       411
+   macro avg       0.64      0.72      0.66       411
+weighted avg       0.74      0.70      0.71       411
 
-Cohen's Kappa: 0.5890
+Cohen's Kappa: 0.6096
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.7146
-F1 Macro: 0.6600
-Kappa: 0.5890
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6959
+F1 Macro: 0.6636
+Kappa: 0.6096
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run1_train.npy
 Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run1_valid.npy
-Results for metadata, depth_rgb, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run2_train.npy
+Saved metadata+depth_rgb+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_thermal_map_run2_valid.npy
+Results for metadata, depth_rgb, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_map, thermal_map
 Number of samples for each selected modality:
@@ -1840,81 +1872,83 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map', 'thermal_map', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_map+thermal_map, starting fresh
 
-Training metadata+depth_map+thermal_map with modalities: ['metadata', 'depth_map', 'thermal_map'], fold 1/5
+Training metadata+depth_map+thermal_map with modalities: ['metadata', 'depth_map', 'thermal_map'], fold 2/5
   ✓ Loaded pre-trained weights for: ['depth_map', 'thermal_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
-Epoch 37: early stopping
-Restoring model weights from the end of the best epoch: 17.
-Epoch 12: early stopping
-Restoring model weights from the end of the best epoch: 2.
+Epoch 72: early stopping
+Restoring model weights from the end of the best epoch: 52.
+Epoch 14: early stopping
+Restoring model weights from the end of the best epoch: 4.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 46 variables whereas the saved optimizer has 22 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_map+thermal_map:
+Run 2 Results for metadata+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.39      0.55      0.46        67
-           P       0.82      0.70      0.76       347
-           R       0.43      0.59      0.50        59
+           I       0.52      0.85      0.65        62
+           P       0.78      0.63      0.70       279
+           R       0.34      0.41      0.37        70
 
-    accuracy                           0.67       473
-   macro avg       0.55      0.62      0.57       473
-weighted avg       0.71      0.67      0.68       473
+    accuracy                           0.63       411
+   macro avg       0.55      0.63      0.57       411
+weighted avg       0.67      0.63      0.64       411
 
-Cohen's Kappa: 0.4613
+Cohen's Kappa: 0.5104
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.6681
-F1 Macro: 0.5707
-Kappa: 0.4613
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6277
+F1 Macro: 0.5743
+Kappa: 0.5104
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run1_train.npy
 Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run1_valid.npy
-Results for metadata, depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run2_train.npy
+Saved metadata+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_map_thermal_map_run2_valid.npy
+Results for metadata, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: depth_rgb, depth_map, thermal_map
 Number of samples for each selected modality:
@@ -1981,83 +2015,87 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for depth_rgb+depth_map+thermal_map, starting fresh
 
-Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_map', 'thermal_map'], fold 1/5
+Training depth_rgb+depth_map+thermal_map with modalities: ['depth_rgb', 'depth_map', 'thermal_map'], fold 2/5
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
 No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-Epoch 32: early stopping
-Restoring model weights from the end of the best epoch: 12.
-  [SDXL Gen] Total: 200 | By phase: I:42, P:137, R:21
-  [SDXL Gen] Total: 300 | By phase: I:68, P:203, R:29
-Epoch 21: early stopping
-Restoring model weights from the end of the best epoch: 1.
+  [SDXL Gen] Total: 200 | By phase: I:52, P:131, R:17
+  [SDXL Gen] Total: 300 | By phase: I:68, P:209, R:23
+Epoch 65: early stopping
+Restoring model weights from the end of the best epoch: 45.
+  [SDXL Gen] Total: 400 | By phase: I:98, P:272, R:30
+  [SDXL Gen] Total: 500 | By phase: I:111, P:350, R:39
+Epoch 22: early stopping
+Restoring model weights from the end of the best epoch: 2.
 
-Run 1 Results for depth_rgb+depth_map+thermal_map:
+Run 2 Results for depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.45      0.58      0.51        67
-           P       0.83      0.72      0.77       347
-           R       0.41      0.59      0.48        59
+           I       0.62      0.85      0.72        62
+           P       0.84      0.67      0.74       279
+           R       0.41      0.61      0.49        70
 
-    accuracy                           0.68       473
-   macro avg       0.56      0.63      0.59       473
-weighted avg       0.72      0.68      0.70       473
+    accuracy                           0.69       411
+   macro avg       0.62      0.71      0.65       411
+weighted avg       0.73      0.69      0.70       411
 
-Cohen's Kappa: 0.4882
+Cohen's Kappa: 0.5972
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.6829
-F1 Macro: 0.5863
-Kappa: 0.4882
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6861
+F1 Macro: 0.6526
+Kappa: 0.5972
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_train.npy
 Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run1_valid.npy
-Results for depth_rgb, depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_train.npy
+Saved depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_depth_rgb_depth_map_thermal_map_run2_valid.npy
+Results for depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 Testing modalities: metadata, depth_rgb, depth_map, thermal_map
 Number of samples for each selected modality:
@@ -2125,20 +2163,26 @@ All data will be validated exactly once across all folds
 
 Fold 1/5
 Using pre-computed fold 1 patient split
+
+Fold 1/5 skipped (target_fold=2). Loading saved results...
+  Loaded 1 saved metric(s) for Fold 1/5
+
+Fold 2/5
+Using pre-computed fold 2 patient split
 Initializing SDXL GenerativeAugmentationManager (V3) from results/GenerativeAug_Models/sdxl_full/checkpoint_epoch_0035.pt
   Cache size: 14.4 imgs/epoch × 10x variety = 144/phase
   Loaded 432 cached synthetic images from results/generative_aug_cache
 
-Preparing datasets for Fold 1/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
-Using consistent patient split across all modality combinations for run 1
-  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classI_P177_A00_D2.png
-  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classP_P092_A01_D1.png
-  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold1_classR_P094_A01_D1.png
+Preparing datasets for Fold 2/5 with all modalities: ['depth_map', 'thermal_map', 'depth_rgb', 'metadata']
+Using consistent patient split across all modality combinations for run 2
+  [diagnostic] Saved class I sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classI_P177_A00_D2.png
+  [diagnostic] Saved class P sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classP_P092_A01_D1.png
+  [diagnostic] Saved class R sample: /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/fold2_classR_P046_A02_D1.png
   Diagnostic samples saved to /workspace/DFUMultiClassification/results/visualizations/diagnostic_samples/ (3 classes)
 
 No existing data found for metadata+depth_rgb+depth_map+thermal_map, starting fresh
 
-Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 1/5
+Training metadata+depth_rgb+depth_map+thermal_map with modalities: ['metadata', 'depth_rgb', 'depth_map', 'thermal_map'], fold 2/5
   ✓ Loaded pre-trained weights for: ['depth_rgb', 'depth_map', 'thermal_map']
 /venv/multimodal/lib/python3.11/site-packages/keras/src/trainers/trainer.py:212: UserWarning: Model doesn't support `jit_compile=True`. Proceeding with `jit_compile=False`.
   warnings.warn(
@@ -2146,77 +2190,73 @@ No existing pretrained weights found
   Saved generated sample: results/visualizations/gen1.png (phase: P, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen2.png (phase: I, modality: depth_rgb)
   Saved generated sample: results/visualizations/gen3.png (phase: P, modality: depth_rgb)
-  [SDXL Gen] Total: 200 | By phase: I:42, P:138, R:20
-  [SDXL Gen] Total: 300 | By phase: I:70, P:203, R:27
-Epoch 55: early stopping
-Restoring model weights from the end of the best epoch: 35.
+  [SDXL Gen] Total: 200 | By phase: I:52, P:131, R:17
+Epoch 46: early stopping
+Restoring model weights from the end of the best epoch: 26.
 
 ============================================================
 SDXL Generative Augmentation Summary
 ============================================================
-  Total generated images: 325
+  Total generated images: 281
   Per-phase breakdown:
-    Phase I (Inflammatory): 79 (24.3%)
-    Phase P (Proliferative): 215 (66.2%)
-    Phase R (Remodeling): 31 (9.5%)
+    Phase I (Inflammatory): 64 (22.8%)
+    Phase P (Proliferative): 195 (69.4%)
+    Phase R (Remodeling): 22 (7.8%)
 ============================================================
 
+  [SDXL Gen] Total: 300 | By phase: I:67, P:211, R:22
 Epoch 11: early stopping
 Restoring model weights from the end of the best epoch: 1.
-  Fusion Stage 2 did NOT improve (s2=0.5236 < s1=0.5442). Restoring S1 weights.
+  Fusion Stage 2 did NOT improve (s2=0.5937 < s1=0.5967). Restoring S1 weights.
 /venv/multimodal/lib/python3.11/site-packages/keras/src/saving/saving_lib.py:797: UserWarning: Skipping variable loading for optimizer 'adam', because it has 74 variables whereas the saved optimizer has 38 variables. 
   saveable.load_own_variables(weights_store.get(inner_path))
 
-Run 1 Results for metadata+depth_rgb+depth_map+thermal_map:
+Run 2 Results for metadata+depth_rgb+depth_map+thermal_map:
               precision    recall  f1-score   support
 
-           I       0.48      0.43      0.46        67
-           P       0.84      0.84      0.84       347
-           R       0.62      0.66      0.64        59
+           I       0.64      0.84      0.73        62
+           P       0.83      0.70      0.76       279
+           R       0.42      0.57      0.48        70
 
-    accuracy                           0.76       473
-   macro avg       0.65      0.65      0.65       473
-weighted avg       0.76      0.76      0.76       473
+    accuracy                           0.70       411
+   macro avg       0.63      0.70      0.66       411
+weighted avg       0.73      0.70      0.71       411
 
-Cohen's Kappa: 0.5383
+Cohen's Kappa: 0.5967
 
-Training gating network for run 1...
+Training gating network for run 2...
 
 Initializing gating network training...
 Skipping gating network: only 1 model(s), need at least 2 to combine
 
-Gating Network Results for Run 1:
-Accuracy: 0.7632
-F1 Macro: 0.6456
-Kappa: 0.5383
-
-Fold 2/5
-Using pre-computed fold 2 patient split
-
-Fold 2/5 skipped (target_fold=1). Loading saved results...
-  Warning: No saved metrics found for Fold 2/5
+Gating Network Results for Run 2:
+Accuracy: 0.6983
+F1 Macro: 0.6570
+Kappa: 0.5967
 
 Fold 3/5
 Using pre-computed fold 3 patient split
 
-Fold 3/5 skipped (target_fold=1). Loading saved results...
+Fold 3/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 3/5
 
 Fold 4/5
 Using pre-computed fold 4 patient split
 
-Fold 4/5 skipped (target_fold=1). Loading saved results...
+Fold 4/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 4/5
 
 Fold 5/5
 Using pre-computed fold 5 patient split
 
-Fold 5/5 skipped (target_fold=1). Loading saved results...
+Fold 5/5 skipped (target_fold=2). Loading saved results...
   Warning: No saved metrics found for Fold 5/5
 Results saved to /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv
 Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run1_train.npy
 Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run1_valid.npy
-Results for metadata, depth_rgb, depth_map, thermal_map appended to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run2_train.npy
+Saved metadata+depth_rgb+depth_map+thermal_map predictions to /workspace/DFUMultiClassification/results/checkpoints/combo_pred_metadata_depth_rgb_depth_map_thermal_map_run2_valid.npy
+Results for metadata, depth_rgb, depth_map, thermal_map updated in /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
 All results saved to /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv
 
@@ -2238,22 +2278,15 @@ Gating Network Ensemble Results for Fold 1:
   Per-class F1: I=0.6573, P=0.8698, R=0.6929
 
 Fold 2/5
-  Warning: Could not load predictions for metadata
-  Warning: Could not load predictions for depth_rgb
-  Warning: Could not load predictions for depth_map
-  Warning: Could not load predictions for thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb
-  Warning: Could not load predictions for metadata+depth_map
-  Warning: Could not load predictions for metadata+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map
-  Warning: Could not load predictions for depth_rgb+thermal_map
-  Warning: Could not load predictions for depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map
-  Warning: Could not load predictions for metadata+depth_rgb+thermal_map
-  Warning: Could not load predictions for metadata+depth_map+thermal_map
-  Warning: Could not load predictions for depth_rgb+depth_map+thermal_map
-  Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
-  Not enough predictions loaded (0) for gating network ensemble
+
+  Best standalone modality: depth_rgb (kappa=0.3670)
+  Simple average of 8 combinations containing 'depth_rgb':
+
+Gating Network Ensemble Results for Fold 2:
+  Accuracy: 0.7105
+  F1 Macro: 0.6765
+  Kappa: 0.4725
+  Per-class F1: I=0.7518, P=0.7662, R=0.5116
 
 Fold 3/5
   Warning: Could not load predictions for metadata
@@ -2309,10 +2342,10 @@ Fold 5/5
   Warning: Could not load predictions for metadata+depth_rgb+depth_map+thermal_map
   Not enough predictions loaded (0) for gating network ensemble
 
-Gating Network Ensemble Summary (1 folds):
-  Mean Accuracy: 0.8140 ± 0.0000
-  Mean F1 Macro: 0.7400 ± 0.0000
-  Mean Kappa:    0.5857 ± 0.0000
+Gating Network Ensemble Summary (2 folds):
+  Mean Accuracy: 0.7622 ± 0.0517
+  Mean F1 Macro: 0.7083 ± 0.0317
+  Mean Kappa:    0.5291 ± 0.0566
   Results saved to: results/csv/gating_network_averaged_results.csv
 
 ================================================================================
@@ -2321,9 +2354,9 @@ FINAL SUMMARY - BEST MODALITY COMBINATIONS
 
 Best by Accuracy:
   Modalities: metadata+depth_rgb
-  Accuracy: 0.7886 ± 0.0000
-  F1 Macro: 0.7196
-  Kappa: 0.6438
+  Accuracy: 0.7325 ± 0.0561
+  F1 Macro: 0.6845
+  Kappa: 0.6191
 
 Total combinations tested: 15
 ================================================================================

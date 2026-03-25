@@ -13,3 +13,39 @@ FOLD 1/5 - Starting in isolated subprocess
 Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --fold 1 --resume_mode auto
 ================================================================================
 
+
+Fold 1/5 completed successfully.
+
+================================================================================
+FOLD 2/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --fold 2 --resume_mode auto
+================================================================================
+
+
+Fold 2/5 completed successfully.
+
+================================================================================
+FOLD 3/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --fold 3 --resume_mode auto
+================================================================================
+
+
+Fold 3/5 completed successfully.
+
+================================================================================
+FOLD 4/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --fold 4 --resume_mode auto
+================================================================================
+
+
+Fold 4/5 completed successfully.
+
+================================================================================
+FOLD 5/5 - Starting in isolated subprocess
+Command: /venv/multimodal/bin/python src/main.py --mode search --cv_folds 5 --fold 5 --resume_mode auto
+================================================================================
+
+
+Fold 5/5 completed successfully.
+
+All 5 folds completed successfully.
