@@ -1,0 +1,5 @@
+Modality A,Modality B,A_correct_B_wrong,A_wrong_B_correct,chi2,p-value,Significance
+metadata+depth_rgb+thermal_map,metadata,453,390,4.5599,0.032729,*
+metadata+depth_rgb+thermal_map,depth_rgb,400,178,84.5,0.0,***
+metadata+depth_rgb+thermal_map,thermal_map,447,169,124.5601,0.0,***
+metadata+depth_rgb,metadata,381,327,3.9675,0.046386,*

@@ -1,0 +1,71 @@
+{
+  "slope": 0.0692,
+  "intercept": 0.2174,
+  "r_squared": 0.3951,
+  "r_value": 0.6286,
+  "p_value": 0.012078,
+  "std_err": 0.0237,
+  "significant": true,
+  "data_points": [
+    {
+      "n_modalities": 1,
+      "kappa": 0.3948
+    },
+    {
+      "n_modalities": 1,
+      "kappa": 0.3004
+    },
+    {
+      "n_modalities": 1,
+      "kappa": 0.0941
+    },
+    {
+      "n_modalities": 1,
+      "kappa": 0.2778
+    },
+    {
+      "n_modalities": 2,
+      "kappa": 0.4611
+    },
+    {
+      "n_modalities": 2,
+      "kappa": 0.3498
+    },
+    {
+      "n_modalities": 2,
+      "kappa": 0.4311
+    },
+    {
+      "n_modalities": 2,
+      "kappa": 0.3492
+    },
+    {
+      "n_modalities": 2,
+      "kappa": 0.4093
+    },
+    {
+      "n_modalities": 2,
+      "kappa": 0.2634
+    },
+    {
+      "n_modalities": 3,
+      "kappa": 0.4666
+    },
+    {
+      "n_modalities": 3,
+      "kappa": 0.4595
+    },
+    {
+      "n_modalities": 3,
+      "kappa": 0.3662
+    },
+    {
+      "n_modalities": 3,
+      "kappa": 0.3875
+    },
+    {
+      "n_modalities": 4,
+      "kappa": 0.4645
+    }
+  ]
+}

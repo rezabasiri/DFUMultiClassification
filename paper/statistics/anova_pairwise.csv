@@ -1,0 +1,7 @@
+Group A,Group B,Mean Diff,t-stat,p-value,p-corrected,Significance
+1-modal,2-modal,0.1105,-2.5262,0.016357,0.098141,ns
+1-modal,3-modal,0.1532,-3.4219,0.001647,0.009885,**
+1-modal,4-modal,0.1977,-2.9439,0.018896,0.113375,ns
+2-modal,3-modal,0.0426,-1.2309,0.224862,1.0,ns
+2-modal,4-modal,0.0872,-1.4319,0.206355,1.0,ns
+3-modal,4-modal,0.0446,-0.7231,0.497956,1.0,ns

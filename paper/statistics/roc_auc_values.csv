@@ -1,0 +1,16 @@
+Modality,AUC_macro,AUC_weighted,AUC_I,AUC_P,AUC_R
+metadata,0.8193,0.7985,0.819,0.7828,0.856
+depth_rgb,0.7765,0.7291,0.8477,0.6839,0.7977
+depth_map,0.6031,0.5781,0.6657,0.5511,0.5925
+thermal_map,0.7747,0.7075,0.8286,0.6496,0.8459
+metadata+depth_rgb,0.8546,0.8289,0.8996,0.8035,0.8607
+metadata+depth_map,0.762,0.7452,0.8223,0.7246,0.7392
+metadata+thermal_map,0.8512,0.8139,0.8905,0.7805,0.8825
+depth_rgb+depth_map,0.7927,0.7515,0.8567,0.712,0.8093
+depth_rgb+thermal_map,0.8443,0.8007,0.8939,0.7612,0.8779
+depth_map+thermal_map,0.7511,0.678,0.8231,0.6134,0.817
+metadata+depth_rgb+depth_map,0.8479,0.8185,0.9039,0.789,0.8508
+metadata+depth_rgb+thermal_map,0.869,0.831,0.9114,0.7968,0.8987
+metadata+depth_map+thermal_map,0.812,0.7657,0.8616,0.7243,0.8503
+depth_rgb+depth_map+thermal_map,0.8221,0.772,0.8799,0.7266,0.8598
+metadata+depth_rgb+depth_map+thermal_map,0.8666,0.8295,0.9073,0.7961,0.8963

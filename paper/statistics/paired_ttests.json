@@ -1,0 +1,57 @@
+[
+  {
+    "Comparison": "Best fusion vs metadata alone",
+    "Modality A": "metadata+depth_rgb+thermal_map",
+    "Modality B": "metadata",
+    "Mean A": 0.4595,
+    "Mean B": 0.3948,
+    "Diff": 0.0647,
+    "t-stat": 1.0733,
+    "p-value": 0.343559,
+    "Significance": "ns"
+  },
+  {
+    "Comparison": "Best fusion vs best image modality",
+    "Modality A": "metadata+depth_rgb+thermal_map",
+    "Modality B": "depth_rgb",
+    "Mean A": 0.4595,
+    "Mean B": 0.3004,
+    "Diff": 0.159,
+    "t-stat": 6.1508,
+    "p-value": 0.003544,
+    "Significance": "**"
+  },
+  {
+    "Comparison": "Triple fusion vs double fusion",
+    "Modality A": "metadata+depth_rgb+thermal_map",
+    "Modality B": "metadata+depth_rgb",
+    "Mean A": 0.4595,
+    "Mean B": 0.4611,
+    "Diff": -0.0016,
+    "t-stat": -0.0478,
+    "p-value": 0.964182,
+    "Significance": "ns"
+  },
+  {
+    "Comparison": "Double fusion vs metadata alone",
+    "Modality A": "metadata+depth_rgb",
+    "Modality B": "metadata",
+    "Mean A": 0.4611,
+    "Mean B": 0.3948,
+    "Diff": 0.0663,
+    "t-stat": 1.2819,
+    "p-value": 0.269145,
+    "Significance": "ns"
+  },
+  {
+    "Comparison": "All 4 modalities vs best triple",
+    "Modality A": "metadata+depth_rgb+depth_map+thermal_map",
+    "Modality B": "metadata+depth_rgb+thermal_map",
+    "Mean A": 0.4645,
+    "Mean B": 0.4595,
+    "Diff": 0.005,
+    "t-stat": 0.2869,
+    "p-value": 0.788403,
+    "Significance": "ns"
+  }
+]

@@ -1,0 +1,6 @@
+Comparison,Modality A,Modality B,Mean A,Mean B,Diff,t-stat,p-value,Significance
+Best fusion vs metadata alone,metadata+depth_rgb+thermal_map,metadata,0.4595,0.3948,0.0647,1.0733,0.343559,ns
+Best fusion vs best image modality,metadata+depth_rgb+thermal_map,depth_rgb,0.4595,0.3004,0.159,6.1508,0.003544,**
+Triple fusion vs double fusion,metadata+depth_rgb+thermal_map,metadata+depth_rgb,0.4595,0.4611,-0.0016,-0.0478,0.964182,ns
+Double fusion vs metadata alone,metadata+depth_rgb,metadata,0.4611,0.3948,0.0663,1.2819,0.269145,ns
+All 4 modalities vs best triple,metadata+depth_rgb+depth_map+thermal_map,metadata+depth_rgb+thermal_map,0.4645,0.4595,0.005,0.2869,0.788403,ns

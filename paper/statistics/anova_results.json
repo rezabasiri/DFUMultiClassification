@@ -1,0 +1,73 @@
+{
+  "f_statistic": 5.5638,
+  "p_value": 0.001738,
+  "significant": true,
+  "group_means": {
+    "1": 0.2668,
+    "2": 0.3773,
+    "3": 0.4199,
+    "4": 0.4645
+  },
+  "group_stds": {
+    "1": 0.1607,
+    "2": 0.1269,
+    "3": 0.1106,
+    "4": 0.1123
+  },
+  "pairwise": [
+    {
+      "Group A": "1-modal",
+      "Group B": "2-modal",
+      "Mean Diff": 0.1105,
+      "t-stat": -2.5262,
+      "p-value": 0.016357,
+      "p-corrected": 0.098141,
+      "Significance": "ns"
+    },
+    {
+      "Group A": "1-modal",
+      "Group B": "3-modal",
+      "Mean Diff": 0.1532,
+      "t-stat": -3.4219,
+      "p-value": 0.001647,
+      "p-corrected": 0.009885,
+      "Significance": "**"
+    },
+    {
+      "Group A": "1-modal",
+      "Group B": "4-modal",
+      "Mean Diff": 0.1977,
+      "t-stat": -2.9439,
+      "p-value": 0.018896,
+      "p-corrected": 0.113375,
+      "Significance": "ns"
+    },
+    {
+      "Group A": "2-modal",
+      "Group B": "3-modal",
+      "Mean Diff": 0.0426,
+      "t-stat": -1.2309,
+      "p-value": 0.224862,
+      "p-corrected": 1.0,
+      "Significance": "ns"
+    },
+    {
+      "Group A": "2-modal",
+      "Group B": "4-modal",
+      "Mean Diff": 0.0872,
+      "t-stat": -1.4319,
+      "p-value": 0.206355,
+      "p-corrected": 1.0,
+      "Significance": "ns"
+    },
+    {
+      "Group A": "3-modal",
+      "Group B": "4-modal",
+      "Mean Diff": 0.0446,
+      "t-stat": -0.7231,
+      "p-value": 0.497956,
+      "p-corrected": 1.0,
+      "Significance": "ns"
+    }
+  ]
+}
