@@ -48,7 +48,13 @@ Critical research gaps persist: (1) lack of systematic evidence for multimodal i
 
 This paper introduces DFU\nobreakdash-MFNet (Multimodal Fusion Network), addressing these limitations through: (1) jointly optimized feature concatenation fusion where image backbones, metadata classifiers, fusion parameters, and ensemble weights are co\nobreakdash-optimized via Bayesian search; (2) systematic evaluation of all 15 possible modality combinations establishing quantitative evidence for multimodal integration; (3) an ensemble framework combining predictions from metadata\nobreakdash-containing modality combinations for balanced per\nobreakdash-class performance; and (4) generative augmentation using fine\nobreakdash-tuned Stable Diffusion XL (SDXL) models to address class imbalance in the minority remodeling phase.
 
-Our contributions include: development of the DFU\nobreakdash-MFNet architecture achieving Cohen's kappa of 0.61 and accuracy of 75.38\% in three\nobreakdash-class healing phase classification without laboratory diagnostics; demonstration that joint optimization of all pipeline stages outperforms sequential per\nobreakdash-modality tuning (kappa improved from 0.30 to 0.61); characterization of generative augmentation dose\nobreakdash-response showing an optimal injection rate of 15\% with diminishing returns beyond; and establishment of a modality contribution hierarchy providing practical guidance for resource\nobreakdash-adaptive clinical implementation.
+Our contributions include:
+\begin{enumerate}
+\item Development of the DFU\nobreakdash-MFNet architecture achieving Cohen's kappa of 0.61 and accuracy of 75.38\% in three\nobreakdash-class healing phase classification without laboratory diagnostics.
+\item Demonstration that joint optimization of all pipeline stages outperforms sequential per\nobreakdash-modality tuning (kappa improved from 0.30 to 0.61).
+\item Characterization of generative augmentation dose\nobreakdash-response showing an optimal injection rate of 15\% with diminishing returns beyond.
+\item Establishment of a modality contribution hierarchy providing practical guidance for resource\nobreakdash-adaptive clinical implementation.
+\end{enumerate}
 
 \section{Methods}
 
@@ -210,7 +216,14 @@ All Four & 67 & 77 & 57 & 72 $\pm$05 & 0.61 $\pm$0.09 \\
 \end{tabular}
 \end{table}
 
-The full ensemble (averaging all eight metadata\nobreakdash-containing combinations) achieved the highest accuracy (78.50\%) and balanced per\nobreakdash-class performance among all configurations tested. Leave\nobreakdash-one\nobreakdash-out analysis of ensemble composition revealed that not all combinations contribute equally: metadata alone was the strongest contributor (+0.015 kappa when included), while some high\nobreakdash-performing individual combinations (metadata + RGB + thermal) actually degraded ensemble performance ($-$0.016 kappa) due to overconfident predictions. An optimized four\nobreakdash-combination subset (metadata, metadata + depth, metadata + thermal, metadata + RGB + depth) improved ensemble kappa from 0.53 to 0.58 while maintaining accuracy of 80.56\%. This finding indicates that ensemble diversity, not individual combination performance, determines ensemble effectiveness.
+The full ensemble (averaging all eight metadata\nobreakdash-containing combinations) achieved the highest accuracy (78.50\%) and balanced per\nobreakdash-class performance among all configurations tested. Leave\nobreakdash-one\nobreakdash-out analysis of ensemble composition revealed that not all combinations contribute equally: metadata alone was the strongest contributor (+0.015 kappa when included), while some high\nobreakdash-performing individual combinations (metadata + RGB + thermal) actually degraded ensemble performance ($-$0.016 kappa) due to overconfident predictions. An optimized four\nobreakdash-combination subset improved ensemble kappa from 0.53 to 0.58 while maintaining accuracy of 80.56\%. The selected combinations were:
+\begin{itemize}
+\item Metadata (standalone)
+\item Metadata + depth
+\item Metadata + thermal
+\item Metadata + RGB + depth
+\end{itemize}
+This finding indicates that ensemble diversity, not individual combination performance, determines ensemble effectiveness.
 
 Figure~\ref{fig:dose_response} shows the effect of generative augmentation probability on ensemble performance, illustrating the inverted\nobreakdash-U dose\nobreakdash-response with optimal F1\nobreakdash-R at 15\% injection probability.
 
@@ -258,7 +271,13 @@ Future directions include longitudinal validation studies enabling healing traje
 \section{Conclusion}
 This paper introduces DFU\nobreakdash-MFNet, a multimodal fusion network addressing critical gaps in DFU healing phase classification. Through systematic investigation of fusion strategies, joint Bayesian optimization, and ensemble methods, this work establishes quantitative evidence for the complementary value of integrating clinical metadata, RGB imaging, thermal mapping, and depth sensing in wound evaluation.
 
-Key contributions include: the DFU\nobreakdash-MFNet architecture with jointly optimized feature concatenation fusion achieving Cohen's kappa of 0.61 and accuracy of 75.38\% in three\nobreakdash-class healing phase classification; demonstration that joint optimization of all pipeline components outperforms sequential per\nobreakdash-modality tuning (kappa improved from 0.30 to 0.61); characterization of SDXL\nobreakdash-based generative augmentation dose\nobreakdash-response with optimal minority class recall improvement of 0.03 at 15\% injection probability; and a parameter\nobreakdash-free ensemble framework achieving 78.86\% accuracy by averaging predictions from metadata\nobreakdash-containing modality combinations.
+Key contributions include:
+\begin{enumerate}
+\item The DFU\nobreakdash-MFNet architecture with jointly optimized feature concatenation fusion achieving Cohen's kappa of 0.61 and accuracy of 75.38\% in three\nobreakdash-class healing phase classification.
+\item Demonstration that joint optimization of all pipeline components outperforms sequential per\nobreakdash-modality tuning (kappa improved from 0.30 to 0.61).
+\item Characterization of SDXL\nobreakdash-based generative augmentation dose\nobreakdash-response with optimal minority class recall improvement at 15\% injection probability.
+\item A parameter\nobreakdash-free ensemble framework achieving 80.56\% accuracy by averaging predictions from an optimized subset of metadata\nobreakdash-containing modality combinations.
+\end{enumerate}
 
 Experimental validation on 443 wound assessments from 233 patients using five\nobreakdash-fold patient\nobreakdash-stratified cross\nobreakdash-validation demonstrates framework effectiveness across diverse clinical presentations. Statistical analyses confirmed significant performance improvements across modality combinations ($p < 0.05$).
 % DONE: p-values computed — McNemar's test: fusion vs metadata p=0.03*, fusion vs depth_rgb p<0.001***. Paired t-test: fusion vs metadata p=0.34 (ns on fold-level kappa, significant at sample level via McNemar's). See paper/statistics/
