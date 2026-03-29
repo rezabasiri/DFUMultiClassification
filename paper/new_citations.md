@@ -44,3 +44,5 @@ This document lists all citations added during the paper update process that wer
 | he2016deep | ResNet alternative tested | Needs verification |
 | lin2017focal | Focal loss | Needs verification |
 | podell2024sdxl | SDXL generative augmentation | Needs verification |
+| wang2004image | SSIM metric definition | Needs verification |
+| zhang2018unreasonable | LPIPS metric definition | Needs verification |
