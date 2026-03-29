@@ -178,7 +178,7 @@ The ensemble combines softmax predictions from all modality combinations that in
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.3}
-\caption{Performance Analysis Across Key Modality Combinations. Complete results for all 15 combinations are provided in Supplementary Table~S1.}
+\caption{Performance Analysis Across Key Modality Combinations. Complete results for all 15 combinations are provided in Appendix~A, Table~\ref{tab:supplementary_all_combos}.}
 \label{tab:comprehensive_results}
 \centering
 \begin{tabular}{|l|c|c|c|c|c|}
@@ -269,6 +269,49 @@ The code used in this study is publicly available through the GitHub repository 
 
 \section*{Acknowledgment}
 The authors thank the clinicians and staff at the Zivot Limb Preservation Centre for their invaluable support in data collection and clinical expertise. We acknowledge the patients who participated in this study and the technical support provided by the research teams at the University of Toronto, University Health Network and Alberta Health Services.
+
+\appendices
+\section{Complete Modality Combination Results}
+\label{app:all_combos}
+
+\begin{table*}[!ht]
+\renewcommand{\arraystretch}{1.2}
+\caption{Complete Performance Analysis for All 15 Modality Combinations (five-fold patient-stratified cross-validation with 15\% generative augmentation)}
+\label{tab:supplementary_all_combos}
+\centering
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Modality Combination} & \textbf{F1-I} & \textbf{F1-P} & \textbf{F1-R} & \textbf{Acc (\%)} & \textbf{$\pm$std} & \textbf{$\kappa$} & \textbf{$\pm$std} \\
+\hline
+\multicolumn{8}{|l|}{\textit{Single modalities}} \\
+\hline
+Metadata & 0.53 & 0.79 & 0.51 & 70.55 & 8.42 & 0.45 & 0.17 \\
+RGB & 0.59 & 0.66 & 0.46 & 60.96 & 4.73 & 0.51 & 0.07 \\
+Thermal & 0.54 & 0.62 & 0.48 & 58.13 & 5.94 & 0.50 & 0.10 \\
+Depth & 0.37 & 0.52 & 0.22 & 44.21 & 9.22 & 0.19 & 0.05 \\
+\hline
+\multicolumn{8}{|l|}{\textit{Dual modalities}} \\
+\hline
+Metadata + RGB & 0.69 & 0.77 & 0.54 & 72.28 & 3.61 & 0.61 & 0.07 \\
+Metadata + Thermal & 0.67 & 0.75 & 0.57 & 70.20 & 3.42 & 0.60 & 0.06 \\
+Metadata + Depth & 0.54 & 0.74 & 0.44 & 66.54 & 10.45 & 0.44 & 0.10 \\
+RGB + Thermal & 0.59 & 0.76 & 0.50 & 70.05 & 12.79 & 0.55 & 0.13 \\
+RGB + Depth & 0.52 & 0.74 & 0.45 & 67.04 & 8.65 & 0.47 & 0.10 \\
+Depth + Thermal & 0.49 & 0.64 & 0.44 & 58.34 & 7.21 & 0.45 & 0.11 \\
+\hline
+\multicolumn{8}{|l|}{\textit{Triple modalities}} \\
+\hline
+Meta + RGB + Thermal & 0.69 & 0.76 & 0.54 & 71.24 & 4.49 & 0.61 & 0.09 \\
+Meta + RGB + Depth & 0.62 & 0.81 & 0.53 & 73.59 & 10.89 & 0.57 & 0.11 \\
+Meta + Depth + Thermal & 0.55 & 0.70 & 0.47 & 63.53 & 11.26 & 0.50 & 0.11 \\
+RGB + Depth + Thermal & 0.56 & 0.74 & 0.48 & 67.66 & 12.11 & 0.52 & 0.12 \\
+\hline
+\multicolumn{8}{|l|}{\textit{Quaternary}} \\
+\hline
+All Four Modalities & 0.67 & 0.77 & 0.57 & 71.95 & 4.99 & 0.61 & 0.09 \\
+\hline
+\end{tabular}
+\end{table*}
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
