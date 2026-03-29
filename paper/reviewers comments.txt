@@ -1,0 +1,91 @@
+Associate Editor's comments to the authors:
+Associate Editor
+Comments to the Author:
+The reviewers have raised their concerns on the motivation of the proposed method, how the proposed approach handles the challenges, and lack of justifications for the proposed method.
+
+Reviewers' comments to the authors:
+Reviewer: 1
+
+Comments to the Corresponding Author
+I recommend major revision for the following critical reasons:
+1. The proposed GAMAN architecture combines numerous existing components including EfficientNetB3 for feature extraction, standard attention mechanisms, gating networks, and Stable Diffusion for augmentation without demonstrating fundamental innovation beyond incremental engineering.
+2. The paper does not adequately justify why this specific complex combination is necessary or optimal compared to simpler alternatives. The dynamic fusion and hierarchical attention mechanisms are presented as novel contributions, but similar approaches have been extensively explored in multimodal medical imaging. The claimed 76% accuracy improvement is measured against poorly defined single-modality baselines rather than state-of-the-art multimodal methods.
+3. The architectural complexity (early fusion, late fusion, multi-head attention, modality-specific weights, ensemble approaches) appears excessive without systematic ablation studies demonstrating that each component provides substantial and necessary performance gains.
+4. The study relies exclusively on the Zivot dataset containing only 1,700 unique modality combination data points from 268 patients. This sample size is insufficient to train and validate the proposed complex deep learning architecture without substantial risk of overfitting. The five-fold cross-validation with patient-wise splitting is appropriate but does not compensate for the limited dataset diversity. Critically, the paper lacks external validation on independent datasets from different institutions, imaging protocols, or patient populations. The acknowledgment that “class imbalance (I: 24%, P: 57%, R: 19%)” exists but the inadequate discussion of how this imbalance affects model performance and generalization is concerning.
+5. The use of Stable Diffusion for generating synthetic DFU images achieving “scores of (2.14 ± 0.10) for inflammatory, (1.89 ± 0.17) for proliferative, and (2.10 ± 0.11) for remodeling phases” is presented without adequate validation of whether these synthetic images preserve clinically relevant features or introduce artifacts that could bias the model. The paper applies augmentation to “10-40% of batch images” during training but does not analyze how this affects model learning dynamics or whether the model is learning from real clinical patterns versus synthetic artifacts. The claimed “6.4 percentage point accuracy improvement” from generative augmentation cannot be properly evaluated without rigorous analysis of synthetic image quality, clinical validity assessed by domain experts, and potential distribution shift between real and synthetic data.
+6. The comparison with existing methods is superficial and limited. While the paper mentions that “Al-Garaawi et al. [31] reported F1-scores of 0.95-0.99 for binary RGB-thermal classification” and “Liusuwan et al. [19] achieved 0.96 for binary classification,” it dismisses these approaches by stating they “don’t address temporal healing complexity” without providing direct quantitative comparison on the same three-class task. The cited works use different datasets and evaluation protocols, making performance comparison impossible. The paper does not compare against recent state-of-the-art multimodal medical image classification methods, transformer-based architectures, or other attention-based fusion approaches from the broader literature. Most critically, there is no clinical validation demonstrating that the proposed system actually improves clinical decision-making, patient outcomes, or workflow efficiency.
+7. The discussion mentions “clinical significance lies in potential to enhance treatment planning through accurate phase identification” but provides no evidence from clinician evaluation, user studies, prospective clinical trials, or analysis of how the 76% accuracy (still leaving 24% error rate) would impact clinical decisions. The acknowledgment that “implementation costs (approximately $3,000-$5,000 per unit) may represent barriers” without analysis of cost-effectiveness, clinical utility, or comparison with existing assessment methods further undermines the practical contribution of this work.​​​​​​​​​
+
+Reviewer: 2
+
+Comments to the Corresponding Author
+This manuscript presents GAMAN, a novel deep learning architecture for classifying diabetic foot ulcer (DFU) healing into three distinct phases: inflammatory, proliferative, and remodeling. The authors utilize a multimodal dataset (clinical metadata, RGB, thermal, and depth) and introduce several sophisticated techniques, including dynamic fusion, cross-modal attention, a focal ordinal loss function, and generative augmentation using Stable Diffusion. The goal of creating an objective, accessible system for phase-specific DFU assessment is clinically significant and timely.
+The paper suffers from several major issues:
+Insufficient Ablation Studies: The paper proposes a complex architecture (GAMAN) with dynamic fusion and attention but provides no ablation studies. It is unclear if the gains come from the attention/gating mechanisms or simply from increased model parameters. Fair comparisons against simpler fusion strategies (e.g., early, late) and models without attention/gating are missing, making it impossible to justify the architecture's complexity.
+Misleading Baseline Comparison and Overstated Contribution: The paper's primary claim of a 38% improvement is based on a weak 55% metadata-only baseline from this study's specific, small dataset. This conveniently ignores the authors' own prior work which achieved 69% accuracy using metadata alone. This suggests the true incremental gain of adding three imaging modalities and a highly complex architecture is marginal (~7%), not 38%.
+Extremely Low Input Resolution: Resizing all images to 64x64 pixels is a questionable decision that likely discards crucial wound texture. Using a large model like EfficientNetB3 on such tiny images is inefficient and poorly justified.
+Dataset Limitations: The dataset is small (1,700 data points) for such a complex model and suffers from significant class imbalance (e.g., Remodeling phase is only 19%), leading to inconsistent F1-scores across phases (Table I).
+Lack of Generalizability due to Selection Bias and Unaddressed Hardware Barriers: The study's generalizability is limited. It relies on a single-site dataset and was trained only on a "perfect" subset of data where "all four modalities available", creating a significant selection bias that excludes resource-constrained scenarios. The paper acknowledges this high-cost barrier (approx. $3,000-$5,000 per unit) as a "barrier for primary care adoption" but fails to clarify if this cost refers to a single multi-modal acquisition device or multiple independent cameras. The expensive equipment cost and the requirement for aligned multi-modal data contradict the paper's claim of a "resource-adaptive" healthcare environment.
+Inadequate Definition and Validation of Novel Components: The paper's novelty relies on a focal-ordinal loss and generative augmentation, but both lack rigorous validation.
+Loss: The paper fails to explicitly define the ordinal mapping (e.g., I/P/R -> 0/1/2) or the implementation details of the predicted ordinal value (y). Furthermore, probability calibration (e.g., ECE) is not reported, which is critical for clinical decision support.
+Augmentation: The generative augmentation is only evaluated by FID scores and accuracy gains. There is no clinical expert validation of the synthetic images' realism or phase-correctness, nor analysis of potential artifacts or semantic label drift.
+
+Reviewer: 3
+
+Major Comments
+1. The study uses the Zivot dataset containing 1,700 samples from 268 patients, which
+is relatively small for a multimodal deep learning model with generative
+augmentation. While the results are promising, the single-site nature of the data
+limits confidence in generalizability. I recommend adding some form of external
+validation (for example, on DFU2020 or similar datasets) or a discussion explaining
+how the model would generalize to unseen populations and imaging systems.
+2. The introduction of Stable Diffusion for data augmentation is innovative, but the
+manuscript only relies on FID scores to claim image realism. Since FID measures
+visual similarity rather than clinical validity, it would strengthen the work to include
+a qualitative review from clinicians or a comparison of real and synthetic image
+embeddings (e.g., via t-SNE). This would confirm that the generated images
+genuinely capture healing-phase characteristics.
+3. The reported 38% improvement over single-modality baselines is impressive;
+however, the comparison does not include other multimodal approaches published
+recently for DFU or related wound analysis. Including or at least discussing
+comparisons with models such as DFU-VIRNet, DFU-Net++, or transformer-based
+multimodal architectures would provide clearer context for the claimed
+advancement.
+4. The attention weight analysis is interesting, but there are no visual examples of how
+attention maps correspond to specific wound regions or modalities. Adding
+qualitative attention heatmaps or feature-importance visualizations would enhance
+interpretability and clinical trust in the model’s decision process.
+5. The description of the dynamic fusion and gating network could be clearer. Readers
+would benefit from more detail on how missing modalities are handled during
+inference, the role of the ordinal loss, and the key training hyperparameters. A flow
+diagram or pseudocode summarizing the training pipeline would improve
+reproducibility.
+6. Statistical results are mainly reported through p-values. Including effect sizes or
+confidence intervals would help assess the real magnitude of improvement. It would
+also be useful to interpret whether the reported 76% accuracy meets any clinical
+thresholds for deployment in wound assessment.
+7. The discussion could elaborate more on how the proposed system might be
+integrated into clinical workflows, especially in resource-limited settings. Although
+the cost of equipment is briefly mentioned, outlining a practical deployment
+scenario (e.g., minimal setup using metadata + one imaging modality) would
+increase the paper’s applied relevance.
+8. Class imbalance is acknowledged but not adequately analyzed. A confusion matrix
+or per-class precision/recall table would clarify whether the model performs
+consistently across all healing phases.
+Minor Comments
+1. The manuscript is generally well written, but a few sections (particularly the
+Methods) could benefit from improved sentence flow and shorter paragraphs for
+clarity.
+2. Figures 5–8 are informative, yet their captions could be more descriptive,
+explaining what each subpanel represents and how they support the claims.
+3. Some abbreviations (e.g., FID, CLIP) should be defined at first use for clarity.
+4. Ensure consistency in decimal places across all reported performance metrics (two
+decimals are preferable).
+5. The reference list is comprehensive, but some citations (e.g., for Stable Diffusion or
+recent multimodal transformers) could include DOIs for completeness.
+6. It would be useful to add a graphical abstract or workflow diagram summarizing the
+multimodal pipeline for quick understanding.
+7. Ensure that figure resolution meets IEEE publication standards, especially for
+Figures 3 and 8 which contain detailed architectural schematics.
+8. Consider proofreading the text for minor typographical issues (e.g., missing commas
+or spacing inconsistencies in numerical values).
