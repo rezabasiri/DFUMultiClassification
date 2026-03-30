@@ -46,3 +46,15 @@ This document lists all citations added during the paper update process that wer
 | podell2024sdxl | SDXL generative augmentation | Needs verification |
 | wang2004image | SSIM metric definition | Needs verification |
 | zhang2018unreasonable | LPIPS metric definition | Needs verification |
+| basiri2026temporal | Metadata power for healing trajectory | Author's own work |
+| basiri2025synthesizing | Prior DFU diffusion model work | Author's own work |
+| basiri2025enhancing | Prior DFU vision-language work | Author's own work |
+| basiri2025ulcergpt | Prior DFU LLM work | Author's own work |
+| breiman1996stacked | Stacked regression / weighted averaging | Needs verification |
+| guo2017calibration | Temperature scaling calibration | Needs verification |
+| wolpert1992stacked | Stacked generalization | Needs verification |
+| friedman2001greedy | Gradient boosting | Needs verification |
+| vaswani2017attention | Multi-head attention | Needs verification |
+| snoek2012practical | Bayesian optimization | Needs verification |
+| jones1998efficient | Expected Improvement acquisition | Needs verification |
+| howard2019searching | MobileNetV3 | Needs verification |
