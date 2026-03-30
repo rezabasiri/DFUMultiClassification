@@ -7,3 +7,4 @@ layers, processed through an ensemble framework using a
 gating network with adaptive attention mechanisms learning
 phase-dependent patterns.
 " still true or needs to be updated? are there more instantces of outdated attention and gating network info in the paper?
+4. The zivot dataset description in the abstract (patient numbers, etc) the values are not consisten with the description in "B. Dataset and Preprocessing" keep the stats of any sort consistent through out of the paper and to the correct ones.
