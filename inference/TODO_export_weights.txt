@@ -1,0 +1,168 @@
+TODO: Export Full-Data Weights for Inference Deployment
+=======================================================
+
+Goal: Train each of the 4 optimized ensemble combos on 90% of the data
+with 10% held out as validation (and later used as inference demo data).
+This produces 4 weight files instead of 20 (5-fold x 4 combos).
+
+
+Step 1: Modify production_config.py
+------------------------------------
+
+Open src/utils/production_config.py and make these changes:
+
+  1. MODALITY_SEARCH_MODE = 'custom'        (line ~547, change from 'all')
+
+  2. INCLUDED_COMBINATIONS should be set to the 4 optimized ensemble combos:
+
+       INCLUDED_COMBINATIONS = [
+           ('metadata',),
+           ('metadata', 'depth_map'),
+           ('metadata', 'thermal_map'),
+           ('metadata', 'depth_rgb', 'depth_map'),
+       ]
+
+     (line ~558, replace the existing list)
+
+  3. USE_GATING_NETWORK = True              (should already be True)
+     This runs the ensemble step after training all 4 combos.
+
+  4. USE_GENERATIVE_AUGMENTATION = True     (should already be True)
+     GENERATIVE_AUG_PROB = 0.15            (should already be 0.15)
+
+  5. USE_CORE_DATA = True                   (should already be True)
+
+  6. All other training parameters should remain at their production values:
+       IMAGE_SIZE = 128
+       STAGE1_EPOCHS = 500
+       STAGE2_FINETUNE_EPOCHS = 30
+       STAGE1_LR = 1.716e-3
+       STAGE2_LR = 5e-6
+       EARLY_STOP_PATIENCE = 20
+       RF_N_ESTIMATORS = 300
+       RF_MAX_DEPTH = 10
+       RF_FEATURE_SELECTION_K = 80
+
+
+Step 2: Run training
+--------------------
+
+  python src/main.py \
+    --mode search \
+    --cv_folds 1 \
+    --train_patient_percentage 0.90 \
+    --resume_mode fresh \
+    --verbosity 1
+
+  Flags explained:
+    --mode search              Run modality combination search
+    --cv_folds 1               Single train/val split (no cross-validation)
+    --train_patient_percentage 0.90   Use 90% patients for training, 10% for validation
+    --resume_mode fresh        Start clean (delete old checkpoints)
+    --verbosity 1              Normal output
+
+  Note: --train_patient_percentage is only used when --cv_folds is 0 or 1.
+  With --cv_folds > 1, it is ignored and stratified K-fold splitting is used.
+
+  Expected runtime: depends on GPU. With RTX A5000, roughly 2-4 hours
+  for 4 combos x 1 fold.
+
+
+Step 3: Copy weight files to inference/weights/
+------------------------------------------------
+
+After training completes, the weight files will be in results/models/.
+The naming pattern is: {sorted_modalities}_{fold}_{combo_name}.weights.h5
+With --cv_folds 1, the fold number is 1.
+
+Copy and rename for clean inference naming:
+
+  cp results/models/metadata_1_metadata.weights.h5 \
+     inference/weights/metadata.weights.h5
+
+  cp results/models/depth_map_metadata_1_metadata+depth_map.weights.h5 \
+     inference/weights/metadata+depth_map.weights.h5
+
+  cp results/models/metadata_thermal_map_1_metadata+thermal_map.weights.h5 \
+     inference/weights/metadata+thermal_map.weights.h5
+
+  cp results/models/depth_map_depth_rgb_metadata_1_metadata+depth_rgb+depth_map.weights.h5 \
+     inference/weights/metadata+depth_rgb+depth_map.weights.h5
+
+
+Step 4: Export RF pipeline
+--------------------------
+
+  python inference/export_rf_pipeline.py \
+    --csv data/raw/DataMaster_Processed_V12_WithMissing.csv \
+    --output inference/weights/rf_pipeline.joblib
+
+
+Step 5: Extract demo data from the 10% validation split
+--------------------------------------------------------
+
+The validation predictions and labels are saved in results/checkpoints/:
+  pred_run1_{combo}_valid.npy
+  true_label_run1_{combo}_valid.npy
+
+The patient split is saved in:
+  results/checkpoints/patient_split_run1.npz
+
+Use this to identify the 10% validation patients and extract their
+rows from the main CSV + their images as a demo dataset:
+
+  mkdir -p inference/demo_data
+
+  Then extract the validation patient IDs from patient_split_run1.npz
+  and filter the main CSV to those patients. Copy their images to
+  inference/demo_data/Depth_RGB/, Depth_Map_IMG/, Thermal_Map_IMG/.
+
+  A helper script can be written for this, or done manually:
+
+    import numpy as np
+    split = np.load('results/checkpoints/patient_split_run1.npz', allow_pickle=True)
+    val_patients = split['valid_patients']  # or similar key name
+    # Filter CSV to these patients and save as demo_data.csv
+
+
+Step 6: Verify inference
+------------------------
+
+  python inference/inference.py \
+    --csv inference/demo_data/demo_data.csv \
+    --image_dir inference/demo_data \
+    --weights_dir inference/weights \
+    --rf_pipeline inference/weights/rf_pipeline.joblib \
+    --output inference/demo_data/demo_predictions.csv
+
+  Compare demo_predictions.csv against the known labels to verify
+  the inference pipeline produces correct results.
+
+
+Step 7: Restore production_config.py (optional)
+------------------------------------------------
+
+If you want to run full 5-fold CV experiments again later, revert:
+  MODALITY_SEARCH_MODE = 'all'
+  INCLUDED_COMBINATIONS = [original list]
+
+Or simply use git to restore the file:
+  git checkout src/utils/production_config.py
+
+
+Summary of expected output files
+---------------------------------
+
+  inference/weights/
+    metadata.weights.h5                     (~20 KB)
+    metadata+depth_map.weights.h5           (~30 MB)
+    metadata+thermal_map.weights.h5         (~30 MB)
+    metadata+depth_rgb+depth_map.weights.h5 (~59 MB)
+    rf_pipeline.joblib                      (~5-10 MB)
+
+  inference/demo_data/
+    demo_data.csv                           (10% of samples)
+    Depth_RGB/                              (demo RGB images)
+    Depth_Map_IMG/                          (demo depth maps)
+    Thermal_Map_IMG/                        (demo thermal maps)
+    demo_predictions.csv                    (inference output for verification)
