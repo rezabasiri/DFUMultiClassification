@@ -115,7 +115,7 @@ def get_all_metrics():
             pred, labels = load_predictions(mod, fold)
             if pred is not None:
                 pc = np.argmax(pred, axis=1)
-                fold_kappas.append(cohen_kappa_score(labels, pc))
+                fold_kappas.append(cohen_kappa_score(labels, pc, weights='quadratic'))
                 fold_accs.append(accuracy_score(labels, pc))
                 f1c = f1_score(labels, pc, labels=[0, 1, 2], average=None, zero_division=0)
                 for c in range(3):
@@ -413,7 +413,7 @@ def fig8_ensemble_calibration():
             pred, labels = load_predictions(mod, fold)
             if pred is not None:
                 fold_kappas.append(
-                    cohen_kappa_score(labels, np.argmax(pred, axis=1)))
+                    cohen_kappa_score(labels, np.argmax(pred, axis=1), weights='quadratic'))
         if fold_kappas:
             combo_kappas[mod] = np.mean(fold_kappas)
 
@@ -423,7 +423,7 @@ def fig8_ensemble_calibration():
         avg_pred, labels = compute_ensemble_predictions(METADATA_COMBOS, fold)
         if avg_pred is not None:
             full_kappas.append(
-                cohen_kappa_score(labels, np.argmax(avg_pred, axis=1)))
+                cohen_kappa_score(labels, np.argmax(avg_pred, axis=1), weights='quadratic'))
     full_kappa = np.mean(full_kappas) if full_kappas else 0
 
     # Optimized ensemble (4 combos)
@@ -432,7 +432,7 @@ def fig8_ensemble_calibration():
         avg_pred, labels = compute_ensemble_predictions(OPTIMIZED_ENSEMBLE, fold)
         if avg_pred is not None:
             opt_kappas.append(
-                cohen_kappa_score(labels, np.argmax(avg_pred, axis=1)))
+                cohen_kappa_score(labels, np.argmax(avg_pred, axis=1), weights='quadratic'))
     opt_kappa = np.mean(opt_kappas) if opt_kappas else 0
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5.5))
