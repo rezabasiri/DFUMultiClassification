@@ -122,7 +122,8 @@
       "Bash(rm -f /workspace/DFUMultiClassification/results/checkpoints/*.npy /workspace/DFUMultiClassification/results/checkpoints/*.json)",
       "Bash(rm -f /workspace/DFUMultiClassification/results/models/*.weights.h5 /workspace/DFUMultiClassification/results/models/*.h5)",
       "Bash(rm -f /workspace/DFUMultiClassification/results/csv/modality_results_run_*.csv /workspace/DFUMultiClassification/results/csv/modality_results_averaged.csv /workspace/DFUMultiClassification/results/csv/modality_combination_results.csv /workspace/DFUMultiClassification/results/csv/gating_*.csv /workspace/DFUMultiClassification/results/csv/model_combination_results_*.txt)",
-      "Bash(/home/rezab/projects/enviroments/multimodal/bin/python3 /home/rezab/projects/DFUMultiClassification/paper/generate_figures_v2.py)"
+      "Bash(/home/rezab/projects/enviroments/multimodal/bin/python3 /home/rezab/projects/DFUMultiClassification/paper/generate_figures_v2.py)",
+      "WebSearch"
     ]
   }
 }
