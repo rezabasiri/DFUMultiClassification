@@ -105,3 +105,4 @@ results/tf_records_search_224_pretrained_noaug
 results/tf_records_search_256_pretrained_aug
 results/tf_records_search_256_pretrained_noaug
 results/tf_records_search_256_simplecnn_aug
+inference/demo_data.npz

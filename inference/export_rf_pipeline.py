@@ -34,12 +34,14 @@ RF_FEATURE_SELECTION_K = 80
 
 # Columns to exclude (treatment info causes data leakage)
 EXCLUDE_PREFIXES = ['treatment', 'dressing', 'offloading', 'antibiotic']
-EXCLUDE_COLS = ['target_class', 'assessment_id', 'patient_id', 'filename',
+EXCLUDE_COLS = ['target_class', 'Healing Phase Abs', 'Healing Phase', 'Phase Confidence (%)',
+                'label',
+                'assessment_id', 'patient_id', 'Patient#', 'ID', 'filename',
                 'depth_rgb_filename', 'depth_map_filename', 'thermal_map_filename',
                 'thermal_rgb_filename', 'wound_id', 'visit_date', 'sample_id',
                 'depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax',
                 'thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
-TARGET_COL = 'target_class'
+TARGET_COL = 'Healing Phase Abs'
 
 
 def get_metadata_features(df):

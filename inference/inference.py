@@ -14,6 +14,7 @@ Ensemble members:
 Usage:
   python inference.py --csv data.csv --image_dir ./images --output predictions.csv
   python inference.py --csv data.csv --image_dir ./images --folds 1  # single fold (faster)
+  python inference.py --demo demo_data.npz --output predictions.csv  # from packed demo file
 """
 
 import os
@@ -224,16 +225,17 @@ def load_rf_pipeline(rf_path):
 
 def get_rf_probabilities(metadata_df, rf_pipeline):
     """Generate 3-class RF probabilities from metadata features."""
-    features = rf_pipeline['feature_names']
-    X = metadata_df[features].values
+    # Use original column order for imputer/scaler (they were fit in this order)
+    all_features = rf_pipeline['all_feature_names']
+    X = metadata_df[all_features].values.astype(np.float32)
 
     # Impute missing values
     X = rf_pipeline['imputer'].transform(X)
     # Scale
     X = rf_pipeline['scaler'].transform(X)
-    # Feature selection
-    if 'selector' in rf_pipeline:
-        X = rf_pipeline['selector'].transform(X)
+    # Select features in the same order RF was trained on
+    selected_indices = rf_pipeline['selected_indices']
+    X = X[:, selected_indices]
     # Predict probabilities
     probs = rf_pipeline['model'].predict_proba(X)
     return probs  # shape: (n_samples, 3)
@@ -259,6 +261,112 @@ def resolve_weight_files(weights_dir, combo, folds):
         if os.path.exists(fold_path):
             found.append((f'fold{fold}', fold_path))
     return found
+
+
+def run_inference_from_demo(demo_path, weights_dir, rf_pipeline_path,
+                            folds=None, batch_size=32, output_path=None):
+    """
+    Run inference from a packed .npz demo file (binary, self-contained).
+
+    The .npz contains preprocessed images (uint8), metadata features, and labels.
+    """
+    if folds is None:
+        folds = list(range(1, N_FOLDS + 1))
+
+    print(f"Loading demo data from {demo_path}...")
+    data = np.load(demo_path, allow_pickle=True)
+    n_samples = len(data['metadata'])
+    print(f"  {n_samples} samples")
+
+    # --- Step 1: RF probabilities ---
+    print(f"Loading RF pipeline from {rf_pipeline_path}...")
+    rf_pipeline = load_rf_pipeline(rf_pipeline_path)
+
+    # Build metadata DataFrame with correct feature names
+    feature_names = list(data['metadata_feature_names'])
+    metadata_df = pd.DataFrame(data['metadata'], columns=feature_names)
+    rf_probs = get_rf_probabilities(metadata_df, rf_pipeline)
+    print(f"  RF probabilities shape: {rf_probs.shape}")
+
+    # --- Step 2: Load preprocessed images (uint8 -> float32) ---
+    image_data = {}
+    for mod in ['depth_rgb', 'depth_map', 'thermal_map']:
+        image_data[mod] = data[mod].astype(np.float32)  # [0, 255] range
+        print(f"  Loaded {mod}: {image_data[mod].shape}")
+
+    # --- Step 3: Run models and collect predictions ---
+    all_predictions = []
+
+    for combo in ENSEMBLE_COMBOS:
+        combo_name = '+'.join(combo)
+
+        if combo == ('metadata',):
+            all_predictions.append(rf_probs.copy())
+            print(f"  {combo_name}: using RF probabilities directly")
+            continue
+
+        weight_files = resolve_weight_files(weights_dir, combo, folds)
+        if not weight_files:
+            print(f"  WARNING: No weights found for {combo_name}, skipping")
+            continue
+
+        combo_preds = []
+        for label, weight_path in weight_files:
+            print(f"  Loading {combo_name} ({label})...")
+            model = build_model(combo)
+            model.load_weights(weight_path)
+
+            feed = {'metadata_input': rf_probs}
+            for mod in combo:
+                if mod != 'metadata':
+                    feed[f'{mod}_input'] = image_data[mod]
+
+            preds = model.predict(feed, batch_size=batch_size, verbose=0)
+            combo_preds.append(preds)
+
+            del model
+            tf.keras.backend.clear_session()
+
+        avg = np.mean(combo_preds, axis=0)
+        all_predictions.append(avg)
+        print(f"  {combo_name}: averaged {len(combo_preds)} model(s)")
+
+    if not all_predictions:
+        print("ERROR: No predictions generated. Check weight files.")
+        sys.exit(1)
+
+    # --- Step 4: Ensemble ---
+    ensemble_probs = np.mean(all_predictions, axis=0)
+    ensemble_classes = np.argmax(ensemble_probs, axis=1)
+
+    # --- Step 5: Output ---
+    results = pd.DataFrame({
+        'sample_index': range(n_samples),
+        'predicted_class': [CLASS_SHORT[c] for c in ensemble_classes],
+        'predicted_label': [CLASS_NAMES[c] for c in ensemble_classes],
+        'prob_I': ensemble_probs[:, 0],
+        'prob_P': ensemble_probs[:, 1],
+        'prob_R': ensemble_probs[:, 2],
+        'confidence': np.max(ensemble_probs, axis=1),
+    })
+
+    # Include ground truth if available
+    labels = data.get('labels')
+    has_truth = (labels is not None and len(labels) == n_samples
+                 and str(labels[0]) != '')
+    if has_truth:
+        labels = np.array(labels)
+        results['true_class'] = labels
+
+    if output_path:
+        results.to_csv(output_path, index=False)
+        print(f"\nPredictions saved to {output_path}")
+    else:
+        print("\n" + results.to_string(index=False))
+
+    _print_summary(ensemble_classes, n_samples, labels if has_truth else None)
+
+    return results
 
 
 def run_inference(csv_path, image_dir, weights_dir, rf_pipeline_path,
@@ -323,7 +431,7 @@ def run_inference(csv_path, image_dir, weights_dir, rf_pipeline_path,
                 subdir = 'Thermal_Map_IMG'
                 bb_cols = bb_thermal_cols
 
-            filename = row.get(f'{mod}_filename', row.get('filename', ''))
+            filename = row.get(f'{mod}_filename', row.get(mod, row.get('filename', '')))
             filepath = os.path.join(image_dir, subdir, str(filename))
 
             if os.path.exists(filepath) and all(c in df.columns for c in bb_cols):
@@ -397,20 +505,48 @@ def run_inference(csv_path, image_dir, weights_dir, rf_pipeline_path,
     else:
         print("\n" + results.to_string(index=False))
 
-    print(f"\nPrediction summary:")
-    for i, name in enumerate(CLASS_NAMES):
-        count = (ensemble_classes == i).sum()
-        print(f"  {name} ({CLASS_SHORT[i]}): {count} ({count/n_samples*100:.1f}%)")
+    _print_summary(ensemble_classes, n_samples)
 
     return results
+
+
+def _print_summary(ensemble_classes, n_samples, true_labels=None):
+    """Print a clear results summary to terminal."""
+    pred_labels = np.array([CLASS_SHORT[c] for c in ensemble_classes])
+
+    print(f"\n{'='*50}")
+    print(f"  RESULTS  ({n_samples} samples)")
+    print(f"{'='*50}")
+    print(f"  {'Class':<20} {'Count':>6} {'Pct':>7}")
+    print(f"  {'-'*33}")
+    for i, name in enumerate(CLASS_NAMES):
+        count = (ensemble_classes == i).sum()
+        print(f"  {name + ' (' + CLASS_SHORT[i] + ')':<20} {count:>6} {count/n_samples*100:>6.1f}%")
+
+    if true_labels is not None:
+        from sklearn.metrics import cohen_kappa_score, f1_score
+        accuracy = np.mean(pred_labels == true_labels)
+        kappa = cohen_kappa_score(true_labels, pred_labels)
+        f1s = f1_score(true_labels, pred_labels, labels=CLASS_SHORT, average=None)
+        print(f"\n  {'Metric':<20} {'Value':>8}")
+        print(f"  {'-'*28}")
+        print(f"  {'Accuracy':<20} {accuracy:>7.1%}")
+        print(f"  {'Cohen Kappa':<20} {kappa:>8.3f}")
+        for i, name in enumerate(CLASS_SHORT):
+            print(f"  {'F1-' + name:<20} {f1s[i]:>8.3f}")
+    print(f"{'='*50}")
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='FUSE4DFU Inference: DFU Healing Phase Classification')
-    parser.add_argument('--csv', required=True,
+
+    # Demo mode (packed binary .npz) vs standard mode (CSV + images)
+    parser.add_argument('--demo', default=None,
+                        help='Path to packed demo .npz file (alternative to --csv/--image_dir)')
+    parser.add_argument('--csv', default=None,
                         help='Path to input CSV with metadata and image filenames')
-    parser.add_argument('--image_dir', required=True,
+    parser.add_argument('--image_dir', default=None,
                         help='Root directory containing Depth_RGB/, Depth_Map_IMG/, Thermal_Map_IMG/')
     parser.add_argument('--weights_dir', default='weights',
                         help='Directory with model weight files (default: weights/)')
@@ -424,6 +560,20 @@ def main():
                         help='Output CSV path. If omitted, prints to stdout')
 
     args = parser.parse_args()
+
+    if args.demo:
+        run_inference_from_demo(
+            demo_path=args.demo,
+            weights_dir=args.weights_dir,
+            rf_pipeline_path=args.rf_pipeline,
+            folds=args.folds,
+            batch_size=args.batch_size,
+            output_path=args.output,
+        )
+        return
+
+    if not args.csv or not args.image_dir:
+        parser.error("Either --demo or both --csv and --image_dir are required")
 
     run_inference(
         csv_path=args.csv,
