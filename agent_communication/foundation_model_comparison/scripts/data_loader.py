@@ -12,58 +12,85 @@ from PIL import Image
 from sklearn.model_selection import StratifiedGroupKFold
 
 PROJ_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-CSV_PATH = os.path.join(PROJ_ROOT, 'data', 'raw', 'DataMaster_Processed_V12_WithMissing.csv')
-DEPTH_BB_PATH = os.path.join(PROJ_ROOT, 'data', 'raw', 'bounding_box_depth.csv')
-THERMAL_BB_PATH = os.path.join(PROJ_ROOT, 'data', 'raw', 'bounding_box_thermal.csv')
+BEST_MATCHING_CSV = os.path.join(PROJ_ROOT, 'results', 'best_matching.csv')
 IMAGE_DIRS = {
     'depth_rgb': os.path.join(PROJ_ROOT, 'data', 'raw', 'Depth_RGB'),
     'depth_map': os.path.join(PROJ_ROOT, 'data', 'raw', 'Depth_Map_IMG'),
     'thermal_map': os.path.join(PROJ_ROOT, 'data', 'raw', 'Thermal_Map_IMG'),
 }
 
+MISCLASS_DIR = os.path.join(PROJ_ROOT, 'results', 'misclassifications_saved')
+
 LABEL_MAP = {'I': 0, 'P': 1, 'R': 2}
+LABEL_MAP_REV = {0: 'I', 1: 'P', 2: 'R'}
 CLASS_NAMES = ['I', 'P', 'R']
 N_FOLDS = 5
 CV_SEED = 42
 
+# Core data thresholds (identical to production_config.py)
+USE_CORE_DATA = True
+THRESHOLD_I = 53
+THRESHOLD_P = 84
+THRESHOLD_R = 70
+
+
+def _apply_core_data_filter(df):
+    """
+    Remove frequently misclassified samples using the same thresholds
+    as FUSE4DFU (USE_CORE_DATA=True). Matches filter_frequent_misclassifications()
+    in src/evaluation/metrics.py.
+    """
+    thresholds = {'I': THRESHOLD_I, 'P': THRESHOLD_P, 'R': THRESHOLD_R}
+
+    # Build sample IDs matching the format in misclassification CSVs
+    df['Sample_ID'] = df.apply(
+        lambda r: f"P{int(r['Patient#']):03d}A{int(r['Appt#']):02d}D{int(r['DFU#'])}",
+        axis=1
+    )
+
+    # Collect sample IDs to remove from all misclassification files
+    remove_ids = set()
+    mc_files = [f for f in os.listdir(MISCLASS_DIR)
+                if f.startswith('frequent_misclassifications_') and f.endswith('_saved.csv')]
+
+    if not mc_files:
+        print("  WARNING: No misclassification files found, skipping core data filter")
+        return df
+
+    for mc_file in mc_files:
+        mc = pd.read_csv(os.path.join(MISCLASS_DIR, mc_file))
+        for _, row in mc.iterrows():
+            phase = row['True_Label']
+            threshold = thresholds.get(phase, 999)
+            if row['Misclass_Count'] >= threshold:
+                remove_ids.add(row['Sample_ID'])
+
+    before = len(df)
+    df = df[~df['Sample_ID'].isin(remove_ids)].reset_index(drop=True)
+    after = len(df)
+    print(f"  Core data filter: {before} -> {after} samples "
+          f"({before - after} removed, {after/before*100:.1f}% retained)")
+
+    return df
+
 
 def load_dataset():
-    """Load the main CSV, merge bounding boxes, and return a clean DataFrame."""
-    df = pd.read_csv(CSV_PATH)
+    """
+    Load the pre-matched best_matching.csv (3,108 multimodal samples),
+    apply core data filtering, and return the same dataset as FUSE4DFU.
+    """
+    df = pd.read_csv(BEST_MATCHING_CSV)
 
     # Target labels
     df['label'] = df['Healing Phase Abs'].map(LABEL_MAP)
     df = df.dropna(subset=['label'])
     df['label'] = df['label'].astype(int)
 
-    # Merge depth bounding boxes
-    depth_bb = pd.read_csv(DEPTH_BB_PATH)
-    depth_bb = depth_bb.rename(columns={
-        'Xmin': 'depth_xmin', 'Ymin': 'depth_ymin',
-        'Xmax': 'depth_xmax', 'Ymax': 'depth_ymax',
-        'Filename': 'depth_filename'
-    })
-    df = df.merge(depth_bb[['Patient#', 'Appt#', 'DFU#',
-                             'depth_filename', 'depth_xmin', 'depth_ymin',
-                             'depth_xmax', 'depth_ymax']],
-                  on=['Patient#', 'Appt#', 'DFU#'], how='left')
+    print(f"Before filtering: {len(df)} samples, {df['Patient#'].nunique()} patients")
 
-    # Merge thermal bounding boxes
-    thermal_bb = pd.read_csv(THERMAL_BB_PATH)
-    thermal_bb = thermal_bb.rename(columns={
-        'Xmin': 'thermal_xmin', 'Ymin': 'thermal_ymin',
-        'Xmax': 'thermal_xmax', 'Ymax': 'thermal_ymax',
-        'Filename': 'thermal_filename'
-    })
-    df = df.merge(thermal_bb[['Patient#', 'Appt#', 'DFU#',
-                               'thermal_filename', 'thermal_xmin', 'thermal_ymin',
-                               'thermal_xmax', 'thermal_ymax']],
-                  on=['Patient#', 'Appt#', 'DFU#'], how='left')
-
-    # Drop rows missing any image modality
-    df = df.dropna(subset=['depth_filename', 'thermal_filename',
-                           'depth_xmin', 'thermal_xmin'])
-    df = df.reset_index(drop=True)
+    # Apply core data filter (same as FUSE4DFU)
+    if USE_CORE_DATA:
+        df = _apply_core_data_filter(df)
 
     print(f"Dataset: {len(df)} samples, {df['Patient#'].nunique()} patients")
     print(f"  Classes: {dict(df['label'].value_counts().sort_index())}")
@@ -134,11 +161,12 @@ def load_images(df, modality, target_size=224):
     """Load and preprocess all images for a given modality."""
     images = np.zeros((len(df), target_size, target_size, 3), dtype=np.uint8)
 
+    # In best_matching.csv: depth_rgb, depth_map, thermal_rgb, thermal_map are filename cols
     if modality in ('depth_rgb', 'depth_map'):
-        fn_col = 'depth_filename'
+        fn_col = modality  # 'depth_rgb' or 'depth_map' column holds the filename
         bb_cols = ['depth_xmin', 'depth_ymin', 'depth_xmax', 'depth_ymax']
     else:
-        fn_col = 'thermal_filename'
+        fn_col = modality  # 'thermal_map' column holds the filename
         bb_cols = ['thermal_xmin', 'thermal_ymin', 'thermal_xmax', 'thermal_ymax']
 
     img_dir = IMAGE_DIRS[modality]
