@@ -967,7 +967,8 @@ def create_enhanced_augmentation_fn(gen_manager, config):
         Augmentation function that can be applied to batched datasets
     """
     # Track how many generated sample images have been saved (max 3)
-    _saved_gen_samples = [0]
+    _saved_gen_per_phase = {'I': 0, 'P': 0, 'R': 0}
+    _max_per_phase = 3
 
     def apply_augmentation(features, label):
         def augment_batch(features_dict, label_tensor):
@@ -1039,17 +1040,18 @@ def create_enhanced_augmentation_fn(gen_manager, config):
                                 gen_np = generated.numpy() if hasattr(generated, 'numpy') else np.array(generated)
                                 num_to_replace = min(num_to_replace, len(gen_np))
 
-                                # Save first 3 generated images for visual verification
-                                if _saved_gen_samples[0] < 3:
+                                # Save 3 generated images per phase for visual verification
+                                phase_key = phase.replace('PHASE_', '')
+                                if phase_key in _saved_gen_per_phase and _saved_gen_per_phase[phase_key] < _max_per_phase:
                                     try:
                                         from PIL import Image
                                         save_dir = os.path.join('results', 'visualizations')
                                         os.makedirs(save_dir, exist_ok=True)
-                                        for si in range(min(len(gen_np), 3 - _saved_gen_samples[0])):
-                                            _saved_gen_samples[0] += 1
-                                            # gen_np is already [0, 255] (scaled in generate_images)
+                                        remaining = _max_per_phase - _saved_gen_per_phase[phase_key]
+                                        for si in range(min(len(gen_np), remaining)):
+                                            _saved_gen_per_phase[phase_key] += 1
                                             img = gen_np[si].clip(0, 255).astype(np.uint8)
-                                            save_path = os.path.join(save_dir, f'gen{_saved_gen_samples[0]}.png')
+                                            save_path = os.path.join(save_dir, f'gen{phase_key}_{_saved_gen_per_phase[phase_key]}.png')
                                             Image.fromarray(img).save(save_path)
                                             print(f"  Saved generated sample: {save_path} (phase: {phase}, modality: {modality_raw})", flush=True)
                                     except Exception as save_err:
