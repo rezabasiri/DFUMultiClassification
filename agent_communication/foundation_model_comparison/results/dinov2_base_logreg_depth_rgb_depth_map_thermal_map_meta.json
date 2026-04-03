@@ -1,0 +1,20 @@
+{
+  "model": "DINOv2-base",
+  "classifier": "logreg",
+  "modalities": [
+    "depth_rgb",
+    "depth_map",
+    "thermal_map"
+  ],
+  "include_metadata": true,
+  "n_folds": 5,
+  "mean_kappa": 0.4712,
+  "std_kappa": 0.1176,
+  "mean_accuracy": 0.7096,
+  "mean_f1_macro": 0.5867,
+  "mean_f1_I": 0.5805,
+  "mean_f1_P": 0.7919,
+  "mean_f1_R": 0.3878,
+  "feature_dim": 2350,
+  "timestamp": "20260403_165107"
+}
