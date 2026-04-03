@@ -248,12 +248,35 @@ Existing clinical classification systems such as the University of Texas, Wagner
 \subsection{Comparison with Existing Approaches}
 Direct comparison reveals novel contributions versus existing systems. While Al\nobreakdash-Garaawi et al.~\cite{al2022diabetic} reported F1\nobreakdash-scores of 0.95\nobreakdash-0.99 for binary RGB\nobreakdash-thermal classification, and Reyes\nobreakdash-Lu\'{e}vano et al.~\cite{reyes2023dfu} achieved 0.96 for binary classification, these approaches do not address temporal healing complexity. Our three\nobreakdash-class healing phase discrimination provides substantially higher clinical value, directly informing phase\nobreakdash-specific therapeutic interventions.
 
-The jointly optimized fusion framework achieved Cohen's kappa of 0.58 for the best individual combination, with optimized ensemble kappa of 0.65 and accuracy of 80.6\%, representing a novel contribution to multimodal fusion strategies for medical imaging. A key finding is that feature concatenation fusion with jointly optimized components outperforms more complex attention\nobreakdash-based approaches when training data is limited (443 samples). This aligns with established machine learning principles favoring simpler models under data constraints~\cite{kebaili2023deep}.
+To evaluate whether general\nobreakdash-purpose foundation models could match FUSE4DFU's domain\nobreakdash-specific fine\nobreakdash-tuning, we benchmarked two state\nobreakdash-of\nobreakdash-the\nobreakdash-art models: DINOv2~\cite{oquab2024dinov2}, a self\nobreakdash-supervised vision foundation model trained on 142 million images, and BiomedCLIP~\cite{zhang2024biomedclip}, a biomedical vision\nobreakdash-language model pretrained on 15 million scientific image\nobreakdash-text pairs. Both were evaluated with frozen feature extraction and lightweight classifiers on the same dataset and cross\nobreakdash-validation splits. Table~\ref{tab:foundation_comparison} summarizes the results.
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.2}
+\caption{FUSE4DFU vs Foundation Models. All methods use the same dataset and patient-stratified five-fold cross-validation. Foundation models use frozen feature extraction with logistic regression. $\kappa$ = quadratic-weighted Cohen's kappa.}
+\label{tab:foundation_comparison}
+\centering
+\footnotesize
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Method} & \textbf{$\kappa$} & \textbf{Acc (\%)} & \textbf{F1-R} \\
+\hline
+\textbf{FUSE4DFU ensemble} & \textbf{0.65} & \textbf{80.6} & \textbf{0.59} \\
+FUSE4DFU best combo & 0.58 & 73.3 & 0.56 \\
+\hline
+DINOv2 + metadata & 0.47 & 71.0 & 0.39 \\
+BiomedCLIP + metadata & 0.44 & 68.9 & 0.38 \\
+DINOv2 (image only) & 0.38 & 66.0 & 0.32 \\
+BiomedCLIP (image only) & 0.33 & 60.3 & 0.26 \\
+\hline
+\end{tabular}
+\end{table}
+
+FUSE4DFU outperformed the best foundation model configuration (DINOv2 with metadata, kappa 0.47) by +0.18 kappa at the ensemble level and +0.11 at the single\nobreakdash-combination level. The gap was most pronounced for the minority remodeling class (F1\nobreakdash-R: 0.59 vs 0.39), indicating that domain\nobreakdash-specific fine\nobreakdash-tuning captures wound healing signals that general\nobreakdash-purpose frozen features miss. Notably, BiomedCLIP's biomedical pretraining did not outperform DINOv2's natural image pretraining on this task, likely because wound images differ substantially from the scientific figures in BiomedCLIP's training corpus. These results confirm that feature concatenation fusion with jointly optimized components outperforms foundation model approaches when training data is limited (443 samples), aligning with established principles favoring domain\nobreakdash-specific models under data constraints~\cite{kebaili2023deep}.
 
 It is important to note that the absolute performance values reported in this study are influenced by the available dataset size and should be interpreted primarily in relation to each other, rather than as definitive benchmarks. The central contribution of this work is the systematic characterization of how modalities combine and contribute on a uniform dataset with consistent sample counts across all modalities. This controlled setup enables fair comparison between modality combinations, revealing the relative value of each sensor type. Absolute performance can be expected to improve with larger datasets, but the relative modality hierarchy and fusion dynamics observed here provide generalizable insights for multimodal wound assessment system design.
 
 \subsection{Joint Optimization and Architectural Insights}
-The joint Bayesian optimization revealed several findings that contradict conventional assumptions in medical image analysis. First, DenseNet121~\cite{huang2017densely} outperformed EfficientNet~\cite{tan2019efficientnet} for both RGB and thermal modalities, despite EfficientNet's widespread adoption in medical imaging. DenseNet's dense connectivity and feature reuse may provide superior transfer learning for false\nobreakdash-color medical images that differ substantially from ImageNet's natural image domain. Second, simple probability averaging of metadata\nobreakdash-containing combinations outperformed all 111 tested ensemble strategies including multi\nobreakdash-head attention, MLP stacking, and gradient boosting. The attention\nobreakdash-based gating network collapsed to majority\nobreakdash-class prediction on two of five folds, confirming that complex ensemble architectures are prone to overfitting with limited training data.
+The joint Bayesian optimization revealed several findings that contradict conventional assumptions in medical image analysis. First, DenseNet121~\cite{huang2017densely} outperformed EfficientNet~\cite{tan2019efficientnet} for both RGB and thermal modalities, despite EfficientNet's widespread adoption in medical imaging. DenseNet's dense connectivity and feature reuse may provide superior transfer learning for false\nobreakdash-color medical images that differ substantially from ImageNet's natural image domain. Second, simple probability averaging of metadata\nobreakdash-containing combinations outperformed all 111 tested ensemble configurations across eight strategies: simple averaging (kappa 0.54), optimal weighted averaging (0.53), temperature scaling (0.52), MLP stacking (0.51), logistic regression stacking (0.50), rank\nobreakdash-weighted averaging (0.50), multi\nobreakdash-head attention gating (0.49), and gradient boosting stacking (0.47). Performance was inversely correlated with model complexity. The attention\nobreakdash-based gating network collapsed to majority\nobreakdash-class prediction on two of five folds, confirming that complex ensemble architectures are prone to overfitting with limited training data.
 
 The calibration analysis reveals an inherent tradeoff in ensemble averaging: while individual fusion models achieve low calibration error (ECE 0.08), the ensemble's probability averaging compresses confidence values, increasing ECE to 0.27 despite improving classification accuracy from 73.3\% to 80.6\%. In clinical deployment, this implies that the ensemble's predicted class is more often correct, but its associated confidence score is less reliable as an uncertainty estimate. For applications requiring both accurate predictions and trustworthy confidence scores, post\nobreakdash-hoc calibration methods such as temperature scaling~\cite{guo2017calibration} could be applied to the ensemble output.
 
@@ -298,12 +321,74 @@ The authors thank the clinicians and staff at the Zivot Limb Preservation Centre
 
 \newpage
 \appendices
+\section{Ensemble Strategy Comparison}
+\label{app:ensemble_strategies}
+
+\begin{table}[H]
+\renewcommand{\arraystretch}{1.15}
+\caption{Ensemble Strategy Optimization Results (111 configurations across 8 strategies). All strategies combine predictions from modality-specific models trained on the same dataset. $\kappa$ = quadratic-weighted Cohen's kappa. The simplest approach (parameter-free averaging) achieved the highest kappa.}
+\label{tab:ensemble_strategies}
+\centering
+\footnotesize
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Strategy} & \textbf{$\kappa$ $\pm$std} & \textbf{Acc (\%)} & \textbf{Params} \\
+\hline
+\textbf{Simple averaging} & \textbf{0.54 $\pm$0.12} & \textbf{78.9} & \textbf{0} \\
+Optimal weighted avg & 0.53 $\pm$0.12 & 78.6 & 8 \\
+Temperature scaling & 0.52 $\pm$0.11 & 76.8 & 8 \\
+MLP stacking & 0.51 $\pm$0.11 & 79.1 & $\sim$3K \\
+Logistic regression & 0.50 $\pm$0.11 & 78.5 & 135 \\
+Rank-weighted avg & 0.50 $\pm$0.12 & 76.0 & 1 \\
+Attention gating & 0.49 $\pm$0.10 & 78.5 & $\sim$10K \\
+Gradient boosting & 0.47 $\pm$0.11 & 78.7 & $\sim$30K \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Foundation Model Comparison}
+\label{app:foundation}
+
+\begin{table}[H]
+\renewcommand{\arraystretch}{1.15}
+\caption{Complete Foundation Model Benchmark Results. All models evaluated on the same dataset with patient-stratified five-fold cross-validation. Foundation models use frozen feature extraction (no fine-tuning). LogReg = logistic regression, MLP = multilayer perceptron. $\kappa$ = quadratic-weighted Cohen's kappa.}
+\label{tab:foundation_full}
+\centering
+\footnotesize
+\begin{tabular}{|l|l|l|c|c|c|c|c|}
+\hline
+\textbf{Model} & \textbf{Modalities} & \textbf{Head} & \textbf{$\kappa$} & \textbf{Acc} & \textbf{F1-I} & \textbf{F1-P} & \textbf{F1-R} \\
+\hline
+\multicolumn{8}{|l|}{\textbf{FUSE4DFU (ours, fine-tuned)}} \\
+\hline
+Opt. ensemble & 4 combos & Avg & \textbf{0.65} & \textbf{81} & \textbf{0.73} & \textbf{0.86} & \textbf{0.59} \\
+Best combo & M+RGB+T & FC & 0.58 & 73 & 0.62 & 0.79 & 0.56 \\
+\hline
+\multicolumn{8}{|l|}{\textbf{DINOv2 ViT-B/14 (frozen)}} \\
+\hline
++ metadata & All 3 & LogReg & 0.47 & 71 & 0.58 & 0.79 & 0.39 \\
++ metadata & All 3 & MLP & 0.39 & 70 & 0.48 & 0.80 & 0.32 \\
+Image only & All 3 & LogReg & 0.38 & 66 & 0.48 & 0.76 & 0.32 \\
+Image only & All 3 & MLP & 0.34 & 68 & 0.43 & 0.78 & 0.29 \\
+Image only & RGB & LogReg & 0.33 & 62 & 0.42 & 0.73 & 0.30 \\
+\hline
+\multicolumn{8}{|l|}{\textbf{BiomedCLIP ViT-B/16 (frozen)}} \\
+\hline
++ num. meta & All 3 & LogReg & 0.44 & 69 & 0.55 & 0.77 & 0.38 \\
++ num. meta & All 3 & MLP & 0.41 & 72 & 0.56 & 0.81 & 0.25 \\
+Image only & RGB & LogReg & 0.37 & 58 & 0.47 & 0.66 & 0.35 \\
+Image only & All 3 & LogReg & 0.33 & 60 & 0.46 & 0.70 & 0.26 \\
++ text meta & All 3 & LogReg & 0.27 & 56 & 0.39 & 0.67 & 0.23 \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Complete Modality Combination Results}
 \label{app:all_combos}
 
 \begin{table}[H]
 \renewcommand{\arraystretch}{1.15}
-\caption{Complete Performance Analysis for All 15 Modality Combinations (five-fold patient-stratified cross-validation with 15\% generative augmentation). I = inflammatory, P = proliferative, R = remodeling, Meta = metadata, RGB = red-green-blue, Acc = accuracy, std = standard deviation, $\kappa$ = Cohen's kappa.}
+\caption{Complete Performance Analysis for All 15 Modality Combinations (five-fold patient-stratified cross-validation with 15\% generative augmentation). I = inflammatory, P = proliferative, R = remodeling, Meta = metadata, RGB = red-green-blue, Acc = accuracy, std = standard deviation, $\kappa$ = quadratic-weighted Cohen's kappa.}
 \label{tab:supplementary_all_combos}
 \centering
 \footnotesize
