@@ -1,0 +1,21 @@
+{
+  "model": "BiomedCLIP",
+  "classifier": "logreg",
+  "modalities": [
+    "depth_rgb",
+    "depth_map",
+    "thermal_map"
+  ],
+  "include_metadata_text": false,
+  "include_metadata_numeric": false,
+  "n_folds": 5,
+  "mean_kappa": 0.3345,
+  "std_kappa": 0.0963,
+  "mean_accuracy": 0.6026,
+  "mean_f1_macro": 0.4741,
+  "mean_f1_I": 0.4587,
+  "mean_f1_P": 0.7035,
+  "mean_f1_R": 0.2602,
+  "feature_dim": 1536,
+  "timestamp": "20260403_170336"
+}
